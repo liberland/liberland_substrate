@@ -2903,9 +2903,9 @@ dependencies = [
 
 [[package]]
 name = "httparse"
-version = "1.5.1"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acd94fdbe1d4ff688b67b04eee2e17bd50995534a61539e45adfefb45e5e5503"
+checksum = "9100414882e15fb7feccb4897e5f0ff0ff1ca7d1a86a23208ada4d7a18e6c6c4"
 
 [[package]]
 name = "httpdate"
@@ -2949,9 +2949,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "0.14.16"
+version = "0.14.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7ec3e62bdc98a2f0393a5048e4c30ef659440ea6e0e572965103e72bd836f55"
+checksum = "043f0e083e9901b6cc658a77d1eb86f4fc650bbb977a4337dd63192826aa85dd"
 dependencies = [
  "bytes 1.1.0",
  "futures-channel",
@@ -2962,7 +2962,7 @@ dependencies = [
  "http-body",
  "httparse",
  "httpdate",
- "itoa 0.4.8",
+ "itoa 1.0.1",
  "pin-project-lite 0.2.6",
  "socket2 0.4.0",
  "tokio",
@@ -2979,7 +2979,7 @@ checksum = "5f9f7a97316d44c0af9b0301e65010573a853a9fc97046d7331d7f6bc0fd5a64"
 dependencies = [
  "ct-logs",
  "futures-util",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "log 0.4.14",
  "rustls 0.19.1",
  "rustls-native-certs 0.5.0",
@@ -2995,7 +2995,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
 dependencies = [
  "bytes 1.1.0",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "native-tls",
  "tokio",
  "tokio-native-tls",
@@ -3213,7 +3213,7 @@ checksum = "d2b99d4207e2a04fb4581746903c2bb7eb376f88de9c699d0f3e10feeac0cd3a"
 dependencies = [
  "derive_more",
  "futures 0.3.19",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "hyper-tls",
  "jsonrpc-core",
  "jsonrpc-pubsub",
@@ -3269,7 +3269,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1dea6e07251d9ce6a552abfb5d7ad6bc290a4596c8dcc3d795fae2bbdc1f3ff"
 dependencies = [
  "futures 0.3.19",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "jsonrpc-core",
  "jsonrpc-server-utils",
  "log 0.4.14",
@@ -3397,7 +3397,7 @@ dependencies = [
  "beef",
  "futures-channel",
  "futures-util",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "jsonrpsee-types 0.8.0",
  "rustc-hash",
  "serde",
@@ -3431,7 +3431,7 @@ dependencies = [
  "beef",
  "futures-channel",
  "futures-util",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "log 0.4.14",
  "serde",
  "serde_json",
@@ -8731,7 +8731,7 @@ dependencies = [
  "futures 0.3.19",
  "futures-timer",
  "hex",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "hyper-rustls",
  "lazy_static",
  "num_cpus",
@@ -10606,7 +10606,7 @@ name = "substrate-prometheus-endpoint"
 version = "0.10.0-dev"
 dependencies = [
  "futures-util",
- "hyper 0.14.16",
+ "hyper 0.14.17",
  "log 0.4.14",
  "prometheus",
  "thiserror",
