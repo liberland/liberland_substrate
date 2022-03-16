@@ -133,6 +133,25 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 			hex!["b8a38c415dbca92f42d7ddb363a5482a624686452baa8426ae76084350a0cd1e"]
 				.unchecked_into(),
 		),
+		// A keys
+		(
+			// 5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm
+			hex!["362ecfe9dc809c6f8dc1fbabe362359bfc10c9fd338878259b9597b5c98d4d5a"].into(),
+			// 5GRdANmvxgsf8PeTg32j6VVzyrTBFzSsEo7VATyQ2YpnoiW6
+			hex!["c0e54896103096ac60e30656014d8e70d927dacec6443974797dad7cf7df722d"].into(),
+			// 5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte
+			hex!["87ff7de508defa1c9bee77eafd1095d4d70fe46bae815c7f9c41158a0ed9c2b0"]
+				.unchecked_into(),
+			// 5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN
+			hex!["7401735abd35ac50775a15941f8c7134a087507c2b2006d2c7cf77d75c9a6b7d"]
+				.unchecked_into(),
+			// 5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU
+			hex!["829459ce71553a4ec94983caba9e5c0a02057210c83cac90ad89066c5543683c"]
+				.unchecked_into(),
+			// 5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU
+			hex!["54c624f4da9e43a87ab7ce59cb715805c1b48b0382c763f63a813b24b6da8461"]
+				.unchecked_into(),
+		),
 		(
 			// 5DyVtKWPidondEu8iHZgi6Ffv9yrJJ1NDNLom3X9cTDi98qp
 			hex!["547ff0ab649283a7ae01dbc2eb73932eba2fb09075e9485ff369082a2ff38d65"].into(),
