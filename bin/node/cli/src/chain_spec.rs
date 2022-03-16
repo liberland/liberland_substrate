@@ -152,6 +152,25 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 			hex!["54c624f4da9e43a87ab7ce59cb715805c1b48b0382c763f63a813b24b6da8461"]
 				.unchecked_into(),
 		),
+		// D keys
+		(
+			// 5F6gSQYmagwfFjeuAvpvux3rx5cm93Y38xGMXQQCYM5oEifn
+			hex!["86366aadb31d744f1c59da7eb15ce5e23b69813aab5e8fc0cefdd3145b6a631d"].into(),
+			// 5FHGKZRsMaXFEgJdeshdm6VvyyCwWNuEHX3QBJDGGAXBT1kU
+			hex!["8e48ed75232a42185be6da6bf024b35ed1b9f8a63c5093eb14a26419c1401f16"].into(),
+			// 5Ger91spTSRhNn3cqkZiNXvyVjFuCmr3eypJ2vErJbfs39Hg
+			hex!["cafb28207144e3319b4b17bf9ba4ca14d05fd6a9f9501462fa3edeb306ba9994"]
+				.unchecked_into(),
+			// 5DXCgb56mc5FYKhGDftRskbZGjjk87ayEEpmLJCJSEa1wxST
+			hex!["4071a6cf35750837b25aa39e1b43865da4fe3def460643e55412a53c2d216160"]
+				.unchecked_into(),
+			// 5FvJaiEPwVNDuKCpQZXF7K9vN2TWw2nXL8LJuNrqeg7QLNTW
+			hex!["aa889e99baa17b65b0ef76dc1ddad73c35864f836f87345dff3b2b997322454d"]
+				.unchecked_into(),
+			// 5GEb1Gih5iGQULmfN8hJgZZAJyiDXwBEs2vf72aHB8fD3LqP
+			hex!["b87a52b506f4b1590443904ad9a0f63c1a826f3673abe4ac7b1b5303822be325"]
+				.unchecked_into(),
+		),
 		(
 			// 5DyVtKWPidondEu8iHZgi6Ffv9yrJJ1NDNLom3X9cTDi98qp
 			hex!["547ff0ab649283a7ae01dbc2eb73932eba2fb09075e9485ff369082a2ff38d65"].into(),
