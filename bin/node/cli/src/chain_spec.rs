@@ -28,6 +28,7 @@ use node_runtime::{
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
+use sc_chain_spec::Properties;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
@@ -221,6 +222,18 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 	testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts))
 }
 
+fn properties() -> sc_chain_spec::Properties {
+	let mut p = Properties::new();
+	p.insert("prefix".into(), 56.into());
+	p.insert("network".into(), "liberland".into());
+	p.insert("displayName".into(), "Liberland Menger".into());
+	p.insert("tokenSymbol".into(), "LLM".into());
+	p.insert("tokenDecimals".into(), 12.into());
+	p.insert("standardAccount".into(), "*25519".into());
+	p.insert("ss58Format".into(), 56.into());
+	p.insert("website".into(), "https://liberland.org".into());
+	p
+}
 /// Staging testnet config.
 pub fn staging_testnet_config() -> ChainSpec {
 	let boot_nodes = vec![];
@@ -236,7 +249,7 @@ pub fn staging_testnet_config() -> ChainSpec {
 		),
 		None,
 		None,
-		None,
+		Some(properties()),
 		Default::default(),
 	)
 }
@@ -426,7 +439,7 @@ pub fn development_config() -> ChainSpec {
 		None,
 		None,
 		None,
-		None,
+		Some(properties()),
 		Default::default(),
 	)
 }
@@ -451,7 +464,7 @@ pub fn local_testnet_config() -> ChainSpec {
 		None,
 		None,
 		None,
-		None,
+		Some(properties()),
 		Default::default(),
 	)
 }
