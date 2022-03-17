@@ -1,0 +1,173 @@
+{
+  "babe": {
+    "authorities": [],
+    "epochConfig": {
+      "c": [1, 4],
+      "allowed_slots": "PrimaryAndSecondaryPlainSlots"
+    }
+  },
+  "indices": {
+    "indices": []
+  },
+  "balances": {
+    "balances": [
+      [
+        "5C5dyvVaddNtF4Tn5e74mnvZiirt4Dm9MDSNktT9eg4C5FGf",
+        1000000000000000000000
+      ],
+      [
+        "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+        1000000000000000000000
+      ],
+      [
+        "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+        1000000000000000000000
+      ],
+      [
+        "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+        1000000000000000000000
+      ],
+      [
+        "5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc",
+        1000000000000000000000
+      ],
+      [
+        "5F6gSQYmagwfFjeuAvpvux3rx5cm93Y38xGMXQQCYM5oEifn",
+        1000000000000000000000
+      ]
+    ]
+  },
+  "transactionPayment": null,
+  "staking": {
+    "historyDepth": 84,
+    "validatorCount": 3,
+    "minimumValidatorCount": 3,
+    "invulnerables": [
+      "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+      "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+      "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm"
+    ],
+    "forceEra": "NotForcing",
+    "slashRewardFraction": 100000000,
+    "canceledPayout": 0,
+    "stakers": [
+      [
+        "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+        "5DLoPvM3vXBABKuXjv589mJPzVGx79xKE4kkK3p3JHmz836M",
+        1000000000000000000,
+        "Validator"
+      ],
+      [
+        "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+        "5EeDcQXDx8oLBaKJ3mX85axwayosyJMGcnYKaxd7F8QZJYT2",
+        1000000000000000000,
+        "Validator"
+      ],
+      [
+        "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+        "5GRdANmvxgsf8PeTg32j6VVzyrTBFzSsEo7VATyQ2YpnoiW6",
+        1000000000000000000,
+        "Validator"
+      ]
+    ],
+    "minNominatorBond": 0,
+    "minValidatorBond": 0,
+    "maxValidatorCount": null,
+    "maxNominatorCount": null
+  },
+  "session": {
+    "keys": [
+      [
+        "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+        "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+        {
+          "grandpa": "5FrfnPEu3Vna4PGmGu3ePaHnNPgHvJhixGGTC8cbL9UH1xJx",
+          "babe": "5DCxhJuo6FetKAskDAtVUDmn1jmRcCAWqQb1ydMLGF1qoZUX",
+          "im_online": "5HWJo81AUqpTg1YaT82VEYmRBaHZ3fQ22D9n7FRYdg9yJq14",
+          "authority_discovery": "5CqNc35wV4XiqUkABGHwysm3MaDeB3y7y6DUxA5LM5pzcGSm"
+        }
+      ],
+      [
+        "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+        "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+        {
+          "grandpa": "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
+          "babe": "5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN",
+          "im_online": "5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU",
+          "authority_discovery": "5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU"
+        }
+      ],
+      [
+        "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+        "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+        {
+          "grandpa": "5HgWFpA8qspGUKHj326XfCSNVGzTNvvw2em9JbfwG3jYjVaK",
+          "babe": "5HpLsRiZHNkpntqMw8yLGmz2mNw1oY2tX3QKE7yaC7VV7WhW",
+          "im_online": "5E4Pj2idwHLbJeoqmaGBP71pFhRc9AtvNXyfhb21KgQucJEK",
+          "authority_discovery": "5GEoFZMF3EYrL3TzcyFWeQdWuw9RcwQUxAWbu7troMExxJbG"
+        }
+      ]
+    ]
+  },
+  "democracy": {
+    "phantom": null
+  },
+  "council": {
+    "phantom": null,
+    "members": []
+  },
+  "technicalCommittee": {
+    "phantom": null,
+    "members": []
+  },
+  "elections": {
+    "members": [
+      ["5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW", 1000000000000000000],
+      ["5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W", 1000000000000000000],
+      ["5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm", 1000000000000000000],
+      ["5C5dyvVaddNtF4Tn5e74mnvZiirt4Dm9MDSNktT9eg4C5FGf", 1000000000000000000]
+    ]
+  },
+  "technicalMembership": {
+    "members": [],
+    "phantom": null
+  },
+  "grandpa": {
+    "authorities": [
+      "5FrfnPEu3Vna4PGmGu3ePaHnNPgHvJhixGGTC8cbL9UH1xJx",
+      "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
+      "5Ger91spTSRhNn3cqkZiNXvyVjFuCmr3eypJ2vErJbfs39Hg"
+    ]
+  },
+  "treasury": null,
+  "sudo": {
+    "key": "5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc"
+  },
+  "imOnline": {
+    "keys": []
+  },
+  "authorityDiscovery": {
+    "keys": []
+  },
+  "society": {
+    "pot": 0,
+    "members": [],
+    "maxMembers": 999
+  },
+  "vesting": {
+    "vesting": []
+  },
+  "assets": {
+    "assets": [],
+    "metadata": [],
+    "accounts": []
+  },
+  "gilt": null,
+  "transactionStorage": {
+    "byteFee": 10,
+    "entryFee": 1000,
+    "storagePeriod": 100800,
+    "maxBlockTransactions": 512,
+    "maxTransactionSize": 8388608
+  }
+}
