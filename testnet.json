@@ -180,7 +180,20 @@
         "phantom": null
       },
       "grandpa": {
-        "authorities": []
+        "authorities": [
+          [
+            "5FrfnPEu3Vna4PGmGu3ePaHnNPgHvJhixGGTC8cbL9UH1xJx",
+            1
+          ],
+          [
+            "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
+            1
+          ],
+          [
+            "5Ger91spTSRhNn3cqkZiNXvyVjFuCmr3eypJ2vErJbfs39Hg",
+            1
+          ]
+        ]
       },
       "treasury": null,
       "sudo": {
