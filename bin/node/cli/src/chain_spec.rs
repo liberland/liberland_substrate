@@ -88,96 +88,72 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 	//
 	// for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
 
-	let initial_authorities: Vec<(
-		AccountId,
-		AccountId,
-		GrandpaId,
-		BabeId,
-		ImOnlineId,
-		AuthorityDiscoveryId,
-	)> = vec![
-		// 3yekn keys
-		(
-			// 5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W
-			hex!["fad7979de732fd3936afdf5cd36c3084a7e6499458878dc358504de9a28a971f"].into(),
-			// 5EeDcQXDx8oLBaKJ3mX85axwayosyJMGcnYKaxd7F8QZJYT2
-			hex!["7207b9f9c4b90119c3cce43da19ccf73e1760d4e6732a6bd7ac086ffe3ad025e"].into(),
-			// 5FrfnPEu3Vna4PGmGu3ePaHnNPgHvJhixGGTC8cbL9UH1xJx
-			hex!["a7c301f7e641c2281e641bf9c68d29bec671f4acb47cd91bc2a12ef7c0c114e4"]
-				.unchecked_into(),
-			// 5DCxhJuo6FetKAskDAtVUDmn1jmRcCAWqQb1ydMLGF1qoZUX
-			hex!["328825e2887bc2abb888d7aaf76f8e9cf1637dbd4f388d0b3d31e787c8bf962c"]
-				.unchecked_into(),
-			// 5HWJo81AUqpTg1YaT82VEYmRBaHZ3fQ22D9n7FRYdg9yJq14
-			hex!["f0b3eac069b83dfee7798f4b5ea3dc52aca48ebed1fda40b3916699f58833a36"]
-				.unchecked_into(),
-			// 5CqNc35wV4XiqUkABGHwysm3MaDeB3y7y6DUxA5LM5pzcGSm
-			hex!["22113bf86ea5e3c304ff6276fa443c65a51997895f2b63ef657cfcc2d2be5a7d"]
-				.unchecked_into(),
-		),
-		// F keys
-		(
-			// 5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW
-			hex!["9c8e48a2f6ff588533f53763b9254353ab851a719603a110c2c3c057891a5526"].into(),
-			// 5DLoPvM3vXBABKuXjv589mJPzVGx79xKE4kkK3p3JHmz836M
-			hex!["3882ce260a3b065cc220502c100d5a18a78b9b3bfc04f7b6cf14a9e7974ccb3a"].into(),
-			// 5HgWFpA8qspGUKHj326XfCSNVGzTNvvw2em9JbfwG3jYjVaK
-			hex!["f87af3161c8076a5ca40a2a89371567718ddea57dc6a26d3f61d109e7b69923f"]
-				.unchecked_into(),
-			// 5HpLsRiZHNkpntqMw8yLGmz2mNw1oY2tX3QKE7yaC7VV7WhW
-			hex!["fe7551174926dde66080548a5b9ef6553ea22a319dc86dc98b6faf0d29e3a301"]
-				.unchecked_into(),
-			// 5E4Pj2idwHLbJeoqmaGBP71pFhRc9AtvNXyfhb21KgQucJEK
-			hex!["583b6e203bb776417caf71f055e6f2fd31974dd64fb1e53b787da718701dbf22"]
-				.unchecked_into(),
-			// 5GEoFZMF3EYrL3TzcyFWeQdWuw9RcwQUxAWbu7troMExxJbG
-			hex!["b8a38c415dbca92f42d7ddb363a5482a624686452baa8426ae76084350a0cd1e"]
-				.unchecked_into(),
-		),
-		// A keys
-		(
-			// 5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm
-			hex!["362ecfe9dc809c6f8dc1fbabe362359bfc10c9fd338878259b9597b5c98d4d5a"].into(),
-			// 5GRdANmvxgsf8PeTg32j6VVzyrTBFzSsEo7VATyQ2YpnoiW6
-			hex!["c0e54896103096ac60e30656014d8e70d927dacec6443974797dad7cf7df722d"].into(),
-			// 5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte
-			hex!["87ff7de508defa1c9bee77eafd1095d4d70fe46bae815c7f9c41158a0ed9c2b0"]
-				.unchecked_into(),
-			// 5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN
-			hex!["7401735abd35ac50775a15941f8c7134a087507c2b2006d2c7cf77d75c9a6b7d"]
-				.unchecked_into(),
-			// 5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU
-			hex!["829459ce71553a4ec94983caba9e5c0a02057210c83cac90ad89066c5543683c"]
-				.unchecked_into(),
-			// 5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU
-			hex!["54c624f4da9e43a87ab7ce59cb715805c1b48b0382c763f63a813b24b6da8461"]
-				.unchecked_into(),
-		),
-		// D keys
-		// (
-		// 	// 5F6gSQYmagwfFjeuAvpvux3rx5cm93Y38xGMXQQCYM5oEifn
-		// 	hex!["86366aadb31d744f1c59da7eb15ce5e23b69813aab5e8fc0cefdd3145b6a631d"].into(),
-		// 	// 5FHGKZRsMaXFEgJdeshdm6VvyyCwWNuEHX3QBJDGGAXBT1kU
-		// 	hex!["8e48ed75232a42185be6da6bf024b35ed1b9f8a63c5093eb14a26419c1401f16"].into(),
-		// 	// 5Ger91spTSRhNn3cqkZiNXvyVjFuCmr3eypJ2vErJbfs39Hg
-		// 	hex!["cafb28207144e3319b4b17bf9ba4ca14d05fd6a9f9501462fa3edeb306ba9994"]
-		// 		.unchecked_into(),
-		// 	// 5DXCgb56mc5FYKhGDftRskbZGjjk87ayEEpmLJCJSEa1wxST
-		// 	hex!["4071a6cf35750837b25aa39e1b43865da4fe3def460643e55412a53c2d216160"]
-		// 		.unchecked_into(),
-		// 	// 5FvJaiEPwVNDuKCpQZXF7K9vN2TWw2nXL8LJuNrqeg7QLNTW
-		// 	hex!["aa889e99baa17b65b0ef76dc1ddad73c35864f836f87345dff3b2b997322454d"]
-		// 		.unchecked_into(),
-		// 	// 5GEb1Gih5iGQULmfN8hJgZZAJyiDXwBEs2vf72aHB8fD3LqP
-		// 	hex!["b87a52b506f4b1590443904ad9a0f63c1a826f3673abe4ac7b1b5303822be325"]
-		// 		.unchecked_into(),
-		// ),
-	];
+	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![(
+		// 5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9
+		hex!["920c238572e2b31c2efd19dad1a5674c8188388d9a30d0d01847759a5dc64069"].into(),
+		// 5GgaLpTUcgbCTGnwVkCjSSzZ5jTaEPuxtWGRDhi8M1BP1hTs
+		hex!["cc4c78c7f22298f17e0e2dcefb7cff85b30e19dc1699cb9d1de00e5ea65a433d"].into(),
+		// 5Fm7Lc3XDxxbH4LBKxn1tf44P1R5M5cm2vmuLZbUnPFLfu5p
+		hex!["a3859016b0b17b7ed6a5b2efcb4ce0e2b6b56ec8594d416c0ea3685929f0a15c"].unchecked_into(),
+		// 5CyLUbfTe941tZDvQQ5AYPXZ6zzqwS987DTwFGnZ3yPFX5wB
+		hex!["2824087e4d670acc6f2ac4251736b7fb581b5bff414437b6abc88dc118ea8d5c"].unchecked_into(),
+		// 5CahSqUXepwzCkbC7KNUSghUcuJxPDPKiQ4ow144Gb9qBPsX
+		hex!["16dffa9a82c7bb62f0f9929407223bf156458a4e7970ec4007ab2da7fb389f7d"].unchecked_into(),
+		// 5Eeard4qtNM8DBvqDEKn5GBAspbT7QEvhAjxSsYePB26XAiJ
+		hex!["724f3e6ec8a61ea3dc5b76c00a049f84fd7f212443b01241e0a2bb4ce503b345"].unchecked_into(),
+	),
+	(
+		// 5DP3mCevjzqrYhJgPpQFkpoERKg55K422u5KiRGPQaoJEgRH
+		hex!["3a39a8d0654e0f52b2ee8202ed3488e7a82650dde0daadaddbc8ea825e408d13"].into(),
+		// 5HeTTicL5u17JCkDhAwcAHUXMGEzXbDLjPYmNC5ahKhwaLgt
+		hex!["f6eb0cff5244d7437ed659ac34e6ea66daa857f3d1c580f452b8512ae7fdba0f"].into(),
+		// 5FKFid7kAaVFkfbpShH8dzw3wJipiuGPruTzc6WB2WKMviUX
+		hex!["8fcd640390db86812092a0b2b244aac9d8375be2c0a3434eb9062b58643c60fb"].unchecked_into(),
+		// 5G4AdD8rQ6MHp2K1L7vF1E43eX69JMZDQ1vknonsALwGQMwW
+		hex!["b087cc20818f98e543c55989afccd3ec28c57e425dae970d9dd63cad806c1f6d"].unchecked_into(),
+		// 5DknzWSQVCpo7bNf2NnBsjb529K2WVpvGv6Q3kn9RgcFgoeQ
+		hex!["4acf560d0aa80158ee06971c0ebbf4e6a1a407e6de2df16a003a765b73e63d7b"].unchecked_into(),
+		// 5DhZENrJzzaJL2MwLsQsvxARhhAPCVXdHxs2oSJuJLxhUsbg
+		hex!["485746d4cc0f20b5581f24b30f91b34d49a7b96b85bb8ba202f354aea8e14b1f"].unchecked_into(),
+	),
+	(
+		// 5DJQ1NXeThmu2N5yQHZUsY64Lmgm95nnchpRWi1nSBU2rgod
+		hex!["36ad94b252606800bc80869baf453663ac2e9276e83f0401107384c053552f3e"].into(),
+		// 5EWQq4ns7miu8B8ArsspZ9KBHX6gwjJXptJq5dbLgQucZvdc
+		hex!["6c1386fd76e4eec0365a439db0decae0d5d715e33db934bc44be28f73df50674"].into(),
+		// 5EUsrdaXAAJ87Y7yCRdrYKeyHdTYbSr9tJFCYEy12CNap2v2
+		hex!["6ae80477725a1e4f3194fac59286662ea491c9461cb54909432228351be3474a"].unchecked_into(),
+		// 5FHCHVMPD9VfpzMcGVyL7gqkq2Rd9NomkHFHP8BzP8isUBnh
+		hex!["8e3b579b007999dce44a28bb266f73b54e6f7ec219c495ae23fe0dc3c101e158"].unchecked_into(),
+		// 5GRarw8oivnRh5ViPC9kH6ztbPNiyrfb61BitYz2YzhoqS4L
+		hex!["c0dd89e234665e119ac8396af69c37d1956ffbf4a0173c21ee5872fea2366026"].unchecked_into(),
+		// 5CLfsFaNYPGQvpYkroN1qrWLt54Xpmn6shAxdE45bCy1cvgv
+		hex!["0c2d3a4c604c4ad68e285cc1c401dd2665c1cd7193b16d4d9c854c27a9238a1a"].unchecked_into(),
+	),];
+	// D keys
+	// (
+	// 	// 5F6gSQYmagwfFjeuAvpvux3rx5cm93Y38xGMXQQCYM5oEifn
+	// 	hex!["86366aadb31d744f1c59da7eb15ce5e23b69813aab5e8fc0cefdd3145b6a631d"].into(),
+	// 	// 5FHGKZRsMaXFEgJdeshdm6VvyyCwWNuEHX3QBJDGGAXBT1kU
+	// 	hex!["8e48ed75232a42185be6da6bf024b35ed1b9f8a63c5093eb14a26419c1401f16"].into(),
+	// 	// 5Ger91spTSRhNn3cqkZiNXvyVjFuCmr3eypJ2vErJbfs39Hg
+	// 	hex!["cafb28207144e3319b4b17bf9ba4ca14d05fd6a9f9501462fa3edeb306ba9994"]
+	// 		.unchecked_into(),
+	// 	// 5DXCgb56mc5FYKhGDftRskbZGjjk87ayEEpmLJCJSEa1wxST
+	// 	hex!["4071a6cf35750837b25aa39e1b43865da4fe3def460643e55412a53c2d216160"]
+	// 		.unchecked_into(),
+	// 	// 5FvJaiEPwVNDuKCpQZXF7K9vN2TWw2nXL8LJuNrqeg7QLNTW
+	// 	hex!["aa889e99baa17b65b0ef76dc1ddad73c35864f836f87345dff3b2b997322454d"]
+	// 		.unchecked_into(),
+	// 	// 5GEb1Gih5iGQULmfN8hJgZZAJyiDXwBEs2vf72aHB8fD3LqP
+	// 	hex!["b87a52b506f4b1590443904ad9a0f63c1a826f3673abe4ac7b1b5303822be325"]
+	// 		.unchecked_into(),
+	// ),
+	// ];
 
-	// generated with secret: subkey inspect "$secret"/fir
 	let root_key: AccountId = hex![
-		// 5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo
-		"9ee5e5bdc0ec239eb164f865ecc345ce4c88e76ee002e0f7e318097347471809"
+		// 5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc
+		"909c17e16dcf8bdacf31d3fc2f7d8a39d8fe46c38ebeffe5d68c10cd18d53f21"
 	]
 	.into();
 
