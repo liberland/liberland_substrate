@@ -149,20 +149,11 @@
       },
       "council": {
         "phantom": null,
-        "members": [
-          "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
-          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
-          "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-          "5C5dyvVaddNtF4Tn5e74mnvZiirt4Dm9MDSNktT9eg4C5FGf"
-        ]
+        "members": []
       },
       "technicalCommittee": {
         "phantom": null,
-        "members": [
-          "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
-          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
-          "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm"
-        ]
+        "members": []
       },
       "elections": {
         "members": [
@@ -203,12 +194,7 @@
       },
       "society": {
         "pot": 0,
-        "members": [
-          "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
-          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
-          "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-          "5C5dyvVaddNtF4Tn5e74mnvZiirt4Dm9MDSNktT9eg4C5FGf"
-        ],
+        "members": [],
         "maxMembers": 999
       },
       "vesting": {
