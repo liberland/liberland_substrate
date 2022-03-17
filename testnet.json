@@ -2,9 +2,7 @@
   "name": "Staging Testnet",
   "id": "staging_testnet",
   "chainType": "Live",
-  "bootNodes": [
-    "/ip4/206.221.189.10/tcp/30333/p2p/12D3KooWRm651Kd5GmsLTHJbgX5chQS5npx9ttLgo46UsegCMoNM"
-  ],
+  "bootNodes": [],
   "telemetryEndpoints": [
     [
       "/dns/telemetry.polkadot.io/tcp/443/x-parity-wss/%2Fsubmit%2F",
@@ -47,11 +45,7 @@
       "balances": {
         "balances": [
           [
-            "5C5dyvVaddNtF4Tn5e74mnvZiirt4Dm9MDSNktT9eg4C5FGf",
-            1000000000000000000000
-          ],
-          [
-            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+            "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
             1000000000000000000000
           ],
           [
@@ -63,11 +57,7 @@
             1000000000000000000000
           ],
           [
-            "5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc",
-            1000000000000000000000
-          ],
-          [
-            "5F6gSQYmagwfFjeuAvpvux3rx5cm93Y38xGMXQQCYM5oEifn",
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
             1000000000000000000000
           ]
         ]
@@ -78,8 +68,8 @@
         "validatorCount": 3,
         "minimumValidatorCount": 3,
         "invulnerables": [
-          "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
           "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+          "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
           "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm"
         ],
         "forceEra": "NotForcing",
@@ -87,14 +77,14 @@
         "canceledPayout": 0,
         "stakers": [
           [
-            "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
-            "5DLoPvM3vXBABKuXjv589mJPzVGx79xKE4kkK3p3JHmz836M",
+            "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+            "5EeDcQXDx8oLBaKJ3mX85axwayosyJMGcnYKaxd7F8QZJYT2",
             1000000000000000000,
             "Validator"
           ],
           [
-            "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
-            "5EeDcQXDx8oLBaKJ3mX85axwayosyJMGcnYKaxd7F8QZJYT2",
+            "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+            "5DLoPvM3vXBABKuXjv589mJPzVGx79xKE4kkK3p3JHmz836M",
             1000000000000000000,
             "Validator"
           ],
@@ -123,16 +113,6 @@
             }
           ],
           [
-            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-            {
-              "grandpa": "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
-              "babe": "5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN",
-              "im_online": "5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU",
-              "authority_discovery": "5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU"
-            }
-          ],
-          [
             "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
             "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
             {
@@ -140,6 +120,16 @@
               "babe": "5HpLsRiZHNkpntqMw8yLGmz2mNw1oY2tX3QKE7yaC7VV7WhW",
               "im_online": "5E4Pj2idwHLbJeoqmaGBP71pFhRc9AtvNXyfhb21KgQucJEK",
               "authority_discovery": "5GEoFZMF3EYrL3TzcyFWeQdWuw9RcwQUxAWbu7troMExxJbG"
+            }
+          ],
+          [
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+            {
+              "grandpa": "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
+              "babe": "5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN",
+              "im_online": "5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU",
+              "authority_discovery": "5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU"
             }
           ]
         ]
@@ -153,24 +143,19 @@
       },
       "technicalCommittee": {
         "phantom": null,
-        "members": []
+        "members": [
+          "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
+          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W"
+        ]
       },
       "elections": {
         "members": [
           [
-            "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+            "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
             1000000000000000000
           ],
           [
             "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
-            1000000000000000000
-          ],
-          [
-            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-            1000000000000000000
-          ],
-          [
-            "5C5dyvVaddNtF4Tn5e74mnvZiirt4Dm9MDSNktT9eg4C5FGf",
             1000000000000000000
           ]
         ]
@@ -180,24 +165,11 @@
         "phantom": null
       },
       "grandpa": {
-        "authorities": [
-          [
-            "5FrfnPEu3Vna4PGmGu3ePaHnNPgHvJhixGGTC8cbL9UH1xJx",
-            1
-          ],
-          [
-            "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
-            1
-          ],
-          [
-            "5Ger91spTSRhNn3cqkZiNXvyVjFuCmr3eypJ2vErJbfs39Hg",
-            1
-          ]
-        ]
+        "authorities": []
       },
       "treasury": null,
       "sudo": {
-        "key": "5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc"
+        "key": "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo"
       },
       "imOnline": {
         "keys": []
@@ -207,7 +179,10 @@
       },
       "society": {
         "pot": 0,
-        "members": [],
+        "members": [
+          "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
+          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W"
+        ],
         "maxMembers": 999
       },
       "vesting": {

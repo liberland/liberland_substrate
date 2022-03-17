@@ -4,7 +4,10 @@
   "chainType": "Live",
   "bootNodes": [],
   "telemetryEndpoints": [
-    ["/dns/telemetry.polkadot.io/tcp/443/x-parity-wss/%2Fsubmit%2F", 0]
+    [
+      "/dns/telemetry.polkadot.io/tcp/443/x-parity-wss/%2Fsubmit%2F",
+      0
+    ]
   ],
   "protocolId": null,
   "properties": {
@@ -29,7 +32,10 @@
       "babe": {
         "authorities": [],
         "epochConfig": {
-          "c": [1, 4],
+          "c": [
+            1,
+            4
+          ],
           "allowed_slots": "PrimaryAndSecondaryPlainSlots"
         }
       },
@@ -39,19 +45,19 @@
       "balances": {
         "balances": [
           [
-            "5Fk6QsYKvDXxdXumGdHnNQ7V7FziREy6qn8WjDLEWF8WsbU3",
+            "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
             1000000000000000000000
           ],
           [
-            "5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9",
+            "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
             1000000000000000000000
           ],
           [
-            "5DP3mCevjzqrYhJgPpQFkpoERKg55K422u5KiRGPQaoJEgRH",
+            "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
             1000000000000000000000
           ],
           [
-            "5DJQ1NXeThmu2N5yQHZUsY64Lmgm95nnchpRWi1nSBU2rgod",
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
             1000000000000000000000
           ]
         ]
@@ -62,29 +68,29 @@
         "validatorCount": 3,
         "minimumValidatorCount": 3,
         "invulnerables": [
-          "5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9",
-          "5DP3mCevjzqrYhJgPpQFkpoERKg55K422u5KiRGPQaoJEgRH",
-          "5DJQ1NXeThmu2N5yQHZUsY64Lmgm95nnchpRWi1nSBU2rgod"
+          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+          "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+          "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm"
         ],
         "forceEra": "NotForcing",
         "slashRewardFraction": 100000000,
         "canceledPayout": 0,
         "stakers": [
           [
-            "5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9",
-            "5GgaLpTUcgbCTGnwVkCjSSzZ5jTaEPuxtWGRDhi8M1BP1hTs",
+            "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+            "5EeDcQXDx8oLBaKJ3mX85axwayosyJMGcnYKaxd7F8QZJYT2",
             1000000000000000000,
             "Validator"
           ],
           [
-            "5DP3mCevjzqrYhJgPpQFkpoERKg55K422u5KiRGPQaoJEgRH",
-            "5HeTTicL5u17JCkDhAwcAHUXMGEzXbDLjPYmNC5ahKhwaLgt",
+            "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
+            "5DLoPvM3vXBABKuXjv589mJPzVGx79xKE4kkK3p3JHmz836M",
             1000000000000000000,
             "Validator"
           ],
           [
-            "5DJQ1NXeThmu2N5yQHZUsY64Lmgm95nnchpRWi1nSBU2rgod",
-            "5EWQq4ns7miu8B8ArsspZ9KBHX6gwjJXptJq5dbLgQucZvdc",
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+            "5GRdANmvxgsf8PeTg32j6VVzyrTBFzSsEo7VATyQ2YpnoiW6",
             1000000000000000000,
             "Validator"
           ]
@@ -107,16 +113,6 @@
             }
           ],
           [
-            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-            {
-              "grandpa": "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
-              "babe": "5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN",
-              "im_online": "5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU",
-              "authority_discovery": "5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU"
-            }
-          ],
-          [
             "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
             "5FbybRPQ8J7kVm43N6iKZKrdqFGk725BkrKnTQRgkiaqajVW",
             {
@@ -124,6 +120,16 @@
               "babe": "5HpLsRiZHNkpntqMw8yLGmz2mNw1oY2tX3QKE7yaC7VV7WhW",
               "im_online": "5E4Pj2idwHLbJeoqmaGBP71pFhRc9AtvNXyfhb21KgQucJEK",
               "authority_discovery": "5GEoFZMF3EYrL3TzcyFWeQdWuw9RcwQUxAWbu7troMExxJbG"
+            }
+          ],
+          [
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
+            {
+              "grandpa": "5F92DdJq8qnQNA5dzHqHa8n3LwtoHuKgg1ZXop9jmC8vKEte",
+              "babe": "5Egoqq7aNFY1kYmnN6ACVViVPiudEtP1CuSStUk1j1y6dTEN",
+              "im_online": "5F1v9k87Yk81njddDfKSiBdpyew57X2Wftr9bDnWLukZjjfU",
+              "authority_discovery": "5DyrjunWJcdNQB3z9kgzy8EqNuBYUNiJBhXUyjAHKpjQQ3RU"
             }
           ]
         ]
@@ -138,18 +144,18 @@
       "technicalCommittee": {
         "phantom": null,
         "members": [
-          "5Fk6QsYKvDXxdXumGdHnNQ7V7FziREy6qn8WjDLEWF8WsbU3",
-          "5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9"
+          "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
+          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W"
         ]
       },
       "elections": {
         "members": [
           [
-            "5Fk6QsYKvDXxdXumGdHnNQ7V7FziREy6qn8WjDLEWF8WsbU3",
+            "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
             1000000000000000000
           ],
           [
-            "5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9",
+            "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
             1000000000000000000
           ]
         ]
@@ -163,7 +169,7 @@
       },
       "treasury": null,
       "sudo": {
-        "key": "5Fk6QsYKvDXxdXumGdHnNQ7V7FziREy6qn8WjDLEWF8WsbU3"
+        "key": "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo"
       },
       "imOnline": {
         "keys": []
@@ -174,8 +180,8 @@
       "society": {
         "pot": 0,
         "members": [
-          "5Fk6QsYKvDXxdXumGdHnNQ7V7FziREy6qn8WjDLEWF8WsbU3",
-          "5FNCTJVDxfFnmUYKHqbJHjUi7UFbZ6pzC39sL6E5RVpB4vc9"
+          "5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo",
+          "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W"
         ],
         "maxMembers": 999
       },
