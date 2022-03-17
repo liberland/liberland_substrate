@@ -25,4 +25,3 @@ rls*.log
 *.bin
 *.iml
 .maintain/node-template-release/Cargo.lock
-scripts/session_keys/*4
