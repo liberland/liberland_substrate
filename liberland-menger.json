@@ -6,10 +6,11 @@
   "telemetryEndpoints": [],
   "protocolId": "liberland",
   "properties": {
+    "network": "liberland",
     "ss58Format": 56,
     "tokenDecimals": 12,
     "tokenSymbol": "LLM"
-  },
+    },
   "forkBlocks": null,
   "badBlocks": null,
   "lightSyncState": null,
