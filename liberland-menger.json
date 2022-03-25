@@ -1,10 +1,10 @@
 {
   "name": "Liberland",
-  "id": "liberland",
+  "id": "liberland2",
   "chainType": "Live",
   "bootNodes": [],
   "telemetryEndpoints": [],
-  "protocolId": "liberland",
+  "protocolId": "liberland2",
   "properties": {
     "network": "liberland",
     "ss58Format": 56,
