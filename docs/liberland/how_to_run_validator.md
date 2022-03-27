@@ -130,10 +130,10 @@ Once your node has been added as a validator, your node should become an active 
 
 
 ### Useful links:    
-https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fn2.liberland.network#/extrinsics
-https://docs.substrate.io/tutorials/v3/permissioned-network/
-https://docs.substrate.io/v3/tools/subkey/
-https://www.youtube.com/watch?v=2lspS7SFJc8
-https://www.youtube.com/watch?v=ejgPSwdLj5o
-https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot
-https://core.tetcoin.org/docs/en/tutorials/start-a-private-network/keygen
+https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fn2.liberland.network#/extrinsics            
+https://docs.substrate.io/tutorials/v3/permissioned-network/          
+https://docs.substrate.io/v3/tools/subkey/           
+https://www.youtube.com/watch?v=2lspS7SFJc8         
+https://www.youtube.com/watch?v=ejgPSwdLj5o                         
+https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot       
+https://core.tetcoin.org/docs/en/tutorials/start-a-private-network/keygen         
