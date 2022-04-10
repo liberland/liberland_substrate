@@ -1,31 +1,36 @@
-# Substrate &middot; [![GitHub license](https://img.shields.io/badge/license-GPL3%2FApache2-blue)](#LICENSE) [![GitLab Status](https://gitlab.parity.io/parity/substrate/badges/master/pipeline.svg)](https://gitlab.parity.io/parity/substrate/pipelines) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](docs/CONTRIBUTING.adoc) [![Matrix](https://img.shields.io/matrix/substrate-technical:matrix.org)](https://matrix.to/#/#substrate-technical:matrix.org)
+# Liberland Blockchain    
+<p>
+<center>
 
-<p align="center">
-  <img src="/docs/media/sub.gif">
+  <img style="max-height: 250px;" alt="Liberland blockchain node" title="Liberland Logo" src="Liberland_official_znak.png">
+</center>
 </p>
 
-Substrate is a next-generation framework for blockchain innovation 🚀.
 
-## Trying it out
+[![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/liberland/liberland_node)](https://github.com/liberland/liberland_node/tags) [![Twitter](https://img.shields.io/badge/Twitter-gray?logo=twitter)](https://twitter.com/liberland)
 
-Simply go to [docs.substrate.io](https://docs.substrate.io) and follow the
-[installation](https://docs.substrate.io/v3/getting-started/overview) instructions. You can
-also try out one of the [tutorials](https://docs.substrate.io/tutorials/).
 
-## Contributions & Code of Conduct
 
-Please follow the contributions guidelines as outlined in [`docs/CONTRIBUTING.adoc`](docs/CONTRIBUTING.adoc). In all communications and contributions, this project follows the [Contributor Covenant Code of Conduct](docs/CODE_OF_CONDUCT.md).
+## Download pre-compiled node:  
+```
+wget get.testnet.liberland.org/substrate  
 
-## Security
+```
 
-The security policy and procedures can be found in [`docs/SECURITY.md`](docs/SECURITY.md).
 
-## License
+Check the hash of the downloaded file:
+```shell
+$ b2sum substrate 
+176b365c65f4bd36c8ac8643c75f7d75a0d2139995fd930ac9e213b77d093b0bbee600fa233037b8566accfaec2c22d62c8ead0b2b0b7c4aa5eee6825a4742a9  substrate
+$ md5sum substrate 
+6da96ee4135e6a881d36360628af3742  substrate
+$ sha256sum substrate 
+c4d8bff559831c4868247c0e1f4ce765d3d00db7d030205ecc134e755503fc0d  substrate
+```
 
-- Substrate Primitives (`sp-*`), Frame (`frame-*`) and the pallets (`pallets-*`), binaries (`/bin`) and all other utilities are licensed under [Apache 2.0](LICENSE-APACHE2).
-- Substrate Client (`/client/*` / `sc-*`) is licensed under [GPL v3.0 with a classpath linking exception](LICENSE-GPL3).
 
-The reason for the split-licensing is to ensure that for the vast majority of teams using Substrate to create feature-chains, then all changes can be made entirely in Apache2-licensed code, allowing teams full freedom over what and how they release and giving licensing clarity to commercial teams.
 
-In the interests of the community, we require any deeper improvements made to Substrate's core logic (e.g. Substrate's internal consensus, crypto or database code) to be contributed back so everyone can benefit.
+
+Documentation can be found in the (docs/)[docs/] folder
+
 
