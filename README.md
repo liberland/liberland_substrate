@@ -12,9 +12,8 @@
 
 
 ## Download pre-compiled node:  
-```
-wget get.testnet.liberland.org/substrate  
-
+```shell
+$ wget get.testnet.liberland.org/substrate  
 ```
 
 
@@ -28,7 +27,10 @@ $ sha256sum substrate
 c4d8bff559831c4868247c0e1f4ce765d3d00db7d030205ecc134e755503fc0d  substrate
 ```
 
-
+### Download the chainspec:  
+```shell
+$ wget get.testnet.liberland.org/liberland-menger.json
+```
 
 
 Documentation can be found in the (docs/)[docs/] folder
