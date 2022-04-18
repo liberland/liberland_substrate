@@ -9,7 +9,7 @@
     "network": "liberland",
     "ss58Format": 56,
     "tokenDecimals": 12,
-    "tokenSymbol": "LLM"
+    "tokenSymbol": "LLD"
     },
   "forkBlocks": null,
   "badBlocks": null,

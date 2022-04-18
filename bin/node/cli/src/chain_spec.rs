@@ -183,7 +183,7 @@ fn properties() -> sc_chain_spec::Properties {
 	p.insert("prefix".into(), 56.into());
 	p.insert("network".into(), "liberland".into());
 	p.insert("displayName".into(), "Liberland Menger".into());
-	p.insert("tokenSymbol".into(), "LLM".into());
+	p.insert("tokenSymbol".into(), "LLD".into());
 	p.insert("tokenDecimals".into(), 12.into());
 	p.insert("standardAccount".into(), "*25519".into());
 	p.insert("ss58Format".into(), 56.into());
