@@ -10,6 +10,15 @@
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/liberland/liberland_node)](https://github.com/liberland/liberland_node/tags) [![Twitter](https://img.shields.io/badge/Twitter-gray?logo=twitter)](https://twitter.com/liberland)
 
 
+### How to run a validator:    
+```shell
+$ git clone https://github.com/liberland/liberland_substrate && cd liberland_substrate/ && cargo build --release 
+$ cd scripts/ && bash run_validator.sh
+```   
+Clone our github repository, compile the node with cargo build --release, navigate into our scripts directory and run out validator  
+setup script called run_validator.sh
+
+
 
 ## Download pre-compiled node:  
 ```shell

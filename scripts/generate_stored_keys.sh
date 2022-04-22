@@ -25,6 +25,11 @@ generate_public_key() {
 	subkey inspect ${2:-} ${3:-} "$SECRET//$1" | grep "Account ID" | awk '{ print $3 }'
 }
 
+copy_files() {
+	touch ig.sh && cp ig.sh ig.sh.old
+	cp insert_keys_gen.sh ig.sh 
+}
+
 generate_address_and_account_id() {
 	ADDRESS=$(generate_address $1 $2)
 	PUBLIC_KEY=$(generate_public_key $1 $2)
@@ -33,9 +38,9 @@ generate_address_and_account_id() {
 	SK="${SECRET}//$1"
 	SD="s/$M/$SECRET/g"
 	printf "SD:	 s/$M/${SECRET:2}/g \n"
-	printf "AC:	 s/$ACCOUNT_PREFIX/$ADDRESS/g \n"
-	sed -i "s/$M/${SECRET:2}/g" insert_keys_gen.sh
-	sed -i "s/$ACCOUNT_PREFIX/$ADDRESS/g" insert_keys_gen.sh
+	printf "AC:	 s/$ACCOUNT_PREFIX/0x$PUBLIC_KEY/g \n"
+	sed -i "s/$M/${SECRET:2}/g" ig.sh
+	sed -i "s/$ACCOUNT_PREFIX/$ADDRESS/g" ig.sh
 	printf "Key Type	: $1\n"
 	printf "Address		: ${ADDRESS}\n"
 	printf "A Prefix		: ${ACCOUNT_PREFIX}\n"
@@ -44,6 +49,7 @@ generate_address_and_account_id() {
 	printf "Secret		: ${SK} \n"
 }
 
+copy_files
 generate_secret 
 printf "\nSecret 		:${SECRET}"
 
@@ -60,4 +66,4 @@ AUTHORITIES+="$(generate_address_and_account_id authority_discovery '--scheme sr
 
 printf "$AUTHORITIES"
 # printf "$SECRET"
-
+printf "run ig.sh now"
