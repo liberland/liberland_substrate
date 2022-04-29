@@ -20,9 +20,17 @@ pub mod pallet {
 	use frame_support::pallet_prelude::DispatchResult;
 	use frame_support::PalletId;
 	use frame_support::sp_runtime::traits::AccountIdConversion;
+	use frame_support::traits::fungibles::Mutate;
 	// Every year the pallet mints 0.9% of the total supply.
 //	use frame_support::traits::tokens::AssetId;
 	//pub type AssetId = u64;
+	use frame_system::Origin;
+
+	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+//	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
+	//pub type AssetId = u64;//<T as pallet_assets::Config>::AssetId + u64; , u64 might to big?
+	pub type Balance = u128;
+	//pub type AssetId = <T as pallet_assets::Config>::AssetId;
 
 	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, Default)]
 	pub struct MetaData<AccountId, Balance> {
@@ -45,7 +53,11 @@ pub mod pallet {
 
 		type Total_supply: Get<u64>; // Pre defined the total supply in runtime
 		type PreMintedAmount: Get<u64>; // Pre defined the total supply in runtime
-
+		type Balances: Parameter 
+		//+ u128
+		+ Get<u128>
+		+ From<u128>;
+		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId> + From<u64> + From<i32>;
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 	//	type WeightInfo: WeightInfo;
@@ -96,7 +108,9 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn mint_llm(origin: OriginFor<T>) -> DispatchResult {
+		pub fn mint_llm(origin: OriginFor<T>) -> DispatchResult 
+	//	where <T as pallet_assets::Config>::Balance: From<i32>
+		{
 			let sender = ensure_signed(origin)?;
 			
 			let minted_amount = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
@@ -104,10 +118,14 @@ pub mod pallet {
 			ensure!(minted_amount <= T::Total_supply::get(), Error::<T>::LowAmount); // ensure the amount of llm minted is less then the total supply
 			todo!("Check the time limit");
 
-
+			let transfer_amount: T::Balance = 100u64.try_into().unwrap_or(Default::default()); // 100 llm? with u64 storage
 			todo!("Mint using pallet assets");
-		//	let min_balance: T::Balance = 0;
-		//	let treasury: T::AccountId = PalletId(*b"py/trsry").into_account(); // treasury account
+			let min_balance: Balance = 100; // 500 llm, Balances is a storage map for u128
+			// min_balance minus 500
+			//let assit_id: T::AssetId =   //T::AssetId::decode(&mut 0.into()).unwrap_or(Default::default());
+			// set assetid to 100
+			//let test0: <T as pallet_assets>::Config::AssetId = 0.into(); // T::AssetId::decode(&mut 0).unwrap();//_or(Default::default());
+			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account(); // treasury account
 			//let asset_id: T::AssetId = CORE_ASSET_ID; // id of LLM 
 			// if our asset doesnt exist yet, create it
 			// Check the balance of the asset id 0, if it doesnt exist, create it
@@ -130,8 +148,9 @@ pub mod pallet {
 				}
 			};
 */
+				let asset_id: T::AssetId =  1.into();//<T as pallet_assets::Config>::AssetId::decode(&mut 0.into()).unwrap();
 				// Mint allowed amount to the treasury
-			//	<pallet_assets::Pallet<T>>::mint_into(asset_id, &treasury, allow_spend.into());
+				<pallet_assets::Pallet<T>>::mint_into(asset_id.try_into().unwrap(), &treasury, transfer_amount)?;
 				// Add the amount that we have minted into MintedAmount to add allow_sped
 			//	<MintedAmount<T>>::mutate(|minted_amount| *minted_amount += allow_spend);
 		
@@ -176,9 +195,32 @@ pub mod pallet {
 
 	}
 */
+impl<T: Config> Pallet<T> {
+	//type AssetId = T::AssetId;
+//	fn u64toassetid(number: u64) -> T::AssetId {
+//		T::AssetId::decode(&mut number.encode()).unwrap()
+//	}
+
+
+	// Add public immutables and private mutables.
+//	#[allow(dead_code)]
+//	fn accumulate_foo(origin: T::Origin, increase_by: T::Balance) -> DispatchResult {
+//		todo!("empty function");
+//		Ok(())
+//	}
+}
+
+
+
 }
 
 //impl<T: Config> Pallet<T> {
+//	type AssetId = T::AssetId;
+//	fn u64toassetid(number: u64) -> T::AssetId {
+//		T::AssetId::decode(&mut number.encode()).unwrap()
+//	}
+
+
 	// Add public immutables and private mutables.
 //	#[allow(dead_code)]
 //	fn accumulate_foo(origin: T::Origin, increase_by: T::Balance) -> DispatchResult {
