@@ -4807,6 +4807,7 @@ dependencies = [
 name = "node-cli"
 version = "3.0.0-dev"
 dependencies = [
+ "LLM-Pallet",
  "assert_cmd",
  "async-std",
  "clap 3.0.7",

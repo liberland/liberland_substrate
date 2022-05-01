@@ -7,7 +7,6 @@ decrease the total supply with 0.9 % per year
 mint 0.9% per year to the treasury with pallet assets
 
 */
-//use frame_support::tokens::fungibles::AssetId;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -190,6 +189,35 @@ pub mod pallet {
 		}
 	*/
 	impl<T: Config> Pallet<T> {
+		// could do like a OriginFor<SenateGroup> or X(Tech) committee
+		fn create_llm_asset(origin: OriginFor<T>, assetid: AssetId<T>) -> DispatchResult {
+			// create asset with pallet assets
+			let owner = PalletId(*b"py/trsry").into_account(); // treasury is the owner
+												   // set minum balance to 0
+			let min_balance: T::Balance = 0u64.try_into().unwrap_or(Default::default()); // 0 llm
+			let name: Vec<u8> = "Liberland Merit".into();
+			let symbol: Vec<u8> = "LLM".into();
+			let decimals: u8 = 12u8; //12 decimals 0.01 llm
+			pallet_assets::Pallet::<T>::force_create(
+				origin.clone(),
+				assetid.into(),
+				owner,
+				true,
+				min_balance,
+			);
+			// set the asset's meta data
+			pallet_assets::Pallet::<T>::force_set_metadata(
+				origin,
+				assetid.into(),
+				name,
+				symbol,
+				decimals,
+				false,
+			)
+
+			// pre mint amount and freeze it
+		}
+
 		// check if we are allowed to mint more llm
 		fn check_limits(assetid: AssetId<T>) -> bool {
 			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
