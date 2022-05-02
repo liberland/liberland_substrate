@@ -83,6 +83,8 @@ pub use pallet_sudo::Call as SudoCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
+//use LLM_Pallet;
+
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
 use impls::{Author, CreditToBlockAuthor};
@@ -1308,6 +1310,29 @@ parameter_types! {
 	pub const MaxIntakeBids: u32 = 10;
 }
 
+parameter_types! {
+	pub const TOTALLLM: u64 = 70000000u64;
+	pub const PREMINTLLM: u64 = 7000000u64;
+	pub const ASSETID: u64 = 0u64; // asset id 0 for llm
+	//pub const
+}
+
+pub(crate) type ASSET_ID = u32; // u32 is better supported by the runtime
+
+pub type LLM_Balances = u128;
+
+impl LLM_Pallet::Config for Runtime {
+	type Event = Event;
+	type Total_supply = TOTALLLM; //70 million in hardcap
+	type PreMintedAmount = PREMINTLLM; // Premint 7 million
+//	type Balance = LLM_Balances;
+	type AssetId = ASSET_ID;//pallet_assets::Config::AssetId;
+	
+
+}
+
+
+
 impl pallet_gilt::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -1445,6 +1470,7 @@ construct_runtime!(
 		Referenda: pallet_referenda,
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
+		LLM: LLM_Pallet, // LLM Asset
 	}
 );
 
