@@ -19,13 +19,14 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
-	use sp_runtime::generic::BlockId;
+	use sp_runtime::{generic::BlockId, SaturatedConversion};
 	use sp_std::vec::Vec;
 	// Every year the pallet mints 0.9% of the total supply.
 	//	use frame_support::traits::tokens::AssetId;
 	//pub type AssetId = u64;
 	use frame_system::Origin;
-	use sp_runtime::traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, StaticLookup, Zero};
+	//use sp_runtime::traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, StaticLookup,
+	// Zero};
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	//	type AssetsWrapper: GetAsset<<Self as pallet_assets::Config>::AssetId>;
@@ -104,7 +105,10 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
+		fn on_initialize(blocknumber: T::BlockNumber) -> Weight {
+			// convert blocknumber to u64
+			let blocknumber = blocknumber.saturated_into::<u64>();
+			Self::try_mint(blocknumber).unwrap_or_default();
 			// todo: have a function that runs on blocknumber as input and checks if it can mint llm
 			// based on blocknumber 	Self::mint_llm(origin);
 			0
@@ -158,7 +162,7 @@ pub mod pallet {
 			ensure!(t_balance >= 1, "Treasury account does not have the asset in balance");
 			//	let transfer_amount: T::Balance = 100u64.try_into().unwrap_or(Default::default()); //
 			// 100 llm? with u64 storage
-			todo!("Mint using pallet assets");
+			//	todo!("Mint using pallet assets");
 
 			Self::mint_tokens(assetid, allow_spend as u64); // mint tokens with pallet assets
 
@@ -210,9 +214,9 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		//type Balance = <T as pallet::Config>::Balance;
 		// could do like a OriginFor<SenateGroup> or X(Tech) committee
-		fn create_llm(origin: OriginFor<T>) -> DispatchResult {
+		fn create_llm(block_number: u64, origin: OriginFor<T>) -> DispatchResult {
 			// create asset with pallet assets
-			ensure_signed(origin.clone())?; // bad practise
+			//	ensure_signed(origin.clone())?; // bad practise
 
 			let assetid: AssetId<T> = 0u32.into();
 			// check if asset is created
@@ -241,7 +245,7 @@ pub mod pallet {
 
 			// set the asset's meta data
 			pallet_assets::Pallet::<T>::force_set_metadata(
-				origin,
+				origin.clone(),
 				assetid.into(),
 				name,
 				symbol,
@@ -253,7 +257,7 @@ pub mod pallet {
 			// pre mint amount and freeze it
 		}
 
-		fn try_mint(block: T::BlockNumber, assetid: AssetId<T>) -> DispatchResult {
+		fn try_mint(block: u64) -> DispatchResult {
 			// check if the asset is created
 			/*
 						let asset_created = pallet_assets::Pallet::<T>::is_created(assetid.into());
