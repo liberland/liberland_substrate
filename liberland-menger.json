@@ -1,10 +1,10 @@
 {
   "name": "Liberland",
-  "id": "liberland",
+  "id": "liberland2",
   "chainType": "Live",
   "bootNodes": [],
   "telemetryEndpoints": [],
-  "protocolId": "liberland",
+  "protocolId": "liberland2",
   "properties": {
     "network": "liberland",
     "ss58Format": 56,
@@ -35,6 +35,22 @@
       },
       "balances": {
         "balances": [
+ 	[              
+            "5HgHs1KJ4qbm18qVxdLMwkvh2oC8U6GGfUfrYYnhtxBDCGhi",
+            1000000000000000000000
+          ],
+	 [       
+            "5C5oVFqF51zotcq1r58CJ2H1hPwZtWCnuLHPwUjKGUnHuUE6",
+            1000000000000000000000
+          ],
+	  [     
+            "5HGZfBpqUUqGY7uRCYA6aRwnRHJVhrikn8to31GcfNcifkym",
+            1000000000000000000000
+          ],
+	  [
+	    "5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR",
+	    1000000000000000000000
+	  ],
           [
             "5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc",
             1000000000000000000000
@@ -64,13 +80,13 @@
         "stakers": [
           [
             "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
-            "5EeDcQXDx8oLBaKJ3mX85axwayosyJMGcnYKaxd7F8QZJYT2",
-            1000000000000000000,
+            "5HjbsZixAwen8rQNNnkmJ5wLw1GToj1d5Rk1DkBPsf7HJD1W",
+	    1000000000000000000,
             "Validator"
           ],
           [
             "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
-            "5GRdANmvxgsf8PeTg32j6VVzyrTBFzSsEo7VATyQ2YpnoiW6",
+            "5DHkMCTkVcnYZrNnnhAfFFZq1nfHdC3eVtWL9cTwENHvfsFm",
             1000000000000000000,
             "Validator"
           ]

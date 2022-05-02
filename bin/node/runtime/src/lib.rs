@@ -148,8 +148,8 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 			// for fees, 80% to treasury, 20% to author
 			let mut split = fees.ration(80, 20);
 			if let Some(tips) = fees_then_tips.next() {
-				// for tips, if any, 80% to treasury, 20% to author (though this can be anything)
-				tips.ration_merge_into(80, 20, &mut split);
+				// for tips, if any, 0% to treasury, 100% to author (though this can be anything)
+				tips.ration_merge_into(0, 100, &mut split);
 			}
 			Treasury::on_unbalanced(split.0);
 			Author::on_unbalanced(split.1);
@@ -507,8 +507,8 @@ impl pallet_session::historical::Config for Runtime {
 pallet_staking_reward_curve::build! {
 	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
 		min_inflation: 0_025_000,
-		max_inflation: 0_100_000,
-		ideal_stake: 0_500_000,
+		max_inflation: 0_133_000,
+		ideal_stake: 0_750_000,
 		falloff: 0_050_000,
 		max_piece_count: 40,
 		test_precision: 0_005_000,
@@ -598,7 +598,7 @@ sp_npos_elections::generate_solution_type!(
 );
 
 parameter_types! {
-	pub MaxNominations: u32 = <NposSolution16 as sp_npos_elections::NposSolution>::LIMIT as u32;
+	pub MaxNominations: u32 = 50000;
 }
 
 /// The numbers configured here could always be more than the the maximum limits of staking pallet
@@ -667,7 +667,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type RewardHandler = (); // nothing to do upon rewards
 	type DataProvider = Staking;
 	type Solution = NposSolution16;
-	type Fallback = pallet_election_provider_multi_phase::NoFallback<Self>;
+	type Fallback = frame_election_provider_support::onchain::OnChainSequentialPhragmen<Self>;
 	type GovernanceFallback =
 		frame_election_provider_support::onchain::OnChainSequentialPhragmen<Self>;
 	type Solver = frame_election_provider_support::SequentialPhragmen<
@@ -924,8 +924,8 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 1 * DAYS;
-	pub const Burn: Permill = Permill::from_percent(50);
+	pub const SpendPeriod: BlockNumber = 28 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
