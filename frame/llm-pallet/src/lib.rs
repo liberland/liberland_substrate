@@ -25,16 +25,16 @@ pub mod pallet {
 	//	use frame_support::traits::tokens::AssetId;
 	//pub type AssetId = u64;
 	use frame_system::Origin;
-	use sp_runtime::traits::{AtLeast32Bit, Member, MaybeSerializeDeserialize, StaticLookup, Zero};
+	use sp_runtime::traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, StaticLookup, Zero};
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	//	type AssetsWrapper: GetAsset<<Self as pallet_assets::Config>::AssetId>;
 	//	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 	//pub type AssetId = u64;//<T as pallet_assets::Config>::AssetId + u64; , u64 might to big?
-//	pub type Balance = u128;
+	//	pub type Balance = u128;
 	//pub type AssetId = <T as pallet_assets::Config>::AssetId;
 
-//	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, Default)]
+	//	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, Default)]
 	pub struct MetaData<u64> {
 		Reserve_am: u64,
 		Minted_am: u64,
@@ -52,8 +52,8 @@ pub mod pallet {
 	//#[pallet::storage]
 	//#[pallet::getter(fn meta_data)]
 	/// Keep track of the block that we use to mint llm
-	//pub(super) type MetaData<T: Config> = StorageValue<_, MetaData<T::Balance, BlockId>, ValueQuery>;
-
+	//pub(super) type MetaData<T: Config> = StorageValue<_, MetaData<T::Balance, BlockId>,
+	// ValueQuery>;
 
 	pub trait GetAsset<AssetId> {
 		fn id(asset: &AssetId) -> Option<AssetId>;
@@ -65,13 +65,16 @@ pub mod pallet {
 
 		type Total_supply: Get<u64>; // Pre defined the total supply in runtime
 		type PreMintedAmount: Get<u64>; // Pre defined the total supply in runtime
-	
-//		type Balance: Member + Parameter + AtLeast32Bit + Default + Copy + MaybeSerializeDeserialize;
 
+		//		type Balance: Member + Parameter + AtLeast32Bit + Default + Copy +
+		// MaybeSerializeDeserialize;
 
-
-//		type AssetsWrapper: GetAsset<<Self as pallet_assets::Config>::AssetId>;
-		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId> + Parameter + From<u32> + Ord + Copy;
+		//		type AssetsWrapper: GetAsset<<Self as pallet_assets::Config>::AssetId>;
+		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
+			+ Parameter
+			+ From<u32>
+			+ Ord
+			+ Copy;
 		//type AssetId: IsType<<Self as pallet_assets::Config>::AssetId> + Parameter + Ord + Copy +
 		// Into<u64> + From<u64> + Default; //GetAsset<<Self as pallet_assets::Config>::AssetId> +
 		// type AssetId: IsType<<Self as pallet_assets::Config>::AssetId> + From<u64> + From<i32>;
@@ -91,6 +94,8 @@ pub mod pallet {
 		LowAmount,
 		/// Not allowed to mint more
 		MaxCap,
+		/// Asset already created
+		AssetExists,
 	}
 
 	#[pallet::pallet]
@@ -100,6 +105,8 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: T::BlockNumber) -> Weight {
+			// todo: have a function that runs on blocknumber as input and checks if it can mint llm
+			// based on blocknumber 	Self::mint_llm(origin);
 			0
 		}
 
@@ -110,7 +117,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		
 		//type AssetId = T::AssetId;
 		#[pallet::weight(10_000)] // change me
 		pub fn send_llm(
@@ -150,7 +156,8 @@ pub mod pallet {
 
 			todo!("Check the time limit");
 			ensure!(t_balance >= 1, "Treasury account does not have the asset in balance");
-		//	let transfer_amount: T::Balance = 100u64.try_into().unwrap_or(Default::default()); // 100 llm? with u64 storage
+			//	let transfer_amount: T::Balance = 100u64.try_into().unwrap_or(Default::default()); //
+			// 100 llm? with u64 storage
 			todo!("Mint using pallet assets");
 
 			Self::mint_tokens(assetid, allow_spend as u64); // mint tokens with pallet assets
@@ -200,15 +207,24 @@ pub mod pallet {
 
 		}
 	*/
-	impl<T: Config>  Pallet<T> {
+	impl<T: Config> Pallet<T> {
 		//type Balance = <T as pallet::Config>::Balance;
 		// could do like a OriginFor<SenateGroup> or X(Tech) committee
 		fn create_llm(origin: OriginFor<T>) -> DispatchResult {
 			// create asset with pallet assets
 			ensure_signed(origin.clone())?; // bad practise
+
 			let assetid: AssetId<T> = 0u32.into();
+			// check if asset is created
+
 			let owner = PalletId(*b"py/trsry").into_account(); // treasury is the owner
-												   // set minum balance to 0
+
+			let t_ac2: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let asset_balance: u128 = pallet_assets::Pallet::<T>::balance(assetid.into(), t_ac2)
+				.try_into()
+				.unwrap_or(0u128);
+			ensure!(asset_balance == 0, Error::<T>::AssetExists); // if the asset balance is zero == that means it is not been created and we can create
+													  // it set minum balance to 0
 			let min_balance: T::Balance = 0u64.try_into().unwrap_or(Default::default()); // 0 llm
 			let name: Vec<u8> = "Liberland Merit".into();
 			let symbol: Vec<u8> = "LLM".into();
@@ -221,7 +237,7 @@ pub mod pallet {
 				min_balance,
 			);
 			let t_ac: T::AccountId = PalletId(*b"py/trsry").into_account();
-			Event::<T>::LLMCreated(t_ac);			
+			Event::<T>::LLMCreated(t_ac);
 
 			// set the asset's meta data
 			pallet_assets::Pallet::<T>::force_set_metadata(
@@ -237,8 +253,32 @@ pub mod pallet {
 			// pre mint amount and freeze it
 		}
 
-	//	fn 
-
+		fn try_mint(block: T::BlockNumber, assetid: AssetId<T>) -> DispatchResult {
+			// check if the asset is created
+			/*
+						let asset_created = pallet_assets::Pallet::<T>::is_created(assetid.into());
+						ensure!(asset_created, Error::<T>::AssetNotCreated);
+						// check if the asset is not frozen
+						let asset_frozen = pallet_assets::Pallet::<T>::is_frozen(assetid.into());
+						ensure!(!asset_frozen, Error::<T>::AssetFrozen);
+						// check if the asset is not minted
+						let asset_minted = pallet_assets::Pallet::<T>::is_minted(assetid.into());
+						ensure!(!asset_minted, Error::<T>::AssetMinted);
+						// check if the asset is not locked
+						let asset_locked = pallet_assets::Pallet::<T>::is_locked(assetid.into());
+						ensure!(!asset_locked, Error::<T>::AssetLocked);
+						// check if the asset is not paused
+						let asset_paused = pallet_assets::Pallet::<T>::is_paused(assetid.into());
+						ensure!(!asset_paused, Error::<T>::AssetPaused);
+						// check if the asset is not paused
+						let asset_paused = pallet_assets::Pallet::<T>::is_paused(assetid.into());
+						ensure!(!asset_paused, Error::<T>::AssetPaused);
+						// check if the asset is not paused
+						let asset_paused = pallet_assets::Pallet::<T>::is_paused(assetid.into());
+						ensure!(!asset_paused, Error::<T>::AssetPaused);
+			*/
+			Ok(())
+		}
 
 		/// Mint tokens to the treasury account.
 		fn mint_tokens(assetid: AssetId<T>, amount: u64) {
