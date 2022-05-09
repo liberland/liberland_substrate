@@ -1313,7 +1313,7 @@ parameter_types! {
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PREMINTLLM: u64 = 7000000u64;
-	pub const ASSETID: u64 = 0u64; // asset id 0 for llm
+	pub const ASSETID: u32 = 0u32; // asset id 0 for llm
 	//pub const
 }
 
@@ -1327,6 +1327,7 @@ impl LLM_Pallet::Config for Runtime {
 	type PreMintedAmount = PREMINTLLM; // Premint 7 million
 //	type Balance = LLM_Balances;
 	type AssetId = ASSET_ID;//pallet_assets::Config::AssetId;
+//	type AccountId = AccountId;
 	
 
 }
