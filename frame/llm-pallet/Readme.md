@@ -7,13 +7,28 @@
 *  Sending and Recieving  
 *  [MIT License](https://mit-license.org/)   
 
-pub fn send_llm(
-pub fn lock_llm(origin: OriginFor<T
-pub fn unlock_llm(origin: OriginFor
-pub fn createllm(origin: OriginFor<
-pub fn delegated_transfer(origin: O
-pub fn approve_transfer(origin: Ori
 
+
+### On-chain Pallet functions:   
+
+*  send_llm   
+Send LLM to a person
+
+*  lock_llm    
+Freeze current LLM, allowing you to vote
+
+*  unlock_llm
+Unlock the freezed assets
+
+*  createllm
+Create LLM Asset and premint if the counter is not working   
+
+*  delegated_transfer
+Request a LLM transfer that needs to be approved by the assembly members  
+
+
+*  approve_transfer
+As an assembly member you can approve a transfer   
 
 
 ### Debugging: 
