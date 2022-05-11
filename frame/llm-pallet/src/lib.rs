@@ -73,7 +73,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_balance)]
-	pub(super) type BalanceToAccount<T: Config> = StorageMap<
+	pub(super) type LLMBalance<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
 		T::AccountId,
@@ -149,7 +149,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: T::BlockNumber) -> Weight {
 			// convert blocknumber to u64
-
+			//println!("LLM PAllet");
 			
 		//	let blocknumber = blocknumber.saturated_into::<u64>();
 		//	Self::try_mint(blocknumber).unwrap_or_default();
@@ -174,6 +174,12 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let receiver = to_account;
+	//		pallet_assets::Pallet::<T>::transfer(
+	//			origin, 
+	//			llm_id,
+	//			lookup_account,
+	//			amount.into()
+	//		)
 			//	let ai: T::AssetId = CORE_ASSET_ID;
 			// Check account balance of llm for sender
 			//ensure!(<pallet_assets::Pallet<T>>::balance(ai, &sender.into()) >= amount,
@@ -181,7 +187,12 @@ pub mod pallet {
 			// 	<pallet_assets::Pallet<T>>:: force_transfer(origin, ai, sender, receiver, amount)?;
 			// // transfer llm
 		//	<BalanceToAccount<T>>::insert(&to_account, amount);
-			Ok(())
+			todo!("Transfer llm");
+		}
+
+		#[pallet::weight(10_000)] 
+		pub fn send_locked_llm(origin: OriginFor<T>, amount: u64, to_account: T::AccountId) -> DispatchResult {
+				todo!("send_locked_llm");
 		}
 
 		/// Lock in LLM for 
@@ -201,6 +212,7 @@ pub mod pallet {
 		//	T::AddOrigin::ensure_origin(origin)?;
 			let sender = ensure_signed(origin.clone())?;
 			Self::create_llm(origin)?;
+			
 			Ok(())
 		}
 
@@ -259,7 +271,7 @@ pub mod pallet {
 			//	todo!("Mint using pallet assets");
 
 			Self::mint_tokens(assetid, allow_spend as u64); // mint tokens with pallet assets
-
+	//		<BalanceToAccount<T>>::insert(&sender, amount);
 			// min_balance minus 500
 			//let assit_id: T::AssetId =   //T::AssetId::decode(&mut
 			// 0.into()).unwrap_or(Default::default()); set assetid to 100
@@ -341,8 +353,8 @@ pub mod pallet {
 			).unwrap_or_default();
 			let t_ac: T::AccountId = PalletId(*b"py/trsry").into_account();
 			let my_amount: u64 = min_balance.try_into().unwrap_or(0u64);
-			Event::<T>::LLMCreated(t_ac,my_amount);
-
+			Event::<T>::LLMCreated(t_ac.clone(),my_amount);
+		//	LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac, my_amount.try_into().unwrap_or_default());
 			// set the asset's meta data
 			pallet_assets::Pallet::<T>::force_set_metadata(
 				origin.clone(),
@@ -405,9 +417,11 @@ pub mod pallet {
 		fn mint_tokens(assetid: AssetId<T>, amount: u64) {
 			let transfer_amount: T::Balance = amount.try_into().unwrap_or(Default::default());
 			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account();
-
+			// update balance of the treasury account, balances should be u128 and not u64
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(treasury.clone(), amount.try_into().unwrap_or_default());
 			// add the amount that we have minted into MintedAmount to add allow_sped
 			<MintedAmount<T>>::mutate(|minted_amount| *minted_amount += amount);
+			
 			pallet_assets::Pallet::<T>::mint_into(assetid.into(), &treasury, transfer_amount)
 				.unwrap_or_default();
 		//	Event::<T>::MintedLLM(treasury.into(), amount); // emit event
