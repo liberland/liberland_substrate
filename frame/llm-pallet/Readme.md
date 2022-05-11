@@ -38,6 +38,12 @@ LLM pallet has 2 different storage types:
 ##### LLMBalance    
 Stores Account and Balances in storagemap, you can query by account  
 
+![Polkadot Js Query user account](account_query.png) 
+
+
+![Polkadot Js Treasury](treasury_account.png)
+
+
 ##### MintedAmount    
 Keeps track of the amount of current minted(/created) amount of LLM   
 This can be queried and will return a number(u64)      
@@ -60,3 +66,7 @@ Polkadot.js apps > Developer > Chainstate > llm > minted amount
 
 ![Polkadot Js](minted_amount_query.png)  
 
+
+
+Treasury address:
+5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z
