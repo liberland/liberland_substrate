@@ -135,6 +135,7 @@ pub mod pallet {
 		/// Asset already created
 		AssetExists,
 		InvalidAccount,
+		InvalidTransfer,
 		// can not transfer asset
 		InvalidAssetMove,
 	}
@@ -195,6 +196,10 @@ pub mod pallet {
 
 			let amount_balance: T::Balance =
 				amount.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
+
+			// check that balance can cover it
+			ensure!(LLMBalance::<T>::get(&sender) >= amount_balance, Error::<T>::InvalidAmount);
+
 			let sender_balance: T::Balance = LLMBalance::<T>::get(&sender) - amount_balance;
 			pallet_assets::Pallet::<T>::transfer(
 				origin.clone(),
@@ -202,7 +207,7 @@ pub mod pallet {
 				lookup_account,
 				amount_balance.clone(),
 			)
-			.unwrap_or_default();
+			.unwrap_or_default(); //.map_err(|_| Error::<T>::InvalidTransfer);//unwrap_or_default();
 
 			//	LLMBalance::<T>::mutate(sender, |balance| *balance =
 			// balance.saturating_sub(amount_balance));
