@@ -32,11 +32,9 @@ pub mod pallet {
 	//	use frame_support::traits::tokens::AssetId;
 	//pub type AssetId = u64;
 	use frame_system::Origin;
-	use sp_runtime::traits::Saturating;
 	use hex_literal::hex;
-	use sp_runtime::print;
 	use scale_info::prelude::vec;
-	use sp_runtime::AccountId32;
+	use sp_runtime::{print, traits::Saturating, AccountId32};
 
 	//use sp_runtime::traits::{AtLeast32Bit, MaybeSerializeDeserialize, Member, StaticLookup,
 	// Zero};
@@ -129,7 +127,6 @@ pub mod pallet {
 	pub type AssetId<T> = <T as Config>::AssetId;
 	pub const LlmPalletId: PalletId = PalletId(*b"llm/trsy"); // lets give llm a unique pallet id and it's own treasury
 
-
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Invalid amount
@@ -171,8 +168,8 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
-		#[pallet::weight(10_000)] // debug function, used for testing, DO NOT USE IN PROD, function mints llm to a raw account based on input
+		#[pallet::weight(10_000)] // debug function, used for testing, DO NOT USE IN PROD, function mints llm to a raw account
+						  // based on input
 		pub fn fake_send(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -269,73 +266,84 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn treasury_llm_transfer(origin: OriginFor<T>, to_account: T::AccountId, amount: u64) -> DispatchResult {
+		pub fn treasury_llm_transfer(
+			origin: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: u64,
+		) -> DispatchResult {
 			//
 
-
-		//	let legits: Vec<T::AccountId> = Vec![
-		//		hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].unchecked_into(),
-		//	];
+			//	let legits: Vec<T::AccountId> = Vec![
+			//		hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].
+			// unchecked_into(), 	];
 			//let rootman = frame_system::RawOrigin::Root.into();
-		//	let testac: T::AccountId = hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into();
-				
-	//	let account33: Vec<AccountId32> = vec![
-	//			hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
-	//		];
-			//let xc: T::AccountId = account32.clone().unwrap();
-			
-			let account_map: Vec<T::AccountId> = vec![
-				Self::AccountId32_to_accountid(hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into()), //F
-				Self::AccountId32_to_accountid(hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into()), // Multisig N + F
+			//	let testac: T::AccountId =
+			// hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into();
 
+			//	let account33: Vec<AccountId32> = vec![
+			//			hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
+			//		];
+			//let xc: T::AccountId = account32.clone().unwrap();
+
+			let account_map: Vec<T::AccountId> = vec![
+				Self::AccountId32_to_accountid(
+					hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into(),
+				), //F
+				Self::AccountId32_to_accountid(
+					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
+				), // Multisig N + F
 			];
 
-//			let actest: T::AccountId = Self::AccountId32_to_accountid(hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into());
-	//		let mut newac: AccountId32 = hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into();
-	//		let mut init_account32 = AccountId32::as_ref(&newac);
-	//		let init_account: T::AccountId = T::AccountId::decode(&mut init_account32).unwrap();//_or(Error::<T>::InvalidAccount.into());
+			//			let actest: T::AccountId =
+			// Self::AccountId32_to_accountid(hex!["
+			// 061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into());
+			// 		let mut newac: AccountId32 =
+			// hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into();
+			// 		let mut init_account32 = AccountId32::as_ref(&newac);
+			//		let init_account: T::AccountId = T::AccountId::decode(&mut
+			// init_account32).unwrap();//_or(Error::<T>::InvalidAccount.into());
 			let sender: T::AccountId = ensure_signed(origin)?;
-//			let navid = "b86373a2dff0a7b5741fd7e1857de41353fca3b924f14eae5f4c70d69e949150"; //5GEUDCyZrzPy1A6Kn288pHZFDtVhfYWvYmU1iTUPMg6YSVTE
-//			let pub_key = "061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f";	// 5CCi1rPi7cphC6iE9mWkYvbLf57b9N233nFG8hM5zjvYZpLi
-		//	let accounts: T::AccountId = T::AccountId::decode(&mut &navid.encode()[..]).unwrap();
-		//	let fluff: T::AccountId = T::AccountId::decode(&mut &pub_key.encode()[..]).unwrap();
-					
+			//			let navid = "b86373a2dff0a7b5741fd7e1857de41353fca3b924f14eae5f4c70d69e949150";
+			// //5GEUDCyZrzPy1A6Kn288pHZFDtVhfYWvYmU1iTUPMg6YSVTE 			let pub_key =
+			// "061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f";	//
+			// 5CCi1rPi7cphC6iE9mWkYvbLf57b9N233nFG8hM5zjvYZpLi 	let accounts: T::AccountId =
+			// T::AccountId::decode(&mut &navid.encode()[..]).unwrap(); 	let fluff: T::AccountId =
+			// T::AccountId::decode(&mut &pub_key.encode()[..]).unwrap();
+
 			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
-					
+
 			let treasuy_account: T::AccountId = PalletId(*b"py/trsry").into_account();
 			let treasury_balance = LLMBalance::<T>::get(&treasuy_account);
 			let amount_balance = Self::u64_to_balance(amount);
-			ensure!( treasury_balance >= amount_balance, Error::<T>::LowBalance);
+			ensure!(treasury_balance >= amount_balance, Error::<T>::LowBalance);
 			let lookup_account = T::Lookup::unlookup(to_account.clone());
 
-			
 			let user_balance: T::Balance = LLMBalance::<T>::get(&to_account) - amount_balance;
-	//		pallet_assets::Pallet::<T>::transfer(
-	//			frame_system::RawOrigin::Root.into(),  // root origin, change me later
-	//			Self::llm_id().into(),
-	//			lookup_account,
-	//			amount_balance.clone(),
-	//		)
-	//		.unwrap_or_default(); 
+			//		pallet_assets::Pallet::<T>::transfer(
+			//			frame_system::RawOrigin::Root.into(),  // root origin, change me later
+			//			Self::llm_id().into(),
+			//			lookup_account,
+			//			amount_balance.clone(),
+			//		)
+			//		.unwrap_or_default();
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				to_account.clone(),
 				amount.try_into().unwrap_or_default(),
 			);
 
-//			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(to_account.clone(), user_balance); // overwrite each time, its a bit computational heavy, this should be replaced with a
+			//			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(to_account.clone(),
+			// user_balance); // overwrite each time, its a bit computational heavy, this should be
+			// replaced with a
 
 			Event::<T>::TransferedLLM(treasuy_account, to_account, amount);
 
+			//		let t_balance: u64 =
+			//		pallet_assets::Pallet::<T>::balance(Self::llm_id().into(), &treasury.into())
+			//			.try_into()
+			//			.unwrap_or(0u64);
 
-	//		let t_balance: u64 =
-	//		pallet_assets::Pallet::<T>::balance(Self::llm_id().into(), &treasury.into())
-	//			.try_into()
-	//			.unwrap_or(0u64);
-
-
-
-				Ok(())	
-		//todo!("treasury_llm");
+			Ok(())
+			//todo!("treasury_llm");
 		}
 
 		/// Lock in LLM for
@@ -478,7 +486,6 @@ pub mod pallet {
 		}
 	*/
 	impl<T: Config> Pallet<T> {
-
 		fn AccountId32_to_accountid(accountid32: AccountId32) -> T::AccountId {
 			let mut init_account32 = AccountId32::as_ref(&accountid32);
 			let init_account: T::AccountId = T::AccountId::decode(&mut init_account32).unwrap();
@@ -570,8 +577,6 @@ pub mod pallet {
 			*/
 			Ok(())
 		}
-
-
 
 		// get asset metadata from pallet-assets crate
 		//	fn get_asset_metadata(assetid: AssetId<T>) -> Result<(Vec<u8>, Vec<u8>, u8), &'static
