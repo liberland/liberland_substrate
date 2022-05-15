@@ -86,3 +86,26 @@ LLVM version: 14.0.0
 
 
 ```
+
+
+### Approved Multisig llm transfers
+
+
+
+![Polkadot Js Treasury](treasury_account_query.png)
+
+![Polkadot Js Treasury](check_multisig.png)
+
+
+![Polkadot Js Treasury](treasuryllm_transfer_with_multisig.png)
+
+![Polkadot Js Treasury](multisig_send_tx.png)
+
+![Polkadot Js Treasury](pending_multisig.png)
+
+![Polkadot Js Treasury](approve_multisig.png)
+
+![Polkadot Js Treasury](pasted_multisig_approved_data.png)
+
+![Polkadot Js Treasury](after_multisig.png)
+

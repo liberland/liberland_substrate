@@ -48,9 +48,9 @@ pub mod pallet {
 
 	//	#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, Default)]
 	pub struct MetaData<u64> {
-		Reserve_am: u64,
-		Minted_am: u64,
-		BlockNumber: u64,
+		reserve_am: u64,
+		minted_am: u64,
+		block_number: u64,
 	}
 	//use pallet_assets::Asset::AssetId; // ::AssetId;
 	#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo)]
@@ -125,7 +125,7 @@ pub mod pallet {
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
-	pub const LlmPalletId: PalletId = PalletId(*b"llm/trsy"); // lets give llm a unique pallet id and it's own treasury
+	pub const LLM_PALLET_ID: PalletId = PalletId(*b"llm/trsy"); // lets give llm a unique pallet id and it's own treasury
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -256,14 +256,14 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(10_000)]
-		pub fn send_locked_llm(
-			origin: OriginFor<T>,
-			amount: u64,
-			to_account: T::AccountId,
-		) -> DispatchResult {
-			todo!("send_locked_llm");
-		}
+		//	#[pallet::weight(10_000)]
+		//	pub fn send_locked_llm(
+		//		origin: OriginFor<T>,
+		//		amount: u64,
+		//		to_account: T::AccountId,
+		//	) -> DispatchResult {
+		//		todo!("send_locked_llm");
+		//	}
 
 		#[pallet::weight(10_000)]
 		pub fn treasury_llm_transfer(
@@ -291,7 +291,10 @@ pub mod pallet {
 				), //F
 				Self::AccountId32_to_accountid(
 					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
-				), // Multisig N + F
+				), /* Multisig N + F
+				    *		Self::AccountId32_to_accountid(
+				    *			hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].
+				    * into(), 						), // Multisig F + ALICE + BOB */
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
@@ -313,25 +316,31 @@ pub mod pallet {
 			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
 
 			let treasuy_account: T::AccountId = PalletId(*b"py/trsry").into_account();
-			let treasury_balance = LLMBalance::<T>::get(&treasuy_account);
+			let treasury_balance = LLMBalance::<T>::get(&treasuy_account.clone());
 			let amount_balance = Self::u64_to_balance(amount);
 			ensure!(treasury_balance >= amount_balance, Error::<T>::LowBalance);
 			let lookup_account = T::Lookup::unlookup(to_account.clone());
 
 			//let rootorg = frame_system::RawOrigin::Root.into();
 			let treasury_origin = PalletId(*b"py/trsry");
-			let user_balance: T::Balance = LLMBalance::<T>::get(&to_account) - amount_balance;
-			
+			let user_balance: T::Balance = LLMBalance::<T>::get(&to_account) + amount_balance;
+			let new_treasury_balance: T::Balance = treasury_balance - amount_balance.clone();
 			pallet_assets::Pallet::<T>::transfer(
-					frame_system::RawOrigin::Signed(sender).into(),  // root origin, change me later
-					Self::llm_id().into(),
-					lookup_account,
-					amount_balance.clone(),
-					)
-					.unwrap_or_default();
+				frame_system::RawOrigin::Signed(treasuy_account.clone()).into(), /* root origin,
+				                                                                  * change me later */
+				Self::llm_id().into(),
+				lookup_account,
+				amount_balance.clone(),
+			)
+			.unwrap_or_default();
+
+			// update user balance
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(to_account.clone(), user_balance);
+
+			// update treasury balance
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
-				to_account.clone(),
-				amount.try_into().unwrap_or_default(),
+				treasuy_account.clone(),
+				new_treasury_balance,
 			);
 
 			//			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(to_account.clone(),
@@ -350,16 +359,16 @@ pub mod pallet {
 		}
 
 		/// Lock in LLM for
-		#[pallet::weight(10_000)] // change me
-		pub fn lock_llm(origin: OriginFor<T>, amount: u64) -> DispatchResult {
-			todo!("lock_llm");
-			// pallet freeze https://paritytech.github.io/substrate/master/pallet_assets/pallet/struct.Pallet.html#method.freeze
-		}
+		//		#[pallet::weight(10_000)] // change me
+		//		pub fn lock_llm(origin: OriginFor<T>, amount: u64) -> DispatchResult {
+		//			todo!("lock_llm");
+		// pallet freeze https://paritytech.github.io/substrate/master/pallet_assets/pallet/struct.Pallet.html#method.freeze
+		//		}
 
-		#[pallet::weight(10_000)] // change me
-		pub fn unlock_llm(origin: OriginFor<T>) -> DispatchResult {
-			todo!("unlock_llm"); // thaw
-		}
+		//	#[pallet::weight(10_000)] // change me
+		//	pub fn unlock_llm(origin: OriginFor<T>) -> DispatchResult {
+		//		todo!("unlock_llm"); // thaw
+		//	}
 
 		#[pallet::weight(10_000)] // change me
 		pub fn createllm(origin: OriginFor<T>) -> DispatchResult {
@@ -370,32 +379,32 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(10_000)] // change me
-		pub fn delegated_transfer(
-			origin: OriginFor<T>,
-			to_account: T::AccountId,
-			amount: u64,
-		) -> DispatchResult {
-			// the senate must approve this transfer
-			let sender = ensure_signed(origin)?;
-			let receiver = to_account;
-			//	pallet_assets::Pallet::<T>::delegated_transfer(
-			//		origin,
-			//		assetid,
-			//		delegate_account,
+		//		#[pallet::weight(10_000)] // change me
+		//		pub fn delegated_transfer(
+		//			origin: OriginFor<T>,
+		//			to_account: T::AccountId,
+		//			amount: u64,
+		//		) -> DispatchResult {
+		// the senate must approve this transfer
+		//			let sender = ensure_signed(origin)?;
+		//			let receiver = to_account;
+		//	pallet_assets::Pallet::<T>::delegated_transfer(
+		//		origin,
+		//		assetid,
+		//		delegate_account,
 
-			//	)
-			todo!("delegated_transfer");
-		}
+		//	)
+		//			todo!("delegated_transfer");
+		//		}
 
-		#[pallet::weight(10_000)] // change me, remove me in prod
-		pub fn add_balance(origin: OriginFor<T>, amount: u128) -> DispatchResult {
-			let sender: T::AccountId = ensure_signed(origin)?;
-			//	let my_account: T::AccountId = origin.ac
-			todo!("added checks to verify and asset transfer and balance changes mutate");
-			Self::load_alice(amount, sender);
-			Ok(())
-		}
+		//		#[pallet::weight(10_000)] // change me, remove me in prod
+		//		pub fn add_balance(origin: OriginFor<T>, amount: u128) -> DispatchResult {
+		//			let sender: T::AccountId = ensure_signed(origin)?;
+		//	let my_account: T::AccountId = origin.ac
+		//			todo!("added checks to verify and asset transfer and balance changes mutate");
+		//			Self::load_alice(amount, sender);
+		//			Ok(())
+		//		}
 
 		/// Allow the senate to approve transfers
 		#[pallet::weight(10_000)]
@@ -450,6 +459,7 @@ pub mod pallet {
 
 			Ok(())
 		}
+		//	*/
 	}
 
 	#[pallet::event]
@@ -528,6 +538,10 @@ pub mod pallet {
 			)
 			.unwrap_or_default();
 			let t_ac: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let new_balance: T::Balance =
+				T::PreMintedAmount::get().try_into().unwrap_or(Default::default());
+
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac.clone(), new_balance);
 			let my_amount: u64 = min_balance.try_into().unwrap_or(0u64);
 			Event::<T>::LLMCreated(t_ac.clone(), my_amount);
 			//	LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac,
