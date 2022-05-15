@@ -293,7 +293,7 @@ pub mod pallet {
 					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
 				), // Multisig N + F
 			];
-
+			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
 			// Self::AccountId32_to_accountid(hex!["
 			// 061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into());
@@ -318,14 +318,17 @@ pub mod pallet {
 			ensure!(treasury_balance >= amount_balance, Error::<T>::LowBalance);
 			let lookup_account = T::Lookup::unlookup(to_account.clone());
 
+			//let rootorg = frame_system::RawOrigin::Root.into();
+			let treasury_origin = PalletId(*b"py/trsry");
 			let user_balance: T::Balance = LLMBalance::<T>::get(&to_account) - amount_balance;
-			//		pallet_assets::Pallet::<T>::transfer(
-			//			frame_system::RawOrigin::Root.into(),  // root origin, change me later
-			//			Self::llm_id().into(),
-			//			lookup_account,
-			//			amount_balance.clone(),
-			//		)
-			//		.unwrap_or_default();
+			
+			pallet_assets::Pallet::<T>::transfer(
+					frame_system::RawOrigin::Signed(sender).into(),  // root origin, change me later
+					Self::llm_id().into(),
+					lookup_account,
+					amount_balance.clone(),
+					)
+					.unwrap_or_default();
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				to_account.clone(),
 				amount.try_into().unwrap_or_default(),
