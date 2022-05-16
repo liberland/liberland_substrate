@@ -27,8 +27,7 @@ use node_runtime::{
 	StakerStatus, StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
-use sc_chain_spec::ChainSpecExtension;
-use sc_chain_spec::Properties;
+use sc_chain_spec::{ChainSpecExtension, Properties};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
@@ -39,6 +38,8 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
+
+//use LLM_Pallet;
 
 pub use node_primitives::{AccountId, Balance, Signature};
 pub use node_runtime::GenesisConfig;
@@ -304,6 +305,12 @@ pub fn testnet_genesis(
 	const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
 	const STASH: Balance = ENDOWMENT / 1000;
 
+	// Add Prefunded acs
+	let f_ac: AccountId = hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into();
+	endowed_accounts
+		.push(f_ac);
+
+
 	GenesisConfig {
 		system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
 		balances: BalancesConfig {
@@ -362,12 +369,13 @@ pub fn testnet_genesis(
 				// 	.unchecked_into(),
 				// 	1
 				// )
-			],		
+			],
 			epoch_config: Some(node_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
 		im_online: ImOnlineConfig { keys: vec![] },
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-		grandpa: GrandpaConfig { authorities: vec![
+		grandpa: GrandpaConfig {
+			authorities: vec![
 				// (
 				// 	// 5FrfnPEu3Vna4PGmGu3ePaHnNPgHvJhixGGTC8cbL9UH1xJx
 				// 	hex!["a7c301f7e641c2281e641bf9c68d29bec671f4acb47cd91bc2a12ef7c0c114e4"]
@@ -380,7 +388,7 @@ pub fn testnet_genesis(
 				// 	.unchecked_into(),
 				// 	1
 				// ),
-			] 
+			],
 		},
 		technical_membership: Default::default(),
 		treasury: Default::default(),
