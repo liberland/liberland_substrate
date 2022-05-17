@@ -990,6 +990,7 @@ impl pallet_child_bounties::Config for Runtime {
 	type WeightInfo = pallet_child_bounties::weights::SubstrateWeight<Runtime>;
 }
 
+/*
 impl pallet_tips::Config for Runtime {
 	type Event = Event;
 	type DataDepositPerByte = DataDepositPerByte;
@@ -1000,6 +1001,7 @@ impl pallet_tips::Config for Runtime {
 	type TipReportDepositBase = TipReportDepositBase;
 	type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
 }
+*/
 
 parameter_types! {
 	pub const DepositPerItem: Balance = deposit(1, 0);
@@ -1254,7 +1256,7 @@ impl pallet_mmr::Config for Runtime {
 	type OnNewRoot = ();
 	type WeightInfo = ();
 }
-
+/*
 parameter_types! {
 	pub const LotteryPalletId: PalletId = PalletId(*b"py/lotto");
 	pub const MaxCalls: u32 = 10;
@@ -1273,6 +1275,7 @@ impl pallet_lottery::Config for Runtime {
 	type MaxGenerateRandom = MaxGenerateRandom;
 	type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
 }
+*/
 
 parameter_types! {
 	pub const AssetDeposit: Balance = 100 * DOLLARS;
@@ -1332,7 +1335,7 @@ impl LLM_Pallet::Config for Runtime {
 
 }
 
-
+/*
 
 impl pallet_gilt::Config for Runtime {
 	type Event = Event;
@@ -1351,6 +1354,7 @@ impl pallet_gilt::Config for Runtime {
 	type MaxIntakeBids = MaxIntakeBids;
 	type WeightInfo = pallet_gilt::weights::SubstrateWeight<Runtime>;
 }
+*/
 
 parameter_types! {
 	pub const ClassDeposit: Balance = 100 * DOLLARS;
