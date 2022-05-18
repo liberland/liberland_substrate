@@ -1335,7 +1335,7 @@ impl LLM_Pallet::Config for Runtime {
 
 }
 
-/*
+///*
 
 impl pallet_gilt::Config for Runtime {
 	type Event = Event;
@@ -1354,7 +1354,7 @@ impl pallet_gilt::Config for Runtime {
 	type MaxIntakeBids = MaxIntakeBids;
 	type WeightInfo = pallet_gilt::weights::SubstrateWeight<Runtime>;
 }
-*/
+//*/
 
 parameter_types! {
 	pub const ClassDeposit: Balance = 100 * DOLLARS;
