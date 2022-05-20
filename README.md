@@ -20,26 +20,8 @@ setup script called run_validator.sh
 
 
 
-## Download pre-compiled node:  
-```shell
-$ wget get.testnet.liberland.org/substrate  
-```
-
-
-Check the hash of the downloaded file:
-```shell
-$ b2sum substrate 
-176b365c65f4bd36c8ac8643c75f7d75a0d2139995fd930ac9e213b77d093b0bbee600fa233037b8566accfaec2c22d62c8ead0b2b0b7c4aa5eee6825a4742a9  substrate
-$ md5sum substrate 
-6da96ee4135e6a881d36360628af3742  substrate
-$ sha256sum substrate 
-c4d8bff559831c4868247c0e1f4ce765d3d00db7d030205ecc134e755503fc0d  substrate
-```
-
-### Download the chainspec:  
-```shell
-$ wget get.testnet.liberland.org/liberland-menger.json
-```
+View live chain:   
+https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fl2.laissez-faire.trade#/explorer
 
 
 Documentation can be found in the (docs/)[docs/] folder
