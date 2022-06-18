@@ -33,7 +33,7 @@ As an assembly member you can approve a transfer of LLM
 
 
 ### Storage, balances and keeping track of LLM      
-LLM pallet has 2 different storage types:      
+LLM pallet has 5 different storage types:      
 
 ##### LLMBalance    
 Stores Account and Balances in storagemap, you can query by account  
@@ -48,6 +48,45 @@ Stores Account and Balances in storagemap, you can query by account
 Keeps track of the amount of current minted(/created) amount of LLM   
 This can be queried and will return a number(u64)      
 
+##### lockedLLM   
+Current regular frozen llm's  
+
+##### llmPoliticsLock   
+Frozen LLM from llmPolitics, when a vote is created some of the llm allocated for politics gets unfreezen  
+
+##### llmPolitics   
+LLM that are locked in politics and can only be used by the system to vote 
+
+![Storage maps](llm_storage_maps.png)
+
+### The main functionality of llm is:  
+
+##### politics_lock   
+Allocate llm for politics(voting and elections)   
+
+
+##### politics_unlock   
+Unlock 10% of your politics balance    
+
+
+#### unfreeze  
+Unfreeze 10% of your frozen llm   
+
+
+
+##### treasury_llm_transfer   
+The senate can tell the treasury to send LLM to an account  
+
+##### createllm   
+manually trigger the creation of llm and the premint   
+
+
+##### fake_send   
+Debug function not used in production  
+
+
+##### send_llm   
+Send LLM to a user  
 
 
 https://docs.substrate.io/v3/runtime/storage/    
