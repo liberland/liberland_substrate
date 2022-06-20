@@ -170,6 +170,8 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+use LLM_Pallet as pallet_llm;
+
 mod conviction;
 mod types;
 mod vote;
@@ -251,7 +253,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + Sized {
+	pub trait Config: frame_system::Config + Sized  {
 		type Proposal: Parameter + Dispatchable<Origin = Self::Origin> + From<Call<Self>>;
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -598,6 +600,8 @@ pub mod pallet {
 		MaxVotesReached,
 		/// Maximum number of proposals reached.
 		TooManyProposals,
+		/// No politcal LLM allocated tokens
+		NoPolLLM, 
 	}
 
 	#[pallet::hooks]
@@ -628,6 +632,9 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			
+			ensure!(Self::has_pooled_lm(who.clone()), Error::<T>::NoPolLLM);
+
 			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
 
 			let index = Self::public_prop_count();
@@ -1285,14 +1292,34 @@ pub mod pallet {
 	}
 }
 
+impl<T: Config + LLM_Pallet::Config> Pallet<T>{
+
+	pub fn has_pooled_lm(account: T::AccountId) -> bool {
+		//let imb = <T as pallet::Config>::Currency::withdraw();
+		//let _T = <T as LLM_Pallet>::has_llm_politics(account);
+		let out: bool = LLM_Pallet::Pallet::<T>::get_politics_balance(account);//<LLM_Pallet::Store::<T> as T>::get_politics_lock(account) //LLMPolitics::<T>::contains_key::<T::AccountId>(account)
+		out
+	}
+
+}
+
 impl<T: Config> Pallet<T> {
 	// exposed immutables.
+
+	fn pool_llm(account: T::AccountId) -> bool {
+		//let imb = <T as pallet::Config>::Currency::withdraw();
+		//let _T = <T as LLM_Pallet>::has_llm_politics(account);
+		let out: bool = Self::has_pooled_lm::<T>(account);//<LLM_Pallet::Store::<T> as T>::get_politics_lock(account) //LLMPolitics::<T>::contains_key::<T::AccountId>(account)
+		out
+	}
 
 	/// Get the amount locked in support of `proposal`; `None` if proposal isn't a valid proposal
 	/// index.
 	pub fn backing_for(proposal: PropIndex) -> Option<BalanceOf<T>> {
 		Self::deposit_of(proposal).map(|(l, d)| d.saturating_mul((l.len() as u32).into()))
 	}
+
+	//check if a user has pooled tokens from LLM Pallet
 
 	/// Get all referenda ready for tally at block `n`.
 	pub fn maturing_referenda_at(
