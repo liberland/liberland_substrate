@@ -1,5 +1,5 @@
 [package]
-name = "LLM-Pallet"
+name = "pallet-llm"
 version = "0.1.0"
 authors = ["Filip <filip@rustsyndi.cat>"]
 edition = "2021"

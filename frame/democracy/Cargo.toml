@@ -24,6 +24,7 @@ sp-runtime = { version = "6.0.0", default-features = false, path = "../../primit
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, path = "../benchmarking", optional = true }
 frame-support = { version = "4.0.0-dev", default-features = false, path = "../support" }
 frame-system = { version = "4.0.0-dev", default-features = false, path = "../system" }
+pallet-llm = { default-features = false, path = "../llm" }
 
 [dev-dependencies]
 sp-core = { version = "6.0.0", path = "../../primitives/core" }
@@ -42,6 +43,7 @@ std = [
 	"frame-support/std",
 	"sp-runtime/std",
 	"frame-system/std",
+	"pallet-llm/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
