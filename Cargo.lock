@@ -13,26 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "LLM-Pallet"
-version = "0.1.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal",
- "log 0.4.17",
- "pallet-assets",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-keyring",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4719,7 +4699,6 @@ dependencies = [
 name = "node-cli"
 version = "3.0.0-dev"
 dependencies = [
- "LLM-Pallet",
  "assert_cmd",
  "async-std",
  "clap 3.1.18",
@@ -4741,6 +4720,7 @@ dependencies = [
  "pallet-asset-tx-payment",
  "pallet-balances",
  "pallet-im-online",
+ "pallet-llm",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "parity-scale-codec",
@@ -4894,7 +4874,6 @@ dependencies = [
 name = "node-runtime"
 version = "3.0.0-dev"
 dependencies = [
- "LLM-Pallet",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -4928,6 +4907,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
+ "pallet-llm",
  "pallet-lottery",
  "pallet-membership",
  "pallet-mmr",
@@ -5744,6 +5724,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
+ "pallet-llm",
  "pallet-scheduler",
  "parity-scale-codec",
  "scale-info",
@@ -5938,6 +5919,26 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-llm"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "log 0.4.17",
+ "pallet-assets",
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
@@ -10452,14 +10453,6 @@ dependencies = [
  "quote",
  "rustversion",
  "syn",
-]
-
-[[package]]
-name = "subkey"
-version = "2.0.1"
-dependencies = [
- "clap 3.1.18",
- "sc-cli",
 ]
 
 [[package]]

@@ -114,17 +114,17 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("node"),
-	impl_name: create_runtime_str!("substrate-node"),
+	spec_name: create_runtime_str!("liberland"),
+	impl_name: create_runtime_str!("liberland-node"),
 	authoring_version: 10,
 	// Per convention: if the runtime behavior changes, increment spec_version
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 268,
-	impl_version: 0,
+	spec_version: 1,
+	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 2,
+	transaction_version: 1,
 	state_version: 1,
 };
 
@@ -1324,7 +1324,7 @@ pub(crate) type ASSET_ID = u32; // u32 is better supported by the runtime
 
 pub type LLM_Balances = u128;
 
-impl LLM_Pallet::Config for Runtime {
+impl pallet_llm::Config for Runtime {
 	type Event = Event;
 	type Total_supply = TOTALLLM; //70 million in hardcap
 	type PreMintedAmount = PREMINTLLM; // Premint 7 million
@@ -1475,7 +1475,7 @@ construct_runtime!(
 		Referenda: pallet_referenda,
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
-		LLM: LLM_Pallet, // LLM Asset
+		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
 	}
 );
 

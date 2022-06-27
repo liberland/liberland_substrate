@@ -90,7 +90,7 @@ node-rpc = { version = "3.0.0-dev", path = "../rpc" }
 node-primitives = { version = "2.0.0", path = "../primitives" }
 node-executor = { version = "3.0.0-dev", path = "../executor" }
 
-LLM-Pallet = { version = "0.1.0", path = "../../../frame/llm-pallet" }
+pallet-llm = { version = "0.1.0", path = "../../../frame/llm" }
 
 # CLI-specific dependencies
 sc-cli = { version = "0.10.0-dev", optional = true, path = "../../../client/cli" }

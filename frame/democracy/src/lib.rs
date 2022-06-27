@@ -170,6 +170,9 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+use pallet_llm;
+//use frame_support::{Blake2_128Concat, StorageMap};
+
 mod conviction;
 mod types;
 mod vote;
@@ -181,6 +184,8 @@ pub use types::{Delegations, ReferendumInfo, ReferendumStatus, Tally, UnvoteScop
 pub use vote::{AccountVote, Vote, Voting};
 pub use vote_threshold::{Approved, VoteThreshold};
 pub use weights::WeightInfo;
+
+//
 
 #[cfg(test)]
 mod tests;
@@ -242,7 +247,7 @@ enum Releases {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::{DispatchResult, *};
-	use frame_support::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, traits::StorageInstance};
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::pallet]
@@ -598,6 +603,8 @@ pub mod pallet {
 		MaxVotesReached,
 		/// Maximum number of proposals reached.
 		TooManyProposals,
+		/// No politcal LLM allocated tokens
+		NoPolLLM,
 	}
 
 	#[pallet::hooks]
@@ -628,6 +635,9 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+
 			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
 
 			let index = Self::public_prop_count();
@@ -669,6 +679,7 @@ pub mod pallet {
 			#[pallet::compact] seconds_upper_bound: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 
 			let seconds =
 				Self::len_of_deposit_of(proposal).ok_or_else(|| Error::<T>::ProposalMissing)?;
@@ -700,6 +711,7 @@ pub mod pallet {
 			vote: AccountVote<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			Self::try_vote(&who, ref_index, vote)
 		}
 
@@ -863,7 +875,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::veto_external(MAX_VETOERS))]
 		pub fn veto_external(origin: OriginFor<T>, proposal_hash: T::Hash) -> DispatchResult {
 			let who = T::VetoOrigin::ensure_origin(origin)?;
-
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			if let Some((e_proposal_hash, _)) = <NextExternal<T>>::get() {
 				ensure!(proposal_hash == e_proposal_hash, Error::<T>::ProposalMissing);
 			} else {
@@ -947,6 +959,7 @@ pub mod pallet {
 			balance: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			let votes = Self::try_delegate(who, to, conviction, balance)?;
 
 			Ok(Some(T::WeightInfo::delegate(votes)).into())
@@ -997,6 +1010,8 @@ pub mod pallet {
 		/// Weight: `O(E)` with E size of `encoded_proposal` (protected by a required deposit).
 		#[pallet::weight(T::WeightInfo::note_preimage(encoded_proposal.len() as u32))]
 		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who), Error::<T>::NoPolLLM);
 			Self::note_preimage_inner(ensure_signed(origin)?, encoded_proposal)?;
 			Ok(())
 		}
@@ -1011,6 +1026,7 @@ pub mod pallet {
 			encoded_proposal: Vec<u8>,
 		) -> DispatchResult {
 			let who = T::OperationalPreimageOrigin::ensure_origin(origin)?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			Self::note_preimage_inner(who, encoded_proposal)?;
 			Ok(())
 		}
@@ -1049,6 +1065,7 @@ pub mod pallet {
 			encoded_proposal: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let who = T::OperationalPreimageOrigin::ensure_origin(origin)?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			Self::note_imminent_preimage_inner(who, encoded_proposal)?;
 			// We check that this preimage was not uploaded before in
 			// `note_imminent_preimage_inner`, thus this call can only be successful once. If
@@ -1078,7 +1095,7 @@ pub mod pallet {
 			#[pallet::compact] proposal_len_upper_bound: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-
+			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			ensure!(
 				Self::pre_image_data_len(proposal_hash)? <= proposal_len_upper_bound,
 				Error::<T>::WrongUpperBound,
@@ -1126,7 +1143,8 @@ pub mod pallet {
 				.max(T::WeightInfo::unlock_remove(T::MaxVotes::get()))
 		)]
 		pub fn unlock(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
-			ensure_signed(origin)?;
+			let who = ensure_signed(origin)?;
+			ensure!(!llmmod::check_pooled_llm::<T>(who), Error::<T>::NoPolLLM);
 			Self::update_lock(&target);
 			Ok(())
 		}
@@ -1161,6 +1179,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::remove_vote(T::MaxVotes::get()))]
 		pub fn remove_vote(origin: OriginFor<T>, index: ReferendumIndex) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			Self::try_remove_vote(&who, index, UnvoteScope::Any)
 		}
 
@@ -1186,6 +1205,7 @@ pub mod pallet {
 			index: ReferendumIndex,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			let scope = if target == who { UnvoteScope::Any } else { UnvoteScope::OnlyExpired };
 			Self::try_remove_vote(&target, index, scope)?;
 			Ok(())
@@ -1285,6 +1305,42 @@ pub mod pallet {
 	}
 }
 
+/*
+use frame_support::traits::StorageInstance;
+pub struct ParaLifecyclesPrefix;
+impl StorageInstance for ParaLifecyclesPrefix {
+	fn pallet_prefix() -> &'static str {
+		"llm/trsy"
+	}
+
+	const STORAGE_PREFIX: &'static str = "LLMPolitics";
+}
+pub type ParaLifecycles<AccountId> = dyn frame_support::StorageMap<ParaLifecyclesPrefix, AccountId, BalanceOf, Query = frame_support::pallet_prelude::ValueQuery>;
+*/
+
+//impl<T: Config + LLM_Pallet::Config> Pallet<T>{
+
+//	pub fn has_pooled_lm(account: T::AccountId) -> bool {
+//let imb = <T as pallet::Config>::Currency::withdraw();
+//let _T = <T as LLM_Pallet>::has_llm_politics(account);
+//		let out: bool = LLM_Pallet::Pallet::<T>::get_politics_balance(account);//<LLM_Pallet::Store::<T>
+// as T>::get_politics_lock(account) //LLMPolitics::<T>::contains_key::<T::AccountId>(account) 		out
+//	}
+
+//}
+
+impl<T: Config + frame_system::Config<AccountId = T>> Pallet<T> {
+	//	fn has_pooled_llm(account: T::AccountId) -> bool {
+	//		use crate::llmmod::LLMPoliticsCopy;
+	//let imb = <T as pallet::Config>::Currency::withdraw();
+	//let _T = <T as LLM_Pallet>::has_llm_politics(account);
+	//let out: bool = ParaLifecycles::get(account);//<LLM_Pallet::Store::<T> as
+	// T>::get_politics_lock(account) //LLMPolitics::<T>::contains_key::<T::AccountId>(account)
+	// 		return true;
+	//	LLMPoliticsCopy::<T>::get(account)
+	//	}
+}
+
 impl<T: Config> Pallet<T> {
 	// exposed immutables.
 
@@ -1293,6 +1349,8 @@ impl<T: Config> Pallet<T> {
 	pub fn backing_for(proposal: PropIndex) -> Option<BalanceOf<T>> {
 		Self::deposit_of(proposal).map(|(l, d)| d.saturating_mul((l.len() as u32).into()))
 	}
+
+	//check if a user has pooled tokens from LLM Pallet
 
 	/// Get all referenda ready for tally at block `n`.
 	pub fn maturing_referenda_at(
@@ -1942,4 +2000,39 @@ fn decode_compact_u32_at(key: &[u8]) -> Option<u32> {
 			None
 		},
 	}
+}
+
+pub mod llmmod {
+	use super::*;
+	use frame_support::{
+		storage::types::{StorageMap, StorageValue, ValueQuery},
+		traits::StorageInstance,
+		Blake2_128Concat, Twox64Concat,
+	};
+	// ParaLifecyclesPrefix, based on centrifuge
+	pub struct LLMPoliticsCopy;
+
+	impl StorageInstance for LLMPoliticsCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "LLMPolitics";
+	}
+	pub type LLMPolitics<T> = frame_support::storage::types::StorageMap<
+		LLMPoliticsCopy,
+		Blake2_128Concat,
+		<T as frame_system::Config>::AccountId,
+		u128,
+		frame_support::pallet_prelude::ValueQuery,
+	>;
+	//type AccountId = frame_system::Config::AccountId;
+
+	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
+		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
+	}
+
+	
+
+	
 }
