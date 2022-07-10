@@ -262,7 +262,7 @@ pub mod pallet {
 
 		/// Currency type for this pallet.
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>; // add llm currency trait
 
 		/// The period between a proposal being approved and enacted.
 		///
@@ -588,6 +588,7 @@ pub mod pallet {
 		AlreadyDelegating,
 		/// Too high a balance was provided that the account cannot afford.
 		InsufficientFunds,
+		InsufficientLLM,
 		/// The account is not currently delegating.
 		NotDelegating,
 		/// The account currently has votes attached to it and the operation cannot succeed until
@@ -636,7 +637,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 
 			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
 
@@ -679,7 +680,7 @@ pub mod pallet {
 			#[pallet::compact] seconds_upper_bound: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 
 			let seconds =
 				Self::len_of_deposit_of(proposal).ok_or_else(|| Error::<T>::ProposalMissing)?;
@@ -711,7 +712,7 @@ pub mod pallet {
 			vote: AccountVote<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			Self::try_vote(&who, ref_index, vote)
 		}
 
@@ -750,8 +751,10 @@ pub mod pallet {
 		///   Decoding vec of length V. Charged as maximum
 		#[pallet::weight(T::WeightInfo::external_propose(MAX_VETOERS))]
 		pub fn external_propose(origin: OriginFor<T>, proposal_hash: T::Hash) -> DispatchResult {
-			T::ExternalOrigin::ensure_origin(origin)?;
+			//	T::ExternalOrigin::ensure_origin(origin)?;
+			let _who = ensure_signed(origin)?;
 			ensure!(!<NextExternal<T>>::exists(), Error::<T>::DuplicateProposal);
+
 			if let Some((until, _)) = <Blacklist<T>>::get(proposal_hash) {
 				ensure!(
 					<frame_system::Pallet<T>>::block_number() >= until,
@@ -830,19 +833,19 @@ pub mod pallet {
 			// - `voting_period` is at least `FastTrackVotingPeriod` and `origin` is
 			//   `FastTrackOrigin`; or
 			// - `InstantAllowed` is `true` and `origin` is `InstantOrigin`.
-			let maybe_ensure_instant = if voting_period < T::FastTrackVotingPeriod::get() {
-				Some(origin)
-			} else {
-				if let Err(origin) = T::FastTrackOrigin::try_origin(origin) {
-					Some(origin)
-				} else {
-					None
-				}
-			};
-			if let Some(ensure_instant) = maybe_ensure_instant {
-				T::InstantOrigin::ensure_origin(ensure_instant)?;
-				ensure!(T::InstantAllowed::get(), Error::<T>::InstantNotAllowed);
-			}
+			//	let maybe_ensure_instant = if voting_period < T::FastTrackVotingPeriod::get() {
+			//		Some(origin)
+			//	} else {
+			//		if let Err(origin) = T::FastTrackOrigin::try_origin(origin) {
+			//			Some(origin)
+			//		} else {
+			//			None
+			//		}
+			//	};
+			//	if let Some(ensure_instant) = maybe_ensure_instant {
+			//		T::InstantOrigin::ensure_origin(ensure_instant)?;
+			//		ensure!(T::InstantAllowed::get(), Error::<T>::InstantNotAllowed);
+			//	}
 
 			let (e_proposal_hash, threshold) =
 				<NextExternal<T>>::get().ok_or(Error::<T>::ProposalMissing)?;
@@ -874,8 +877,9 @@ pub mod pallet {
 		/// Weight: `O(V + log(V))` where V is number of `existing vetoers`
 		#[pallet::weight(T::WeightInfo::veto_external(MAX_VETOERS))]
 		pub fn veto_external(origin: OriginFor<T>, proposal_hash: T::Hash) -> DispatchResult {
-			let who = T::VetoOrigin::ensure_origin(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			T::VetoOrigin::ensure_origin(origin.clone())?;
+			let who = ensure_signed(origin)?;
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			if let Some((e_proposal_hash, _)) = <NextExternal<T>>::get() {
 				ensure!(proposal_hash == e_proposal_hash, Error::<T>::ProposalMissing);
 			} else {
@@ -959,7 +963,7 @@ pub mod pallet {
 			balance: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			let votes = Self::try_delegate(who, to, conviction, balance)?;
 
 			Ok(Some(T::WeightInfo::delegate(votes)).into())
@@ -1011,7 +1015,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::note_preimage(encoded_proposal.len() as u32))]
 		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who), Error::<T>::NoPolLLM);
 			Self::note_preimage_inner(ensure_signed(origin)?, encoded_proposal)?;
 			Ok(())
 		}
@@ -1025,8 +1029,10 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			encoded_proposal: Vec<u8>,
 		) -> DispatchResult {
-			let who = T::OperationalPreimageOrigin::ensure_origin(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			let who = T::OperationalPreimageOrigin::ensure_origin(origin.clone())?;
+			let who1 = ensure_signed(origin.clone())?;
+
+			ensure!(llmmod::check_pooled_llm::<T>(who1), Error::<T>::NoPolLLM);
 			Self::note_preimage_inner(who, encoded_proposal)?;
 			Ok(())
 		}
@@ -1064,9 +1070,10 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			encoded_proposal: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			let who = T::OperationalPreimageOrigin::ensure_origin(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			Self::note_imminent_preimage_inner(who, encoded_proposal)?;
+			let who1 = T::OperationalPreimageOrigin::ensure_origin(origin.clone())?;
+			let who = ensure_signed(origin)?;
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			Self::note_imminent_preimage_inner(who1, encoded_proposal)?;
 			// We check that this preimage was not uploaded before in
 			// `note_imminent_preimage_inner`, thus this call can only be successful once. If
 			// successful, user does not pay a fee.
@@ -1095,7 +1102,7 @@ pub mod pallet {
 			#[pallet::compact] proposal_len_upper_bound: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			ensure!(
 				Self::pre_image_data_len(proposal_hash)? <= proposal_len_upper_bound,
 				Error::<T>::WrongUpperBound,
@@ -1144,7 +1151,7 @@ pub mod pallet {
 		)]
 		pub fn unlock(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(!llmmod::check_pooled_llm::<T>(who), Error::<T>::NoPolLLM);
+			ensure!(llmmod::check_pooled_llm::<T>(who), Error::<T>::NoPolLLM);
 			Self::update_lock(&target);
 			Ok(())
 		}
@@ -1218,7 +1225,10 @@ pub mod pallet {
 			proposal_hash: T::Hash,
 			index: ReferendumIndex,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			//	let who = ensure_signed(origin)?;
+			//	ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			//	ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			//ensure_root(origin)?;
 			Self::do_enact_proposal(proposal_hash, index)
 		}
 
@@ -1243,6 +1253,8 @@ pub mod pallet {
 			proposal_hash: T::Hash,
 			maybe_ref_index: Option<ReferendumIndex>,
 		) -> DispatchResult {
+			//		let who = ensure_signed(origin.clone);
+			//		ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			T::BlacklistOrigin::ensure_origin(origin)?;
 
 			// Insert the proposal into the blacklist.
@@ -1424,7 +1436,21 @@ impl<T: Config> Pallet<T> {
 		vote: AccountVote<BalanceOf<T>>,
 	) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
-		ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
+		use scale_info::prelude::format;
+		let mut ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
+		let divider = 1000000000000u128;
+		//ubalance = ubalance / divider; //convert lld to llm
+		//let mut ubalance_str = format!("balance input {}", ubalance);
+		//	sp_runtime::print(ubalance_str.as_str());
+		//	sp_std::if_std! {
+		// This code is only being compiled and executed when the `std` feature is enabled.
+		//		println!("{}", ubalance_str);
+		//	}
+		//	ubalance = ubalance / 8u128;
+		//	ubalance = ubalance * 5u128;
+		llmmod::freeze_llm::<T>(who.clone(), ubalance)?; // freeze llm or give error
+
+		//ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			if let Voting::Direct { ref mut votes, delegations, .. } = voting {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
@@ -1457,7 +1483,9 @@ impl<T: Config> Pallet<T> {
 		})?;
 		// Extend the lock to `balance` (rather than setting it) since we don't know what other
 		// votes are in place.
-		T::Currency::extend_lock(DEMOCRACY_ID, who, vote.balance(), WithdrawReasons::TRANSFER);
+
+		//	T::Currency::extend_lock(DEMOCRACY_ID, who, vote.balance(), WithdrawReasons::TRANSFER);
+		// // freeze user balance here
 		ReferendumInfoOf::<T>::insert(ref_index, ReferendumInfo::Ongoing(status));
 		Ok(())
 	}
@@ -1571,7 +1599,13 @@ impl<T: Config> Pallet<T> {
 		balance: BalanceOf<T>,
 	) -> Result<u32, DispatchError> {
 		ensure!(who != target, Error::<T>::Nonsense);
-		ensure!(balance <= T::Currency::free_balance(&who), Error::<T>::InsufficientFunds);
+		let ubalance: u128 = balance.try_into().unwrap_or(0u128);
+		ensure!(
+			ubalance <= llmmod::llm_politics_balance::<T>(who.clone()),
+			Error::<T>::InsufficientFunds
+		); //))
+   //ensure!(balance <= T::Currency::free_balance(&who), Error::<T>::InsufficientFunds);
+   // //change me
 		let votes = VotingOf::<T>::try_mutate(&who, |voting| -> Result<u32, DispatchError> {
 			let mut old = Voting::Delegating {
 				balance,
@@ -1603,7 +1637,7 @@ impl<T: Config> Pallet<T> {
 			let votes = Self::increase_upstream_delegation(&target, conviction.votes(balance));
 			// Extend the lock to `balance` (rather than setting it) since we don't know what other
 			// votes are in place.
-			T::Currency::extend_lock(DEMOCRACY_ID, &who, balance, WithdrawReasons::TRANSFER);
+			T::Currency::extend_lock(DEMOCRACY_ID, &who, balance, WithdrawReasons::TRANSFER); // change me
 			Ok(votes)
 		})?;
 		Self::deposit_event(Event::<T>::Delegated { who, target });
@@ -1646,7 +1680,7 @@ impl<T: Config> Pallet<T> {
 			voting.locked_balance()
 		});
 		if lock_needed.is_zero() {
-			T::Currency::remove_lock(DEMOCRACY_ID, who);
+			T::Currency::remove_lock(DEMOCRACY_ID, who); // unfreeze
 		} else {
 			T::Currency::set_lock(DEMOCRACY_ID, who, lock_needed, WithdrawReasons::TRANSFER);
 		}
@@ -1709,7 +1743,7 @@ impl<T: Config> Pallet<T> {
 			if let Some((depositors, deposit)) = <DepositOf<T>>::take(prop_index) {
 				// refund depositors
 				for d in &depositors {
-					T::Currency::unreserve(d, deposit);
+					T::Currency::unreserve(d, deposit); // change me
 				}
 				Self::deposit_event(Event::<T>::Tabled {
 					proposal_index: prop_index,
@@ -1763,7 +1797,7 @@ impl<T: Config> Pallet<T> {
 		index: ReferendumIndex,
 		status: ReferendumStatus<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	) -> bool {
-		let total_issuance = T::Currency::total_issuance();
+		let total_issuance = T::Currency::total_issuance(); // get total balance
 		let approved = status.threshold.approved(status.tally, total_issuance);
 
 		if approved {
@@ -2004,13 +2038,10 @@ fn decode_compact_u32_at(key: &[u8]) -> Option<u32> {
 
 pub mod llmmod {
 	use super::*;
-	use frame_support::{
-		storage::types::{StorageMap, StorageValue, ValueQuery},
-		traits::StorageInstance,
-		Blake2_128Concat, Twox64Concat,
-	};
+	use frame_support::{traits::StorageInstance, Blake2_128Concat, Twox64Concat};
 	// ParaLifecyclesPrefix, based on centrifuge
 	pub struct LLMPoliticsCopy;
+	pub struct LLMPoliticsLockCopy;
 
 	impl StorageInstance for LLMPoliticsCopy {
 		fn pallet_prefix() -> &'static str {
@@ -2028,11 +2059,82 @@ pub mod llmmod {
 	>;
 	//type AccountId = frame_system::Config::AccountId;
 
+	impl StorageInstance for LLMPoliticsLockCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "LLMPoliticsLock";
+	}
+	pub type LLMPoliticsLock<T> = frame_support::storage::types::StorageMap<
+		LLMPoliticsLockCopy,
+		Blake2_128Concat,
+		<T as frame_system::Config>::AccountId,
+		u128,
+		frame_support::pallet_prelude::ValueQuery,
+	>;
+
+	// move
+	pub fn unfreeze_llm<T: frame_system::Config + pallet::Config>(
+		user: T::AccountId,
+		amount: u128,
+	) {
+		let llm_lock = LLMPoliticsLock::<T>::get(&user);
+		let llm_lock = llm_lock.saturating_sub(amount);
+		LLMPoliticsLock::<T>::insert(&user, llm_lock); // overwrite the current value with the new balance
+		LLMPolitics::<T>::mutate_exists(&user, |llm| {
+			*llm = Some(llm.unwrap_or(0u128) + amount); // update balance
+		}); // add the llm to the regular account balance
+	}
+
+	// the free balance
+	pub fn llm_politics_balance<T: frame_system::Config>(user: T::AccountId) -> u128 {
+		LLMPolitics::<T>::get(&user) //.unwrap_or(0u128)
+	}
+
+	/// Freeze LLM
+	pub fn freeze_llm<T: frame_system::Config + pallet::Config>(
+		account: T::AccountId,
+		amount: u128,
+	) -> Result<(), DispatchError> {
+		//todo append checks
+		//	LLMPoliticsLock::<T>::mutate_exists(&account, |b| *b = Some(amount +
+		// LLMPolitics::<T>::get(&account)));
+		let divider = 1000000000000u128;
+		let fix_balance = amount / divider; // LLD to LLM conversion
+
+		// make sure we can vote with the amount of LLM we have in politics lock
+		ensure!(LLMPolitics::<T>::get(&account) >= fix_balance, Error::<T>::InsufficientLLM);
+
+		//
+
+		// TODO ADD TO FREEZE LLM
+
+		// move LLM to the frozen llm
+		if LLMPolitics::<T>::contains_key::<T::AccountId>(account.clone()) {
+			//>= 0u64.try_into().unwrap_or(Default::default())
+			// remove the LLM from the LLMPolitics
+
+			LLMPolitics::<T>::mutate_exists(&account, |b| {
+				*b = Some(LLMPolitics::<T>::get(&account) - fix_balance)
+			}); //- LLMPoliticsLock::<T>::get(&account))); // dont overwrite it, append to balance
+		}
+		//add to freezed llm
+		if LLMPoliticsLock::<T>::contains_key::<T::AccountId>(account.clone()) {
+			//>= 0u64.try_into().unwrap_or(Default::default())
+
+			LLMPoliticsLock::<T>::mutate_exists(&account, |b| {
+				*b = Some(fix_balance + LLMPoliticsLock::<T>::get(&account))
+			}); //- LLMPoliticsLock::<T>::get(&account))); // dont overwrite it, append to balance
+		} else {
+			LLMPoliticsLock::<T>::insert::<T::AccountId, u128>(account.clone(), fix_balance); // lock in the
+			                                                                      // amount
+		}
+
+		Ok(())
+	}
+
 	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
 		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
 	}
-
-	
-
-	
 }
