@@ -382,6 +382,11 @@ pub mod pallet {
 	#[pallet::getter(fn public_prop_count)]
 	pub type PublicPropCount<T> = StorageValue<_, PropIndex, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_ref_ac)]
+	pub type RefAc<T: Config> =
+		StorageValue<_, Vec<(ReferendumIndex, T::AccountId, u128)>, ValueQuery>;
+
 	/// The public proposals. Unsorted. The second item is the proposal's hash.
 	#[pallet::storage]
 	#[pallet::getter(fn public_props)]
@@ -430,6 +435,10 @@ pub mod pallet {
 		ReferendumIndex,
 		ReferendumInfo<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	>;
+
+	//	#[pallet::storage]
+	//	#[pallet::getter(fn accountref)]
+	//	pub type AccountRef<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountRef<T>>;
 
 	/// All votes for a particular voter. We store the balance for the number of votes that we
 	/// have recorded. The second item is the total amount of delegations, that will be added.
@@ -1439,7 +1448,7 @@ impl<T: Config> Pallet<T> {
 		use scale_info::prelude::format;
 		let mut ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
 		let divider = 1000000000000u128;
-		//ubalance = ubalance / divider; //convert lld to llm
+		//	ubalance = ubalance / divider; //convert lld to llm
 		//let mut ubalance_str = format!("balance input {}", ubalance);
 		//	sp_runtime::print(ubalance_str.as_str());
 		//	sp_std::if_std! {
@@ -1449,6 +1458,16 @@ impl<T: Config> Pallet<T> {
 		//	ubalance = ubalance / 8u128;
 		//	ubalance = ubalance * 5u128;
 		llmmod::freeze_llm::<T>(who.clone(), ubalance)?; // freeze llm or give error
+
+		RefAc::<T>::append((ref_index.clone(), who.clone(), ubalance / divider)); // append to refac
+
+		//let myvec: Vec(T::AccountId, u128) = vec![who, &ubalance];
+		//let myvec: Vec(T::AccountId, u128) = vec![who, &ubalance];
+		// add myvec and
+		//	RefAc::<T>::insert(
+		//		ref_index.
+		//		myvec
+		//	);
 
 		//ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
@@ -1523,6 +1542,8 @@ impl<T: Config> Pallet<T> {
 								T::VoteLockingPeriod::get().saturating_mul(lock_periods.into()),
 							);
 							let now = frame_system::Pallet::<T>::block_number();
+							let ubalance: u128 = balance.try_into().unwrap_or(0u128); // / 100000000000u128;
+							llmmod::unfreeze_llm::<T>(who.clone(), ubalance); // freeze llm or give error
 							if now < unlock_at {
 								ensure!(
 									matches!(scope, UnvoteScope::Any),
@@ -1680,7 +1701,9 @@ impl<T: Config> Pallet<T> {
 			voting.locked_balance()
 		});
 		if lock_needed.is_zero() {
-			T::Currency::remove_lock(DEMOCRACY_ID, who); // unfreeze
+			//	let ubalance: u128 = lock_needed.try_into().unwrap_or(0u128);
+			//	llmmod::unfreeze_llm::<T>(who.clone(), ubalance);
+			//	T::Currency::remove_lock(DEMOCRACY_ID, who); // unfreeze
 		} else {
 			T::Currency::set_lock(DEMOCRACY_ID, who, lock_needed, WithdrawReasons::TRANSFER);
 		}
@@ -1743,6 +1766,8 @@ impl<T: Config> Pallet<T> {
 			if let Some((depositors, deposit)) = <DepositOf<T>>::take(prop_index) {
 				// refund depositors
 				for d in &depositors {
+					//	let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
+					//	llmmod::unfreeze_llm::<T>(d.clone(), ubalance);
 					T::Currency::unreserve(d, deposit); // change me
 				}
 				Self::deposit_event(Event::<T>::Tabled {
@@ -1767,6 +1792,62 @@ impl<T: Config> Pallet<T> {
 		let preimage = <Preimages<T>>::take(&proposal_hash);
 		if let Some(PreimageStatus::Available { data, provider, deposit, .. }) = preimage {
 			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+				let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
+				//	let divider = 1000000000000u128;
+				//	llmmod::unfreeze_llm::<T>(provider.clone(), ubalance / divider);
+				//	for (user, balance) in RefAc::<T>::get(&index).into_iter() {
+				//		llmmod::unfreeze_llm::<T>(user.clone(), balance);
+				//	}
+				//	for (user, balance) in DepositOf::get(proindexposal_hash) {
+
+				//	}
+
+				//		let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
+				//		llmmod::unfreeze_llm::<T>(provider.clone(), ubalance / divider);
+				//	});
+
+				// iterate through RefAc and remove values from RefAc
+				//RefAc
+
+				//	RefAc::<T>::mutate(|refvot| {
+				//		if let Some(myindex) = refvot.iter().position(|r| r.0 == index){
+				//			let (refin, user, balance) = refvot.swap_remove(myindex);
+				//	let (theindex, ..) = refvot.remove(myindex); //remove index
+
+				//		}
+
+				//	});//			);
+
+				RefAc::<T>::get().into_iter().for_each(|(refindex, user, balance)| {
+					if refindex == index {
+						llmmod::unfreeze_llm::<T>(user.clone(), balance);
+					}
+					//llmmod::unfreeze_llm::<T>(user.clone(), balance);
+				});
+
+				/*
+								// remove the llocked llm from the votes
+								VotingOf::<T>::mutate(who, |voting| match voting {
+										Voting::Direct { votes, delegations, .. } => {
+
+										for &(index.clone(), account_vote) in votes.iter() {
+											if account_vote.is_some() {
+												let ubalance: u128 = account_vote.unwrap().try_into().unwrap_or(0u128);
+												llmmod::unfreeze_llm::<T>(account_vote.account, ubalance / divider);
+											}
+										//	if let AccountVote::Standard { vote, .. } = account_vote {
+										//		ReferendumInfoOf::<T>::mutate(ref_index, |maybe_info| {
+										//			if let Some(ReferendumInfo::Ongoing(ref mut status)) = maybe_info {
+										//				status.tally.increase(vote.aye, amount);
+										//			}
+										//		});
+										//	}
+										//}
+										//votes.len() as u32
+									},
+								}};
+				*/
+
 				let err_amount = T::Currency::unreserve(&provider, deposit);
 				debug_assert!(err_amount.is_zero());
 				Self::deposit_event(Event::<T>::PreimageUsed { proposal_hash, provider, deposit });
@@ -1779,7 +1860,8 @@ impl<T: Config> Pallet<T> {
 
 				Ok(())
 			} else {
-				T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+				//llmmod::unfreeze_llm::<T>(&provider, deposit);
+				//T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
 				Self::deposit_event(Event::<T>::PreimageInvalid {
 					proposal_hash,
 					ref_index: index,
@@ -1830,6 +1912,13 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 		} else {
+			// unfreeze token if not approved referendum
+			RefAc::<T>::get().into_iter().for_each(|(refindex, user, balance)| {
+				if refindex == index {
+					llmmod::unfreeze_llm::<T>(user.clone(), balance);
+				}
+				//llmmod::unfreeze_llm::<T>(user.clone(), balance);
+			});
 			Self::deposit_event(Event::<T>::NotPassed { ref_index: index });
 		}
 
@@ -2059,6 +2148,30 @@ pub mod llmmod {
 	>;
 	//type AccountId = frame_system::Config::AccountId;
 
+	pub struct LLMRefCopy;
+
+	impl StorageInstance for LLMRefCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "LLMRef";
+	}
+
+	pub struct ref_balance<T: frame_system::Config> {
+		pub balance: u128,
+		pub referendum: u32,
+		pub account: <T as frame_system::Config>::AccountId,
+	}
+
+	pub type LLMRef<T> = frame_support::storage::types::StorageMap<
+		LLMRefCopy,
+		Blake2_128Concat,
+		<T as frame_system::Config>::AccountId,
+		ref_balance<T>, //<u128, u32>,    // referenda id
+		frame_support::pallet_prelude::ValueQuery,
+	>;
+
 	impl StorageInstance for LLMPoliticsLockCopy {
 		fn pallet_prefix() -> &'static str {
 			"LLM"
@@ -2073,6 +2186,13 @@ pub mod llmmod {
 		u128,
 		frame_support::pallet_prelude::ValueQuery,
 	>;
+
+	//pub fn get_ref_balance<T: frame_system::Config>(account: T::AccountId) -> u128 {
+	//	for data in 0..LLMRef::get(account){
+	//
+	//		}
+	//		balance
+	//	}
 
 	// move
 	pub fn unfreeze_llm<T: frame_system::Config + pallet::Config>(
