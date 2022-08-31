@@ -1331,8 +1331,12 @@ impl pallet_llm::Config for Runtime {
 //	type Balance = LLM_Balances;
 	type AssetId = ASSET_ID;//pallet_assets::Config::AssetId;
 //	type AccountId = AccountId;
-	
 
+
+}
+
+impl pallet_liberland_legislation::Config for Runtime {
+	type Event = Event;
 }
 
 ///*
@@ -1475,7 +1479,8 @@ construct_runtime!(
 		Referenda: pallet_referenda,
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
-		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
+		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet,
+		LiberlandLegislation: pallet_liberland_legislation
 	}
 );
 
