@@ -62,6 +62,7 @@ members = [
 	"client/transaction-pool/api",
 	"client/utils",
 	"frame/llm",
+	"frame/liberland-legislation",
 	"frame/assets",
 #	"frame/atomic-swap",
 	"frame/aura",
