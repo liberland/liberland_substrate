@@ -27,11 +27,12 @@ pub mod pallet {
     LawAlreadyExists,
   }
   #[pallet::storage]
+  //metadata stored on centralized db in order for it to be available during proposal, referendum
   pub(super) type Laws<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, u32, BoundedVec<u8, ConstU32<65536>>, ValueQuery>;
   #[pallet::call]
   impl<T: Config> Pallet<T> {
 
-    #[pallet::weight(0)]
+    #[pallet::weight(10_000)]
     pub fn add_law(origin: OriginFor<T>, index1: u32, index2:u32, lawContent: BoundedVec<u8, ConstU32<65536>> ) -> DispatchResult {
     	let sender = ensure_signed(origin)?;
 
@@ -44,7 +45,7 @@ pub mod pallet {
     	Ok(())
     }
 
-	#[pallet::weight(0)]
+	#[pallet::weight(10_000)]
     pub fn repeal_law(origin: OriginFor<T>, index1: u32, index2:u32) -> DispatchResult {
         	let sender = ensure_signed(origin)?;
 
