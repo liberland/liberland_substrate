@@ -25,6 +25,8 @@ frame-benchmarking = { version = "4.0.0-dev", default-features = false, path = "
 frame-support = { version = "4.0.0-dev", default-features = false, path = "../support" }
 frame-system = { version = "4.0.0-dev", default-features = false, path = "../system" }
 pallet-llm = { default-features = false, path = "../llm" }
+pallet-identity = { path = "../identity", default-features = false }
+
 
 [dev-dependencies]
 sp-core = { version = "6.0.0", path = "../../primitives/core" }
@@ -42,6 +44,8 @@ std = [
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"sp-runtime/std",
+		"pallet-identity/std",
+
 	"frame-system/std",
 	"pallet-llm/std",
 ]

@@ -775,8 +775,8 @@ impl pallet_referenda::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;//  | Change me for testing 2 * MINUTES;//
-	pub const VotingPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
+	pub const LaunchPeriod: BlockNumber = 2 * MINUTES;//  | Change me for testing 2 * MINUTES;//
+	pub const VotingPeriod: BlockNumber = 2 * 24 * 60 * MINUTES;
 	pub const FastTrackVotingPeriod: BlockNumber = 3 * 24 * 60 * MINUTES;
 	pub const MinimumDeposit: Balance = 10;//100 * DOLLARS;
 	pub const EnactmentPeriod: BlockNumber = 30 * 24 * 60 * MINUTES;
@@ -799,7 +799,13 @@ impl pallet_democracy::Config for Runtime {
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
 	type ExternalMajorityOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
-	/// A unanimous council can have the next scheduled referendum be a straight default-carries
+	
+		type MaxAdditionalFields = MaxAdditionalFields;
+		type MaxRegistrars = MaxRegistrars;
+
+
+		/// A unanimous council can have the next scheduled referendum be a straight default-carries
+
 	/// (NTB) vote.
 	type ExternalDefaultOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;

@@ -75,7 +75,7 @@
 mod benchmarking;
 #[cfg(test)]
 mod tests;
-mod types;
+pub mod types;
 pub mod weights;
 
 use frame_support::traits::{BalanceStatus, Currency, OnUnbalanced, ReservableCurrency};
