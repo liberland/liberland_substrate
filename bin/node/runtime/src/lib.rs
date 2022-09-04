@@ -799,12 +799,11 @@ impl pallet_democracy::Config for Runtime {
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
 	type ExternalMajorityOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
-	
-		type MaxAdditionalFields = MaxAdditionalFields;
-		type MaxRegistrars = MaxRegistrars;
 
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
 
-		/// A unanimous council can have the next scheduled referendum be a straight default-carries
+	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 
 	/// (NTB) vote.
 	type ExternalDefaultOrigin =
@@ -842,7 +841,7 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-	pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+	pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES; // DAYS
 	pub const CouncilMaxProposals: u32 = 100;
 	pub const CouncilMaxMembers: u32 = 100;
 }
@@ -865,9 +864,9 @@ parameter_types! {
 	pub const VotingBondBase: Balance = deposit(1, 64);
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = deposit(0, 32);
-	pub const TermDuration: BlockNumber = 7 * DAYS;
-	pub const DesiredMembers: u32 = 13;
-	pub const DesiredRunnersUp: u32 = 7;
+	pub const TermDuration: BlockNumber = 2 * MINUTES;//7 * DAYS;
+	pub const DesiredMembers: u32 = 4;
+	pub const DesiredRunnersUp: u32 = 3;
 	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 }
 
@@ -1008,7 +1007,6 @@ impl pallet_tips::Config for Runtime {
 	type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
 }
 //*/
-
 parameter_types! {
 	pub const DepositPerItem: Balance = deposit(1, 0);
 	pub const DepositPerByte: Balance = deposit(0, 1);
@@ -1282,7 +1280,6 @@ impl pallet_lottery::Config for Runtime {
 	type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
 }
 //*/
-
 parameter_types! {
 	pub const AssetDeposit: Balance = 100 * DOLLARS;
 	pub const ApprovalDeposit: Balance = 1 * DOLLARS;
@@ -1334,15 +1331,9 @@ impl pallet_llm::Config for Runtime {
 	type Event = Event;
 	type Total_supply = TOTALLLM; //70 million in hardcap
 	type PreMintedAmount = PREMINTLLM; // Premint 7 million
-//	type Balance = LLM_Balances;
-	type AssetId = ASSET_ID;//pallet_assets::Config::AssetId;
-//	type AccountId = AccountId;
-
-
-}
-
-impl pallet_liberland_legislation::Config for Runtime {
-	type Event = Event;
+								   //	type Balance = LLM_Balances;
+	type AssetId = ASSET_ID; //pallet_assets::Config::AssetId;
+						 //	type AccountId = AccountId;
 }
 
 ///*
@@ -1365,7 +1356,6 @@ impl pallet_gilt::Config for Runtime {
 	type WeightInfo = pallet_gilt::weights::SubstrateWeight<Runtime>;
 }
 //*/
-
 parameter_types! {
 	pub const ClassDeposit: Balance = 100 * DOLLARS;
 	pub const InstanceDeposit: Balance = 1 * DOLLARS;
@@ -1485,8 +1475,7 @@ construct_runtime!(
 		Referenda: pallet_referenda,
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
-		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet,
-		LiberlandLegislation: pallet_liberland_legislation
+		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
 	}
 );
 

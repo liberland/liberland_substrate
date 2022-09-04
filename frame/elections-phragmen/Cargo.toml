@@ -26,6 +26,8 @@ sp-std = { version = "4.0.0", default-features = false, path = "../../primitives
 sp-core = { version = "6.0.0", default-features = false, path = "../../primitives/core" }
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, path = "../benchmarking", optional = true }
 log = { version = "0.4.14", default-features = false }
+pallet-llm = { default-features = false, path = "../llm" }
+
 
 [dev-dependencies]
 pallet-balances = { version = "4.0.0-dev", path = "../balances" }
@@ -44,6 +46,7 @@ std = [
 	"sp-std/std",
 	"sp-io/std",
 	"sp-core/std",
+	"pallet-llm/std",
 	"log/std",
 ]
 runtime-benchmarks = [

@@ -78,24 +78,20 @@ pub mod pallet {
 	pub(super) type LLMBalance<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
 
-
 	#[pallet::storage] // allocated in politics
 	#[pallet::getter(fn get_politics_balance)]
 	pub(super) type LLMPolitics<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
 
-	
 	#[pallet::storage] // LLM that are frozen in the politics queue
 	#[pallet::getter(fn get_politics_lock)]
 	pub(super) type LLMPoliticsLock<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
-		
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_locked_llm)] //locked llm used for voting
 	pub(super) type LockedLLM<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
-	
 
 	#[pallet::storage]
 	#[pallet::getter(fn minted_amount)]
@@ -189,8 +185,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
-	//	/*
+		//	/*
 		#[pallet::weight(10_000)] // debug function, used for testing, DO NOT USE IN PROD, function mints llm to a raw account
 						  // based on input
 		pub fn fake_send(
@@ -209,8 +204,7 @@ pub mod pallet {
 				.unwrap_or_default();
 			Ok(())
 		}
-//*/
-
+		//*/
 		//type AssetId = T::AssetId;
 		#[pallet::weight(10_000)] // change me
 		pub fn send_llm(
@@ -269,107 +263,111 @@ pub mod pallet {
 				}
 			*/
 
-		
 			Ok(())
 		}
 
 		/// allocate LLM for politics
 		#[pallet::weight(10_000)]
-		pub fn politics_lock(
-			origin: OriginFor<T>,
-			amount: T::Balance,
-		) -> DispatchResult {
+		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			// insert into llm politics balance
-			if LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()) { //>= 0u64.try_into().unwrap_or(Default::default())
-				
-				LLMPolitics::<T>::mutate_exists(&sender, |b| *b = Some(amount + LLMPolitics::<T>::get(&sender))); // dont overwrite it, append to balance
-			}
-			else {
+			if LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()) {
+				//>= 0u64.try_into().unwrap_or(Default::default())
+
+				LLMPolitics::<T>::mutate_exists(&sender, |b| {
+					*b = Some(amount + LLMPolitics::<T>::get(&sender))
+				}); // dont overwrite it, append to balance
+			} else {
 				LLMPolitics::<T>::insert::<T::AccountId, T::Balance>(sender.clone(), amount); // lock in the amount
 			}
 
 			let llm_balance: T::Balance = LLMBalance::<T>::get(&sender) - amount;
-		
+
 			// update llm balance storage map
 			Self::update_user_balance(sender, llm_balance);
-		
+
 			// transfer to llm to llm trsy
 			Self::deposit_political_llm(origin, amount);
-		
+
 			Ok(())
 		}
-		
+
 		/// unlock LLM from politics
 		#[pallet::weight(10_000)]
-		pub fn politics_unlock(
-			origin: OriginFor<T>,
-		) -> DispatchResult {
+		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
-		//	let ten = Self::u64_to_balance(10u64);
+			//	let ten = Self::u64_to_balance(10u64);
 			// check if we have political locked LLM
-			ensure!(LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()), Error::<T>::InvalidAccount);
-			
+			ensure!(
+				LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()),
+				Error::<T>::InvalidAccount
+			);
+
 			Self::withdraw_political_llm(origin.clone());
-		//
+			//
 			Ok(())
 		}
 
 		#[pallet::weight(10_000)] // change me
 		pub fn unfreeze_llm(
 			origin: OriginFor<T>,
-		//	account: T::AccountId,
-			amount: T::Balance
+			//	account: T::AccountId,
+			amount: T::Balance,
 		) -> DispatchResult {
-		//	let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
+			//	let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
 			let sender = ensure_signed(origin.clone())?;
-		//	let or--ws-externaligin_for_pallet = OriginFor<T>::Signed(Self::llm_id().into());
+			//	let or--ws-externaligin_for_pallet = OriginFor<T>::Signed(Self::llm_id().into());
 			ensure!(Self::get_locked_llm(&sender) >= amount, Error::<T>::InvalidAmount);
 			//let lookup_account = T::Lookup::unlookup(account.clone());
 			pallet_assets::Pallet::<T>::transfer(
 				frame_system::RawOrigin::Signed(Self::get_llm_account()).into(),
 				Self::llm_id().into(),
-				T::Lookup::unlookup(sender.clone()),//
+				T::Lookup::unlookup(sender.clone()), //
 				amount.clone(),
-			).unwrap_or_default();			
+			)
+			.unwrap_or_default();
 
 			//	LLMBalance::<T>::mutate(sender, |balance| *balance =
-			LockedLLM::<T>::remove::<T::AccountId,>(sender.clone());
+			LockedLLM::<T>::remove::<T::AccountId>(sender.clone());
 
-
-			LLMBalance::<T>::mutate_exists(&sender, |b| *b = Some(LLMBalance::<T>::get(&sender) + amount));
-		
-
+			LLMBalance::<T>::mutate_exists(&sender, |b| {
+				*b = Some(LLMBalance::<T>::get(&sender) + amount)
+			});
 
 			Ok(())
 		}
 
-		/// Freeze X amount of LLM for a certain account 
+		/// Freeze X amount of LLM for a certain account
 		#[pallet::weight(10_000)] //change me
-		pub fn freeze_llm(origin: OriginFor<T>, account: T::AccountId, amount: T::Balance) -> DispatchResult {
+		pub fn freeze_llm(
+			origin: OriginFor<T>,
+			account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
-		//	let root_org = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
+			//	let root_org = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
 			// check if sender is the same as palletid
-		//	ensure!(sender == Self::get_llm_account(), Error::<T>::InvalidAccount);
+			//	ensure!(sender == Self::get_llm_account(), Error::<T>::InvalidAccount);
 			// ensure that we have balance
 			ensure!(LLMBalance::<T>::get(&sender) >= amount, Error::<T>::InvalidAmount);
 			let sender_balance: T::Balance = LLMBalance::<T>::get(&sender) - amount;
 			//check if LockedLLM contains the sender account
-//todo: replace with match statement
+			//todo: replace with match statement
 
-			if LockedLLM::<T>::contains_key::<T::AccountId>(sender.clone())  { //>= 0u64.try_into().unwrap_or(Default::default())
-				
-					LockedLLM::<T>::mutate_exists(&sender, |b| *b = Some(amount + LockedLLM::<T>::get(&sender))); // dont overwrite it, append to balance
-				}
-				else {
-					LockedLLM::<T>::insert::<T::AccountId, T::Balance>(account.clone(), amount); // lock in the amount
-				}
-			
-		
+			if LockedLLM::<T>::contains_key::<T::AccountId>(sender.clone()) {
+				//>= 0u64.try_into().unwrap_or(Default::default())
+
+				LockedLLM::<T>::mutate_exists(&sender, |b| {
+					*b = Some(amount + LockedLLM::<T>::get(&sender))
+				}); // dont overwrite it, append to balance
+			} else {
+				LockedLLM::<T>::insert::<T::AccountId, T::Balance>(account.clone(), amount); // lock in the amount
+			}
+
 			pallet_assets::Pallet::<T>::transfer(
 				origin.clone(),
 				Self::llm_id().into(),
-				T::Lookup::unlookup(Self::get_llm_account()),//
+				T::Lookup::unlookup(Self::get_llm_account()), //
 				amount.clone(),
 			)
 			.unwrap_or_default(); //.map_err(|_| Error::<T>::InvalidTransfer);//unwrap_or_default();
@@ -377,12 +375,9 @@ pub mod pallet {
 			//	LLMBalance::<T>::mutate(sender, |balance| *balance =
 			// balance.saturating_sub(amount_balance));
 			LLMBalance::<T>::mutate_exists(&sender, |b| *b = Some(sender_balance));
-		
-			
+
 			Ok(())
 		}
-
-
 
 		//	#[pallet::weight(10_000)]
 		//	pub fn send_locked_llm(
@@ -423,8 +418,9 @@ pub mod pallet {
 				Self::account_id32_to_accountid(
 					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
 				), // Multisig N + F
-				    		Self::account_id32_to_accountid(
-				  			hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(), 						), // Multisig F + ALICE + BOB */
+				Self::account_id32_to_accountid(
+					hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
+				), // Multisig F + ALICE + BOB */
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
@@ -499,7 +495,6 @@ pub mod pallet {
 		//	pub fn unlock_llm(origin: OriginFor<T>) -> DispatchResult {
 		//		todo!("unlock_llm"); // thaw
 		//	}
-
 
 		/// Create LLM manually plus mint it to the treasury
 		#[pallet::weight(10_000)] // change me
@@ -644,8 +639,6 @@ pub mod pallet {
 		}
 	*/
 	impl<T: Config> Pallet<T> {
-
-
 		fn account_id32_to_accountid(accountid32: AccountId32) -> T::AccountId {
 			let mut init_account32 = AccountId32::as_ref(&accountid32);
 			let init_account: T::AccountId = T::AccountId::decode(&mut init_account32).unwrap();
@@ -654,28 +647,26 @@ pub mod pallet {
 
 		pub fn has_llm_politics(sender: T::AccountId) -> bool {
 			LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
-	}
+		}
 		// get 10% of the users balance as a u64
 		fn get_10_percent(balance: T::Balance) -> T::Balance {
 			balance / Self::u64_to_balance(10u64)
 		}
 
-
 		fn sync_llm_per_block() -> bool {
-		//	let current_block = frame_system::Pallet::<Runtime>::block_number();
+			//	let current_block = frame_system::Pallet::<Runtime>::block_number();
 			true
 		}
 
 		/// deposit llm into political pool
 		fn deposit_political_llm(origin: OriginFor<T>, amount_balance: T::Balance) -> bool {
-	//		let assetid: AssetId<T> = Self::llm_id(); 
-				
-		//	let llmpallet: T::AccountId = PalletId(*b"py/trsry").into_account();
-			// llm pallet origin
-		//	let llmpallet_origin: T::Origin = T::Origin::from(llmpallet);
-		//	let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
+			//		let assetid: AssetId<T> = Self::llm_id();
 
-			
+			//	let llmpallet: T::AccountId = PalletId(*b"py/trsry").into_account();
+			// llm pallet origin
+			//	let llmpallet_origin: T::Origin = T::Origin::from(llmpallet);
+			//	let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
+
 			pallet_assets::Pallet::<T>::transfer(
 				origin.clone(),
 				Self::llm_id().into(),
@@ -686,17 +677,20 @@ pub mod pallet {
 			true
 		}
 
-		/// withdraw 10% of the users balance with pallet assets transfer and LLMBalance update and triggering onchain events
+		/// withdraw 10% of the users balance with pallet assets transfer and LLMBalance update and
+		/// triggering onchain events
 		fn withdraw_political_llm(origin: OriginFor<T>) -> bool {
 			let sender = ensure_signed(origin).unwrap_or(return false);
-		//	let llmpallet: T::AccountId = PalletId(*b"py/trsry").into_account();
-		//	let llmpallet_origin: T::Origin = T::Origin::from(llmpallet);
-	//		let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone()).into();
+			//	let llmpallet: T::AccountId = PalletId(*b"py/trsry").into_account();
+			//	let llmpallet_origin: T::Origin = T::Origin::from(llmpallet);
+			//		let root_org: OriginFor<T> =
+			// frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone()).into();
 			let challenger_lookup: <T::Lookup as StaticLookup>::Source =
 				T::Lookup::unlookup(sender);
-			
-		//	let current_balance: T::Balance = ;
-			let ten_percent: T::Balance = Self::get_10_percent(Self::get_politics_balance(sender.clone()));
+
+			//	let current_balance: T::Balance = ;
+			let ten_percent: T::Balance =
+				Self::get_10_percent(Self::get_politics_balance(sender.clone()));
 
 			pallet_assets::Pallet::<T>::transfer(
 				frame_system::RawOrigin::Signed(Self::get_llm_account()).into(),
@@ -705,21 +699,27 @@ pub mod pallet {
 				ten_percent.clone(),
 			)
 			.unwrap_or_default();
-	
-			// update the llm politics balance
-			LLMPolitics::<T>::mutate_exists(&sender, |llm_balance| *llm_balance = Some(LLMPolitics::<T>::get(&sender) - ten_percent)); // llm_balance.unwrap_or(0) - ten_percent;
-	
 
-			//update users llm account 
-			LLMBalance::<T>::mutate_exists(&sender, |b| *b = Some(LLMBalance::<T>::get(&sender) + ten_percent));
+			// update the llm politics balance
+			LLMPolitics::<T>::mutate_exists(&sender, |llm_balance| {
+				*llm_balance = Some(LLMPolitics::<T>::get(&sender) - ten_percent)
+			}); // llm_balance.unwrap_or(0) - ten_percent;
+
+			//update users llm account
+			LLMBalance::<T>::mutate_exists(&sender, |b| {
+				*b = Some(LLMBalance::<T>::get(&sender) + ten_percent)
+			});
 
 			//trigger the onchain events to update that llm has been moved and unlocked
-			Event::<T>::TransferedLLM(Self::get_llm_account(), sender.clone(), Self::balance_to_u64(ten_percent)); //sender, receiver, amount
+			Event::<T>::TransferedLLM(
+				Self::get_llm_account(),
+				sender.clone(),
+				Self::balance_to_u64(ten_percent),
+			); //sender, receiver, amount
 			Event::<T>::LLMPoliticsUnlocked(sender.clone(), Self::balance_to_u64(ten_percent));
 
 			true
 		}
-
 
 		//type Balance = <T as pallet::Config>::Balance;
 		// could do like a OriginFor<SenateGroup> or X(Tech) committee
@@ -782,7 +782,6 @@ pub mod pallet {
 
 		fn get_llm_account() -> T::AccountId {
 			PalletId(*b"llm/trsy").into_account()
-			
 		}
 
 		fn balance_to_u64(balance: T::Balance) -> u64 {
@@ -855,10 +854,7 @@ pub mod pallet {
 		}
 
 		fn update_user_balance(useraccount: T::AccountId, new_balance: T::Balance) {
-			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
-				useraccount,
-				new_balance,
-			);
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(useraccount, new_balance);
 		}
 
 		/// Mint tokens to the treasury account.
@@ -879,7 +875,3 @@ pub mod pallet {
 		}
 	}
 }
-
-
-
-
