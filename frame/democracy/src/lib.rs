@@ -658,7 +658,6 @@ pub mod pallet {
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 
-
 			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
 
 			let index = Self::public_prop_count();
@@ -676,7 +675,7 @@ pub mod pallet {
 			//T::Currency::reserve(&who, value)?;
 			// freeze here
 			let ubalance: u128 = value.clone().try_into().unwrap_or(0u128);
-			llmmod::freeze_llm::<T>(who.clone(), ubalance)?; 
+			llmmod::freeze_llm::<T>(who.clone(), ubalance)?;
 
 			PublicPropCount::<T>::put(index + 1);
 			<DepositOf<T>>::insert(index, (&[&who][..], value));
@@ -712,11 +711,10 @@ pub mod pallet {
 				Self::len_of_deposit_of(proposal).ok_or_else(|| Error::<T>::ProposalMissing)?;
 			ensure!(seconds <= seconds_upper_bound, Error::<T>::WrongUpperBound);
 			let mut deposit = Self::deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
-			
 
 			// freeze here
 			let ubalance: u128 = deposit.clone().1.try_into().unwrap_or(0u128);
-			llmmod::freeze_llm::<T>(who.clone(), ubalance)?; 
+			llmmod::freeze_llm::<T>(who.clone(), ubalance)?;
 			//T::Currency::reserve(&who, deposit.1)?;
 			deposit.0.push(who.clone());
 			<DepositOf<T>>::insert(proposal, deposit);
@@ -1318,7 +1316,6 @@ pub mod pallet {
 					let (prop_index, ..) = props.remove(index);
 					if let Some((whos, amount)) = DepositOf::<T>::take(prop_index) {
 						for who in whos.into_iter() {
-
 							T::Slash::on_unbalanced(T::Currency::slash_reserved(&who, amount).0);
 						}
 					}
@@ -1811,7 +1808,7 @@ impl<T: Config> Pallet<T> {
 				for d in &depositors {
 					let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
 					let divider = 1000000000000u128;
-					let ubalance: u128 = ubalance/divider;
+					let ubalance: u128 = ubalance / divider;
 					// deposit for endorsing is always going to be 10
 					//let ubalance: u128 = T::MinimumDeposit::get().try_into().unwrap_or(0u128);
 					llmmod::unfreeze_llm::<T>(d.clone(), ubalance);
@@ -2192,59 +2189,59 @@ pub mod identitymod {
 		Identi,
 		Twox64Concat,
 		<T as frame_system::Config>::AccountId,
-		Registration<BalanceOf<T>, <T as pallet::Config>::MaxRegistrars, <T as pallet::Config>::MaxAdditionalFields>,
+		Registration<
+			BalanceOf<T>,
+			<T as pallet::Config>::MaxRegistrars,
+			<T as pallet::Config>::MaxAdditionalFields,
+		>,
 		frame_support::pallet_prelude::OptionQuery,
 	>;
 
-/*
+	/*
 
-{
-  judgements: [
-    [
-      0
-      KnownGood
-    ]
-  ]
-  deposit: 1,250,000,000,000,000
-  info: {
-    additional: [
-      [
-        {
-          Raw: EResident
-        }
-        {
-          Raw: 1
-        }
-      ]
-    ]
-    display: {
-      Raw: Mises
-    }
-    legal: None
+	{
+	  judgements: [
+		[
+		  0
+		  KnownGood
+		]
+	  ]
+	  deposit: 1,250,000,000,000,000
+	  info: {
+		additional: [
+		  [
+			{
+			  Raw: EResident
+			}
+			{
+			  Raw: 1
+			}
+		  ]
+		]
+		display: {
+		  Raw: Mises
+		}
+		legal: None
 
-*/
+	*/
 
-/// Check if account has been judged
+	/// Check if account has been judged
 	pub fn check_judgement<T: frame_system::Config + pallet::Config>(user: T::AccountId) -> bool {
 		let id: bool = match IdentityOf::<T>::get(&user) {
-			Some(i) => true,
+			Some(i) => i.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)), /* check if judgement is known good */
 			None => false,
-
 		};
 		id
 	}
 
-
 	// the free balance
-//	pub fn llm_politics_balance<T: frame_system::Config>(user: T::AccountId) -> u128 {
-//		LLMPolitics::<T>::get(&user) //.unwrap_or(0u128)
-//	}
+	//	pub fn llm_politics_balance<T: frame_system::Config>(user: T::AccountId) -> u128 {
+	//		LLMPolitics::<T>::get(&user) //.unwrap_or(0u128)
+	//	}
 
-//	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
-//		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
-//	}
-
-
+	//	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
+	//		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
+	//	}
 }
 
 pub mod llmmod {
