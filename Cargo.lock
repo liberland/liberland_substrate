@@ -1846,6 +1846,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-iterator"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4eeac5c5edb79e4e39fe8439ef35207780a11f69c52cbe424ce3dfad4cb78de6"
+dependencies = [
+ "enum-iterator-derive",
+]
+
+[[package]]
+name = "enum-iterator-derive"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c134c37760b27a871ba422106eedbb8247da973a09e82558bf26d619c882b159"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "enumflags2"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4268,6 +4288,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "loupe"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b6a72dfa44fe15b5e76b94307eeb2ff995a8c5b283b55008940c02e0c5b634d"
+dependencies = [
+ "indexmap",
+ "loupe-derive",
+ "rustversion",
+]
+
+[[package]]
+name = "loupe-derive"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0fbfc88337168279f2e9ae06e157cfed4efd3316e14dc96ed074d4f2e6c5952"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "lru"
 version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5922,6 +5963,23 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-liberland-legislation"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log 0.4.17",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -11721,13 +11779,13 @@ dependencies = [
  "more-asserts",
  "target-lexicon 0.11.2",
  "thiserror",
- "wasmer-compiler",
+ "wasmer-compiler 1.0.2",
  "wasmer-compiler-cranelift",
  "wasmer-derive",
  "wasmer-engine",
  "wasmer-engine-jit",
  "wasmer-engine-native",
- "wasmer-types",
+ "wasmer-types 1.0.2",
  "wasmer-vm",
  "wat",
  "winapi 0.3.9",
@@ -11745,9 +11803,24 @@ dependencies = [
  "smallvec 1.8.0",
  "target-lexicon 0.11.2",
  "thiserror",
- "wasmer-types",
+ "wasmer-types 1.0.2",
  "wasmer-vm",
  "wasmparser 0.65.0",
+]
+
+[[package]]
+name = "wasmer-compiler"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e67a6cd866aed456656db2cfea96c18baabbd33f676578482b85c51e1ee19d2c"
+dependencies = [
+ "enumset",
+ "loupe",
+ "smallvec 1.8.0",
+ "target-lexicon 0.12.3",
+ "thiserror",
+ "wasmer-types 2.3.0",
+ "wasmparser 0.83.0",
 ]
 
 [[package]]
@@ -11764,28 +11837,28 @@ dependencies = [
  "serde",
  "smallvec 1.8.0",
  "tracing",
- "wasmer-compiler",
- "wasmer-types",
+ "wasmer-compiler 1.0.2",
+ "wasmer-types 1.0.2",
  "wasmer-vm",
 ]
 
 [[package]]
 name = "wasmer-compiler-singlepass"
-version = "1.0.2"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "426ae6ef0f606ca815510f3e2ef6f520e217514bfb7a664defe180b9a9e75d07"
+checksum = "29ca2a35204d8befa85062bc7aac259a8db8070b801b8a783770ba58231d729e"
 dependencies = [
  "byteorder",
  "dynasm",
  "dynasmrt",
+ "gimli 0.26.1",
  "lazy_static",
+ "loupe",
  "more-asserts",
  "rayon",
- "serde",
  "smallvec 1.8.0",
- "wasmer-compiler",
- "wasmer-types",
- "wasmer-vm",
+ "wasmer-compiler 2.3.0",
+ "wasmer-types 2.3.0",
 ]
 
 [[package]]
@@ -11816,8 +11889,8 @@ dependencies = [
  "serde_bytes",
  "target-lexicon 0.11.2",
  "thiserror",
- "wasmer-compiler",
- "wasmer-types",
+ "wasmer-compiler 1.0.2",
+ "wasmer-types 1.0.2",
  "wasmer-vm",
 ]
 
@@ -11832,9 +11905,9 @@ dependencies = [
  "region",
  "serde",
  "serde_bytes",
- "wasmer-compiler",
+ "wasmer-compiler 1.0.2",
  "wasmer-engine",
- "wasmer-types",
+ "wasmer-types 1.0.2",
  "wasmer-vm",
  "winapi 0.3.9",
 ]
@@ -11852,10 +11925,10 @@ dependencies = [
  "serde",
  "tempfile",
  "tracing",
- "wasmer-compiler",
+ "wasmer-compiler 1.0.2",
  "wasmer-engine",
  "wasmer-object",
- "wasmer-types",
+ "wasmer-types 1.0.2",
  "wasmer-vm",
  "which",
 ]
@@ -11868,8 +11941,8 @@ checksum = "abf8e0c12b82ff81ebecd30d7e118be5fec871d6de885a90eeb105df0a769a7b"
 dependencies = [
  "object 0.22.0",
  "thiserror",
- "wasmer-compiler",
- "wasmer-types",
+ "wasmer-compiler 1.0.2",
+ "wasmer-types 1.0.2",
 ]
 
 [[package]]
@@ -11880,6 +11953,20 @@ checksum = "c7f4ac28c2951cd792c18332f03da523ed06b170f5cf6bb5b1bdd7e36c2a8218"
 dependencies = [
  "cranelift-entity 0.68.0",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "wasmer-types"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39df01ea05dc0a9bab67e054c7cb01521e53b35a7bb90bd02eca564ed0b2667f"
+dependencies = [
+ "backtrace",
+ "enum-iterator",
+ "indexmap",
+ "loupe",
+ "more-asserts",
  "thiserror",
 ]
 
@@ -11899,7 +11986,7 @@ dependencies = [
  "region",
  "serde",
  "thiserror",
- "wasmer-types",
+ "wasmer-types 1.0.2",
  "winapi 0.3.9",
 ]
 
@@ -11940,6 +12027,12 @@ name = "wasmparser"
 version = "0.81.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98930446519f63d00a836efdc22f67766ceae8dbcc1571379f2bcabc6b2b9abc"
+
+[[package]]
+name = "wasmparser"
+version = "0.83.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "718ed7c55c2add6548cca3ddd6383d738cd73b892df400e96b9aa876f0141d7a"
 
 [[package]]
 name = "wasmtime"
