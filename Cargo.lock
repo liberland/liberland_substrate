@@ -2014,6 +2014,22 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "parking_lot 0.11.2",
+ "scale-info",
+]
+
+[[package]]
+name = "finality-grandpa"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b22349c6a11563a202d95772a68e0fcf56119e74ea8a2a19cf2301460fcd0df5"
+dependencies = [
+ "either",
+ "futures 0.3.21",
+ "futures-timer",
+ "log 0.4.17",
+ "num-traits",
+ "parity-scale-codec",
+ "parking_lot 0.12.0",
  "rand 0.8.5",
  "scale-info",
 ]
@@ -5851,7 +5867,7 @@ dependencies = [
 name = "pallet-grandpa"
 version = "4.0.0-dev"
 dependencies = [
- "finality-grandpa",
+ "finality-grandpa 0.15.0",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-support",
@@ -5922,6 +5938,23 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-liberland-legislation"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log 0.4.17",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -8450,7 +8483,7 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "dyn-clone",
- "finality-grandpa",
+ "finality-grandpa 0.16.0",
  "fork-tree",
  "futures 0.3.21",
  "futures-timer",
@@ -8493,7 +8526,7 @@ dependencies = [
 name = "sc-finality-grandpa-rpc"
 version = "0.10.0-dev"
 dependencies = [
- "finality-grandpa",
+ "finality-grandpa 0.15.0",
  "futures 0.3.21",
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -9896,7 +9929,7 @@ dependencies = [
 name = "sp-finality-grandpa"
 version = "4.0.0-dev"
 dependencies = [
- "finality-grandpa",
+ "finality-grandpa 0.15.0",
  "log 0.4.17",
  "parity-scale-codec",
  "scale-info",
