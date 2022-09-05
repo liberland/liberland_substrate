@@ -3695,7 +3695,7 @@ dependencies = [
  "multistream-select",
  "parking_lot 0.11.2",
  "pin-project 1.0.10",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.8.5",
  "ring",
@@ -3745,7 +3745,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log 0.4.17",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.7.3",
  "smallvec 1.8.0",
@@ -3767,7 +3767,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log 0.4.17",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.7.3",
  "regex",
@@ -3788,7 +3788,7 @@ dependencies = [
  "libp2p-swarm",
  "log 0.4.17",
  "lru 0.6.6",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "smallvec 1.8.0",
  "wasm-timer",
@@ -3809,7 +3809,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log 0.4.17",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.7.3",
  "sha2 0.9.9",
@@ -3885,7 +3885,7 @@ dependencies = [
  "lazy_static",
  "libp2p-core",
  "log 0.4.17",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.8.5",
  "sha2 0.9.9",
@@ -3921,7 +3921,7 @@ dependencies = [
  "futures 0.3.21",
  "libp2p-core",
  "log 0.4.17",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "unsigned-varint 0.7.1",
  "void",
@@ -3955,7 +3955,7 @@ dependencies = [
  "libp2p-swarm",
  "log 0.4.17",
  "pin-project 1.0.10",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.7.3",
  "smallvec 1.8.0",
@@ -3976,7 +3976,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log 0.4.17",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "rand 0.8.5",
  "sha2 0.9.9",
@@ -5932,6 +5932,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-liberland-legislation"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log 0.4.17",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-llm"
 version = "0.1.0"
 dependencies = [
@@ -7192,7 +7209,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "444879275cb4fd84958b1a1d5420d15e6fcf7c235fe47f053c9c2a80aceb6001"
 dependencies = [
  "bytes 1.1.0",
- "prost-derive",
+ "prost-derive 0.9.0",
+]
+
+[[package]]
+name = "prost"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "399c3c31cdec40583bb68f0b18403400d01ec4289c383aa047560439952c4dd7"
+dependencies = [
+ "bytes 1.1.0",
+ "prost-derive 0.11.0",
 ]
 
 [[package]]
@@ -7208,7 +7235,7 @@ dependencies = [
  "log 0.4.17",
  "multimap",
  "petgraph",
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "regex",
  "tempfile",
@@ -7229,13 +7256,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7345d5f0e08c0536d7ac7229952590239e77abf0a0100a1b1d890add6ea96364"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "prost-types"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "534b7a0e836e3c482d2693070f982e39e7611da9695d4d1f5a4b186b51faef0a"
 dependencies = [
  "bytes 1.1.0",
- "prost",
+ "prost 0.9.0",
 ]
 
 [[package]]
@@ -7920,7 +7960,7 @@ dependencies = [
  "libp2p",
  "log 0.4.17",
  "parity-scale-codec",
- "prost",
+ "prost 0.11.0",
  "prost-build",
  "quickcheck",
  "rand 0.7.3",
@@ -8573,7 +8613,7 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.0",
  "pin-project 1.0.10",
- "prost",
+ "prost 0.11.0",
  "prost-build",
  "quickcheck",
  "rand 0.7.3",
