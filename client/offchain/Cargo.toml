@@ -13,7 +13,7 @@ readme = "README.md"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-bytes = "1.1"
+bytes = "1.2"
 codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"] }
 hex = "0.4"
 fnv = "1.0.6"
