@@ -698,7 +698,7 @@ impl pallet_bags_list::Config for Runtime {
 }
 
 parameter_types! {
-	pub const VoteLockingPeriod: BlockNumber = 30 * DAYS;
+	pub const VoteLockingPeriod: BlockNumber = 4 * MINUTES;//30 * DAYS;
 }
 
 impl pallet_conviction_voting::Config for Runtime {
@@ -776,11 +776,11 @@ impl pallet_referenda::Config for Runtime {
 
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 2 * MINUTES;//  | Change me for testing 2 * MINUTES;//
-	pub const VotingPeriod: BlockNumber = 2 * 24 * 60 * MINUTES;
-	pub const FastTrackVotingPeriod: BlockNumber = 3 * 24 * 60 * MINUTES;
+	pub const VotingPeriod: BlockNumber = 4 * MINUTES;//* 24 * 60 * MINUTES;
+	pub const FastTrackVotingPeriod: BlockNumber = 3 * MINUTES;//* 24 * 60 * MINUTES;
 	pub const MinimumDeposit: Balance = 10;//100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 30 * 24 * 60 * MINUTES;
-	pub const CooloffPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
+	pub const EnactmentPeriod: BlockNumber = 3 * MINUTES;//30 * 24 * 60 * MINUTES;
+	pub const CooloffPeriod: BlockNumber = 3 * MINUTES;//28 * 24 * 60 * MINUTES;
 	pub const MaxProposals: u32 = 100;
 }
 
@@ -883,6 +883,9 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type InitializeMembers = Council;
 	type CurrencyToVote = U128CurrencyToVote;
 	type CandidacyBond = CandidacyBond;
+
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
 	type VotingBondBase = VotingBondBase;
 	type VotingBondFactor = VotingBondFactor;
 	type LoserCandidate = ();
@@ -931,16 +934,16 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 28 * DAYS;
+	pub const SpendPeriod: BlockNumber = 3 * MINUTES;//28 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
-	pub const TipCountdown: BlockNumber = 1 * DAYS;
+	pub const TipCountdown: BlockNumber = 2 * MINUTES;//1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
 	pub const DataDepositPerByte: Balance = 1 * CENTS;
 	pub const BountyDepositBase: Balance = 1 * DOLLARS;
-	pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
+	pub const BountyDepositPayoutDelay: BlockNumber = 2 * MINUTES;//1 * DAYS;
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
+	pub const BountyUpdatePeriod: BlockNumber = 2 * MINUTES;// 14 * DAYS;
 	pub const MaximumReasonLength: u32 = 300;
 	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
 	pub const BountyValueMinimum: Balance = 5 * DOLLARS;
@@ -1210,10 +1213,10 @@ parameter_types! {
 	pub const CandidateDeposit: Balance = 10 * DOLLARS;
 	pub const WrongSideDeduction: Balance = 2 * DOLLARS;
 	pub const MaxStrikes: u32 = 10;
-	pub const RotationPeriod: BlockNumber = 80 * HOURS;
+	pub const RotationPeriod: BlockNumber = 5 * MINUTES;//80 * HOURS;
 	pub const PeriodSpend: Balance = 500 * DOLLARS;
-	pub const MaxLockDuration: BlockNumber = 36 * 30 * DAYS;
-	pub const ChallengePeriod: BlockNumber = 7 * DAYS;
+	pub const MaxLockDuration: BlockNumber = 2 * MINUTES;//36 * 30 * DAYS;
+	pub const ChallengePeriod: BlockNumber = 3 * MINUTES;//7 * DAYS;
 	pub const MaxCandidateIntake: u32 = 10;
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
@@ -1310,7 +1313,7 @@ parameter_types! {
 	pub const QueueCount: u32 = 300;
 	pub const MaxQueueLen: u32 = 1000;
 	pub const FifoQueueLen: u32 = 500;
-	pub const Period: BlockNumber = 30 * DAYS;
+	pub const Period: BlockNumber = 3 * MINUTES;//30 * DAYS;
 	pub const MinFreeze: Balance = 100 * DOLLARS;
 	pub const IntakePeriod: BlockNumber = 10;
 	pub const MaxIntakeBids: u32 = 10;
@@ -1404,6 +1407,11 @@ parameter_types! {
 	pub const MigrationSignedDepositBase: Balance = 20 * DOLLARS;
 }
 
+
+//impl pallet_liberland_legislation::Config for Runtime {
+//	type Event = Event;
+//}
+
 impl pallet_state_trie_migration::Config for Runtime {
 	type Event = Event;
 	type ControlOrigin = EnsureRoot<AccountId>;
@@ -1476,6 +1484,7 @@ construct_runtime!(
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
+//		LiberlandLegislation: pallet_liberland_legislation,
 	}
 );
 

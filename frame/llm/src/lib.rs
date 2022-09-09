@@ -270,6 +270,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
+			ensure!(LLMBalance::<T>::get(&sender) < amount, Error::<T>::LowBalance);
 			// insert into llm politics balance
 			if LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()) {
 				//>= 0u64.try_into().unwrap_or(Default::default())
