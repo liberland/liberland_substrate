@@ -5770,6 +5770,7 @@ dependencies = [
  "frame-system",
  "log 0.4.17",
  "pallet-balances",
+ "pallet-identity",
  "pallet-llm",
  "parity-scale-codec",
  "scale-info",
@@ -5922,6 +5923,23 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-liberland-legislation"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log 0.4.17",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
