@@ -200,7 +200,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxAdditionalFields: Get<u32>;
 
-
 		/// The currency that people are electing with.
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
 			+ ReservableCurrency<Self::AccountId>;
@@ -312,7 +311,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			//use sp_runtime::print;
-			log::info!("vote called");
+			//	log::info!("vote called");
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 
 			// votes should not be empty and more than `MAXIMUM_VOTE` in any case.
@@ -411,7 +410,7 @@ pub mod pallet {
 			#[pallet::compact] candidate_count: u32,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
+			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen); // check if user is citizen
 			let actual_count = <Candidates<T>>::decode_len().unwrap_or(0);
 			ensure!(actual_count as u32 <= candidate_count, Error::<T>::InvalidWitnessData);
 
@@ -1157,8 +1156,6 @@ impl<T: Config> ContainsLengthBound for Pallet<T> {
 	}
 }
 
-
-
 pub mod identitymod {
 	use super::*;
 	use frame_support::{traits::StorageInstance, Blake2_128Concat, Twox64Concat};
@@ -1177,52 +1174,51 @@ pub mod identitymod {
 		Identi,
 		Twox64Concat,
 		<T as frame_system::Config>::AccountId,
-		Registration<BalanceOf<T>, <T as pallet::Config>::MaxRegistrars, <T as pallet::Config>::MaxAdditionalFields>,
+		Registration<
+			BalanceOf<T>,
+			<T as pallet::Config>::MaxRegistrars,
+			<T as pallet::Config>::MaxAdditionalFields,
+		>,
 		frame_support::pallet_prelude::OptionQuery,
 	>;
 
-/*
+	/*
 
-{
-  judgements: [
-    [
-      0
-      KnownGood
-    ]
-  ]
-  deposit: 1,250,000,000,000,000
-  info: {
-    additional: [
-      [
-        {
-          Raw: EResident
-        }
-        {
-          Raw: 1
-        }
-      ]
-    ]
-    display: {
-      Raw: Mises
-    }
-    legal: None
+	{
+	  judgements: [
+		[
+		  0
+		  KnownGood
+		]
+	  ]
+	  deposit: 1,250,000,000,000,000
+	  info: {
+		additional: [
+		  [
+			{
+			  Raw: EResident
+			}
+			{
+			  Raw: 1
+			}
+		  ]
+		]
+		display: {
+		  Raw: Mises
+		}
+		legal: None
 
-*/
+	*/
 
-/// Check if account has been judged
+	/// Check if account has been judged
 	pub fn check_judgement<T: frame_system::Config + pallet::Config>(user: T::AccountId) -> bool {
 		let id: bool = match IdentityOf::<T>::get(&user) {
-			Some(i) => i.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)), //check if judgement is known good
+			Some(i) => i.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)), /* check if judgement is known good */
 			None => false,
-
 		};
 		id
 	}
-
-
-
 }
-
 
 pub mod llmmod {
 	use super::*;
