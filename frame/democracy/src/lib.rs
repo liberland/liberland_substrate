@@ -1925,7 +1925,7 @@ impl<T: Config> Pallet<T> {
 		index: ReferendumIndex,
 		status: ReferendumStatus<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	) -> bool {
-		let total_issuance = T::Currency::total_issuance(); // get total balance
+		let total_issuance = llmmod::get_issuance::<T>();//T::Currency::total_issuance(); // get total issuance of llm
 		let approved = status.threshold.approved(status.tally, total_issuance);
 
 		if approved {
@@ -2292,6 +2292,26 @@ pub mod llmmod {
 		frame_support::pallet_prelude::ValueQuery,
 	>;
 
+	pub struct MintedCopy;
+	impl StorageInstance for MintedCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "MintedAmount";
+	}
+
+	pub type MintedAmount<T> = frame_support::storage::types::StorageValue<
+	MintedCopy,
+		Blake2_128Concat,
+		u64,
+		frame_support::pallet_prelude::ValueQuery,
+	>;
+
+
+	//pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>; 
+
+
 	impl StorageInstance for LLMPoliticsLockCopy {
 		fn pallet_prefix() -> &'static str {
 			"LLM"
@@ -2330,6 +2350,10 @@ pub mod llmmod {
 	// the free balance
 	pub fn llm_politics_balance<T: frame_system::Config>(user: T::AccountId) -> u128 {
 		LLMPolitics::<T>::get(&user) //.unwrap_or(0u128)
+	}
+
+	pub fn get_issuance() -> u64 {
+		MintedAmount::<T>::get()
 	}
 
 	/// Freeze LLM
