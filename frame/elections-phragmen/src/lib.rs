@@ -311,7 +311,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			//use sp_runtime::print;
-			//	log::info!("vote called");
+			log::info!("vote called");
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 
 			// votes should not be empty and more than `MAXIMUM_VOTE` in any case.
@@ -410,7 +410,7 @@ pub mod pallet {
 			#[pallet::compact] candidate_count: u32,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen); // check if user is citizen
+
 			let actual_count = <Candidates<T>>::decode_len().unwrap_or(0);
 			ensure!(actual_count as u32 <= candidate_count, Error::<T>::InvalidWitnessData);
 
