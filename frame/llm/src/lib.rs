@@ -835,7 +835,7 @@ pub mod pallet {
 			let one_minute: u64 = 60u64 / blocks_per_second;
 			let one_day: u64 = one_minute * 60u64 * 24u64;
 			let one_year: u64 = one_day * 365u64; //365.24
-			block = 2u64 * one_minute; // 2 minutes
+			block = current_block_number + 2u64 * one_minute ; // 2 minutes
 			block
 		}
 
