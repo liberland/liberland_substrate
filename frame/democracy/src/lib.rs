@@ -1925,8 +1925,8 @@ impl<T: Config> Pallet<T> {
 		index: ReferendumIndex,
 		status: ReferendumStatus<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	) -> bool {
-		let total_issuance = llmmod::get_issuance::<T>();//T::Currency::total_issuance(); // get total issuance of llm
-		let approved = status.threshold.approved(status.tally, total_issuance);
+		let total_issuance = llmmod::get_issuance();//T::Currency::total_issuance(); // get total issuance of llm
+		let approved = status.threshold.approved(status.tally, total_issuance.try_into().unwrap_or_default()); // convert to balance
 
 		if approved {
 			Self::deposit_event(Event::<T>::Passed { ref_index: index });
@@ -2301,9 +2301,8 @@ pub mod llmmod {
 		const STORAGE_PREFIX: &'static str = "MintedAmount";
 	}
 
-	pub type MintedAmount<T> = frame_support::storage::types::StorageValue<
+	pub type MintedAmount = frame_support::storage::types::StorageValue<
 	MintedCopy,
-		Blake2_128Concat,
 		u64,
 		frame_support::pallet_prelude::ValueQuery,
 	>;
@@ -2353,7 +2352,7 @@ pub mod llmmod {
 	}
 
 	pub fn get_issuance() -> u64 {
-		MintedAmount::<T>::get()
+		MintedAmount::get()//.unwrap_or(u64)
 	}
 
 	/// Freeze LLM
