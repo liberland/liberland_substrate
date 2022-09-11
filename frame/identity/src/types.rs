@@ -240,7 +240,7 @@ pub enum IdentityField {
 	Email = 0b0000000000000000000000000000000000000000000000000000000000010000,
 	PgpFingerprint = 0b0000000000000000000000000000000000000000000000000000000000100000,
 	Image = 0b0000000000000000000000000000000000000000000000000000000001000000,
-	Twitter = 0b0000000000000000000000000000000000000000000000000000000010000000,
+	Citizen = 0b0000000000000000000000000000000000000000000000000000000010000000,
 }
 
 /// Wrapper type for `BitFlags<IdentityField>` that implements `Codec`.
@@ -329,7 +329,7 @@ pub struct IdentityInfo<FieldLimit: Get<u32>> {
 	pub image: Data,
 
 	/// The Twitter identity. The leading `@` character may be elided.
-	pub twitter: Data,
+	pub citizen: Data,
 }
 
 /// Information concerning the identity of the controller of an account.
