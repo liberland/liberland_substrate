@@ -94,9 +94,19 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_fluf)] //locked llm used for voting
+	pub(super) type Withdrawlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+
+	#[pallet::storage]
 	#[pallet::getter(fn minted_amount)]
 	/// Keep track of the amount of minted llm
 	pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
+
+	#[pallet::storage]
+	#[pallet::getter(fn minted_when)]
+	/// block number for next llm mint
+	pub(super) type NextMint<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
 
 	// Guess we dont need this type of stuff since we use pallet-assets to keep track of things
 	//	#[pallet::storage]
@@ -159,6 +169,8 @@ pub mod pallet {
 		InvalidAssetMove,
 		// do not unfreeze more then 10% of the users total supply
 		Over10percentage,
+		/// not allowed to withdraw llm
+		Gottawait,
 	}
 
 	#[pallet::pallet]
@@ -167,12 +179,14 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
+		fn on_initialize(b: T::BlockNumber) -> Weight {
 			// convert blocknumber to u64
 			//println!("LLM PAllet");
+			log::info!("LLM Pallet Checking block");
+			let blocknumber = b.saturated_into::<u64>();
+			let _didmint = Self::try_mint(blocknumber); //.unwrap_or(false);
+			log::info!("LLM Pallet Checked block");
 
-			//	let blocknumber = blocknumber.saturated_into::<u64>();
-			//	Self::try_mint(blocknumber).unwrap_or_default();
 			// todo: have a function that runs on blocknumber as input and checks if it can mint llm
 			// based on blocknumber 	Self::mint_llm(origin);
 			0
@@ -270,7 +284,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
-			ensure!(LLMBalance::<T>::get(&sender) < amount, Error::<T>::LowBalance);
+			ensure!(LLMBalance::<T>::get(&sender) >= amount, Error::<T>::LowBalance);
 			// insert into llm politics balance
 			if LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()) {
 				//>= 0u64.try_into().unwrap_or(Default::default())
@@ -296,47 +310,67 @@ pub mod pallet {
 		/// unlock LLM from politics
 		#[pallet::weight(10_000)]
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
+			let sender: T::AccountId = ensure_signed(origin.clone())?;
 			//	let ten = Self::u64_to_balance(10u64);
 			// check if we have political locked LLM
+			log::info!("unlock called");
 			ensure!(
 				LLMPolitics::<T>::contains_key::<T::AccountId>(sender.clone()),
 				Error::<T>::InvalidAccount
 			);
+			let current_block_number: u64 =
+				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			ensure!(current_block_number > Withdrawlock::<T>::get(&sender), Error::<T>::Gottawait);
+			let ten_percent: T::Balance =
+				Self::get_10_percent(Self::get_politics_balance(sender.clone()));
+			log::info!("releasing 10% {:?}", ten_percent.clone());
+			//let did = Self::withdraw_political_llm(origin.clone());
+			let timelimit: u64 = Self::get_future_block();
 
-			Self::withdraw_political_llm(origin.clone());
+			LLMPolitics::<T>::mutate_exists(&sender, |llm_balance| {
+				*llm_balance = Some(LLMPolitics::<T>::get(&sender) - ten_percent)
+			}); // llm_balance.unwrap_or(0) - ten_percent;
+
+			//update users llm account
+			LLMBalance::<T>::mutate_exists(&sender, |b| {
+				*b = Some(LLMBalance::<T>::get(&sender) + ten_percent)
+			});
+
+			Withdrawlock::<T>::insert(&sender, timelimit);
 			//
 			Ok(())
 		}
 
-		#[pallet::weight(10_000)] // change me
-		pub fn unfreeze_llm(
-			origin: OriginFor<T>,
-			//	account: T::AccountId,
-			amount: T::Balance,
-		) -> DispatchResult {
-			//	let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
-			let sender = ensure_signed(origin.clone())?;
-			//	let or--ws-externaligin_for_pallet = OriginFor<T>::Signed(Self::llm_id().into());
-			ensure!(Self::get_locked_llm(&sender) >= amount, Error::<T>::InvalidAmount);
-			//let lookup_account = T::Lookup::unlookup(account.clone());
-			pallet_assets::Pallet::<T>::transfer(
-				frame_system::RawOrigin::Signed(Self::get_llm_account()).into(),
-				Self::llm_id().into(),
-				T::Lookup::unlookup(sender.clone()), //
-				amount.clone(),
-			)
-			.unwrap_or_default();
+		/*	- TEST FUNCTION
+				#[pallet::weight(10_000)] // change me
+				pub fn unfreeze_llm(
+					origin: OriginFor<T>,
+					//	account: T::AccountId,
+					amount: T::Balance,
+				) -> DispatchResult {
+					//	let root_org: OriginFor<T> = frame_system::RawOrigin::Signed(LLM_PALLET_ID.clone());
+					let sender = ensure_signed(origin.clone())?;
+					//	let or--ws-externaligin_for_pallet = OriginFor<T>::Signed(Self::llm_id().into());
+					ensure!(Self::get_locked_llm(&sender) >= amount, Error::<T>::InvalidAmount);
+					//let lookup_account = T::Lookup::unlookup(account.clone());
+					pallet_assets::Pallet::<T>::transfer(
+						frame_system::RawOrigin::Signed(Self::get_llm_account()).into(),
+						Self::llm_id().into(),
+						T::Lookup::unlookup(sender.clone()), //
+						amount.clone(),
+					)
+					.unwrap_or_default();
 
-			//	LLMBalance::<T>::mutate(sender, |balance| *balance =
-			LockedLLM::<T>::remove::<T::AccountId>(sender.clone());
+					//	LLMBalance::<T>::mutate(sender, |balance| *balance =
+					LockedLLM::<T>::remove::<T::AccountId>(sender.clone());
 
-			LLMBalance::<T>::mutate_exists(&sender, |b| {
-				*b = Some(LLMBalance::<T>::get(&sender) + amount)
-			});
+					LLMBalance::<T>::mutate_exists(&sender, |b| {
+						*b = Some(LLMBalance::<T>::get(&sender) + amount)
+					});
 
-			Ok(())
-		}
+					Ok(())
+				}
+		*/
 
 		/// Freeze X amount of LLM for a certain account
 		#[pallet::weight(10_000)] //change me
@@ -793,8 +827,59 @@ pub mod pallet {
 			amount.try_into().unwrap_or(Default::default())
 		}
 
-		fn try_mint(block: u64) -> DispatchResult {
+		fn get_future_block() -> u64 {
+			let mut block: u64 = 0u64;
+			let current_block_number: u64 =
+				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let blocks_per_second: u64 = 6u64; // 6 seconds per block
+			let one_minute: u64 = 60u64 / blocks_per_second;
+			let one_day: u64 = one_minute * 60u64 * 24u64;
+			let one_year: u64 = one_day * 365u64; //365.24
+			block = 2u64 * one_minute; // 2 minutes
+			block
+		}
+
+		/// get the 0.9% of the amount we are able to mint
+		fn get_allowed_spending() -> u64 {
+			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
+			let maxcap: u64 = T::Total_supply::get();
+			let hardlimit: f64 = 0.9;
+			let allow_spend: f64 = maxcap as f64 - minted_amount as f64 * hardlimit; // 0.9% of the total supply minus the minted on is what we are allowed to spend per year
+			allow_spend as u64
+		}
+
+		fn try_mint(block: u64) -> bool {
+			log::info!("try_mint called");
+			if block == 1u64 {
+				log::info!("block is less than two");
+				let rootorg = frame_system::RawOrigin::Root.into();
+				Self::create_llm(rootorg).unwrap_or_default();
+				let nextblock = Self::get_future_block();
+				log::info!("setting nextmint to {:?}", nextblock);
+				NextMint::<T>::put(nextblock);
+				return true
+			}
+
+			if block < NextMint::<T>::get() {
+				log::info!("returning false {:?}", block);
+				return false
+			}
+			log::info!("second pass");
+			log::info!("Next mint is: {:?}", NextMint::<T>::get());
+			log::info!("Minting llm!!");
+			//	let blocks_per_second: u64 = 6u64;// 6 seconds per block
+			//	let one_minute: u64 = 60u64 / blocks_per_second;
+			//	let mut nextblock: u64 = 2u64 * one_minute; // 2 minutes
+			//	nextblock += block;
+			NextMint::<T>::put(Self::get_future_block());
+			let treasuy_account: T::AccountId = PalletId(*b"py/trsry").into_account();
 			// check if the asset is created
+
+			// mint 0.9%
+			let zeronine: u64 = Self::get_allowed_spending();
+			Self::mint_tokens(0.into(), zeronine);
+			Event::<T>::MintedLLM(treasuy_account.into(), zeronine);
+
 			/*
 						let asset_created = pallet_assets::Pallet::<T>::is_created(assetid.into());
 						ensure!(asset_created, Error::<T>::AssetNotCreated);
@@ -817,7 +902,8 @@ pub mod pallet {
 						let asset_paused = pallet_assets::Pallet::<T>::is_paused(assetid.into());
 						ensure!(!asset_paused, Error::<T>::AssetPaused);
 			*/
-			Ok(())
+			log::info!("try_mint ran all the way");
+			true
 		}
 
 		// get asset metadata from pallet-assets crate
@@ -865,7 +951,7 @@ pub mod pallet {
 			// update balance of the treasury account, balances should be u128 and not u64
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				treasury.clone(),
-				amount.try_into().unwrap_or_default(),
+				LLMBalance::<T>::get(&treasury) + amount.try_into().unwrap_or_default(),
 			);
 			// add the amount that we have minted into MintedAmount to add allow_sped
 			<MintedAmount<T>>::mutate(|minted_amount| *minted_amount += amount);
