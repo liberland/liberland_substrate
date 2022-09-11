@@ -1160,7 +1160,7 @@ impl<T: Config> ContainsLengthBound for Pallet<T> {
 pub mod identitymod {
 	use super::*;
 	use frame_support::{traits::StorageInstance, Blake2_128Concat, Twox64Concat};
-	use pallet_identity::types::{IdentityInfo, Registration};
+	use pallet_identity::types::{IdentityInfo, Registration, IdentityField, Data};
 
 	pub struct Identi;
 
@@ -1213,8 +1213,9 @@ pub mod identitymod {
 
 	/// Check if account has been judged
 	pub fn check_judgement<T: frame_system::Config + pallet::Config>(user: T::AccountId) -> bool {
+
 		let id: bool = match IdentityOf::<T>::get(&user) {
-			Some(i) => i.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)), /* check if judgement is known good */
+			Some(i) => (i.info.citizen != Data::None) && i.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),/* check if identity is citizen and known good */
 			None => false,
 		};
 		id
