@@ -88,6 +88,20 @@ LLVM version: 14.0.0
 ```
 
 
+## Storage:
+
+LLMBalance // llm balance    
+LLMPolitics // allocated in politics, storage is synced and used by other pallets      
+LLMPoliticsLock// LLM that are frozen in the politics queue        
+LockedLLM // locked llm      
+Withdrawlock // time lock for withdrawing pooled llm	 
+MintedAmount /// Keep track of the amount of minted llm   
+NextMint /// block number for next llm mint    
+
+
+
+
+
 ### Approved Multisig llm transfers
 
 
