@@ -7,7 +7,7 @@
 *  Sending and Recieving  
 *  Locking in currency
 *  [MIT License](https://mit-license.org/)   
-
+*  for a full feature set, read the src/lib.rs file   
 
 
 ### On-chain Pallet functions:   
@@ -67,9 +67,23 @@ Polkadot.js apps > Developer > Chainstate > llm > minted amount
 ![Polkadot Js](minted_amount_query.png)  
 
 
+## There are 3 types of owners that interact with llm:  
 
-Treasury address:
-5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z
+![Minting llm](llm_minting.png)
+
+### Treasury address(py/trsry):
+5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z   
+
+### LLM Vault(llm/safe): 
+5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk  
+
+### LLM Treasury(llm/trsy):  
+5EYCAe5hvejUE35Lv2zZBMP1iA41yzs2UoiJuxsCidZPFDzJ     
+
+
+From starts funds are moved into llm Vault, the premint is moved into Treasury, funds are continously moved from llm vault to treasury.
+
+
 
 
 

@@ -793,6 +793,7 @@ pub mod pallet {
 				T::PreMintedAmount::get().try_into().unwrap_or(Default::default());
 
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac.clone(), new_balance);
+
 			let my_amount: u64 = min_balance.try_into().unwrap_or(0u64);
 			Event::<T>::LLMCreated(t_ac.clone(), my_amount);
 			//	LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac,
@@ -806,6 +807,15 @@ pub mod pallet {
 				false,
 			)
 			.unwrap_or_default();
+
+			// Mint the rest of the tokens into the llm/vault
+			let vaultac: T::AccountId = Self::get_llm_vault_account();
+			
+			let moneyleft: T::Balance = T::Total_supply::get().try_into().unwrap_or(Default::default());
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac, money_left);
+			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
+
+
 			Self::mint_tokens(assetid, T::PreMintedAmount::get()); // mint the preminted amount
 			Ok(())
 			// pre mint amount and freeze it
@@ -813,6 +823,11 @@ pub mod pallet {
 		//GET LLM ID
 		fn llm_id() -> AssetId<T> {
 			1u32.into()
+		}
+
+
+		fn get_llm_vault_account() -> T::AccountId {
+			PalletId(*b"llm/safe").into_account()
 		}
 
 		fn get_llm_account() -> T::AccountId {
@@ -944,7 +959,7 @@ pub mod pallet {
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(useraccount, new_balance);
 		}
 
-		/// Mint tokens to the treasury account.
+		/// Mint tokens to the treasury account. Sends tokens from the llm/vault to the treasury
 		fn mint_tokens(assetid: AssetId<T>, amount: u64) {
 			let transfer_amount: T::Balance = amount.try_into().unwrap_or(Default::default());
 			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account();
@@ -953,10 +968,29 @@ pub mod pallet {
 				treasury.clone(),
 				LLMBalance::<T>::get(&treasury) + amount.try_into().unwrap_or_default(),
 			);
+
+			// deduct from the vault
+			
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
+				Self::get_llm_vault_account(),
+				LLMBalance::<T>::get(&treasury) + amount.try_into().unwrap_or_default(),
+			);
+
 			// add the amount that we have minted into MintedAmount to add allow_sped
 			<MintedAmount<T>>::mutate(|minted_amount| *minted_amount += amount);
 
-			pallet_assets::Pallet::<T>::mint_into(assetid.into(), &treasury, transfer_amount)
+			let vlookup: <T::Lookup as StaticLookup>::Source =
+				T::Lookup::unlookup(Self::get_llm_vault_account());
+			let rootorg = frame_system::RawOrigin::Root.into();
+			// transfer from the vault to the treasury
+			pallet_assets::Pallet::<T>::transfer(
+				rootorg.clone(),
+				Self::llm_id().into(),
+				vlookup,
+				transfer_amount.clone(),
+			)
+			.unwrap_or_default(); //.map_err(|_| Error::<T>::InvalidTransfer);//unwrap_or_default();
+//			pallet_assets::Pallet::<T>::mint_into(assetid.into(), &treasury, transfer_amount)
 				.unwrap_or_default();
 			//	Event::<T>::MintedLLM(treasury.into(), amount); // emit event
 		}
