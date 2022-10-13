@@ -811,8 +811,8 @@ pub mod pallet {
 			// Mint the rest of the tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
 			
-			let moneyleft: T::Balance = T::Total_supply::get().try_into().unwrap_or(Default::default());
-			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac, money_left);
+			let money_left: T::Balance = T::Total_supply::get().try_into().unwrap_or(Default::default());
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac.clone(), money_left.clone());
 			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
 
 
@@ -981,7 +981,7 @@ pub mod pallet {
 
 			let vlookup: <T::Lookup as StaticLookup>::Source =
 				T::Lookup::unlookup(Self::get_llm_vault_account());
-			let rootorg = frame_system::RawOrigin::Root.into();
+			let rootorg: OriginFor<T> = frame_system::RawOrigin::Root.into();
 			// transfer from the vault to the treasury
 			pallet_assets::Pallet::<T>::transfer(
 				rootorg.clone(),
@@ -991,7 +991,7 @@ pub mod pallet {
 			)
 			.unwrap_or_default(); //.map_err(|_| Error::<T>::InvalidTransfer);//unwrap_or_default();
 //			pallet_assets::Pallet::<T>::mint_into(assetid.into(), &treasury, transfer_amount)
-				.unwrap_or_default();
+//				.unwrap_or_default();
 			//	Event::<T>::MintedLLM(treasury.into(), amount); // emit event
 		}
 	}
