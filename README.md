@@ -22,8 +22,6 @@ wget https://github.com/liberland/liberland_substrate/raw/main/customSpecRaw.jso
 
 ./liberland_x86_linux_binary --chain customSpecRaw.json --bootnodes /ip4/162.55.230.227/tcp/30333/p2p/12D3KooWRdDm7tDTR8uL9CQxvnvXrUBPLJfrKuHJaCLZfWz9WzeY --base-path /tmp/hayek
 ```   
-Clone our github repository, compile the node with cargo build --release, navigate into our scripts directory and run out validator  
-setup script called run_validator.sh
 
 ### How to run a Liberland Hayek node:    
 ```shell
