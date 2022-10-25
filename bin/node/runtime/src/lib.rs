@@ -1407,10 +1407,9 @@ parameter_types! {
 	pub const MigrationSignedDepositBase: Balance = 20 * DOLLARS;
 }
 
-
-//impl pallet_liberland_legislation::Config for Runtime {
-//	type Event = Event;
-//}
+impl pallet_liberland_legislation::Config for Runtime {
+	type Event = Event;
+}
 
 impl pallet_state_trie_migration::Config for Runtime {
 	type Event = Event;
@@ -1484,7 +1483,7 @@ construct_runtime!(
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
-//		LiberlandLegislation: pallet_liberland_legislation,
+		LiberlandLegislation: pallet_liberland_legislation,
 	}
 );
 
