@@ -1296,7 +1296,8 @@ pub mod llmmod {
 		user: T::AccountId,
 		amount: u128,
 	) {
-		let divider = 1000000000000u128;
+		//Since freezing is removed, unfreezing is removed too
+		/*let divider = 1000000000000u128;
 		let fix_balance = amount / divider;
 		let amount = fix_balance;
 		let llm_lock = LLMPoliticsLock::<T>::get(&user);
@@ -1305,6 +1306,7 @@ pub mod llmmod {
 		LLMPolitics::<T>::mutate_exists(&user, |llm| {
 			*llm = Some(llm.unwrap_or(0u128) + amount); // update balance
 		}); // add the llm to the regular account balance
+		*/
 	}
 
 	// the free balance
@@ -1317,22 +1319,24 @@ pub mod llmmod {
 		account: T::AccountId,
 		amount: u128,
 	) -> Result<(), DispatchError> {
+
 		//todo append checks
 		//	LLMPoliticsLock::<T>::mutate_exists(&account, |b| *b = Some(amount +
 		// LLMPolitics::<T>::get(&account)));
 		let divider = 1000000000000u128;
 		let fix_balance = amount / divider; // LLD to LLM conversion
-		log::info!("freeze_llm incoming balance {:?}", fix_balance);
+		//log::info!("freeze_llm incoming balance {:?}", fix_balance);
 
 		// make sure we can vote with the amount of LLM we have in politics lock
 		ensure!(LLMPolitics::<T>::get(&account) >= fix_balance, Error::<T>::InsufficientLLM);
 
+		//Deciding against token freezing and token economy, only check that amount is available
 		//
 
 		// TODO ADD TO FREEZE LLM
 
 		// move LLM to the frozen llm
-		if LLMPolitics::<T>::contains_key::<T::AccountId>(account.clone()) {
+		/*if LLMPolitics::<T>::contains_key::<T::AccountId>(account.clone()) {
 			//>= 0u64.try_into().unwrap_or(Default::default())
 			// remove the LLM from the LLMPolitics
 
@@ -1350,7 +1354,7 @@ pub mod llmmod {
 		} else {
 			LLMPoliticsLock::<T>::insert::<T::AccountId, u128>(account.clone(), fix_balance); // lock in the
 			                                                                      // amount
-		}
+		}*/
 
 		Ok(())
 	}

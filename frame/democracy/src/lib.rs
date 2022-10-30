@@ -2353,12 +2353,13 @@ pub mod llmmod {
 		user: T::AccountId,
 		amount: u128,
 	) {
-		let llm_lock = LLMPoliticsLock::<T>::get(&user);
+		//Since freezing is removed, unfreezing is removed too
+		/*let llm_lock = LLMPoliticsLock::<T>::get(&user);
 		let llm_lock = llm_lock.saturating_sub(amount);
 		LLMPoliticsLock::<T>::insert(&user, llm_lock); // overwrite the current value with the new balance
 		LLMPolitics::<T>::mutate_exists(&user, |llm| {
 			*llm = Some(llm.unwrap_or(0u128) + amount); // update balance
-		}); // add the llm to the regular account balance
+		}); // add the llm to the regular account balance*/
 	}
 
 	// the free balance
@@ -2387,9 +2388,9 @@ pub mod llmmod {
 		//
 
 		// TODO ADD TO FREEZE LLM
-
+		//Deciding against token freezing and token economy, only check that amount is available
 		// move LLM to the frozen llm
-		if LLMPolitics::<T>::contains_key::<T::AccountId>(account.clone()) {
+		/*if LLMPolitics::<T>::contains_key::<T::AccountId>(account.clone()) {
 			//>= 0u64.try_into().unwrap_or(Default::default())
 			// remove the LLM from the LLMPolitics
 
@@ -2407,7 +2408,7 @@ pub mod llmmod {
 		} else {
 			LLMPoliticsLock::<T>::insert::<T::AccountId, u128>(account.clone(), fix_balance); // lock in the
 			                                                                      // amount
-		}
+		}*/
 
 		Ok(())
 	}
