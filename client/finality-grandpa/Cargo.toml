@@ -21,7 +21,7 @@ futures = "0.3.19"
 futures-timer = "3.0.1"
 hex = "0.4.2"
 log = "0.4.8"
-parking_lot = "0.12.0"
+parking_lot = "0.12.1"
 rand = "0.8.4"
 ahash = "0.7.6"
 parity-scale-codec = { version = "3.0.0", features = ["derive"] }

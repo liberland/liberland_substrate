@@ -18,7 +18,7 @@ tempfile = "3.1.0"
 tokio = { version = "1.15.0", features = ["time"] }
 log = "0.4.8"
 fdlimit = "0.2.1"
-parking_lot = "0.12.0"
+parking_lot = "0.12.1"
 sp-blockchain = { version = "4.0.0-dev", path = "../../../primitives/blockchain" }
 sp-api = { version = "4.0.0-dev", path = "../../../primitives/api" }
 sp-state-machine = { version = "0.12.0", path = "../../../primitives/state-machine" }
