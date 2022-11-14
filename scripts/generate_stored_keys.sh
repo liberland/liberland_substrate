@@ -40,7 +40,7 @@ generate_address_and_account_id() {
 	printf "SD:	 s/$M/${SECRET:2}/g \n"
 	printf "AC:	 s/$ACCOUNT_PREFIX/0x$PUBLIC_KEY/g \n"
 	sed -i "s/$M/${SECRET:2}/g" ig.sh
-	sed -i "s/$ACCOUNT_PREFIX/$ADDRESS/g" ig.sh
+	sed -i "s/$ACCOUNT_PREFIX/${PUBLIC_KEY#'0x'}/g" ig.sh
 	printf "Key Type	: $1\n"
 	printf "Address		: ${ADDRESS}\n"
 	printf "A Prefix		: ${ACCOUNT_PREFIX}\n"

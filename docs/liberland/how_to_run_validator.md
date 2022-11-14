@@ -25,7 +25,7 @@ get a legitimate copy of the binary.
 
 ```shell
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-$ cargo install --force subkey --git https://github.com/paritytech/substrate --version 2.0.1 --locked
+$ cargo install --force subkey --git https://github.com/paritytech/substrate --version 2.0.2 --locked
 ```
 
 
@@ -73,8 +73,8 @@ Example:
 #### Automatically:
 You can automatically generate and insert new session keys into your node using:
 ```shell
-$ sh scripts/generate_stored_keys.sh
-$ sh scripts/insert_keys_gen.sh
+$ bash scripts/generate_stored_keys.sh
+$ bash scripts/ig.sh
 ```
 
 
@@ -90,6 +90,16 @@ Babe key:
 $ subkey generate --scheme sr25519
 ```
 
+im_online key:
+```shell 
+$ subkey generate --scheme sr25519
+```
+
+Authority discovery key:
+```shell 
+$ subkey generate --scheme sr25519
+```
+
 Save the output from subkey in a safe place.
 
 Upload these hot keys to our node:
@@ -97,6 +107,10 @@ Upload these hot keys to our node:
 curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_insertKey", "params":["babe", "mnemonic phrase here from Grandpa", "publickeygoesherefrom Grandpa"] }' http://127.0.0.1:9933
 
 curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_insertKey", "params":["gran", "mnemonic phrase here from babe", "publickeygoeshere from grandpa"] }' http://127.0.0.1:9933
+
+curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_insertKey", "params":["imol", "mnemonic phrase here from im_online", "publickeygoeshere from imol"] }' http://127.0.0.1:9933
+
+curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_insertKey", "params":["audi", "mnemonic phrase here from authority discovery", "publickeygoeshere from authority discovery"] }' http://127.0.0.1:9933
 
 ```
 
