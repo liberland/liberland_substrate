@@ -36,7 +36,7 @@ curl http://localhost:9933  -H "Content-Type:application/json;charset=utf-8" -d 
     "id":1,
     "method":"author_insertKey",
     "params": [
-        "authority_discovery",
+        "audi",
         "MNEMONIC_authority_discovery//authority_discovery",
         "ACCOUNT_authority_discovery"
     ]
