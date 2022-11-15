@@ -37,7 +37,7 @@ linked_hash_set = "0.1.3"
 lru = "0.7.0"
 log = "0.4.8"
 parking_lot = "0.12.0"
-pin-project = "1.0.10"
+pin-project = "1.0.12"
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.10.0-dev", path = "../../utils/prometheus" }
 prost = "0.9"
 rand = "0.7.2"
