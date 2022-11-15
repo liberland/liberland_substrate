@@ -104,6 +104,11 @@ pub mod pallet {
 	pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
 
 	#[pallet::storage]
+	#[pallet::getter(fn politi_pooled_amount)]
+	/// Keep track of the amount of politi pooled llm
+	pub(super) type PolitiPooledAmount<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
+
+	#[pallet::storage]
 	#[pallet::getter(fn minted_when)]
 	/// block number for next llm mint
 	pub(super) type NextMint<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
@@ -303,6 +308,7 @@ pub mod pallet {
 
 			// transfer to llm to llm trsy
 			Self::deposit_political_llm(origin, amount);
+			Self::add_politi_pooled_stats(amount.try_into().unwrap_or(0u64));
 
 			Ok(())
 		}
@@ -337,6 +343,7 @@ pub mod pallet {
 			});
 
 			Withdrawlock::<T>::insert(&sender, timelimit);
+			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u64));
 			//
 			Ok(())
 		}
@@ -994,5 +1001,12 @@ pub mod pallet {
 //				.unwrap_or_default();
 			//	Event::<T>::MintedLLM(treasury.into(), amount); // emit event
 		}
+		fn add_politi_pooled_stats(amount: u64) {
+			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount += amount);
+		}
+		fn substract_politi_pooled_stats(amount: u64) {
+			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount -= amount);
+		}
 	}
+
 }

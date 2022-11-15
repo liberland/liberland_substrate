@@ -19,8 +19,8 @@ pub mod pallet {
   #[pallet::event]
   #[pallet::generate_deposit(pub(super) fn deposit_event)]
   pub enum Event<T: Config> {
-    LawAdded { who: T::AccountId, index1: u32, index2: u32 },
-    LawRepealed { who: T::AccountId, index1: u32, index2: u32 },
+    LawAdded { index1: u32, index2: u32 },
+    LawRepealed { index1: u32, index2: u32 },
   }
   #[pallet::error]
   pub enum Error<T> {
@@ -34,24 +34,24 @@ pub mod pallet {
 
     #[pallet::weight(10_000)]
     pub fn add_law(origin: OriginFor<T>, index1: u32, index2:u32, lawContent: BoundedVec<u8, ConstU32<65536>> ) -> DispatchResult {
-    	let sender = ensure_signed(origin)?;
+    	ensure_root(origin)?;
 
     	ensure!(!Laws::<T>::contains_key(&index1, &index2), Error::<T>::LawAlreadyExists);
 
     	Laws::<T>::insert(&index1, &index2, &lawContent);
 
-    	Self::deposit_event(Event::LawAdded { who: sender, index1, index2 });
+    	Self::deposit_event(Event::LawAdded { index1, index2 });
 
     	Ok(())
     }
 
 	#[pallet::weight(10_000)]
     pub fn repeal_law(origin: OriginFor<T>, index1: u32, index2:u32) -> DispatchResult {
-        	let sender = ensure_signed(origin)?;
+        	ensure_root(origin)?;
 
         	Laws::<T>::remove(&index1, &index2);
 
-        	Self::deposit_event(Event::LawRepealed { who: sender, index1, index2 });
+        	Self::deposit_event(Event::LawRepealed { index1, index2 });
 
         	Ok(())
         }
