@@ -454,15 +454,14 @@ pub mod pallet {
 			//let xc: T::AccountId = account32.clone().unwrap();
 
 			let account_map: Vec<T::AccountId> = vec![
+				
 				Self::account_id32_to_accountid(
-					hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into(),
-				), //F
-				Self::account_id32_to_accountid(
-					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
-				), // Multisig N + F
-				Self::account_id32_to_accountid(
-					hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
-				), // Multisig F + ALICE + BOB */
+					hex!["db93a8bc25102cb5c7392cbcc1b0837ece2c5f24436124522feb9bd6010bf780"].into(),
+				), //5H2cD1Q8ZkC5gwBWX2sViwtbE4yr3chSh84NeW4Hnz43VX76 , V + DEVKEY + N + M
+				
+			//	Self::account_id32_to_accountid(
+			//		hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
+			//	), // Multisig F + ALICE + BOB */
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
