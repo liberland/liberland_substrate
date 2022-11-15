@@ -454,15 +454,14 @@ pub mod pallet {
 			//let xc: T::AccountId = account32.clone().unwrap();
 
 			let account_map: Vec<T::AccountId> = vec![
+				
 				Self::account_id32_to_accountid(
-					hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into(),
-				), //F
-				Self::account_id32_to_accountid(
-					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
-				), // Multisig N + F
-				Self::account_id32_to_accountid(
-					hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
-				), // Multisig F + ALICE + BOB */
+					hex!["db93a8bc25102cb5c7392cbcc1b0837ece2c5f24436124522feb9bd6010bf780"].into(),
+				), //5H2cD1Q8ZkC5gwBWX2sViwtbE4yr3chSh84NeW4Hnz43VX76 , V + DEVKEY + N + M
+
+			//	Self::account_id32_to_accountid(
+			//		hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
+			//	), // Multisig F + ALICE + BOB */
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
@@ -871,24 +870,24 @@ pub mod pallet {
 		}
 
 		fn try_mint(block: u64) -> bool {
-			log::info!("try_mint called");
+		//	log::info!("try_mint called");
 			if block == 1u64 {
-				log::info!("block is less than two");
+		//		log::info!("block is less than two");
 				let rootorg = frame_system::RawOrigin::Root.into();
 				Self::create_llm(rootorg).unwrap_or_default();
 				let nextblock = Self::get_future_block();
-				log::info!("setting nextmint to {:?}", nextblock);
+		//		log::info!("setting nextmint to {:?}", nextblock);
 				NextMint::<T>::put(nextblock);
 				return true
 			}
 
 			if block < NextMint::<T>::get() {
-				log::info!("returning false {:?}", block);
+			//	log::info!("returning false {:?}", block);
 				return false
 			}
-			log::info!("second pass");
-			log::info!("Next mint is: {:?}", NextMint::<T>::get());
-			log::info!("Minting llm!!");
+		//	log::info!("second pass");
+		//	log::info!("Next mint is: {:?}", NextMint::<T>::get());
+		//	log::info!("Minting llm!!");
 			//	let blocks_per_second: u64 = 6u64;// 6 seconds per block
 			//	let one_minute: u64 = 60u64 / blocks_per_second;
 			//	let mut nextblock: u64 = 2u64 * one_minute; // 2 minutes

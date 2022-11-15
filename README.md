@@ -25,13 +25,13 @@ https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md
 
 
 
-### How to run a Liberland Hayek node:    
+### How to run a Liberland Hazlitt node:    
 ```shell
 wget https://github.com/liberland/liberland_substrate/releases/download/v0.1/liberland_x86_linux_binary
 chmod +x liberland_x86_linux_binary
 wget https://github.com/liberland/liberland_substrate/raw/main/customSpecRaw.json
 
-./liberland_x86_linux_binary --chain customSpecRaw.json --bootnodes /ip4/162.55.230.227/tcp/30333/p2p/12D3KooWRdDm7tDTR8uL9CQxvnvXrUBPLJfrKuHJaCLZfWz9WzeY --base-path /tmp/hayek
+./liberland_x86_linux_binary --chain specs/HazlittRaw.json --bootnodes --bootnodes /ip4/162.55.230.227/tcp/30333/p2p/12D3KooWPMnWGGYBzYyEc9Tsw9RDws4NrDpbN4LrHZ19Kk6yhwTo --base-path /tmp/hazlitt
 ```   
 
 
