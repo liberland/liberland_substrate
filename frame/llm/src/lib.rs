@@ -113,6 +113,10 @@ pub mod pallet {
 	/// block number for next llm mint
 	pub(super) type NextMint<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
 
+	#[pallet::storage]
+	pub(super) type Electionlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+
 	// Guess we dont need this type of stuff since we use pallet-assets to keep track of things
 	//	#[pallet::storage]
 	//	#[pallet::getter(fn llm_balance_sheet)]
@@ -343,6 +347,7 @@ pub mod pallet {
 			});
 
 			Withdrawlock::<T>::insert(&sender, timelimit);
+			Electionlock::<T>::insert(&sender, timelimit);
 			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u64));
 			//
 			Ok(())
@@ -454,14 +459,15 @@ pub mod pallet {
 			//let xc: T::AccountId = account32.clone().unwrap();
 
 			let account_map: Vec<T::AccountId> = vec![
-				
 				Self::account_id32_to_accountid(
-					hex!["db93a8bc25102cb5c7392cbcc1b0837ece2c5f24436124522feb9bd6010bf780"].into(),
-				), //5H2cD1Q8ZkC5gwBWX2sViwtbE4yr3chSh84NeW4Hnz43VX76 , V + DEVKEY + N + M
-
-			//	Self::account_id32_to_accountid(
-			//		hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
-			//	), // Multisig F + ALICE + BOB */
+					hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into(),
+				), //F
+				Self::account_id32_to_accountid(
+					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
+				), // Multisig N + F
+				Self::account_id32_to_accountid(
+					hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
+				), // Multisig F + ALICE + BOB */
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
@@ -816,7 +822,7 @@ pub mod pallet {
 
 			// Mint the rest of the tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
-			
+
 			let money_left: T::Balance = T::Total_supply::get().try_into().unwrap_or(Default::default());
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac.clone(), money_left.clone());
 			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
@@ -870,24 +876,24 @@ pub mod pallet {
 		}
 
 		fn try_mint(block: u64) -> bool {
-		//	log::info!("try_mint called");
+			log::info!("try_mint called");
 			if block == 1u64 {
-		//		log::info!("block is less than two");
+				log::info!("block is less than two");
 				let rootorg = frame_system::RawOrigin::Root.into();
 				Self::create_llm(rootorg).unwrap_or_default();
 				let nextblock = Self::get_future_block();
-		//		log::info!("setting nextmint to {:?}", nextblock);
+				log::info!("setting nextmint to {:?}", nextblock);
 				NextMint::<T>::put(nextblock);
 				return true
 			}
 
 			if block < NextMint::<T>::get() {
-			//	log::info!("returning false {:?}", block);
+				log::info!("returning false {:?}", block);
 				return false
 			}
-		//	log::info!("second pass");
-		//	log::info!("Next mint is: {:?}", NextMint::<T>::get());
-		//	log::info!("Minting llm!!");
+			log::info!("second pass");
+			log::info!("Next mint is: {:?}", NextMint::<T>::get());
+			log::info!("Minting llm!!");
 			//	let blocks_per_second: u64 = 6u64;// 6 seconds per block
 			//	let one_minute: u64 = 60u64 / blocks_per_second;
 			//	let mut nextblock: u64 = 2u64 * one_minute; // 2 minutes
@@ -976,7 +982,7 @@ pub mod pallet {
 			);
 
 			// deduct from the vault
-			
+
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				Self::get_llm_vault_account(),
 				LLMBalance::<T>::get(&treasury) + amount.try_into().unwrap_or_default(),
@@ -1007,5 +1013,4 @@ pub mod pallet {
 			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount -= amount);
 		}
 	}
-
 }
