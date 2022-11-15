@@ -108,6 +108,10 @@ pub mod pallet {
 	/// block number for next llm mint
 	pub(super) type NextMint<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
 
+	#[pallet::storage]
+	pub(super) type Electionlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+
 	// Guess we dont need this type of stuff since we use pallet-assets to keep track of things
 	//	#[pallet::storage]
 	//	#[pallet::getter(fn llm_balance_sheet)]
@@ -337,6 +341,7 @@ pub mod pallet {
 			});
 
 			Withdrawlock::<T>::insert(&sender, timelimit);
+			Electionlock::<T>::insert(&sender, timelimit);
 			//
 			Ok(())
 		}

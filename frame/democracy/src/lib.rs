@@ -623,6 +623,8 @@ pub mod pallet {
 		NoPolLLM,
 		/// Not a Citizen
 		NonCitizen,
+		/// Temporary locked after unpooling LLM
+		Locked,
 	}
 
 	#[pallet::hooks]
@@ -655,6 +657,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			// check if user has pooled llm
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 
@@ -704,6 +708,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 
@@ -742,6 +748,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			Self::try_vote(&who, ref_index, vote)
@@ -911,6 +919,8 @@ pub mod pallet {
 			T::VetoOrigin::ensure_origin(origin.clone())?;
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			if let Some((e_proposal_hash, _)) = <NextExternal<T>>::get() {
@@ -997,6 +1007,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			let votes = Self::try_delegate(who, to, conviction, balance)?;
@@ -1051,6 +1063,8 @@ pub mod pallet {
 		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			Self::note_preimage_inner(ensure_signed(origin)?, encoded_proposal)?;
@@ -1070,6 +1084,8 @@ pub mod pallet {
 			let who1 = ensure_signed(origin.clone())?;
 
 			ensure!(llmmod::check_pooled_llm::<T>(who1.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who1.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who1), Error::<T>::NonCitizen);
 			Self::note_preimage_inner(who, encoded_proposal)?;
@@ -1112,6 +1128,8 @@ pub mod pallet {
 			let who1 = T::OperationalPreimageOrigin::ensure_origin(origin.clone())?;
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			Self::note_imminent_preimage_inner(who1, encoded_proposal)?;
@@ -1144,6 +1162,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			ensure!(
@@ -1195,6 +1215,8 @@ pub mod pallet {
 		pub fn unlock(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			Self::update_lock(&target);
@@ -1232,6 +1254,8 @@ pub mod pallet {
 		pub fn remove_vote(origin: OriginFor<T>, index: ReferendumIndex) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			Self::try_remove_vote(&who, index, UnvoteScope::Any)
@@ -1260,6 +1284,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			// check if user is a citizen
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 			let scope = if target == who { UnvoteScope::Any } else { UnvoteScope::OnlyExpired };
@@ -2266,6 +2292,24 @@ pub mod llmmod {
 		u128,
 		frame_support::pallet_prelude::ValueQuery,
 	>;
+
+	pub struct ElectionlockCopy;
+
+	impl StorageInstance for ElectionlockCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "Electionlock";
+	}
+
+	pub type Electionlock<T> = frame_support::storage::types::StorageMap<
+		ElectionlockCopy,
+		Blake2_128Concat,
+		<T as frame_system::Config>::AccountId,
+		u64,
+		frame_support::pallet_prelude::ValueQuery,
+	>;
 	//type AccountId = frame_system::Config::AccountId;
 
 	pub struct LLMRefCopy;
@@ -2399,5 +2443,15 @@ pub mod llmmod {
 
 	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
 		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
+	}
+
+	pub fn is_election_unlocked<T: frame_system::Config>(sender: T::AccountId) -> bool {
+		if Electionlock::<T>::contains_key(&sender) {
+			let current_block_number: u64 =
+					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let unlocked_on_block = Electionlock::<T>::get::<T::AccountId>(sender);
+			return current_block_number >= unlocked_on_block;
+		}
+		true
 	}
 }

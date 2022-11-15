@@ -312,6 +312,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			//use sp_runtime::print;
 			log::info!("vote called");
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
 
 			// votes should not be empty and more than `MAXIMUM_VOTE` in any case.
@@ -410,6 +412,8 @@ pub mod pallet {
 			#[pallet::compact] candidate_count: u32,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+			// check if user is not locked after unpooling
+			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
 			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen); // check if user is citizen
 
 			let actual_count = <Candidates<T>>::decode_len().unwrap_or(0);
@@ -639,6 +643,8 @@ pub mod pallet {
 		InsufficientLLM,
 		/// not a citizen
 		NonCitizen,
+		/// Temporary locked after unpooling LLM
+		Locked,
 	}
 
 	/// The current elected members.
@@ -1245,6 +1251,24 @@ pub mod llmmod {
 	>;
 	//type AccountId = frame_system::Config::AccountId;
 
+	pub struct ElectionlockCopy;
+
+	impl StorageInstance for ElectionlockCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "Electionlock";
+	}
+
+	pub type Electionlock<T> = frame_support::storage::types::StorageMap<
+		ElectionlockCopy,
+		Blake2_128Concat,
+		<T as frame_system::Config>::AccountId,
+		u64,
+		frame_support::pallet_prelude::ValueQuery,
+	>;
+
 	pub struct LLMRefCopy;
 
 	impl StorageInstance for LLMRefCopy {
@@ -1357,6 +1381,16 @@ pub mod llmmod {
 
 	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
 		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
+	}
+
+	pub fn is_election_unlocked<T: frame_system::Config>(sender: T::AccountId) -> bool {
+		if Electionlock::<T>::contains_key(&sender) {
+			let current_block_number: u64 =
+					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let unlocked_on_block = Electionlock::<T>::get::<T::AccountId>(sender);
+			return current_block_number >= unlocked_on_block;
+		}
+		true
 	}
 }
 
