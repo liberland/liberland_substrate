@@ -838,6 +838,8 @@ impl pallet_democracy::Config for Runtime {
 	type MaxVotes = frame_support::traits::ConstU32<100>;
 	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
 	type MaxProposals = MaxProposals;
+	type Citizenship = LLM;
+	type LLM = LLM;
 }
 
 parameter_types! {
@@ -894,6 +896,8 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type DesiredRunnersUp = DesiredRunnersUp;
 	type TermDuration = TermDuration;
 	type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
+	type Citizenship = LLM;
+	type LLM = LLM;
 }
 
 parameter_types! {

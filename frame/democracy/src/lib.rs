@@ -163,6 +163,7 @@ use frame_support::{
 	},
 	weights::Weight,
 };
+use pallet_llm::traits::{LLM, CitizenshipChecker};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Bounded, Dispatchable, Hash, Saturating, Zero},
@@ -170,7 +171,6 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-use pallet_llm;
 //use frame_support::{Blake2_128Concat, StorageMap};
 
 mod conviction;
@@ -379,6 +379,9 @@ pub mod pallet {
 		/// The maximum number of public proposals that can exist at any time.
 		#[pallet::constant]
 		type MaxProposals: Get<u32>;
+
+		type Citizenship: CitizenshipChecker<Self::AccountId>;
+		type LLM: LLM<Self::AccountId, u128>; // FIXME should use generic for Balance
 	}
 
 	// TODO: Refactor public proposal queue into its own pallet.
@@ -387,11 +390,6 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn public_prop_count)]
 	pub type PublicPropCount<T> = StorageValue<_, PropIndex, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_ref_ac)]
-	pub type RefAc<T: Config> =
-		StorageValue<_, Vec<(ReferendumIndex, T::AccountId, u128)>, ValueQuery>;
 
 	/// The public proposals. Unsorted. The second item is the proposal's hash.
 	#[pallet::storage]
@@ -619,12 +617,6 @@ pub mod pallet {
 		MaxVotesReached,
 		/// Maximum number of proposals reached.
 		TooManyProposals,
-		/// No politcal LLM allocated tokens
-		NoPolLLM,
-		/// Not a Citizen
-		NonCitizen,
-		/// Temporary locked after unpooling LLM
-		Locked,
 	}
 
 	#[pallet::hooks]
@@ -655,12 +647,7 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			// check if user has pooled llm
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 
 			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
 
@@ -676,10 +663,9 @@ pub mod pallet {
 				);
 			}
 
-			//T::Currency::reserve(&who, value)?;
-			// freeze here
 			let ubalance: u128 = value.clone().try_into().unwrap_or(0u128);
-			llmmod::freeze_llm::<T>(who.clone(), ubalance)?;
+			// FIXME should we divide by 10^12?
+			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			PublicPropCount::<T>::put(index + 1);
 			<DepositOf<T>>::insert(index, (&[&who][..], value));
@@ -707,21 +693,17 @@ pub mod pallet {
 			#[pallet::compact] seconds_upper_bound: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 
 			let seconds =
 				Self::len_of_deposit_of(proposal).ok_or_else(|| Error::<T>::ProposalMissing)?;
 			ensure!(seconds <= seconds_upper_bound, Error::<T>::WrongUpperBound);
 			let mut deposit = Self::deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
 
-			// freeze here
+			// FIXME should we divide by 10^12?
 			let ubalance: u128 = deposit.clone().1.try_into().unwrap_or(0u128);
-			llmmod::freeze_llm::<T>(who.clone(), ubalance)?;
-			//T::Currency::reserve(&who, deposit.1)?;
+			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
+
 			deposit.0.push(who.clone());
 			<DepositOf<T>>::insert(proposal, deposit);
 			Self::deposit_event(Event::<T>::Seconded { seconder: who, prop_index: proposal });
@@ -747,11 +729,7 @@ pub mod pallet {
 			vote: AccountVote<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			Self::try_vote(&who, ref_index, vote)
 		}
 
@@ -918,11 +896,7 @@ pub mod pallet {
 		pub fn veto_external(origin: OriginFor<T>, proposal_hash: T::Hash) -> DispatchResult {
 			T::VetoOrigin::ensure_origin(origin.clone())?;
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			if let Some((e_proposal_hash, _)) = <NextExternal<T>>::get() {
 				ensure!(proposal_hash == e_proposal_hash, Error::<T>::ProposalMissing);
 			} else {
@@ -1006,11 +980,7 @@ pub mod pallet {
 			balance: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			let votes = Self::try_delegate(who, to, conviction, balance)?;
 
 			Ok(Some(T::WeightInfo::delegate(votes)).into())
@@ -1062,11 +1032,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::note_preimage(encoded_proposal.len() as u32))]
 		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			Self::note_preimage_inner(ensure_signed(origin)?, encoded_proposal)?;
 			Ok(())
 		}
@@ -1083,11 +1049,7 @@ pub mod pallet {
 			let who = T::OperationalPreimageOrigin::ensure_origin(origin.clone())?;
 			let who1 = ensure_signed(origin.clone())?;
 
-			ensure!(llmmod::check_pooled_llm::<T>(who1.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who1.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who1), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who1)?;
 			Self::note_preimage_inner(who, encoded_proposal)?;
 			Ok(())
 		}
@@ -1127,11 +1089,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who1 = T::OperationalPreimageOrigin::ensure_origin(origin.clone())?;
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			Self::note_imminent_preimage_inner(who1, encoded_proposal)?;
 			// We check that this preimage was not uploaded before in
 			// `note_imminent_preimage_inner`, thus this call can only be successful once. If
@@ -1161,11 +1119,7 @@ pub mod pallet {
 			#[pallet::compact] proposal_len_upper_bound: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			ensure!(
 				Self::pre_image_data_len(proposal_hash)? <= proposal_len_upper_bound,
 				Error::<T>::WrongUpperBound,
@@ -1214,11 +1168,7 @@ pub mod pallet {
 		)]
 		pub fn unlock(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			Self::update_lock(&target);
 			Ok(())
 		}
@@ -1253,11 +1203,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::remove_vote(T::MaxVotes::get()))]
 		pub fn remove_vote(origin: OriginFor<T>, index: ReferendumIndex) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			Self::try_remove_vote(&who, index, UnvoteScope::Any)
 		}
 
@@ -1283,11 +1229,7 @@ pub mod pallet {
 			index: ReferendumIndex,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			// check if user is not locked after unpooling
-			ensure!(llmmod::is_election_unlocked::<T>(who.clone()), Error::<T>::Locked);
-			// check if user is a citizen
-			ensure!(identitymod::check_judgement::<T>(who.clone()), Error::<T>::NonCitizen);
+			T::Citizenship::ensure_democracy_allowed(&who)?;
 			let scope = if target == who { UnvoteScope::Any } else { UnvoteScope::OnlyExpired };
 			Self::try_remove_vote(&target, index, scope)?;
 			Ok(())
@@ -1392,41 +1334,6 @@ pub mod pallet {
 	}
 }
 
-/*
-use frame_support::traits::StorageInstance;
-pub struct ParaLifecyclesPrefix;
-impl StorageInstance for ParaLifecyclesPrefix {
-	fn pallet_prefix() -> &'static str {
-		"llm/trsy"
-	}
-
-	const STORAGE_PREFIX: &'static str = "LLMPolitics";
-}
-pub type ParaLifecycles<AccountId> = dyn frame_support::StorageMap<ParaLifecyclesPrefix, AccountId, BalanceOf, Query = frame_support::pallet_prelude::ValueQuery>;
-*/
-
-//impl<T: Config + LLM_Pallet::Config> Pallet<T>{
-
-//	pub fn has_pooled_lm(account: T::AccountId) -> bool {
-//let imb = <T as pallet::Config>::Currency::withdraw();
-//let _T = <T as LLM_Pallet>::has_llm_politics(account);
-//		let out: bool = LLM_Pallet::Pallet::<T>::get_politics_balance(account);//<LLM_Pallet::Store::<T>
-// as T>::get_politics_lock(account) //LLMPolitics::<T>::contains_key::<T::AccountId>(account) 		out
-//	}
-
-//}
-
-impl<T: Config + frame_system::Config<AccountId = T>> Pallet<T> {
-	//	fn has_pooled_llm(account: T::AccountId) -> bool {
-	//		use crate::llmmod::LLMPoliticsCopy;
-	//let imb = <T as pallet::Config>::Currency::withdraw();
-	//let _T = <T as LLM_Pallet>::has_llm_politics(account);
-	//let out: bool = ParaLifecycles::get(account);//<LLM_Pallet::Store::<T> as
-	// T>::get_politics_lock(account) //LLMPolitics::<T>::contains_key::<T::AccountId>(account)
-	// 		return true;
-	//	LLMPoliticsCopy::<T>::get(account)
-	//	}
-}
 
 impl<T: Config> Pallet<T> {
 	// exposed immutables.
@@ -1511,31 +1418,10 @@ impl<T: Config> Pallet<T> {
 		vote: AccountVote<BalanceOf<T>>,
 	) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
-		use scale_info::prelude::format;
 		let mut ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
-		let divider = 1000000000000u128;
-		//	ubalance = ubalance / divider; //convert lld to llm
-		//let mut ubalance_str = format!("balance input {}", ubalance);
-		//	sp_runtime::print(ubalance_str.as_str());
-		//	sp_std::if_std! {
-		// This code is only being compiled and executed when the `std` feature is enabled.
-		//		println!("{}", ubalance_str);
-		//	}
-		//	ubalance = ubalance / 8u128;
-		//	ubalance = ubalance * 5u128;
-		llmmod::freeze_llm::<T>(who.clone(), ubalance)?; // freeze llm or give error
+		// FIXME should we divide by 10^12?
+		ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
-		RefAc::<T>::append((ref_index.clone(), who.clone(), ubalance / divider)); // append to refac
-
-		//let myvec: Vec(T::AccountId, u128) = vec![who, &ubalance];
-		//let myvec: Vec(T::AccountId, u128) = vec![who, &ubalance];
-		// add myvec and
-		//	RefAc::<T>::insert(
-		//		ref_index.
-		//		myvec
-		//	);
-
-		//ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			if let Voting::Direct { ref mut votes, delegations, .. } = voting {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
@@ -1566,11 +1452,7 @@ impl<T: Config> Pallet<T> {
 				Err(Error::<T>::AlreadyDelegating.into())
 			}
 		})?;
-		// Extend the lock to `balance` (rather than setting it) since we don't know what other
-		// votes are in place.
 
-		//	T::Currency::extend_lock(DEMOCRACY_ID, who, vote.balance(), WithdrawReasons::TRANSFER);
-		// // freeze user balance here
 		ReferendumInfoOf::<T>::insert(ref_index, ReferendumInfo::Ongoing(status));
 		Ok(())
 	}
@@ -1608,8 +1490,6 @@ impl<T: Config> Pallet<T> {
 								T::VoteLockingPeriod::get().saturating_mul(lock_periods.into()),
 							);
 							let now = frame_system::Pallet::<T>::block_number();
-							let ubalance: u128 = balance.try_into().unwrap_or(0u128); // / 100000000000u128;
-							llmmod::unfreeze_llm::<T>(who.clone(), ubalance); // freeze llm or give error
 							if now < unlock_at {
 								ensure!(
 									matches!(scope, UnvoteScope::Any),
@@ -1688,7 +1568,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(who != target, Error::<T>::Nonsense);
 		let ubalance: u128 = balance.try_into().unwrap_or(0u128);
 		ensure!(
-			ubalance <= llmmod::llm_politics_balance::<T>(who.clone()),
+			ubalance <= T::LLM::get_llm_politics(&who),
 			Error::<T>::InsufficientFunds
 		); //))
    //ensure!(balance <= T::Currency::free_balance(&who), Error::<T>::InsufficientFunds);
@@ -1766,11 +1646,7 @@ impl<T: Config> Pallet<T> {
 			voting.rejig(frame_system::Pallet::<T>::block_number());
 			voting.locked_balance()
 		});
-		if lock_needed.is_zero() {
-			//	let ubalance: u128 = lock_needed.try_into().unwrap_or(0u128);
-			//	llmmod::unfreeze_llm::<T>(who.clone(), ubalance);
-			//	T::Currency::remove_lock(DEMOCRACY_ID, who); // unfreeze
-		} else {
+		if !lock_needed.is_zero() {
 			T::Currency::set_lock(DEMOCRACY_ID, who, lock_needed, WithdrawReasons::TRANSFER);
 		}
 	}
@@ -1830,16 +1706,6 @@ impl<T: Config> Pallet<T> {
 			<PublicProps<T>>::put(public_props);
 
 			if let Some((depositors, deposit)) = <DepositOf<T>>::take(prop_index) {
-				// refund depositors
-				for d in &depositors {
-					let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
-					let divider = 1000000000000u128;
-					let ubalance: u128 = ubalance / divider;
-					// deposit for endorsing is always going to be 10
-					//let ubalance: u128 = T::MinimumDeposit::get().try_into().unwrap_or(0u128);
-					llmmod::unfreeze_llm::<T>(d.clone(), ubalance);
-					//T::Currency::unreserve(d, deposit); // change me
-				}
 				Self::deposit_event(Event::<T>::Tabled {
 					proposal_index: prop_index,
 					deposit,
@@ -1863,65 +1729,9 @@ impl<T: Config> Pallet<T> {
 		if let Some(PreimageStatus::Available { data, provider, deposit, .. }) = preimage {
 			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
 				let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
-				//	let divider = 1000000000000u128;
-				//	llmmod::unfreeze_llm::<T>(provider.clone(), ubalance / divider);
-				//	for (user, balance) in RefAc::<T>::get(&index).into_iter() {
-				//		llmmod::unfreeze_llm::<T>(user.clone(), balance);
-				//	}
-				//	for (user, balance) in DepositOf::get(proindexposal_hash) {
 
-				//	}
-
-				//		let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
-				//		llmmod::unfreeze_llm::<T>(provider.clone(), ubalance / divider);
-				//	});
-
-				// iterate through RefAc and remove values from RefAc
-				//RefAc
-
-				//	RefAc::<T>::mutate(|refvot| {
-				//		if let Some(myindex) = refvot.iter().position(|r| r.0 == index){
-				//			let (refin, user, balance) = refvot.swap_remove(myindex);
-				//	let (theindex, ..) = refvot.remove(myindex); //remove index
-
-				//		}
-
-				//	});//			);
-
-				RefAc::<T>::get().into_iter().for_each(|(refindex, user, balance)| {
-					if refindex == index {
-						llmmod::unfreeze_llm::<T>(user.clone(), balance);
-					}
-					//llmmod::unfreeze_llm::<T>(user.clone(), balance);
-				});
-
-				/*
-								// remove the llocked llm from the votes
-								VotingOf::<T>::mutate(who, |voting| match voting {
-										Voting::Direct { votes, delegations, .. } => {
-
-										for &(index.clone(), account_vote) in votes.iter() {
-											if account_vote.is_some() {
-												let ubalance: u128 = account_vote.unwrap().try_into().unwrap_or(0u128);
-												llmmod::unfreeze_llm::<T>(account_vote.account, ubalance / divider);
-											}
-										//	if let AccountVote::Standard { vote, .. } = account_vote {
-										//		ReferendumInfoOf::<T>::mutate(ref_index, |maybe_info| {
-										//			if let Some(ReferendumInfo::Ongoing(ref mut status)) = maybe_info {
-										//				status.tally.increase(vote.aye, amount);
-										//			}
-										//		});
-										//	}
-										//}
-										//votes.len() as u32
-									},
-								}};
-				*/
-
-				// freeze here
-				llmmod::freeze_llm::<T>(provider.clone(), ubalance)?;
-				//let err_amount = T::Currency::unreserve(&provider, deposit);
-				//debug_assert!(err_amount.is_zero());
+				// FIXME should we divide by 10^12?
+				ensure!(T::LLM::get_llm_politics(&provider) >= ubalance, Error::<T>::InsufficientLLM);
 				Self::deposit_event(Event::<T>::PreimageUsed { proposal_hash, provider, deposit });
 
 				let res = proposal
@@ -1932,8 +1742,6 @@ impl<T: Config> Pallet<T> {
 
 				Ok(())
 			} else {
-				//llmmod::unfreeze_llm::<T>(&provider, deposit);
-				//T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
 				Self::deposit_event(Event::<T>::PreimageInvalid {
 					proposal_hash,
 					ref_index: index,
@@ -1951,8 +1759,8 @@ impl<T: Config> Pallet<T> {
 		index: ReferendumIndex,
 		status: ReferendumStatus<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	) -> bool {
-		let total_issuance = llmmod::get_issuance();//T::Currency::total_issuance(); // get total issuance of llm
-		let approved = status.threshold.approved(status.tally, total_issuance.try_into().unwrap_or_default()); // convert to balance
+		let politi_pooled = T::LLM::get_politi_pooled_amount();
+		let approved = status.threshold.approved(status.tally, politi_pooled.try_into().unwrap_or_default()); // convert to balance
 
 		if approved {
 			Self::deposit_event(Event::<T>::Passed { ref_index: index });
@@ -1984,13 +1792,6 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 		} else {
-			// unfreeze token if not approved referendum
-			RefAc::<T>::get().into_iter().for_each(|(refindex, user, balance)| {
-				if refindex == index {
-					llmmod::unfreeze_llm::<T>(user.clone(), balance);
-				}
-				//llmmod::unfreeze_llm::<T>(user.clone(), balance);
-			});
 			Self::deposit_event(Event::<T>::NotPassed { ref_index: index });
 		}
 
@@ -2194,279 +1995,5 @@ fn decode_compact_u32_at(key: &[u8]) -> Option<u32> {
 			sp_runtime::print(key);
 			None
 		},
-	}
-}
-
-pub mod identitymod {
-	use super::*;
-	use frame_support::{traits::StorageInstance, Blake2_128Concat, Twox64Concat};
-	use pallet_identity::types::{IdentityInfo, Registration, IdentityField, Data};
-
-	pub struct Identi;
-
-	impl StorageInstance for Identi {
-		fn pallet_prefix() -> &'static str {
-			"Identity"
-		}
-		const STORAGE_PREFIX: &'static str = "IdentityOf";
-	}
-
-	pub type IdentityOf<T> = frame_support::storage::types::StorageMap<
-		Identi,
-		Twox64Concat,
-		<T as frame_system::Config>::AccountId,
-		Registration<
-			BalanceOf<T>,
-			<T as pallet::Config>::MaxRegistrars,
-			<T as pallet::Config>::MaxAdditionalFields,
-		>,
-		frame_support::pallet_prelude::OptionQuery,
-	>;
-
-	/*
-
-	{
-	  judgements: [
-		[
-		  0
-		  KnownGood
-		]
-	  ]
-	  deposit: 1,250,000,000,000,000
-	  info: {
-		additional: [
-		  [
-			{
-			  Raw: EResident
-			}
-			{
-			  Raw: 1
-			}
-		  ]
-		]
-		display: {
-		  Raw: Mises
-		}
-		legal: None
-
-	*/
-
-	/// Check if account has been judged
-	pub fn check_judgement<T: frame_system::Config + pallet::Config>(user: T::AccountId) -> bool {
-
-    		let id: bool = match IdentityOf::<T>::get(&user) {
-    			Some(i) => (i.info.citizen != Data::None) && i.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),/* check if identity is citizen and known good */
-    			None => false,
-    		};
-    		id
-    	}
-
-	// the free balance
-	//	pub fn llm_politics_balance<T: frame_system::Config>(user: T::AccountId) -> u128 {
-	//		LLMPolitics::<T>::get(&user) //.unwrap_or(0u128)
-	//	}
-
-	//	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
-	//		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
-	//	}
-}
-
-pub mod llmmod {
-	use super::*;
-	use frame_support::{traits::StorageInstance, Blake2_128Concat, Twox64Concat};
-	// ParaLifecyclesPrefix, based on centrifuge
-	pub struct LLMPoliticsCopy;
-	pub struct LLMPoliticsLockCopy;
-
-	impl StorageInstance for LLMPoliticsCopy {
-		fn pallet_prefix() -> &'static str {
-			"LLM"
-		}
-
-		const STORAGE_PREFIX: &'static str = "LLMPolitics";
-	}
-	pub type LLMPolitics<T> = frame_support::storage::types::StorageMap<
-		LLMPoliticsCopy,
-		Blake2_128Concat,
-		<T as frame_system::Config>::AccountId,
-		u128,
-		frame_support::pallet_prelude::ValueQuery,
-	>;
-
-	pub struct ElectionlockCopy;
-
-	impl StorageInstance for ElectionlockCopy {
-		fn pallet_prefix() -> &'static str {
-			"LLM"
-		}
-
-		const STORAGE_PREFIX: &'static str = "Electionlock";
-	}
-
-	pub type Electionlock<T> = frame_support::storage::types::StorageMap<
-		ElectionlockCopy,
-		Blake2_128Concat,
-		<T as frame_system::Config>::AccountId,
-		u64,
-		frame_support::pallet_prelude::ValueQuery,
-	>;
-	//type AccountId = frame_system::Config::AccountId;
-
-	pub struct LLMRefCopy;
-
-	impl StorageInstance for LLMRefCopy {
-		fn pallet_prefix() -> &'static str {
-			"LLM"
-		}
-
-		const STORAGE_PREFIX: &'static str = "LLMRef";
-	}
-
-	pub struct ref_balance<T: frame_system::Config> {
-		pub balance: u128,
-		pub referendum: u32,
-		pub account: <T as frame_system::Config>::AccountId,
-	}
-
-	pub type LLMRef<T> = frame_support::storage::types::StorageMap<
-		LLMRefCopy,
-		Blake2_128Concat,
-		<T as frame_system::Config>::AccountId,
-		ref_balance<T>, //<u128, u32>,    // referenda id
-		frame_support::pallet_prelude::ValueQuery,
-	>;
-
-	/*pub struct MintedCopy;
-	impl StorageInstance for MintedCopy {
-		fn pallet_prefix() -> &'static str {
-			"LLM"
-		}
-
-		const STORAGE_PREFIX: &'static str = "MintedAmount";
-	}
-
-	pub type MintedAmount = frame_support::storage::types::StorageValue<
-	MintedCopy,
-		u64,
-		frame_support::pallet_prelude::ValueQuery,
-	>;*/
-
-	pub struct PolitiPooledAmountCopy;
-	impl StorageInstance for PolitiPooledAmountCopy {
-		fn pallet_prefix() -> &'static str {
-			"LLM"
-		}
-
-		const STORAGE_PREFIX: &'static str = "PolitiPooledAmount";
-	}
-
-	pub type PolitiPooledAmount = frame_support::storage::types::StorageValue<
-	PolitiPooledAmountCopy,
-		u64,
-		frame_support::pallet_prelude::ValueQuery,
-	>;
-
-
-	//pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>;
-
-
-	impl StorageInstance for LLMPoliticsLockCopy {
-		fn pallet_prefix() -> &'static str {
-			"LLM"
-		}
-
-		const STORAGE_PREFIX: &'static str = "LLMPoliticsLock";
-	}
-	pub type LLMPoliticsLock<T> = frame_support::storage::types::StorageMap<
-		LLMPoliticsLockCopy,
-		Blake2_128Concat,
-		<T as frame_system::Config>::AccountId,
-		u128,
-		frame_support::pallet_prelude::ValueQuery,
-	>;
-
-	//pub fn get_ref_balance<T: frame_system::Config>(account: T::AccountId) -> u128 {
-	//	for data in 0..LLMRef::get(account){
-	//
-	//		}
-	//		balance
-	//	}
-
-	// move
-	pub fn unfreeze_llm<T: frame_system::Config + pallet::Config>(
-		user: T::AccountId,
-		amount: u128,
-	) {
-		let llm_lock = LLMPoliticsLock::<T>::get(&user);
-		let llm_lock = llm_lock.saturating_sub(amount);
-		LLMPoliticsLock::<T>::insert(&user, llm_lock); // overwrite the current value with the new balance
-		LLMPolitics::<T>::mutate_exists(&user, |llm| {
-			*llm = Some(llm.unwrap_or(0u128) + amount); // update balance
-		}); // add the llm to the regular account balance
-	}
-
-	// the free balance
-	pub fn llm_politics_balance<T: frame_system::Config>(user: T::AccountId) -> u128 {
-		LLMPolitics::<T>::get(&user) //.unwrap_or(0u128)
-	}
-
-	pub fn get_issuance() -> u64 {
-		PolitiPooledAmount::get()//.unwrap_or(u64)
-	}
-
-	/// Freeze LLM
-	pub fn freeze_llm<T: frame_system::Config + pallet::Config>(
-		account: T::AccountId,
-		amount: u128,
-	) -> Result<(), DispatchError> {
-		//todo append checks
-		//	LLMPoliticsLock::<T>::mutate_exists(&account, |b| *b = Some(amount +
-		// LLMPolitics::<T>::get(&account)));
-		let divider = 1000000000000u128;
-		let fix_balance = amount / divider; // LLD to LLM conversion
-
-		// make sure we can vote with the amount of LLM we have in politics lock
-		ensure!(LLMPolitics::<T>::get(&account) >= fix_balance, Error::<T>::InsufficientLLM);
-
-		//
-
-		// TODO ADD TO FREEZE LLM
-
-		// move LLM to the frozen llm
-		if LLMPolitics::<T>::contains_key::<T::AccountId>(account.clone()) {
-			//>= 0u64.try_into().unwrap_or(Default::default())
-			// remove the LLM from the LLMPolitics
-
-			LLMPolitics::<T>::mutate_exists(&account, |b| {
-				*b = Some(LLMPolitics::<T>::get(&account) - fix_balance)
-			}); //- LLMPoliticsLock::<T>::get(&account))); // dont overwrite it, append to balance
-		}
-		//add to freezed llm
-		if LLMPoliticsLock::<T>::contains_key::<T::AccountId>(account.clone()) {
-			//>= 0u64.try_into().unwrap_or(Default::default())
-
-			LLMPoliticsLock::<T>::mutate_exists(&account, |b| {
-				*b = Some(fix_balance + LLMPoliticsLock::<T>::get(&account))
-			}); //- LLMPoliticsLock::<T>::get(&account))); // dont overwrite it, append to balance
-		} else {
-			LLMPoliticsLock::<T>::insert::<T::AccountId, u128>(account.clone(), fix_balance); // lock in the
-			                                                                      // amount
-		}
-
-		Ok(())
-	}
-
-	pub fn check_pooled_llm<T: frame_system::Config>(sender: T::AccountId) -> bool {
-		LLMPolitics::<T>::contains_key::<T::AccountId>(sender)
-	}
-
-	pub fn is_election_unlocked<T: frame_system::Config>(sender: T::AccountId) -> bool {
-		if Electionlock::<T>::contains_key(&sender) {
-			let current_block_number: u64 =
-					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
-			let unlocked_on_block = Electionlock::<T>::get::<T::AccountId>(sender);
-			return current_block_number >= unlocked_on_block;
-		}
-		true
 	}
 }
