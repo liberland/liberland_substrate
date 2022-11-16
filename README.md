@@ -20,7 +20,7 @@ https://github.com/liberland/liberland.github.io/
 https://matrix.to/#/!YzbTfsgCDANzhNLYpW:matrix.org?via=matrix.org  
 
 
-### How to run a Liberland Hayek Validator:    
+### How to run a Liberland Hazlitt Validator:    
 https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md   
 
 
