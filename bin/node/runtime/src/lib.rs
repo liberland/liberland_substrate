@@ -121,8 +121,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 3,
-	impl_version: 2,
+	spec_version: 1, // Hazlitt
+	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
 	state_version: 1,
@@ -1407,10 +1407,9 @@ parameter_types! {
 	pub const MigrationSignedDepositBase: Balance = 20 * DOLLARS;
 }
 
-
-//impl pallet_liberland_legislation::Config for Runtime {
-//	type Event = Event;
-//}
+impl pallet_liberland_legislation::Config for Runtime {
+	type Event = Event;
+}
 
 impl pallet_state_trie_migration::Config for Runtime {
 	type Event = Event;
@@ -1484,7 +1483,7 @@ construct_runtime!(
 		ConvictionVoting: pallet_conviction_voting,
 		Whitelist: pallet_whitelist,
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
-//		LiberlandLegislation: pallet_liberland_legislation,
+		LiberlandLegislation: pallet_liberland_legislation,
 	}
 );
 

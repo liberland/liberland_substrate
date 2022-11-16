@@ -222,9 +222,7 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 		"c6eb294494e9afe9cc64eac8f24e70b775cfc6d3e34b0bedec9273325603bd3d"
 		//5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL
 //		"0xc6eb294494e9afe9cc64eac8f24e70b775cfc6d3e34b0bedec9273325603bd3d"
-//max old
-	// 5FLK82VHiD4f6Zwnk4ajqs2X59DNG4bVBuXzbEkc66XmDZUc
-	//	"909c17e16dcf8bdacf31d3fc2f7d8a39d8fe46c38ebeffe5d68c10cd18d53f21"
+
 	]
 	.into();
 
@@ -237,7 +235,7 @@ fn properties() -> sc_chain_spec::Properties {
 	let mut p = Properties::new();
 	p.insert("prefix".into(), 56.into());
 	p.insert("network".into(), "liberland".into());
-	p.insert("displayName".into(), "Liberland Menger".into());
+	p.insert("displayName".into(), "Liberland Hazlitt".into());
 	p.insert("tokenSymbol".into(), "LLD".into());
 	p.insert("tokenDecimals".into(), 12.into());
 	p.insert("standardAccount".into(), "*25519".into());
@@ -382,8 +380,8 @@ pub fn testnet_genesis(
 		 hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into(), //F
 		 hex!["b86373a2dff0a7b5741fd7e1857de41353fca3b924f14eae5f4c70d69e949150"].into(), // N
 		 hex!["ba14fb5a00f052330c9c09e0467bce1d7896edefe92851b893e777aade53f921"].into(), // D
-		 hex!["f874b8c112a9bb565e0798d9b5dcfee0fdbd54dd0fcc865c1251a75bd3faee45"].into(), //M  
-
+		 hex!["f874b8c112a9bb565e0798d9b5dcfee0fdbd54dd0fcc865c1251a75bd3faee45"].into(), // M  
+		 hex!["52fd11392742ccf58bcff90c33ca15bdf4bd3416aabcd5d51a654c1f387b6d18"].into(),
 		 ];
 // rewrite, not to use for loop
 	for ac in f_ac.iter(){

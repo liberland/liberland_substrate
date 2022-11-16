@@ -2336,7 +2336,7 @@ pub mod llmmod {
 		frame_support::pallet_prelude::ValueQuery,
 	>;
 
-	pub struct MintedCopy;
+	/*pub struct MintedCopy;
 	impl StorageInstance for MintedCopy {
 		fn pallet_prefix() -> &'static str {
 			"LLM"
@@ -2349,10 +2349,25 @@ pub mod llmmod {
 	MintedCopy,
 		u64,
 		frame_support::pallet_prelude::ValueQuery,
+	>;*/
+
+	pub struct PolitiPooledAmountCopy;
+	impl StorageInstance for PolitiPooledAmountCopy {
+		fn pallet_prefix() -> &'static str {
+			"LLM"
+		}
+
+		const STORAGE_PREFIX: &'static str = "PolitiPooledAmount";
+	}
+
+	pub type PolitiPooledAmount = frame_support::storage::types::StorageValue<
+	PolitiPooledAmountCopy,
+		u64,
+		frame_support::pallet_prelude::ValueQuery,
 	>;
 
 
-	//pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>; 
+	//pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 
 	impl StorageInstance for LLMPoliticsLockCopy {
@@ -2396,7 +2411,7 @@ pub mod llmmod {
 	}
 
 	pub fn get_issuance() -> u64 {
-		MintedAmount::get()//.unwrap_or(u64)
+		PolitiPooledAmount::get()//.unwrap_or(u64)
 	}
 
 	/// Freeze LLM

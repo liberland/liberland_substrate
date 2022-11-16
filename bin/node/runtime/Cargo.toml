@@ -103,7 +103,7 @@ pallet-uniques = { version = "4.0.0-dev", default-features = false, path = "../.
 pallet-vesting = { version = "4.0.0-dev", default-features = false, path = "../../../frame/vesting" }
 pallet-whitelist = { version = "4.0.0-dev", default-features = false, path = "../../../frame/whitelist" }
 pallet-llm = { path = "../../../frame/llm", version = "0.1.0", default-features = false }
-#pallet-liberland-legislation = { version = "0.1.0", path = "../../../frame/liberland-legislation" }
+pallet-liberland-legislation = { version = "0.1.0", path = "../../../frame/liberland-legislation", default-features = false }
 
 
 [build-dependencies]
@@ -121,7 +121,7 @@ std = [
 	"pallet-babe/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
-#	"pallet-liberland-legislation/std",
+	"pallet-liberland-legislation/std",
 	"pallet-bounties/std",
 	"sp-block-builder/std",
 	"codec/std",
