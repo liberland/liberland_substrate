@@ -1,3 +1,6 @@
+# DEPRICATED GUIDE USE THE LATEST ONE HERE: https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md
+
+
 ## How to run a Validator on Liberland's Menger Testnet
 
 
