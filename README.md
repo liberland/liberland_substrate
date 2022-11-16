@@ -29,8 +29,6 @@ https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md
 ```shell
 git clone https://github.com/liberland/liberland_substrate/
 cd liberland_substrate && cargo build --release
-wget https://github.com/liberland/liberland_substrate/raw/main/HazlittRaw.json
-
 ./target/release/substrate --chain specs/HazlittRaw.json --bootnodes --bootnodes /ip4/162.55.230.227/tcp/30333/p2p/12D3KooWPMnWGGYBzYyEc9Tsw9RDws4NrDpbN4LrHZ19Kk6yhwTo --base-path /tmp/hazlitt
 ```   
 
