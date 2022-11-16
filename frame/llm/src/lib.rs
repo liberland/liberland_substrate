@@ -1,5 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
+pub mod traits;
+
 
 /// Liberland Merit Pallet
 /*
@@ -15,10 +17,12 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 */
 
+
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
 	use super::*;
+	use super::traits::LLM;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
 		sp_runtime::traits::AccountIdConversion,
@@ -134,7 +138,7 @@ pub mod pallet {
 	//	}
 
 	#[pallet::config]
-	pub trait Config: pallet_assets::Config + frame_system::Config {
+	pub trait Config: pallet_assets::Config + frame_system::Config + pallet_identity::Config {
 		// include pallet asset config aswell
 
 		type Total_supply: Get<u64>; // Pre defined the total supply in runtime
@@ -180,6 +184,14 @@ pub mod pallet {
 		Over10percentage,
 		/// not allowed to withdraw llm
 		Gottawait,
+		/// No politcal LLM allocated tokens
+		NoPolLLM,
+		/// Not a Citizen
+		NonCitizen,
+		/// Temporary locked after unpooling LLM
+		Locked,
+		InsufficientLLM,
+		InvalidBalanceType,
 	}
 
 	#[pallet::pallet]
@@ -459,15 +471,14 @@ pub mod pallet {
 			//let xc: T::AccountId = account32.clone().unwrap();
 
 			let account_map: Vec<T::AccountId> = vec![
+
 				Self::account_id32_to_accountid(
-					hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].into(),
-				), //F
-				Self::account_id32_to_accountid(
-					hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
-				), // Multisig N + F
-				Self::account_id32_to_accountid(
-					hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
-				), // Multisig F + ALICE + BOB */
+					hex!["db93a8bc25102cb5c7392cbcc1b0837ece2c5f24436124522feb9bd6010bf780"].into(),
+				), //5H2cD1Q8ZkC5gwBWX2sViwtbE4yr3chSh84NeW4Hnz43VX76 , V + DEVKEY + N + M
+
+			//	Self::account_id32_to_accountid(
+			//		hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
+			//	), // Multisig F + ALICE + BOB */
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
@@ -876,24 +887,24 @@ pub mod pallet {
 		}
 
 		fn try_mint(block: u64) -> bool {
-			log::info!("try_mint called");
+		//	log::info!("try_mint called");
 			if block == 1u64 {
-				log::info!("block is less than two");
+		//		log::info!("block is less than two");
 				let rootorg = frame_system::RawOrigin::Root.into();
 				Self::create_llm(rootorg).unwrap_or_default();
 				let nextblock = Self::get_future_block();
-				log::info!("setting nextmint to {:?}", nextblock);
+		//		log::info!("setting nextmint to {:?}", nextblock);
 				NextMint::<T>::put(nextblock);
 				return true
 			}
 
 			if block < NextMint::<T>::get() {
-				log::info!("returning false {:?}", block);
+			//	log::info!("returning false {:?}", block);
 				return false
 			}
-			log::info!("second pass");
-			log::info!("Next mint is: {:?}", NextMint::<T>::get());
-			log::info!("Minting llm!!");
+		//	log::info!("second pass");
+		//	log::info!("Next mint is: {:?}", NextMint::<T>::get());
+		//	log::info!("Minting llm!!");
 			//	let blocks_per_second: u64 = 6u64;// 6 seconds per block
 			//	let one_minute: u64 = 60u64 / blocks_per_second;
 			//	let mut nextblock: u64 = 2u64 * one_minute; // 2 minutes
@@ -1012,5 +1023,56 @@ pub mod pallet {
 		fn substract_politi_pooled_stats(amount: u64) {
 			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount -= amount);
 		}
+	}
+
+	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
+		fn check_pooled_llm(account: &T::AccountId) -> bool {
+			LLMPolitics::<T>::contains_key(account)
+		}
+
+		fn is_election_unlocked(account: &T::AccountId) -> bool {
+			if Electionlock::<T>::contains_key(account) {
+				let current_block_number: u64 =
+						<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+				let unlocked_on_block = Electionlock::<T>::get(account);
+				return current_block_number >= unlocked_on_block;
+			}
+			true
+		}
+
+		fn get_politi_pooled_amount() -> u64 {
+			PolitiPooledAmount::<T>::get()
+		}
+
+		fn get_llm_politics(account: &T::AccountId) -> T::Balance {
+			LLMPolitics::<T>::get(account)
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn is_known_good(account: &T::AccountId) -> bool {
+			match pallet_identity::Pallet::<T>::identity(account) {
+				Some(reg) => reg.info.citizen != pallet_identity::Data::None &&
+							reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),
+				None => false,
+			}
+		}
+	}
+
+	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
+
+		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
+			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
+			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
+			Ok(())
+		}
+
+		fn ensure_elections_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
+			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
+			Ok(())
+		}
+
 	}
 }
