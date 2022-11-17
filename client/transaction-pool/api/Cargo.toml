@@ -12,7 +12,7 @@ description = "Transaction pool client facing API."
 futures = "0.3.19"
 log = "0.4.8"
 serde = { version = "1.0.136", features = ["derive"] }
-thiserror = "1.0.30"
+thiserror = "1.0.37"
 
 sp-runtime = { version = "6.0.0", default-features = false, path = "../../../primitives/runtime" }
 sp-blockchain = { version = "4.0.0-dev", path = "../../../primitives/blockchain" }

@@ -30,7 +30,7 @@ sp-timestamp = { version = "4.0.0-dev", path = "../../../primitives/timestamp" }
 futures = "0.3.19"
 futures-timer = "3.0.1"
 log = "0.4.11"
-thiserror = "1.0.30"
+thiserror = "1.0.37"
 async-trait = "0.1.50"
 
 [dev-dependencies]

@@ -13,7 +13,7 @@ readme = "README.md"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-thiserror = "1.0.30"
+thiserror = "1.0.37"
 libp2p = { version = "0.40.0", default-features = false }
 log = "0.4.8"
 futures = { version = "0.3.19", features = ["thread-pool"] }
