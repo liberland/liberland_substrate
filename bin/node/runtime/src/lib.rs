@@ -1267,7 +1267,7 @@ impl pallet_mmr::Config for Runtime {
 	type OnNewRoot = ();
 	type WeightInfo = ();
 }
-///*
+
 parameter_types! {
 	pub const LotteryPalletId: PalletId = PalletId(*b"py/lotto");
 	pub const MaxCalls: u32 = 10;
@@ -1286,7 +1286,7 @@ impl pallet_lottery::Config for Runtime {
 	type MaxGenerateRandom = MaxGenerateRandom;
 	type WeightInfo = pallet_lottery::weights::SubstrateWeight<Runtime>;
 }
-//*/
+
 parameter_types! {
 	pub const AssetDeposit: Balance = 100 * DOLLARS;
 	pub const ApprovalDeposit: Balance = 1 * DOLLARS;
@@ -1327,23 +1327,18 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PREMINTLLM: u64 = 7000000u64;
 	pub const ASSETID: u32 = 0u32; // asset id 0 for llm
-	//pub const
 }
 
-pub(crate) type ASSET_ID = u32; // u32 is better supported by the runtime
-
-pub type LLM_Balances = u128;
+pub(crate) type AssetId = u32; // u32 is better supported by the runtime
 
 impl pallet_llm::Config for Runtime {
 	type Event = Event;
-	type Total_supply = TOTALLLM; //70 million in hardcap
+	type TotalSupply = TOTALLLM; //70 million in hardcap
 	type PreMintedAmount = PREMINTLLM; // Premint 7 million
-								   //	type Balance = LLM_Balances;
-	type AssetId = ASSET_ID; //pallet_assets::Config::AssetId;
+	type AssetId = AssetId; //pallet_assets::Config::AssetId;
 						 //	type AccountId = AccountId;
 }
 
-///*
 
 impl pallet_gilt::Config for Runtime {
 	type Event = Event;
@@ -1362,7 +1357,7 @@ impl pallet_gilt::Config for Runtime {
 	type MaxIntakeBids = MaxIntakeBids;
 	type WeightInfo = pallet_gilt::weights::SubstrateWeight<Runtime>;
 }
-//*/
+
 parameter_types! {
 	pub const ClassDeposit: Balance = 100 * DOLLARS;
 	pub const InstanceDeposit: Balance = 1 * DOLLARS;

@@ -314,7 +314,6 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			//use sp_runtime::print;
 			log::info!("vote called");
 			T::Citizenship::ensure_elections_allowed(&who)?;
 
@@ -333,9 +332,6 @@ pub mod pallet {
 				candidates_count.saturating_add(members_count).saturating_add(runners_up_count);
 			ensure!(!allowed_votes.is_zero(), Error::<T>::UnableToVote);
 			ensure!(votes.len() <= allowed_votes, Error::<T>::TooManyVotes);
-
-			// todo add llm check here
-			//ensure!(value > T::Currency::minimum_balance(), Error::<T>::LowBalance);
 
 			// Reserve bond.
 			let new_deposit = Self::deposit_of(votes.len());

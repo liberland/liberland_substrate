@@ -171,8 +171,6 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-//use frame_support::{Blake2_128Concat, StorageMap};
-
 mod conviction;
 mod types;
 mod vote;
@@ -185,7 +183,6 @@ pub use vote::{AccountVote, Vote, Voting};
 pub use vote_threshold::{Approved, VoteThreshold};
 pub use weights::WeightInfo;
 
-//
 
 #[cfg(test)]
 mod tests;
@@ -247,7 +244,7 @@ enum Releases {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::{DispatchResult, *};
-	use frame_support::{pallet_prelude::*, traits::StorageInstance};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::pallet]
@@ -439,10 +436,6 @@ pub mod pallet {
 		ReferendumIndex,
 		ReferendumInfo<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	>;
-
-	//	#[pallet::storage]
-	//	#[pallet::getter(fn accountref)]
-	//	pub type AccountRef<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountRef<T>>;
 
 	/// All votes for a particular voter. We store the balance for the number of votes that we
 	/// have recorded. The second item is the total amount of delegations, that will be added.
@@ -841,29 +834,11 @@ pub mod pallet {
 		/// Weight: `O(1)`
 		#[pallet::weight(T::WeightInfo::fast_track())]
 		pub fn fast_track(
-			origin: OriginFor<T>,
+			_origin: OriginFor<T>,
 			proposal_hash: T::Hash,
 			voting_period: T::BlockNumber,
 			delay: T::BlockNumber,
 		) -> DispatchResult {
-			// Rather complicated bit of code to ensure that either:
-			// - `voting_period` is at least `FastTrackVotingPeriod` and `origin` is
-			//   `FastTrackOrigin`; or
-			// - `InstantAllowed` is `true` and `origin` is `InstantOrigin`.
-			//	let maybe_ensure_instant = if voting_period < T::FastTrackVotingPeriod::get() {
-			//		Some(origin)
-			//	} else {
-			//		if let Err(origin) = T::FastTrackOrigin::try_origin(origin) {
-			//			Some(origin)
-			//		} else {
-			//			None
-			//		}
-			//	};
-			//	if let Some(ensure_instant) = maybe_ensure_instant {
-			//		T::InstantOrigin::ensure_origin(ensure_instant)?;
-			//		ensure!(T::InstantAllowed::get(), Error::<T>::InstantNotAllowed);
-			//	}
-
 			let (e_proposal_hash, threshold) =
 				<NextExternal<T>>::get().ok_or(Error::<T>::ProposalMissing)?;
 			ensure!(
@@ -1238,14 +1213,10 @@ pub mod pallet {
 		/// Enact a proposal from a referendum. For now we just make the weight be the maximum.
 		#[pallet::weight(T::BlockWeights::get().max_block)]
 		pub fn enact_proposal(
-			origin: OriginFor<T>,
+			_origin: OriginFor<T>,
 			proposal_hash: T::Hash,
 			index: ReferendumIndex,
 		) -> DispatchResult {
-			//	let who = ensure_signed(origin)?;
-			//	ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			//	ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
-			//ensure_root(origin)?;
 			Self::do_enact_proposal(proposal_hash, index)
 		}
 
@@ -1270,8 +1241,6 @@ pub mod pallet {
 			proposal_hash: T::Hash,
 			maybe_ref_index: Option<ReferendumIndex>,
 		) -> DispatchResult {
-			//		let who = ensure_signed(origin.clone);
-			//		ensure!(llmmod::check_pooled_llm::<T>(who.clone()), Error::<T>::NoPolLLM);
 			T::BlacklistOrigin::ensure_origin(origin)?;
 
 			// Insert the proposal into the blacklist.
@@ -1418,7 +1387,7 @@ impl<T: Config> Pallet<T> {
 		vote: AccountVote<BalanceOf<T>>,
 	) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
-		let mut ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
+		let ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
 		// FIXME should we divide by 10^12?
 		ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
@@ -1567,12 +1536,8 @@ impl<T: Config> Pallet<T> {
 	) -> Result<u32, DispatchError> {
 		ensure!(who != target, Error::<T>::Nonsense);
 		let ubalance: u128 = balance.try_into().unwrap_or(0u128);
-		ensure!(
-			ubalance <= T::LLM::get_llm_politics(&who),
-			Error::<T>::InsufficientFunds
-		); //))
-   //ensure!(balance <= T::Currency::free_balance(&who), Error::<T>::InsufficientFunds);
-   // //change me
+		ensure!( ubalance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
+
 		let votes = VotingOf::<T>::try_mutate(&who, |voting| -> Result<u32, DispatchError> {
 			let mut old = Voting::Delegating {
 				balance,
