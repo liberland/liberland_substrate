@@ -162,6 +162,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_signed(origin)?;
 			let receiver = to_account.clone();
+			//TODO FIXME this sets LLM, not add
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				receiver,
 				amount.try_into().unwrap_or_default(),
