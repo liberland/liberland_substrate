@@ -500,17 +500,11 @@ pub mod pallet {
 
 			// Mint the rest of the tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
+
 			let money_left: T::Balance = T::TotalSupply::get().try_into().unwrap_or(Default::default());
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac.clone(), money_left.clone());
 			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left)?;
 
-			let money_left: T::Balance =
-				T::Total_supply::get().try_into().unwrap_or(Default::default());
-			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
-				vaultac.clone(),
-				money_left.clone(),
-			);
-			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
 
 			Self::mint_tokens(assetid, T::PreMintedAmount::get()); // mint the preminted amount
 			Ok(())
