@@ -33,12 +33,12 @@ pub mod pallet {
   impl<T: Config> Pallet<T> {
 
     #[pallet::weight(10_000)]
-    pub fn add_law(origin: OriginFor<T>, index1: u32, index2:u32, lawContent: BoundedVec<u8, ConstU32<65536>> ) -> DispatchResult {
+    pub fn add_law(origin: OriginFor<T>, index1: u32, index2:u32, law_content: BoundedVec<u8, ConstU32<65536>> ) -> DispatchResult {
     	ensure_root(origin)?;
 
     	ensure!(!Laws::<T>::contains_key(&index1, &index2), Error::<T>::LawAlreadyExists);
 
-    	Laws::<T>::insert(&index1, &index2, &lawContent);
+    	Laws::<T>::insert(&index1, &index2, &law_content);
 
     	Self::deposit_event(Event::LawAdded { index1, index2 });
 

@@ -5962,6 +5962,7 @@ dependencies = [
  "log 0.4.17",
  "pallet-assets",
  "pallet-balances",
+ "pallet-identity",
  "parity-scale-codec",
  "scale-info",
  "sp-core",

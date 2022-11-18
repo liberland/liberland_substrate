@@ -111,6 +111,7 @@ LockedLLM // locked llm
 Withdrawlock // time lock for withdrawing pooled llm	 
 MintedAmount /// Keep track of the amount of minted llm   
 NextMint /// block number for next llm mint    
+Electionlock // time lock for elections - triggered after unpooling llm
 
 
 
