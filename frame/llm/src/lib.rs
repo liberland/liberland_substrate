@@ -314,11 +314,12 @@ pub mod pallet {
 		) -> DispatchResult {
 			let account_map: Vec<T::AccountId> = vec![
 				Self::account_id32_to_accountid(
-					hex!["db93a8bc25102cb5c7392cbcc1b0837ece2c5f24436124522feb9bd6010bf780"].into(),
-				), //5H2cD1Q8ZkC5gwBWX2sViwtbE4yr3chSh84NeW4Hnz43VX76 , V + DEVKEY + N + M
-				//	Self::account_id32_to_accountid(
-				//		hex!["41166026871ac7d5606352428247a161e2c88fb67e48f9e0c6331dbe906405d8"].into(),
-				//	), // Multisig F + ALICE + BOB */
+					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
+				),
+				Self::account_id32_to_accountid(
+					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
+				), // V + DEVKEY + N + M
+
 			];
 			let sender: T::AccountId = ensure_signed(origin)?;
 
@@ -499,11 +500,17 @@ pub mod pallet {
 
 			// Mint the rest of the tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
-
 			let money_left: T::Balance = T::TotalSupply::get().try_into().unwrap_or(Default::default());
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac.clone(), money_left.clone());
 			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left)?;
 
+			let money_left: T::Balance =
+				T::Total_supply::get().try_into().unwrap_or(Default::default());
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
+				vaultac.clone(),
+				money_left.clone(),
+			);
+			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
 
 			Self::mint_tokens(assetid, T::PreMintedAmount::get()); // mint the preminted amount
 			Ok(())
@@ -513,7 +520,6 @@ pub mod pallet {
 		fn llm_id() -> AssetId<T> {
 			1u32.into()
 		}
-
 
 		fn get_llm_vault_account() -> T::AccountId {
 			PalletId(*b"llm/safe").into_account()
@@ -548,6 +554,7 @@ pub mod pallet {
 		}
 
 		fn try_mint(block: u64) -> bool {
+
 			if block == 1u64 {
 				let rootorg = frame_system::RawOrigin::Root.into();
 				Self::create_llm(rootorg).unwrap_or_default();
@@ -557,6 +564,7 @@ pub mod pallet {
 			}
 
 			if block < NextMint::<T>::get() {
+
 				return false
 			}
 			NextMint::<T>::put(Self::get_future_block());
@@ -617,54 +625,4 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
-		fn check_pooled_llm(account: &T::AccountId) -> bool {
-			LLMPolitics::<T>::contains_key(account)
-		}
-
-		fn is_election_unlocked(account: &T::AccountId) -> bool {
-			if Electionlock::<T>::contains_key(account) {
-				let current_block_number: u64 =
-						<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
-				let unlocked_on_block = Electionlock::<T>::get(account);
-				return current_block_number >= unlocked_on_block;
-			}
-			true
-		}
-
-		fn get_politi_pooled_amount() -> u64 {
-			PolitiPooledAmount::<T>::get()
-		}
-
-		fn get_llm_politics(account: &T::AccountId) -> T::Balance {
-			LLMPolitics::<T>::get(account)
-		}
-	}
-
-	impl<T: Config> Pallet<T> {
-		fn is_known_good(account: &T::AccountId) -> bool {
-			match pallet_identity::Pallet::<T>::identity(account) {
-				Some(reg) => reg.info.citizen != pallet_identity::Data::None &&
-							reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),
-				None => false,
-			}
-		}
-	}
-
-	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
-
-		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
-			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
-			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
-			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
-			Ok(())
-		}
-
-		fn ensure_elections_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
-			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
-			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
-			Ok(())
-		}
-
-	}
 }
