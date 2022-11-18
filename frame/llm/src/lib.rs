@@ -439,30 +439,13 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: u64,
 		) -> DispatchResult {
-			//
-
-			//	let legits: Vec<T::AccountId> = Vec![
-			//		hex!["061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"].
-			// unchecked_into(), 	];
-			//let rootman = frame_system::RawOrigin::Root.into();
-			//	let testac: T::AccountId =
-			// hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into();
-
-			//	let account33: Vec<AccountId32> = vec![
-			//			hex!["ca84c08a24d96f8702e3940ea3ed7255a19ef11ac6d0fee490120edb9d9eb25d"].into(),
-			//		];
-			//let xc: T::AccountId = account32.clone().unwrap();
-
 			let account_map: Vec<T::AccountId> = vec![
-				
-				Self::account_id32_to_accountid( 
-					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), // test senate
+				Self::account_id32_to_accountid(
+					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
 				),
-
 				Self::account_id32_to_accountid(
 					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
 				), // V + DEVKEY + N + M
-
 			];
 			//let sender_signed = ensure_signed(origin)?;
 			//			let actest: T::AccountId =
@@ -817,11 +800,14 @@ pub mod pallet {
 
 			// Mint the rest of the tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
-			
-			let money_left: T::Balance = T::Total_supply::get().try_into().unwrap_or(Default::default());
-			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac.clone(), money_left.clone());
-			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
 
+			let money_left: T::Balance =
+				T::Total_supply::get().try_into().unwrap_or(Default::default());
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
+				vaultac.clone(),
+				money_left.clone(),
+			);
+			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left);
 
 			Self::mint_tokens(assetid, T::PreMintedAmount::get()); // mint the preminted amount
 			Ok(())
@@ -831,7 +817,6 @@ pub mod pallet {
 		fn llm_id() -> AssetId<T> {
 			1u32.into()
 		}
-
 
 		fn get_llm_vault_account() -> T::AccountId {
 			PalletId(*b"llm/safe").into_account()
@@ -857,7 +842,7 @@ pub mod pallet {
 			let one_minute: u64 = 60u64 / blocks_per_second;
 			let one_day: u64 = one_minute * 60u64 * 24u64;
 			let one_year: u64 = one_day * 365u64; //365.24
-			block = current_block_number + 2u64 * one_minute ; // 2 minutes
+			block = current_block_number + 2u64 * one_minute; // 2 minutes
 			block
 		}
 
@@ -871,24 +856,24 @@ pub mod pallet {
 		}
 
 		fn try_mint(block: u64) -> bool {
-		//	log::info!("try_mint called");
+			//	log::info!("try_mint called");
 			if block == 1u64 {
-		//		log::info!("block is less than two");
+				//		log::info!("block is less than two");
 				let rootorg = frame_system::RawOrigin::Root.into();
 				Self::create_llm(rootorg).unwrap_or_default();
 				let nextblock = Self::get_future_block();
-		//		log::info!("setting nextmint to {:?}", nextblock);
+				//		log::info!("setting nextmint to {:?}", nextblock);
 				NextMint::<T>::put(nextblock);
 				return true
 			}
 
 			if block < NextMint::<T>::get() {
-			//	log::info!("returning false {:?}", block);
+				//	log::info!("returning false {:?}", block);
 				return false
 			}
-		//	log::info!("second pass");
-		//	log::info!("Next mint is: {:?}", NextMint::<T>::get());
-		//	log::info!("Minting llm!!");
+			//	log::info!("second pass");
+			//	log::info!("Next mint is: {:?}", NextMint::<T>::get());
+			//	log::info!("Minting llm!!");
 			//	let blocks_per_second: u64 = 6u64;// 6 seconds per block
 			//	let one_minute: u64 = 60u64 / blocks_per_second;
 			//	let mut nextblock: u64 = 2u64 * one_minute; // 2 minutes
@@ -977,7 +962,7 @@ pub mod pallet {
 			);
 
 			// deduct from the vault
-			
+
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				Self::get_llm_vault_account(),
 				LLMBalance::<T>::get(&treasury) + amount.try_into().unwrap_or_default(),
@@ -997,9 +982,9 @@ pub mod pallet {
 				transfer_amount.clone(),
 			)
 			.unwrap_or_default(); //.map_err(|_| Error::<T>::InvalidTransfer);//unwrap_or_default();
-//			pallet_assets::Pallet::<T>::mint_into(assetid.into(), &treasury, transfer_amount)
-//				.unwrap_or_default();
-			//	Event::<T>::MintedLLM(treasury.into(), amount); // emit event
+			          //			pallet_assets::Pallet::<T>::mint_into(assetid.into(), &treasury,
+			          // transfer_amount) 				.unwrap_or_default();
+			          //	Event::<T>::MintedLLM(treasury.into(), amount); // emit event
 		}
 		fn add_politi_pooled_stats(amount: u64) {
 			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount += amount);
@@ -1008,5 +993,4 @@ pub mod pallet {
 			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount -= amount);
 		}
 	}
-
 }
