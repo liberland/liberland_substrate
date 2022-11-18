@@ -619,4 +619,55 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
+		fn check_pooled_llm(account: &T::AccountId) -> bool {
+			LLMPolitics::<T>::contains_key(account)
+		}
+
+		fn is_election_unlocked(account: &T::AccountId) -> bool {
+			if Electionlock::<T>::contains_key(account) {
+				let current_block_number: u64 =
+						<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+				let unlocked_on_block = Electionlock::<T>::get(account);
+				return current_block_number >= unlocked_on_block;
+			}
+			true
+		}
+
+		fn get_politi_pooled_amount() -> u64 {
+			PolitiPooledAmount::<T>::get()
+		}
+
+		fn get_llm_politics(account: &T::AccountId) -> T::Balance {
+			LLMPolitics::<T>::get(account)
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn is_known_good(account: &T::AccountId) -> bool {
+			match pallet_identity::Pallet::<T>::identity(account) {
+				Some(reg) => reg.info.citizen != pallet_identity::Data::None &&
+							reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),
+				None => false,
+			}
+		}
+	}
+
+	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
+
+		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
+			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
+			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
+			Ok(())
+		}
+
+		fn ensure_elections_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
+			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
+			Ok(())
+		}
+
+	}
+	
 }
