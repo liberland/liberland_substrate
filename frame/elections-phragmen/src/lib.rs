@@ -338,7 +338,6 @@ pub mod pallet {
 			let Voter { deposit: old_deposit, .. } = <Voting<T>>::get(&who);
 
 			let ubalance: u128 = value.try_into().unwrap_or(0u128);
-			// FIXME should we divide by 10^12?
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			match new_deposit.cmp(&old_deposit) {
