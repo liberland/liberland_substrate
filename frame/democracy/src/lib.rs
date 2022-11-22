@@ -163,7 +163,7 @@ use frame_support::{
 	},
 	weights::Weight,
 };
-use pallet_llm::traits::{LLM, CitizenshipChecker};
+use pallet_llm::traits::{CitizenshipChecker, LLM};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Bounded, Dispatchable, Hash, Saturating, Zero},
@@ -182,7 +182,6 @@ pub use types::{Delegations, ReferendumInfo, ReferendumStatus, Tally, UnvoteScop
 pub use vote::{AccountVote, Vote, Voting};
 pub use vote_threshold::{Approved, VoteThreshold};
 pub use weights::WeightInfo;
-
 
 #[cfg(test)]
 mod tests;
@@ -1301,7 +1300,6 @@ pub mod pallet {
 	}
 }
 
-
 impl<T: Config> Pallet<T> {
 	// exposed immutables.
 
@@ -1533,7 +1531,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<u32, DispatchError> {
 		ensure!(who != target, Error::<T>::Nonsense);
 		let ubalance: u128 = balance.try_into().unwrap_or(0u128);
-		ensure!( ubalance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
+		ensure!(ubalance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
 
 		let votes = VotingOf::<T>::try_mutate(&who, |voting| -> Result<u32, DispatchError> {
 			let mut old = Voting::Delegating {
@@ -1692,7 +1690,10 @@ impl<T: Config> Pallet<T> {
 			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
 				let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
 
-				ensure!(T::LLM::get_llm_politics(&provider) >= ubalance, Error::<T>::InsufficientLLM);
+				ensure!(
+					T::LLM::get_llm_politics(&provider) >= ubalance,
+					Error::<T>::InsufficientLLM
+				);
 				Self::deposit_event(Event::<T>::PreimageUsed { proposal_hash, provider, deposit });
 
 				let res = proposal
@@ -1721,7 +1722,9 @@ impl<T: Config> Pallet<T> {
 		status: ReferendumStatus<T::BlockNumber, T::Hash, BalanceOf<T>>,
 	) -> bool {
 		let politi_pooled = T::LLM::get_politi_pooled_amount();
-		let approved = status.threshold.approved(status.tally, politi_pooled.try_into().unwrap_or_default()); // convert to balance
+		let approved = status
+			.threshold
+			.approved(status.tally, politi_pooled.try_into().unwrap_or_default()); // convert to balance
 
 		if approved {
 			Self::deposit_event(Event::<T>::Passed { ref_index: index });

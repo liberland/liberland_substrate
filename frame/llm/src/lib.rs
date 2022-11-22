@@ -2,7 +2,6 @@
 pub use pallet::*;
 pub mod traits;
 
-
 /// Liberland Merit Pallet
 /*
 decrease the total supply with 0.9 % per year
@@ -17,12 +16,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 */
 
-
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
-	use super::*;
-	use super::traits::LLM;
+	use super::{traits::LLM, *};
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
 		sp_runtime::traits::AccountIdConversion,
@@ -30,11 +27,10 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
-	use sp_runtime::{traits::StaticLookup, SaturatedConversion};
-	use sp_std::vec::Vec;
 	use hex_literal::hex;
 	use scale_info::prelude::vec;
-	use sp_runtime::AccountId32;
+	use sp_runtime::{traits::StaticLookup, AccountId32, SaturatedConversion};
+	use sp_std::vec::Vec;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_balance)]
@@ -81,7 +77,9 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
 
 	#[pallet::config]
-	pub trait Config: pallet_assets::Config + frame_system::Config + pallet_identity::Config {
+	pub trait Config:
+		pallet_assets::Config + frame_system::Config + pallet_identity::Config
+	{
 		// include pallet asset config aswell
 
 		type TotalSupply: Get<u64>; // Pre defined the total supply in runtime
@@ -202,7 +200,8 @@ pub mod pallet {
 			LLMBalance::<T>::mutate_exists(&sender, |b| *b = Some(sender_balance));
 			let receiver_balance: T::Balance = LLMBalance::<T>::get(&receiver) + amount_balance;
 
-			// overwrite each time, its a bit computational heavy, this should be replaced with a match statement
+			// overwrite each time, its a bit computational heavy, this should be replaced with a
+			// match statement
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(receiver.clone(), receiver_balance);
 
 			Event::<T>::TransferedLLM(sender, receiver, amount);
@@ -319,7 +318,6 @@ pub mod pallet {
 				Self::account_id32_to_accountid(
 					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
 				), // V + DEVKEY + N + M
-
 			];
 			let sender: T::AccountId = ensure_signed(origin)?;
 
@@ -335,7 +333,7 @@ pub mod pallet {
 			let new_treasury_balance: T::Balance = treasury_balance - amount_balance.clone();
 			pallet_assets::Pallet::<T>::transfer(
 				frame_system::RawOrigin::Signed(treasury_account.clone()).into(), /* root origin,
-				                                                                  * change me later */
+				                                                                   * change me later */
 				Self::llm_id().into(),
 				lookup_account,
 				amount_balance.clone(),
@@ -379,8 +377,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn mint_llm(origin: OriginFor<T>) -> DispatchResult
-		{
+		pub fn mint_llm(origin: OriginFor<T>) -> DispatchResult {
 			ensure_signed(origin)?;
 			let assetid: AssetId<T> = Self::llm_id();
 			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
@@ -501,10 +498,13 @@ pub mod pallet {
 			// Mint the rest of the tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
 
-			let money_left: T::Balance = T::TotalSupply::get().try_into().unwrap_or(Default::default());
-			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(vaultac.clone(), money_left.clone());
+			let money_left: T::Balance =
+				T::TotalSupply::get().try_into().unwrap_or(Default::default());
+			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
+				vaultac.clone(),
+				money_left.clone(),
+			);
 			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left)?;
-
 
 			Self::mint_tokens(assetid, T::PreMintedAmount::get()); // mint the preminted amount
 			Ok(())
@@ -534,7 +534,7 @@ pub mod pallet {
 			let one_minute: u64 = 60u64 / blocks_per_second;
 			let one_day: u64 = one_minute * 60u64 * 24u64;
 			let _one_year: u64 = one_day * 365u64; //365.24
-			let block = current_block_number + 2u64 * one_minute ; // 2 minutes
+			let block = current_block_number + 2u64 * one_minute; // 2 minutes
 			block
 		}
 
@@ -548,7 +548,6 @@ pub mod pallet {
 		}
 
 		fn try_mint(block: u64) -> bool {
-
 			if block == 1u64 {
 				let rootorg = frame_system::RawOrigin::Root.into();
 				Self::create_llm(rootorg).unwrap_or_default();
@@ -558,7 +557,6 @@ pub mod pallet {
 			}
 
 			if block < NextMint::<T>::get() {
-
 				return false
 			}
 			NextMint::<T>::put(Self::get_future_block());
@@ -627,9 +625,9 @@ pub mod pallet {
 		fn is_election_unlocked(account: &T::AccountId) -> bool {
 			if Electionlock::<T>::contains_key(account) {
 				let current_block_number: u64 =
-						<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
 				let unlocked_on_block = Electionlock::<T>::get(account);
-				return current_block_number >= unlocked_on_block;
+				return current_block_number >= unlocked_on_block
 			}
 			true
 		}
@@ -646,15 +644,15 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		fn is_known_good(account: &T::AccountId) -> bool {
 			match pallet_identity::Pallet::<T>::identity(account) {
-				Some(reg) => reg.info.citizen != pallet_identity::Data::None &&
-							reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),
+				Some(reg) =>
+					reg.info.citizen != pallet_identity::Data::None &&
+						reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),
 				None => false,
 			}
 		}
 	}
 
 	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
-
 		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
@@ -667,7 +665,5 @@ pub mod pallet {
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			Ok(())
 		}
-
 	}
-	
 }
