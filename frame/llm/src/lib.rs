@@ -60,12 +60,12 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn minted_amount)]
 	/// Keep track of the amount of minted llm
-	pub(super) type MintedAmount<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
+	pub(super) type MintedAmount<T: Config> = StorageValue<_, T::Balance, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
 
 	#[pallet::storage]
 	#[pallet::getter(fn politi_pooled_amount)]
 	/// Keep track of the amount of politi pooled llm
-	pub(super) type PolitiPooledAmount<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
+	pub(super) type PolitiPooledAmount<T: Config> = StorageValue<_, T::Balance, ValueQuery>; // ValueQuery ,  OnEmpty = 0u64
 
 	#[pallet::storage]
 	#[pallet::getter(fn minted_when)]
@@ -82,8 +82,8 @@ pub mod pallet {
 	{
 		// include pallet asset config aswell
 
-		type TotalSupply: Get<u64>; // Pre defined the total supply in runtime
-		type PreMintedAmount: Get<u64>; // Pre defined the total supply in runtime
+		type TotalSupply: Get<Self::Balance>; // Pre defined the total supply in runtime
+		type PreMintedAmount: Get<Self::Balance>; // Pre defined the total supply in runtime
 
 		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
 			+ Parameter
@@ -175,7 +175,7 @@ pub mod pallet {
 		pub fn send_llm(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
-			amount: u64,
+			amount: T::Balance,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			let lookup_account = T::Lookup::unlookup(to_account.clone());
@@ -230,7 +230,7 @@ pub mod pallet {
 
 			// transfer to llm to llm trsy
 			Self::deposit_political_llm(origin, amount);
-			Self::add_politi_pooled_stats(amount.try_into().unwrap_or(0u64));
+			Self::add_politi_pooled_stats(amount.try_into().unwrap_or(0u8.into()));
 
 			Ok(())
 		}
@@ -264,7 +264,7 @@ pub mod pallet {
 
 			Withdrawlock::<T>::insert(&sender, timelimit);
 			Electionlock::<T>::insert(&sender, timelimit);
-			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u64));
+			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u8.into()));
 
 			Ok(())
 		}
@@ -309,7 +309,7 @@ pub mod pallet {
 		pub fn treasury_llm_transfer(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
-			amount: u64,
+			amount: T::Balance,
 		) -> DispatchResult {
 			let account_map: Vec<T::AccountId> = vec![
 				Self::account_id32_to_accountid(
@@ -325,18 +325,17 @@ pub mod pallet {
 
 			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account();
 			let treasury_balance = LLMBalance::<T>::get(&treasury_account.clone());
-			let amount_balance = Self::u64_to_balance(amount);
-			ensure!(treasury_balance >= amount_balance, Error::<T>::LowBalance);
+			ensure!(treasury_balance >= amount, Error::<T>::LowBalance);
 			let lookup_account = T::Lookup::unlookup(to_account.clone());
 
-			let user_balance: T::Balance = LLMBalance::<T>::get(&to_account) + amount_balance;
-			let new_treasury_balance: T::Balance = treasury_balance - amount_balance.clone();
+			let user_balance: T::Balance = LLMBalance::<T>::get(&to_account) + amount;
+			let new_treasury_balance: T::Balance = treasury_balance - amount.clone();
 			pallet_assets::Pallet::<T>::transfer(
 				frame_system::RawOrigin::Signed(treasury_account.clone()).into(), /* root origin,
 				                                                                   * change me later */
 				Self::llm_id().into(),
 				lookup_account,
-				amount_balance.clone(),
+				amount.clone(),
 			)
 			.unwrap_or_default();
 
@@ -369,7 +368,7 @@ pub mod pallet {
 		pub fn approve_transfer(
 			_origin: OriginFor<T>,
 			to_account: T::AccountId,
-			amount: u64,
+			amount: T::Balance,
 		) -> DispatchResult {
 			let _x = amount;
 			let _y = to_account;
@@ -380,23 +379,22 @@ pub mod pallet {
 		pub fn mint_llm(origin: OriginFor<T>) -> DispatchResult {
 			ensure_signed(origin)?;
 			let assetid: AssetId<T> = Self::llm_id();
-			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
 			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account();
-			let maxcap: u64 = T::TotalSupply::get();
-			let t_balance: u64 =
+			let maxcap: T::Balance = T::TotalSupply::get();
+			let allow_spend = Self::get_allowed_spending()?;
+
+			let t_balance: T::Balance =
 				pallet_assets::Pallet::<T>::balance(Self::llm_id().into(), &treasury.into())
 					.try_into()
-					.unwrap_or(0u64);
-			let hardlimit: f64 = 0.9;
-			let allow_spend: f64 = maxcap as f64 - minted_amount as f64 * hardlimit; // 0.9% of the total supply minus the minted on is what we are allowed to spend per year
+					.unwrap_or(0u8.into());
 
 			// ensure that we do not mint more tokens than the maxcap
 			ensure!(t_balance < maxcap.into(), Error::<T>::MaxCap); // ensure the treasury balance is more or the same as the maxcap
 
 			// TODO Check the time limit
-			ensure!(t_balance >= 1, "Treasury account does not have the asset in balance");
+			ensure!(t_balance >= 1u8.into(), "Treasury account does not have the asset in balance");
 
-			Self::mint_tokens(assetid, allow_spend as u64); // mint tokens with pallet assets
+			Self::mint_tokens(assetid, allow_spend); // mint tokens with pallet assets
 
 			Ok(())
 		}
@@ -405,19 +403,19 @@ pub mod pallet {
 	#[pallet::event]
 	pub enum Event<T: Config> {
 		/// New llm has been minted
-		MintedLLM(T::AccountId, u64),
+		MintedLLM(T::AccountId, T::Balance),
 		/// sender, receiver, amount
-		TransferedLLM(T::AccountId, T::AccountId, u64),
+		TransferedLLM(T::AccountId, T::AccountId, T::Balance),
 		/// New LLM has been created
-		LLMCreated(T::AccountId, u64), // acountid, amount
+		LLMCreated(T::AccountId, T::Balance), // acountid, amount
 		/// X amount of LLM has been unlocked
-		LLMPoliticsLocked(T::AccountId, u64),
+		LLMPoliticsLocked(T::AccountId, T::Balance),
 		/// sent to user account, amount
-		LLMPoliticsUnlocked(T::AccountId, u64),
+		LLMPoliticsUnlocked(T::AccountId, T::Balance),
 		/// freeze llm for politics
-		LLMPoliticsFreeze(T::AccountId, u64),
+		LLMPoliticsFreeze(T::AccountId, T::Balance),
 		/// unfreeze llm for politics
-		LLMPoliticsUnfreeze(T::AccountId, u64),
+		LLMPoliticsUnfreeze(T::AccountId, T::Balance),
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -432,16 +430,16 @@ pub mod pallet {
 		}
 		// get 10% of the users balance as a u64
 		fn get_10_percent(balance: T::Balance) -> T::Balance {
-			balance / Self::u64_to_balance(10u64)
+			balance / 10u8.into()
 		}
 
 		/// deposit llm into political pool
-		fn deposit_political_llm(origin: OriginFor<T>, amount_balance: T::Balance) -> bool {
+		fn deposit_political_llm(origin: OriginFor<T>, amount: T::Balance) -> bool {
 			pallet_assets::Pallet::<T>::transfer(
 				origin.clone(),
 				Self::llm_id().into(),
 				T::Lookup::unlookup(Self::get_llm_account()), // send to llm/trsy account
-				amount_balance.clone(),
+				amount,
 			)
 			.unwrap_or_default();
 			true
@@ -461,8 +459,8 @@ pub mod pallet {
 			let asset_balance: u128 = pallet_assets::Pallet::<T>::balance(assetid.into(), t_ac2)
 				.try_into()
 				.unwrap_or(0u128);
-			let minted_amount: u64 = <MintedAmount<T>>::get();
-			ensure!(minted_amount == 0u64, Error::<T>::AssetExists); //minted should be zero
+			let minted_amount: T::Balance = <MintedAmount<T>>::get();
+			ensure!(minted_amount == 0u8.into(), Error::<T>::AssetExists); //minted should be zero
 			ensure!(asset_balance == 0, Error::<T>::AssetExists); // if the asset balance is zero == that means it is not been created and we can create
 													  // it set minum balance to 0
 			let min_balance: T::Balance = 0u64.try_into().unwrap_or(Default::default()); // 0 llm
@@ -483,7 +481,7 @@ pub mod pallet {
 
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac.clone(), new_balance);
 
-			let my_amount: u64 = min_balance.try_into().unwrap_or(0u64);
+			let my_amount: T::Balance = min_balance.try_into().unwrap_or(0u8.into());
 			Event::<T>::LLMCreated(t_ac.clone(), my_amount);
 			pallet_assets::Pallet::<T>::force_set_metadata(
 				origin.clone(),
@@ -523,10 +521,6 @@ pub mod pallet {
 			PalletId(*b"llm/trsy").into_account()
 		}
 
-		fn u64_to_balance(amount: u64) -> T::Balance {
-			amount.try_into().unwrap_or(Default::default())
-		}
-
 		fn get_future_block() -> u64 {
 			let current_block_number: u64 =
 				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
@@ -539,12 +533,11 @@ pub mod pallet {
 		}
 
 		/// get the 0.9% of the amount we are able to mint
-		fn get_allowed_spending() -> u64 {
-			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
-			let maxcap: u64 = T::TotalSupply::get();
-			let hardlimit: f64 = 0.9;
-			let allow_spend: f64 = maxcap as f64 - minted_amount as f64 * hardlimit; // 0.9% of the total supply minus the minted on is what we are allowed to spend per year
-			allow_spend as u64
+		fn get_allowed_spending() -> Result<T::Balance, Error<T>> {
+			let minted_amount: T::Balance = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
+			let maxcap: T::Balance = T::TotalSupply::get();
+			let allow_spend: T::Balance = maxcap - minted_amount * 9u8.into() / 10u8.into(); // 0.9% of the total supply minus the minted on is what we are allowed to spend per year
+			Ok(allow_spend)
 		}
 
 		fn try_mint(block: u64) -> bool {
@@ -563,7 +556,11 @@ pub mod pallet {
 			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account();
 
 			// mint 0.9%
-			let zeronine: u64 = Self::get_allowed_spending();
+			let zeronine = match Self::get_allowed_spending() {
+				Ok(x) => x,
+				_ => return false,
+			};
+
 			Self::mint_tokens(0.into(), zeronine);
 			Event::<T>::MintedLLM(treasury_account.into(), zeronine);
 
@@ -576,8 +573,8 @@ pub mod pallet {
 		}
 
 		/// Mint tokens to the treasury account. Sends tokens from the llm/vault to the treasury
-		fn mint_tokens(_assetid: AssetId<T>, amount: u64) {
-			let transfer_amount: T::Balance = amount.try_into().unwrap_or(Default::default());
+		fn mint_tokens(_assetid: AssetId<T>, amount: T::Balance) {
+			let transfer_amount: T::Balance = amount;
 			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account();
 			// update balance of the treasury account, balances should be u128 and not u64
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
@@ -608,11 +605,11 @@ pub mod pallet {
 			.unwrap_or_default();
 		}
 
-		fn add_politi_pooled_stats(amount: u64) {
+		fn add_politi_pooled_stats(amount: T::Balance) {
 			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount += amount);
 		}
 
-		fn substract_politi_pooled_stats(amount: u64) {
+		fn substract_politi_pooled_stats(amount: T::Balance) {
 			<PolitiPooledAmount<T>>::mutate(|politi_pooled_amount| *politi_pooled_amount -= amount);
 		}
 	}
@@ -632,7 +629,7 @@ pub mod pallet {
 			true
 		}
 
-		fn get_politi_pooled_amount() -> u64 {
+		fn get_politi_pooled_amount() -> T::Balance {
 			PolitiPooledAmount::<T>::get()
 		}
 
