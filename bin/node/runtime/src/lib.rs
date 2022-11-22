@@ -121,8 +121,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 2, 
-	impl_version: 3,// Hazlitt
+	spec_version: 2,
+	impl_version: 3, // Hazlitt
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
 	state_version: 1,
@@ -1336,9 +1336,8 @@ impl pallet_llm::Config for Runtime {
 	type TotalSupply = TOTALLLM; //70 million in hardcap
 	type PreMintedAmount = PREMINTLLM; // Premint 7 million
 	type AssetId = AssetId; //pallet_assets::Config::AssetId;
-						 //	type AccountId = AccountId;
+						//	type AccountId = AccountId;
 }
-
 
 impl pallet_gilt::Config for Runtime {
 	type Event = Event;
