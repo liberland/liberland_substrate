@@ -359,6 +359,7 @@ pub fn testnet_genesis(
 		gilt: Default::default(),
 		transaction_storage: Default::default(),
 		transaction_payment: Default::default(),
+		llm: Default::default(),
 	}
 }
 
