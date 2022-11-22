@@ -1372,7 +1372,7 @@ parameter_types! {
 
 impl pallet_assets::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Balance = u128;
+	type Balance = Balance;
 	type AssetId = u32;
 	type Currency = Balances;
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
@@ -1400,8 +1400,8 @@ parameter_types! {
 }
 
 parameter_types! {
-	pub const TOTALLLM: u64 = 70000000u64;
-	pub const PREMINTLLM: u64 = 7000000u64;
+	pub const TOTALLLM: Balance = 70000000u128;
+	pub const PREMINTLLM: Balance = 7000000u128;
 	pub const ASSETID: u32 = 0u32; // asset id 0 for llm
 }
 
