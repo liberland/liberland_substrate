@@ -657,7 +657,6 @@ pub mod pallet {
 			}
 
 			let ubalance: u128 = value.clone().try_into().unwrap_or(0u128);
-			// FIXME should we divide by 10^12?
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			PublicPropCount::<T>::put(index + 1);
@@ -693,7 +692,6 @@ pub mod pallet {
 			ensure!(seconds <= seconds_upper_bound, Error::<T>::WrongUpperBound);
 			let mut deposit = Self::deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
 
-			// FIXME should we divide by 10^12?
 			let ubalance: u128 = deposit.clone().1.try_into().unwrap_or(0u128);
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
@@ -1388,7 +1386,6 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
 		let ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
-		// FIXME should we divide by 10^12?
 		ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
@@ -1695,7 +1692,6 @@ impl<T: Config> Pallet<T> {
 			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
 				let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
 
-				// FIXME should we divide by 10^12?
 				ensure!(T::LLM::get_llm_politics(&provider) >= ubalance, Error::<T>::InsufficientLLM);
 				Self::deposit_event(Event::<T>::PreimageUsed { proposal_hash, provider, deposit });
 
