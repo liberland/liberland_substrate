@@ -75,6 +75,50 @@ pub mod pallet {
 	pub(super) type Electionlock<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
 
+	#[pallet::type_value]
+	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> u64 {
+		120u64
+	}
+	#[pallet::storage]
+	#[pallet::getter(fn withdraw_lock_duration)]
+	pub(super) type WithdrawlockDuration<T: Config> =
+		StorageValue<_, u64, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
+
+	#[pallet::type_value]
+	pub fn ElectionlockDurationOnEmpty<T: Config>() -> u64 {
+		120u64
+	}
+	#[pallet::storage]
+	#[pallet::getter(fn election_lock_duration)]
+	pub(super) type ElectionlockDuration<T: Config> =
+		StorageValue<_, u64, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub unpooling_withdrawlock_duration: u64,
+		pub unpooling_electionlock_duration: u64,
+		pub _phantom: PhantomData<T>,
+	}
+
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self {
+				unpooling_withdrawlock_duration: WithdrawlockDurationOnEmpty::<T>::get(),
+				unpooling_electionlock_duration: ElectionlockDurationOnEmpty::<T>::get(),
+				_phantom: Default::default(),
+			}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			WithdrawlockDuration::<T>::put(&self.unpooling_withdrawlock_duration);
+			ElectionlockDuration::<T>::put(&self.unpooling_electionlock_duration);
+		}
+	}
+
 	#[pallet::config]
 	pub trait Config:
 		pallet_assets::Config + frame_system::Config + pallet_identity::Config
@@ -252,7 +296,6 @@ pub mod pallet {
 			let ten_percent: T::Balance =
 				Self::get_10_percent(Self::get_politics_balance(sender.clone()));
 			log::info!("releasing 10% {:?}", ten_percent.clone());
-			let timelimit: u64 = Self::get_future_block();
 
 			LLMPolitics::<T>::mutate_exists(&sender, |llm_balance| {
 				*llm_balance = Some(LLMPolitics::<T>::get(&sender) - ten_percent)
@@ -263,8 +306,12 @@ pub mod pallet {
 				*b = Some(LLMBalance::<T>::get(&sender) + ten_percent)
 			});
 
-			Withdrawlock::<T>::insert(&sender, timelimit);
-			Electionlock::<T>::insert(&sender, timelimit);
+			let withdraw_lock_end =
+				Self::get_future_block_with_seconds(Self::withdraw_lock_duration());
+			let election_lock_end =
+				Self::get_future_block_with_seconds(Self::election_lock_duration());
+			Withdrawlock::<T>::insert(&sender, withdraw_lock_end);
+			Electionlock::<T>::insert(&sender, election_lock_end);
 			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u64));
 
 			Ok(())
@@ -526,6 +573,14 @@ pub mod pallet {
 
 		fn u64_to_balance(amount: u64) -> T::Balance {
 			amount.try_into().unwrap_or(Default::default())
+		}
+
+		fn get_future_block_with_seconds(seconds: u64) -> u64 {
+			let current_block_number: u64 =
+				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let seconds_per_block: u64 = 6u64; // 6 seconds per block
+			let block = current_block_number + seconds / seconds_per_block;
+			block
 		}
 
 		fn get_future_block() -> u64 {
