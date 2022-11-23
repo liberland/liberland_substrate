@@ -31,6 +31,7 @@ pallet-identity = { path = "../identity", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { version = "4.0.0-dev", path = "../balances" }
+pallet-assets = { version = "4.0.0-dev", path = "../assets" }
 sp-core = { version = "6.0.0", path = "../../primitives/core" }
 substrate-test-utils = { version = "4.0.0-dev", path = "../../test-utils" }
 
