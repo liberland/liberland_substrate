@@ -31,7 +31,7 @@ https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md
 ```shell
 git clone https://github.com/liberland/liberland_substrate/
 cd liberland_substrate && cargo build --release
-./target/release/substrate --chain specs/latest_hazlitt_raw --bootnodes /ip4/162.55.230.230/tcp/30333/p2p/12D3KooWPhfahTY7p8pRshMwPbEhp5zAahyu4TwbjXqgGEUoavpr  --base-path /tmp/hazlitt
+./target/release/substrate --chain specs/hazlittv3.3.raw --bootnodes /ip4/162.55.230.230/tcp/30333/p2p/12D3KooWPhfahTY7p8pRshMwPbEhp5zAahyu4TwbjXqgGEUoavpr  --base-path /tmp/hazlitt
 ```
 
 ## Current bootnodes:
