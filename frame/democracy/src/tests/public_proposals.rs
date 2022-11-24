@@ -39,9 +39,12 @@ fn deposit_for_proposals_should_be_taken() {
 		assert_ok!(Democracy::second(Origin::signed(5), 0, u32::MAX));
 		assert_ok!(Democracy::second(Origin::signed(5), 0, u32::MAX));
 		assert_ok!(Democracy::second(Origin::signed(5), 0, u32::MAX));
-		assert_eq!(Balances::free_balance(1), 5);
-		assert_eq!(Balances::free_balance(2), 15);
-		assert_eq!(Balances::free_balance(5), 35);
+
+		// liberland specific - free balance shouldn't change, seconds shouldn't
+		// lock anything
+		assert_eq!(Balances::free_balance(1), 10);
+		assert_eq!(Balances::free_balance(2), 20);
+		assert_eq!(Balances::free_balance(5), 50);
 	});
 }
 
@@ -70,7 +73,7 @@ fn proposal_with_deposit_below_minimum_should_not_work() {
 #[test]
 fn poor_proposer_should_not_work() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(propose_set_balance(1, 2, 11), BalancesError::<Test, _>::InsufficientBalance);
+		assert_noop!(propose_set_balance(1, 2, 11), Error::<Test>::InsufficientLLM);
 	});
 }
 
@@ -80,7 +83,7 @@ fn poor_seconder_should_not_work() {
 		assert_ok!(propose_set_balance_and_note(2, 2, 11));
 		assert_noop!(
 			Democracy::second(Origin::signed(1), 0, u32::MAX),
-			BalancesError::<Test, _>::InsufficientBalance
+			Error::<Test>::InsufficientLLM
 		);
 	});
 }

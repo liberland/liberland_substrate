@@ -159,7 +159,7 @@ use frame_support::{
 		defensive_prelude::*,
 		schedule::{DispatchTime, Named as ScheduleNamed},
 		BalanceStatus, Currency, Get, LockIdentifier, LockableCurrency, OnUnbalanced,
-		ReservableCurrency, WithdrawReasons,
+		ReservableCurrency,
 	},
 	weights::Weight,
 };
@@ -377,7 +377,7 @@ pub mod pallet {
 		type MaxProposals: Get<u32>;
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
-		type LLM: LLM<Self::AccountId, u128>; // FIXME should use generic for Balance
+		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
 	}
 
 	// TODO: Refactor public proposal queue into its own pallet.
@@ -655,7 +655,7 @@ pub mod pallet {
 				);
 			}
 
-			let ubalance: u128 = value.clone().try_into().unwrap_or(0u128);
+			let ubalance = value.clone();
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			PublicPropCount::<T>::put(index + 1);
@@ -690,8 +690,7 @@ pub mod pallet {
 				Self::len_of_deposit_of(proposal).ok_or_else(|| Error::<T>::ProposalMissing)?;
 			ensure!(seconds <= seconds_upper_bound, Error::<T>::WrongUpperBound);
 			let mut deposit = Self::deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
-
-			let ubalance: u128 = deposit.clone().1.try_into().unwrap_or(0u128);
+			let ubalance = deposit.clone().1;
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			deposit.0.push(who.clone());
@@ -758,10 +757,8 @@ pub mod pallet {
 		///   Decoding vec of length V. Charged as maximum
 		#[pallet::weight(T::WeightInfo::external_propose(MAX_VETOERS))]
 		pub fn external_propose(origin: OriginFor<T>, proposal_hash: T::Hash) -> DispatchResult {
-			//	T::ExternalOrigin::ensure_origin(origin)?;
-			let _who = ensure_signed(origin)?;
+			T::ExternalOrigin::ensure_origin(origin)?;
 			ensure!(!<NextExternal<T>>::exists(), Error::<T>::DuplicateProposal);
-
 			if let Some((until, _)) = <Blacklist<T>>::get(proposal_hash) {
 				ensure!(
 					<frame_system::Pallet<T>>::block_number() >= until,
@@ -831,11 +828,25 @@ pub mod pallet {
 		/// Weight: `O(1)`
 		#[pallet::weight(T::WeightInfo::fast_track())]
 		pub fn fast_track(
-			_origin: OriginFor<T>,
+			origin: OriginFor<T>,
 			proposal_hash: T::Hash,
 			voting_period: T::BlockNumber,
 			delay: T::BlockNumber,
 		) -> DispatchResult {
+			let maybe_ensure_instant = if voting_period < T::FastTrackVotingPeriod::get() {
+				Some(origin)
+			} else {
+				if let Err(origin) = T::FastTrackOrigin::try_origin(origin) {
+					Some(origin)
+				} else {
+					None
+				}
+			};
+			if let Some(ensure_instant) = maybe_ensure_instant {
+				T::InstantOrigin::ensure_origin(ensure_instant)?;
+				ensure!(T::InstantAllowed::get(), Error::<T>::InstantNotAllowed);
+			}
+
 			let (e_proposal_hash, threshold) =
 				<NextExternal<T>>::get().ok_or(Error::<T>::ProposalMissing)?;
 			ensure!(
@@ -1383,7 +1394,7 @@ impl<T: Config> Pallet<T> {
 		vote: AccountVote<BalanceOf<T>>,
 	) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
-		let ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
+		let ubalance = vote.balance();
 		ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
@@ -1530,8 +1541,7 @@ impl<T: Config> Pallet<T> {
 		balance: BalanceOf<T>,
 	) -> Result<u32, DispatchError> {
 		ensure!(who != target, Error::<T>::Nonsense);
-		let ubalance: u128 = balance.try_into().unwrap_or(0u128);
-		ensure!(ubalance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
+		ensure!(balance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
 
 		let votes = VotingOf::<T>::try_mutate(&who, |voting| -> Result<u32, DispatchError> {
 			let mut old = Voting::Delegating {
@@ -1562,9 +1572,6 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 			let votes = Self::increase_upstream_delegation(&target, conviction.votes(balance));
-			// Extend the lock to `balance` (rather than setting it) since we don't know what other
-			// votes are in place.
-			T::Currency::extend_lock(DEMOCRACY_ID, &who, balance, WithdrawReasons::TRANSFER); // change me
 			Ok(votes)
 		})?;
 		Self::deposit_event(Event::<T>::Delegated { who, target });
@@ -1606,8 +1613,8 @@ impl<T: Config> Pallet<T> {
 			voting.rejig(frame_system::Pallet::<T>::block_number());
 			voting.locked_balance()
 		});
-		if !lock_needed.is_zero() {
-			T::Currency::set_lock(DEMOCRACY_ID, who, lock_needed, WithdrawReasons::TRANSFER);
+		if lock_needed.is_zero() {
+			T::Currency::remove_lock(DEMOCRACY_ID, who);
 		}
 	}
 
@@ -1688,12 +1695,11 @@ impl<T: Config> Pallet<T> {
 		let preimage = <Preimages<T>>::take(&proposal_hash);
 		if let Some(PreimageStatus::Available { data, provider, deposit, .. }) = preimage {
 			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
-				let ubalance: u128 = deposit.try_into().unwrap_or(0u128);
-
 				ensure!(
-					T::LLM::get_llm_politics(&provider) >= ubalance,
+					T::LLM::get_llm_politics(&provider) >= deposit,
 					Error::<T>::InsufficientLLM
 				);
+				T::Currency::unreserve(&provider, deposit);
 				Self::deposit_event(Event::<T>::PreimageUsed { proposal_hash, provider, deposit });
 
 				let res = proposal

@@ -25,7 +25,7 @@ fn overvoting_should_fail() {
 		let r = begin_referendum();
 		assert_noop!(
 			Democracy::vote(Origin::signed(1), r, aye(2)),
-			Error::<Test>::InsufficientFunds
+			Error::<Test>::InsufficientLLM
 		);
 	});
 }
@@ -35,7 +35,7 @@ fn split_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
 		let v = AccountVote::Split { aye: 40, nay: 20 };
-		assert_noop!(Democracy::vote(Origin::signed(5), r, v), Error::<Test>::InsufficientFunds);
+		assert_noop!(Democracy::vote(Origin::signed(5), r, v), Error::<Test>::InsufficientLLM);
 		let v = AccountVote::Split { aye: 30, nay: 20 };
 		assert_ok!(Democracy::vote(Origin::signed(5), r, v));
 

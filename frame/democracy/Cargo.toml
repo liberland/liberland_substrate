@@ -32,6 +32,7 @@ pallet-identity = { path = "../identity", default-features = false }
 sp-core = { version = "6.0.0", path = "../../primitives/core" }
 pallet-balances = { version = "4.0.0-dev", path = "../balances" }
 pallet-scheduler = { version = "4.0.0-dev", path = "../scheduler" }
+pallet-assets = { version = "4.0.0-dev", path = "../assets" }
 
 [features]
 default = ["std"]

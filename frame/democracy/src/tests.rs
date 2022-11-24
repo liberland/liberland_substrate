@@ -23,12 +23,14 @@ use codec::Encode;
 use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
 	traits::{
-		ConstU32, ConstU64, Contains, EqualPrivilegeOnly, GenesisBuild, OnInitialize, SortedMembers,
+		ConstU32, ConstU64, Contains, EnsureOneOf, EqualPrivilegeOnly, GenesisBuild, OnInitialize,
+		SortedMembers,
 	},
 	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use pallet_balances::{BalanceLock, Error as BalancesError};
+use pallet_balances::Error as BalancesError;
+use pallet_identity::{Data, IdentityInfo};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -65,8 +67,27 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
+		LLM: pallet_llm::{Pallet, Call, Storage, Event<T>},
 	}
 );
+impl pallet_assets::Config for Test {
+	type Event = Event;
+	type Balance = u64;
+	type AssetId = u32;
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type AssetDeposit = ConstU64<1>;
+	type AssetAccountDeposit = ConstU64<10>;
+	type MetadataDepositBase = ConstU64<1>;
+	type MetadataDepositPerByte = ConstU64<1>;
+	type ApprovalDeposit = ConstU64<1>;
+	type StringLimit = ConstU32<50>;
+	type Freezer = ();
+	type WeightInfo = ();
+	type Extra = ();
+}
 
 // Test that a fitlered call can be dispatched.
 pub struct BaseFilter;
@@ -155,6 +176,41 @@ impl SortedMembers<u64> for OneToFive {
 	fn add(_m: &u64) {}
 }
 
+parameter_types! {
+	pub const TOTALLLM: u64 = 70000000u64;
+	pub const PREMINTLLM: u64 = 7000000u64;
+	pub const ASSETID: u32 = 0u32;
+}
+
+impl pallet_llm::Config for Test {
+	type Event = Event;
+	type TotalSupply = TOTALLLM;
+	type PreMintedAmount = PREMINTLLM;
+	type AssetId = u32;
+}
+
+parameter_types! {
+	pub const MaxAdditionalFields: u32 = 2;
+	pub const MaxRegistrars: u32 = 20;
+}
+
+type EnsureOneOrRoot = EnsureOneOf<EnsureRoot<u64>, EnsureSignedBy<One, u64>>;
+type EnsureTwoOrRoot = EnsureOneOf<EnsureRoot<u64>, EnsureSignedBy<Two, u64>>;
+impl pallet_identity::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
+	type Slashed = ();
+	type BasicDeposit = ConstU64<0>;
+	type FieldDeposit = ConstU64<0>;
+	type SubAccountDeposit = ConstU64<0>;
+	type MaxSubAccounts = ConstU32<2>;
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
+	type RegistrarOrigin = EnsureOneOrRoot;
+	type ForceOrigin = EnsureTwoOrRoot;
+	type WeightInfo = ();
+}
+
 impl Config for Test {
 	type Proposal = Call;
 	type Event = Event;
@@ -184,20 +240,56 @@ impl Config for Test {
 	type PalletsOrigin = OriginCaller;
 	type WeightInfo = ();
 	type MaxProposals = ConstU32<100>;
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
+	type Citizenship = LLM;
+	type LLM = LLM;
+}
+
+pub fn setup_citizenships(account_balances: Vec<(u64, u64)>) {
+	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
+	let info = IdentityInfo {
+		citizen: data.clone(),
+		additional: vec![].try_into().unwrap(),
+		display: data.clone(),
+		legal: data.clone(),
+		web: data.clone(),
+		riot: data.clone(),
+		email: data.clone(),
+		pgp_fingerprint: Some([0; 20]),
+		image: data,
+	};
+
+	Identity::add_registrar(Origin::root(), 0).unwrap();
+	for (id, balance) in account_balances {
+		let o = Origin::signed(id);
+		LLM::fake_send(o.clone(), id, balance).unwrap();
+		LLM::politics_lock(o.clone(), balance).unwrap();
+		Identity::set_identity(o, Box::new(info.clone())).unwrap();
+		Identity::provide_judgement(
+			Origin::signed(0),
+			0,
+			id,
+			pallet_identity::Judgement::KnownGood,
+		)
+		.unwrap();
+	}
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
+	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
+	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
+		.assimilate_storage(&mut t)
+		.unwrap();
 	pallet_democracy::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut t)
 		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		setup_citizenships(balances);
+	});
 	ext
 }
 
