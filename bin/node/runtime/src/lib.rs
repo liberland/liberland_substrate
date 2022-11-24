@@ -600,7 +600,7 @@ sp_npos_elections::generate_solution_type!(
 );
 
 parameter_types! {
-	pub MaxNominations: u32 = 50000;
+	pub MaxNominations: u32 = <NposSolution16 as sp_npos_elections::NposSolution>::LIMIT as u32;
 }
 
 /// The numbers configured here could always be more than the the maximum limits of staking pallet
