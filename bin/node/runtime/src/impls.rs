@@ -217,7 +217,8 @@ mod multiplier_tests {
 			let mut fm = Multiplier::one();
 			// See the example in the doc of `TargetedFeeAdjustment`. are at least 0.234, hence
 			// `fm > 1.234`.
-			for _ in 0..DAYS {
+			// we use 2 days, as our avg block time is 6sec instead of default 3 sec
+			for _ in 0..(2*DAYS) {
 				let next = runtime_multiplier_update(fm);
 				fm = next;
 			}
