@@ -18,6 +18,10 @@
 
 //! Substrate chain configurations.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use node_runtime::{
@@ -88,7 +92,7 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 	// for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
 
 	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![
-		// F 
+		// F
 		(
 		// 5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ
 			hex!["3c1305e6cfd61af1ca30dd3532705c614ebcc4ee8431bbae97fbadf778fdaa7e"].into(),
