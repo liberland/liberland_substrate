@@ -145,7 +145,7 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 
 	let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
 
-	testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts))
+	testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts), Some(vec![]))
 }
 
 fn properties() -> sc_chain_spec::Properties {
@@ -222,6 +222,7 @@ pub fn testnet_genesis(
 	initial_nominators: Vec<AccountId>,
 	root_key: AccountId,
 	endowed_accounts: Option<Vec<AccountId>>,
+	council_group: Option<Vec<AccountId>>,
 ) -> GenesisConfig {
 	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
@@ -240,11 +241,11 @@ pub fn testnet_genesis(
 		]
 	});
 
-	let council_group: Vec<AccountId> = vec![
+	let council_group: Vec<AccountId> = council_group.unwrap_or(vec![
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		get_account_id_from_seed::<sr25519::Public>("Bob"),
 		get_account_id_from_seed::<sr25519::Public>("Charlie"),
-	];
+	]);
 
 	// endow all authorities and nominators.
 	initial_authorities
@@ -371,6 +372,7 @@ fn development_config_genesis() -> GenesisConfig {
 		vec![],
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,
+		None,
 	)
 }
 
@@ -395,6 +397,7 @@ fn local_testnet_genesis() -> GenesisConfig {
 		vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
 		vec![],
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		None,
 		None,
 	)
 }
@@ -427,6 +430,7 @@ pub(crate) mod tests {
 			vec![authority_keys_from_seed("Alice")],
 			vec![],
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			None,
 			None,
 		)
 	}

@@ -47,7 +47,7 @@ async fn temp_base_path_works() {
 	let (ws_url, mut data) = common::find_ws_url_from_output(&mut stderr);
 
 	// Let it produce some blocks.
-	common::wait_n_finalized_blocks(3, 30, &ws_url).await.unwrap();
+	common::wait_n_finalized_blocks(3, 60, &ws_url).await.unwrap();
 	assert!(child.try_wait().unwrap().is_none(), "the process should still be running");
 
 	// Stop the process
