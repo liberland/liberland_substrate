@@ -27,10 +27,13 @@ use sp_std::vec::Vec;
 
 pub mod approvals;
 mod balanced;
+pub mod enumerable;
+pub use enumerable::InspectEnumerable;
 pub mod metadata;
 pub use balanced::{Balanced, Unbalanced};
 mod imbalance;
 pub use imbalance::{CreditOf, DebtOf, HandleImbalanceDrop, Imbalance};
+pub mod roles;
 
 /// Trait for providing balance-inspection access to a set of named fungible assets.
 pub trait Inspect<AccountId> {
@@ -53,10 +56,16 @@ pub trait Inspect<AccountId> {
 	fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance;
 
 	/// Returns `true` if the `asset` balance of `who` may be increased by `amount`.
+	///
+	/// - `asset`: The asset that should be deposited.
+	/// - `who`: The account of which the balance should be increased by `amount`.
+	/// - `amount`: How much should the balance be increased?
+	/// - `mint`: Will `amount` be minted to deposit it into `account`?
 	fn can_deposit(
 		asset: Self::AssetId,
 		who: &AccountId,
 		amount: Self::Balance,
+		mint: bool,
 	) -> DepositConsequence;
 
 	/// Returns `Failed` if the `asset` balance of `who` may not be decreased by `amount`, otherwise
@@ -137,7 +146,9 @@ pub trait Mutate<AccountId>: Inspect<AccountId> {
 		amount: Self::Balance,
 	) -> Result<Self::Balance, DispatchError> {
 		let extra = Self::can_withdraw(asset, &source, amount).into_result()?;
-		Self::can_deposit(asset, &dest, amount.saturating_add(extra)).into_result()?;
+		// As we first burn and then mint, we don't need to check if `mint` fits into the supply.
+		// If we can withdraw/burn it, we can also mint it again.
+		Self::can_deposit(asset, dest, amount.saturating_add(extra), false).into_result()?;
 		let actual = Self::burn_from(asset, source, amount)?;
 		debug_assert!(
 			actual == amount.saturating_add(extra),
@@ -256,25 +267,51 @@ pub trait Create<AccountId>: Inspect<AccountId> {
 
 /// Trait for providing the ability to destroy existing fungible assets.
 pub trait Destroy<AccountId>: Inspect<AccountId> {
-	/// The witness data needed to destroy an asset.
-	type DestroyWitness;
-
-	/// Provide the appropriate witness data needed to destroy an asset.
-	fn get_destroy_witness(id: &Self::AssetId) -> Option<Self::DestroyWitness>;
-
-	/// Destroy an existing fungible asset.
-	/// * `id`: The `AssetId` to be destroyed.
-	/// * `witness`: Any witness data that needs to be provided to complete the operation
-	///   successfully.
+	/// Start the destruction an existing fungible asset.
+	/// * `id`: The `AssetId` to be destroyed. successfully.
 	/// * `maybe_check_owner`: An optional account id that can be used to authorize the destroy
-	///   command. If not provided, we will not do any authorization checks before destroying the
+	///   command. If not provided, no authorization checks will be performed before destroying
 	///   asset.
+	fn start_destroy(id: Self::AssetId, maybe_check_owner: Option<AccountId>) -> DispatchResult;
+
+	/// Destroy all accounts associated with a given asset.
+	/// `destroy_accounts` should only be called after `start_destroy` has been called, and the
+	/// asset is in a `Destroying` state
 	///
-	/// If successful, this function will return the actual witness data from the destroyed asset.
-	/// This may be different than the witness data provided, and can be used to refund weight.
-	fn destroy(
-		id: Self::AssetId,
-		witness: Self::DestroyWitness,
-		maybe_check_owner: Option<AccountId>,
-	) -> Result<Self::DestroyWitness, DispatchError>;
+	/// * `id`: The identifier of the asset to be destroyed. This must identify an existing asset.
+	/// * `max_items`: The maximum number of accounts to be destroyed for a given call of the
+	///   function. This value should be small enough to allow the operation fit into a logical
+	///   block.
+	///
+	///	Response:
+	/// * u32: Total number of approvals which were actually destroyed
+	///
+	/// Due to weight restrictions, this function may need to be called multiple
+	/// times to fully destroy all approvals. It will destroy `max_items` approvals at a
+	/// time.
+	fn destroy_accounts(id: Self::AssetId, max_items: u32) -> Result<u32, DispatchError>;
+	/// Destroy all approvals associated with a given asset up to the `max_items`
+	/// `destroy_approvals` should only be called after `start_destroy` has been called, and the
+	/// asset is in a `Destroying` state
+	///
+	/// * `id`: The identifier of the asset to be destroyed. This must identify an existing asset.
+	/// * `max_items`: The maximum number of accounts to be destroyed for a given call of the
+	///   function. This value should be small enough to allow the operation fit into a logical
+	///   block.
+	///
+	///	Response:
+	/// * u32: Total number of approvals which were actually destroyed
+	///
+	/// Due to weight restrictions, this function may need to be called multiple
+	/// times to fully destroy all approvals. It will destroy `max_items` approvals at a
+	/// time.
+	fn destroy_approvals(id: Self::AssetId, max_items: u32) -> Result<u32, DispatchError>;
+
+	/// Complete destroying asset and unreserve currency.
+	/// `finish_destroy` should only be called after `start_destroy` has been called, and the
+	/// asset is in a `Destroying` state. All accounts or approvals should be destroyed before
+	/// hand.
+	///
+	/// * `id`: The identifier of the asset to be destroyed. This must identify an existing asset.
+	fn finish_destroy(id: Self::AssetId) -> DispatchResult;
 }

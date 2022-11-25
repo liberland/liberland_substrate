@@ -69,9 +69,8 @@
 use safe_mix::TripletMix;
 
 use codec::Encode;
-use frame_support::traits::Randomness;
+use frame_support::{pallet_prelude::Weight, traits::Randomness};
 use sp_runtime::traits::{Hash, Saturating};
-use sp_std::prelude::*;
 
 const RANDOM_MATERIAL_LEN: u32 = 81;
 
@@ -188,7 +187,7 @@ mod tests {
 
 	parameter_types! {
 		pub BlockWeights: limits::BlockWeights = limits::BlockWeights
-			::simple_max(1024);
+			::simple_max(Weight::from_ref_time(1024));
 		pub BlockLength: limits::BlockLength = limits::BlockLength
 			::max(2 * 1024);
 	}
@@ -198,16 +197,16 @@ mod tests {
 		type BlockWeights = ();
 		type BlockLength = BlockLength;
 		type DbWeight = ();
-		type Origin = Origin;
+		type RuntimeOrigin = RuntimeOrigin;
 		type Index = u64;
 		type BlockNumber = u64;
-		type Call = Call;
+		type RuntimeCall = RuntimeCall;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
 		type AccountId = u64;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
-		type Event = Event;
+		type RuntimeEvent = RuntimeEvent;
 		type BlockHashCount = ConstU64<250>;
 		type Version = ();
 		type PalletInfo = PalletInfo;

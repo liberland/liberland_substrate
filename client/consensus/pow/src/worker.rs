@@ -32,7 +32,6 @@ use sp_runtime::{
 	DigestItem,
 };
 use std::{
-	borrow::Cow,
 	collections::HashMap,
 	pin::Pin,
 	sync::{
@@ -212,10 +211,7 @@ where
 		let intermediate = PowIntermediate::<Algorithm::Difficulty> {
 			difficulty: Some(build.metadata.difficulty),
 		};
-
-		import_block
-			.intermediates
-			.insert(Cow::from(INTERMEDIATE_KEY), Box::new(intermediate) as Box<_>);
+		import_block.insert_intermediate(INTERMEDIATE_KEY, intermediate);
 
 		let header = import_block.post_header();
 		let mut block_import = self.block_import.lock();
@@ -295,7 +291,7 @@ impl<Block: BlockT> Stream for UntilImportedOrTimeout<Block> {
 			}
 		}
 
-		let timeout = self.timeout.clone();
+		let timeout = self.timeout;
 		let inner_delay = self.inner_delay.get_or_insert_with(|| Delay::new(timeout));
 
 		match Future::poll(Pin::new(inner_delay), cx) {

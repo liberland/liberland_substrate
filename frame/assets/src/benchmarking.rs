@@ -37,7 +37,7 @@ const SEED: u32 = 0;
 
 fn create_default_asset<T: Config<I>, I: 'static>(
 	is_sufficient: bool,
-) -> (T::AccountId, <T::Lookup as StaticLookup>::Source) {
+) -> (T::AccountId, AccountIdLookupOf<T>) {
 	let caller: T::AccountId = whitelisted_caller();
 	let caller_lookup = T::Lookup::unlookup(caller.clone());
 	let root = SystemOrigin::Root.into();
@@ -55,7 +55,7 @@ fn create_default_asset<T: Config<I>, I: 'static>(
 fn create_default_minted_asset<T: Config<I>, I: 'static>(
 	is_sufficient: bool,
 	amount: T::Balance,
-) -> (T::AccountId, <T::Lookup as StaticLookup>::Source) {
+) -> (T::AccountId, AccountIdLookupOf<T>) {
 	let (caller, caller_lookup) = create_default_asset::<T, I>(is_sufficient);
 	if !is_sufficient {
 		T::Currency::make_free_balance_be(&caller, T::Currency::minimum_balance());
@@ -76,25 +76,6 @@ fn swap_is_sufficient<T: Config<I>, I: 'static>(s: &mut bool) {
 			sp_std::mem::swap(s, &mut a.is_sufficient)
 		}
 	});
-}
-
-fn add_consumers<T: Config<I>, I: 'static>(minter: T::AccountId, n: u32) {
-	let origin = SystemOrigin::Signed(minter);
-	let mut s = false;
-	swap_is_sufficient::<T, I>(&mut s);
-	for i in 0..n {
-		let target = account("consumer", i, SEED);
-		T::Currency::make_free_balance_be(&target, T::Currency::minimum_balance());
-		let target_lookup = T::Lookup::unlookup(target);
-		assert!(Assets::<T, I>::mint(
-			origin.clone().into(),
-			Default::default(),
-			target_lookup,
-			100u32.into()
-		)
-		.is_ok());
-	}
-	swap_is_sufficient::<T, I>(&mut s);
 }
 
 fn add_sufficients<T: Config<I>, I: 'static>(minter: T::AccountId, n: u32) {
@@ -140,22 +121,24 @@ fn add_approvals<T: Config<I>, I: 'static>(minter: T::AccountId, n: u32) {
 	}
 }
 
-fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
+fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-fn assert_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
+fn assert_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_has_event(generic_event.into());
 }
 
 benchmarks_instance_pallet! {
 	create {
-		let caller: T::AccountId = whitelisted_caller();
+		let asset_id = Default::default();
+		let origin = T::CreateOrigin::successful_origin(&asset_id);
+		let caller = T::CreateOrigin::ensure_origin(origin, &asset_id).unwrap();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 		T::Currency::make_free_balance_be(&caller, DepositBalanceOf::<T, I>::max_value());
-	}: _(SystemOrigin::Signed(caller.clone()), Default::default(), caller_lookup, 1u32.into())
+	}: _(SystemOrigin::Signed(caller.clone()), asset_id, caller_lookup, 1u32.into())
 	verify {
-		assert_last_event::<T, I>(Event::Created { asset_id: Default::default(), creator: caller.clone(), owner: caller }.into());
+		assert_last_event::<T, I>(Event::Created { asset_id, creator: caller.clone(), owner: caller }.into());
 	}
 
 	force_create {
@@ -166,18 +149,66 @@ benchmarks_instance_pallet! {
 		assert_last_event::<T, I>(Event::ForceCreated { asset_id: Default::default(), owner: caller }.into());
 	}
 
-	destroy {
-		let c in 0 .. 5_000;
-		let s in 0 .. 5_000;
-		let a in 0 .. 5_00;
-		let (caller, _) = create_default_asset::<T, I>(true);
-		add_consumers::<T, I>(caller.clone(), c);
-		add_sufficients::<T, I>(caller.clone(), s);
-		add_approvals::<T, I>(caller.clone(), a);
-		let witness = Asset::<T, I>::get(T::AssetId::default()).unwrap().destroy_witness();
-	}: _(SystemOrigin::Signed(caller), Default::default(), witness)
+	start_destroy {
+		let (caller, caller_lookup) = create_default_minted_asset::<T, I>(true, 100u32.into());
+		Assets::<T, I>::freeze_asset(
+			SystemOrigin::Signed(caller.clone()).into(),
+			Default::default(),
+		)?;
+	}:_(SystemOrigin::Signed(caller), Default::default())
 	verify {
-		assert_last_event::<T, I>(Event::Destroyed { asset_id: Default::default() }.into());
+		assert_last_event::<T, I>(Event::DestructionStarted { asset_id: Default::default() }.into());
+	}
+
+	destroy_accounts {
+		let c in 0 .. T::RemoveItemsLimit::get();
+		let (caller, _) = create_default_asset::<T, I>(true);
+		add_sufficients::<T, I>(caller.clone(), c);
+		Assets::<T, I>::freeze_asset(
+			SystemOrigin::Signed(caller.clone()).into(),
+			Default::default(),
+		)?;
+		Assets::<T,I>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), Default::default())?;
+	}:_(SystemOrigin::Signed(caller), Default::default())
+	verify {
+		assert_last_event::<T, I>(Event::AccountsDestroyed {
+			asset_id: Default::default() ,
+			accounts_destroyed: c,
+			accounts_remaining: 0,
+		}.into());
+	}
+
+	destroy_approvals {
+		let a in 0 .. T::RemoveItemsLimit::get();
+		let (caller, _) = create_default_minted_asset::<T, I>(true, 100u32.into());
+		add_approvals::<T, I>(caller.clone(), a);
+		Assets::<T, I>::freeze_asset(
+			SystemOrigin::Signed(caller.clone()).into(),
+			Default::default(),
+		)?;
+		Assets::<T,I>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), Default::default())?;
+	}:_(SystemOrigin::Signed(caller), Default::default())
+	verify {
+		assert_last_event::<T, I>(Event::ApprovalsDestroyed {
+			asset_id: Default::default() ,
+			approvals_destroyed: a,
+			approvals_remaining: 0,
+		}.into());
+	}
+
+	finish_destroy {
+		let (caller, caller_lookup) = create_default_asset::<T, I>(true);
+		Assets::<T, I>::freeze_asset(
+			SystemOrigin::Signed(caller.clone()).into(),
+			Default::default(),
+		)?;
+		Assets::<T,I>::start_destroy(SystemOrigin::Signed(caller.clone()).into(), Default::default())?;
+	}:_(SystemOrigin::Signed(caller), Default::default())
+	verify {
+		assert_last_event::<T, I>(Event::Destroyed {
+			asset_id: Default::default() ,
+		}.into()
+		);
 	}
 
 	mint {
@@ -281,7 +312,7 @@ benchmarks_instance_pallet! {
 		let target0 = T::Lookup::unlookup(account("target", 0, SEED));
 		let target1 = T::Lookup::unlookup(account("target", 1, SEED));
 		let target2 = T::Lookup::unlookup(account("target", 2, SEED));
-	}: _(SystemOrigin::Signed(caller), Default::default(), target0.clone(), target1.clone(), target2.clone())
+	}: _(SystemOrigin::Signed(caller), Default::default(), target0, target1, target2)
 	verify {
 		assert_last_event::<T, I>(Event::TeamChanged {
 			asset_id: Default::default(),
@@ -346,7 +377,7 @@ benchmarks_instance_pallet! {
 		let (caller, _) = create_default_asset::<T, I>(true);
 		T::Currency::make_free_balance_be(&caller, DepositBalanceOf::<T, I>::max_value());
 		let dummy = vec![0u8; T::StringLimit::get() as usize];
-		let origin = SystemOrigin::Signed(caller.clone()).into();
+		let origin = SystemOrigin::Signed(caller).into();
 		Assets::<T, I>::set_metadata(origin, Default::default(), dummy.clone(), dummy, 12)?;
 
 		let origin = T::ForceOrigin::successful_origin();
@@ -365,7 +396,7 @@ benchmarks_instance_pallet! {
 			owner: caller_lookup.clone(),
 			issuer: caller_lookup.clone(),
 			admin: caller_lookup.clone(),
-			freezer: caller_lookup.clone(),
+			freezer: caller_lookup,
 			min_balance: 100u32.into(),
 			is_sufficient: true,
 			is_frozen: false,
@@ -398,7 +429,7 @@ benchmarks_instance_pallet! {
 		let delegate_lookup = T::Lookup::unlookup(delegate.clone());
 		let amount = 100u32.into();
 		let origin = SystemOrigin::Signed(owner.clone()).into();
-		Assets::<T, I>::approve_transfer(origin, id, delegate_lookup.clone(), amount)?;
+		Assets::<T, I>::approve_transfer(origin, id, delegate_lookup, amount)?;
 
 		let dest: T::AccountId = account("dest", 0, SEED);
 		let dest_lookup = T::Lookup::unlookup(dest.clone());

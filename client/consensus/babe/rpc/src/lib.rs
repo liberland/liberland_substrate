@@ -18,10 +18,14 @@
 
 //! RPC api for babe.
 
-use futures::{FutureExt, TryFutureExt};
-use jsonrpc_core::Error as RpcError;
-use jsonrpc_derive::rpc;
-use sc_consensus_babe::{authorship, Config, Epoch};
+use futures::TryFutureExt;
+use jsonrpsee::{
+	core::{async_trait, Error as JsonRpseeError, RpcResult},
+	proc_macros::rpc,
+	types::{error::CallError, ErrorObject},
+};
+
+use sc_consensus_babe::{authorship, Epoch};
 use sc_consensus_epochs::{descendent_query, Epoch as EpochT, SharedEpochChanges};
 use sc_rpc_api::DenyUnsafe;
 use serde::{Deserialize, Serialize};
@@ -29,25 +33,25 @@ use sp_api::{BlockId, ProvideRuntimeApi};
 use sp_application_crypto::AppKey;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus::{Error as ConsensusError, SelectChain};
-use sp_consensus_babe::{digests::PreDigest, AuthorityId, BabeApi as BabeRuntimeApi};
+use sp_consensus_babe::{
+	digests::PreDigest, AuthorityId, BabeApi as BabeRuntimeApi, BabeConfiguration,
+};
 use sp_core::crypto::ByteArray;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::traits::{Block as BlockT, Header as _};
 use std::{collections::HashMap, sync::Arc};
 
-type FutureResult<T> = jsonrpc_core::BoxFuture<Result<T, RpcError>>;
-
 /// Provides rpc methods for interacting with Babe.
-#[rpc]
+#[rpc(client, server)]
 pub trait BabeApi {
 	/// Returns data about which slots (primary or secondary) can be claimed in the current epoch
 	/// with the keys in the keystore.
-	#[rpc(name = "babe_epochAuthorship")]
-	fn epoch_authorship(&self) -> FutureResult<HashMap<AuthorityId, EpochAuthorship>>;
+	#[method(name = "babe_epochAuthorship")]
+	async fn epoch_authorship(&self) -> RpcResult<HashMap<AuthorityId, EpochAuthorship>>;
 }
 
-/// Implements the BabeRpc trait for interacting with Babe.
-pub struct BabeRpcHandler<B: BlockT, C, SC> {
+/// Provides RPC methods for interacting with Babe.
+pub struct Babe<B: BlockT, C, SC> {
 	/// shared reference to the client.
 	client: Arc<C>,
 	/// shared reference to EpochChanges
@@ -55,20 +59,20 @@ pub struct BabeRpcHandler<B: BlockT, C, SC> {
 	/// shared reference to the Keystore
 	keystore: SyncCryptoStorePtr,
 	/// config (actually holds the slot duration)
-	babe_config: Config,
+	babe_config: BabeConfiguration,
 	/// The SelectChain strategy
 	select_chain: SC,
 	/// Whether to deny unsafe calls
 	deny_unsafe: DenyUnsafe,
 }
 
-impl<B: BlockT, C, SC> BabeRpcHandler<B, C, SC> {
-	/// Creates a new instance of the BabeRpc handler.
+impl<B: BlockT, C, SC> Babe<B, C, SC> {
+	/// Creates a new instance of the Babe Rpc handler.
 	pub fn new(
 		client: Arc<C>,
 		shared_epoch_changes: SharedEpochChanges<B, Epoch>,
 		keystore: SyncCryptoStorePtr,
-		babe_config: Config,
+		babe_config: BabeConfiguration,
 		select_chain: SC,
 		deny_unsafe: DenyUnsafe,
 	) -> Self {
@@ -76,7 +80,8 @@ impl<B: BlockT, C, SC> BabeRpcHandler<B, C, SC> {
 	}
 }
 
-impl<B, C, SC> BabeApi for BabeRpcHandler<B, C, SC>
+#[async_trait]
+impl<B: BlockT, C, SC> BabeApiServer for Babe<B, C, SC>
 where
 	B: BlockT,
 	C: ProvideRuntimeApi<B>
@@ -86,71 +91,63 @@ where
 	C::Api: BabeRuntimeApi<B>,
 	SC: SelectChain<B> + Clone + 'static,
 {
-	fn epoch_authorship(&self) -> FutureResult<HashMap<AuthorityId, EpochAuthorship>> {
-		if let Err(err) = self.deny_unsafe.check_if_safe() {
-			return async move { Err(err.into()) }.boxed()
-		}
+	async fn epoch_authorship(&self) -> RpcResult<HashMap<AuthorityId, EpochAuthorship>> {
+		self.deny_unsafe.check_if_safe()?;
+		let header = self.select_chain.best_chain().map_err(Error::Consensus).await?;
+		let epoch_start = self
+			.client
+			.runtime_api()
+			.current_epoch_start(&BlockId::Hash(header.hash()))
+			.map_err(|err| Error::StringError(format!("{:?}", err)))?;
 
-		let (babe_config, keystore, shared_epoch, client, select_chain) = (
-			self.babe_config.clone(),
-			self.keystore.clone(),
-			self.shared_epoch_changes.clone(),
-			self.client.clone(),
-			self.select_chain.clone(),
-		);
+		let epoch = epoch_data(
+			&self.shared_epoch_changes,
+			&self.client,
+			&self.babe_config,
+			*epoch_start,
+			&self.select_chain,
+		)
+		.await?;
+		let (epoch_start, epoch_end) = (epoch.start_slot(), epoch.end_slot());
+		let mut claims: HashMap<AuthorityId, EpochAuthorship> = HashMap::new();
 
-		async move {
-			let header = select_chain.best_chain().map_err(Error::Consensus).await?;
-			let epoch_start = client
-				.runtime_api()
-				.current_epoch_start(&BlockId::Hash(header.hash()))
-				.map_err(|err| Error::StringError(err.to_string()))?;
-			let epoch =
-				epoch_data(&shared_epoch, &client, &babe_config, *epoch_start, &select_chain)
-					.await?;
-			let (epoch_start, epoch_end) = (epoch.start_slot(), epoch.end_slot());
+		let keys = {
+			epoch
+				.authorities
+				.iter()
+				.enumerate()
+				.filter_map(|(i, a)| {
+					if SyncCryptoStore::has_keys(
+						&*self.keystore,
+						&[(a.0.to_raw_vec(), AuthorityId::ID)],
+					) {
+						Some((a.0.clone(), i))
+					} else {
+						None
+					}
+				})
+				.collect::<Vec<_>>()
+		};
 
-			let mut claims: HashMap<AuthorityId, EpochAuthorship> = HashMap::new();
-
-			let keys = {
-				epoch
-					.authorities
-					.iter()
-					.enumerate()
-					.filter_map(|(i, a)| {
-						if SyncCryptoStore::has_keys(
-							&*keystore,
-							&[(a.0.to_raw_vec(), AuthorityId::ID)],
-						) {
-							Some((a.0.clone(), i))
-						} else {
-							None
-						}
-					})
-					.collect::<Vec<_>>()
-			};
-
-			for slot in *epoch_start..*epoch_end {
-				if let Some((claim, key)) =
-					authorship::claim_slot_using_keys(slot.into(), &epoch, &keystore, &keys)
-				{
-					match claim {
-						PreDigest::Primary { .. } => {
-							claims.entry(key).or_default().primary.push(slot);
-						},
-						PreDigest::SecondaryPlain { .. } => {
-							claims.entry(key).or_default().secondary.push(slot);
-						},
-						PreDigest::SecondaryVRF { .. } => {
-							claims.entry(key).or_default().secondary_vrf.push(slot.into());
-						},
-					};
-				}
+		for slot in *epoch_start..*epoch_end {
+			if let Some((claim, key)) =
+				authorship::claim_slot_using_keys(slot.into(), &epoch, &self.keystore, &keys)
+			{
+				match claim {
+					PreDigest::Primary { .. } => {
+						claims.entry(key).or_default().primary.push(slot);
+					},
+					PreDigest::SecondaryPlain { .. } => {
+						claims.entry(key).or_default().secondary.push(slot);
+					},
+					PreDigest::SecondaryVRF { .. } => {
+						claims.entry(key).or_default().secondary_vrf.push(slot.into());
+					},
+				};
 			}
-
-			Ok(claims)
 		}
-		.boxed()
+
+		Ok(claims)
 	}
 }
 
@@ -176,13 +173,13 @@ pub enum Error {
 	StringError(String),
 }
 
-impl From<Error> for jsonrpc_core::Error {
+impl From<Error> for JsonRpseeError {
 	fn from(error: Error) -> Self {
-		jsonrpc_core::Error {
-			message: format!("{}", error),
-			code: jsonrpc_core::ErrorCode::ServerError(1234),
-			data: None,
-		}
+		JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+			1234,
+			error.to_string(),
+			None::<()>,
+		)))
 	}
 }
 
@@ -190,7 +187,7 @@ impl From<Error> for jsonrpc_core::Error {
 async fn epoch_data<B, C, SC>(
 	epoch_changes: &SharedEpochChanges<B, Epoch>,
 	client: &Arc<C>,
-	babe_config: &Config,
+	babe_config: &BabeConfiguration,
 	slot: u64,
 	select_chain: &SC,
 ) -> Result<Epoch, Error>
@@ -205,9 +202,9 @@ where
 		.epoch_data_for_child_of(
 			descendent_query(&**client),
 			&parent.hash(),
-			parent.number().clone(),
+			*parent.number(),
 			slot.into(),
-			|slot| Epoch::genesis(babe_config.genesis_config(), slot),
+			|slot| Epoch::genesis(babe_config, slot),
 		)
 		.map_err(|e| Error::Consensus(ConsensusError::ChainLookup(e.to_string())))?
 		.ok_or(Error::Consensus(ConsensusError::InvalidAuthoritiesSet))
@@ -226,8 +223,7 @@ mod tests {
 		TestClientBuilderExt,
 	};
 
-	use jsonrpc_core::IoHandler;
-	use sc_consensus_babe::{block_import, AuthorityPair, Config};
+	use sc_consensus_babe::{block_import, AuthorityPair};
 	use std::sync::Arc;
 
 	/// creates keystore backed by a temp file
@@ -243,53 +239,43 @@ mod tests {
 		(keystore, keystore_path)
 	}
 
-	fn test_babe_rpc_handler(
+	fn test_babe_rpc_module(
 		deny_unsafe: DenyUnsafe,
-	) -> BabeRpcHandler<Block, TestClient, sc_consensus::LongestChain<Backend, Block>> {
+	) -> Babe<Block, TestClient, sc_consensus::LongestChain<Backend, Block>> {
 		let builder = TestClientBuilder::new();
 		let (client, longest_chain) = builder.build_with_longest_chain();
 		let client = Arc::new(client);
-		let config = Config::get(&*client).expect("config available");
+		let config = sc_consensus_babe::configuration(&*client).expect("config available");
 		let (_, link) = block_import(config.clone(), client.clone(), client.clone())
 			.expect("can initialize block-import");
 
 		let epoch_changes = link.epoch_changes().clone();
 		let keystore = create_temp_keystore::<AuthorityPair>(Sr25519Keyring::Alice).0;
 
-		BabeRpcHandler::new(
-			client.clone(),
-			epoch_changes,
-			keystore,
-			config,
-			longest_chain,
-			deny_unsafe,
-		)
+		Babe::new(client.clone(), epoch_changes, keystore, config, longest_chain, deny_unsafe)
 	}
 
-	#[test]
-	fn epoch_authorship_works() {
-		let handler = test_babe_rpc_handler(DenyUnsafe::No);
-		let mut io = IoHandler::new();
+	#[tokio::test]
+	async fn epoch_authorship_works() {
+		let babe_rpc = test_babe_rpc_module(DenyUnsafe::No);
+		let api = babe_rpc.into_rpc();
 
-		io.extend_with(BabeApi::to_delegate(handler));
 		let request = r#"{"jsonrpc":"2.0","method":"babe_epochAuthorship","params": [],"id":1}"#;
-		let response = r#"{"jsonrpc":"2.0","result":{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY":{"primary":[0],"secondary":[1,2,4],"secondary_vrf":[]}},"id":1}"#;
+		let (response, _) = api.raw_json_request(request).await.unwrap();
+		let expected = r#"{"jsonrpc":"2.0","result":{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY":{"primary":[0],"secondary":[1,2,4],"secondary_vrf":[]}},"id":1}"#;
 
-		assert_eq!(Some(response.into()), io.handle_request_sync(request));
+		assert_eq!(&response.result, expected);
 	}
 
-	#[test]
-	fn epoch_authorship_is_unsafe() {
-		let handler = test_babe_rpc_handler(DenyUnsafe::Yes);
-		let mut io = IoHandler::new();
+	#[tokio::test]
+	async fn epoch_authorship_is_unsafe() {
+		let babe_rpc = test_babe_rpc_module(DenyUnsafe::Yes);
+		let api = babe_rpc.into_rpc();
 
-		io.extend_with(BabeApi::to_delegate(handler));
-		let request = r#"{"jsonrpc":"2.0","method":"babe_epochAuthorship","params": [],"id":1}"#;
+		let request = r#"{"jsonrpc":"2.0","method":"babe_epochAuthorship","params":[],"id":1}"#;
+		let (response, _) = api.raw_json_request(request).await.unwrap();
+		let expected = r#"{"jsonrpc":"2.0","error":{"code":-32601,"message":"RPC call is unsafe to be called externally"},"id":1}"#;
 
-		let response = io.handle_request_sync(request).unwrap();
-		let mut response: serde_json::Value = serde_json::from_str(&response).unwrap();
-		let error: RpcError = serde_json::from_value(response["error"].take()).unwrap();
-
-		assert_eq!(error, RpcError::method_not_found())
+		assert_eq!(&response.result, expected);
 	}
 }

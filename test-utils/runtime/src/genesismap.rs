@@ -17,8 +17,9 @@
 
 //! Tool for creating the genesis block.
 
-use super::{system, wasm_binary_unwrap, AccountId, AuthorityId};
+use super::{system, wasm_binary_unwrap, AccountId, AuthorityId, Runtime};
 use codec::{Encode, Joiner, KeyedVec};
+use frame_support::traits::GenesisBuild;
 use sc_service::client::genesis;
 use sp_core::{
 	map,
@@ -67,7 +68,7 @@ impl GenesisConfig {
 					(well_known_keys::CODE.into(), wasm_runtime),
 					(
 						well_known_keys::HEAP_PAGES.into(),
-						vec![].and(&(self.heap_pages_override.unwrap_or(16 as u64))),
+						vec![].and(&(self.heap_pages_override.unwrap_or(16_u64))),
 					),
 				]
 				.into_iter(),
@@ -80,11 +81,11 @@ impl GenesisConfig {
 		// Assimilate the system genesis config.
 		let mut storage =
 			Storage { top: map, children_default: self.extra_storage.children_default.clone() };
-		let mut config = system::GenesisConfig::default();
-		config.authorities = self.authorities.clone();
-		config
-			.assimilate_storage(&mut storage)
-			.expect("Adding `system::GensisConfig` to the genesis");
+		<system::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
+			&system::GenesisConfig { authorities: self.authorities.clone() },
+			&mut storage,
+		)
+		.expect("Adding `system::GensisConfig` to the genesis");
 
 		storage
 	}

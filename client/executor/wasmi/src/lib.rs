@@ -18,8 +18,18 @@
 
 //! This crate provides an implementation of `WasmModule` that is baked by wasmi.
 
-use codec::{Decode, Encode};
+use std::{cell::RefCell, rc::Rc, str, sync::Arc};
+
 use log::{debug, error, trace};
+use wasmi::{
+	memory_units::Pages,
+	FuncInstance, ImportsBuilder, MemoryInstance, MemoryRef, Module, ModuleInstance, ModuleRef,
+	RuntimeValue::{self, I32, I64},
+	TableRef,
+};
+
+use codec::{Decode, Encode};
+use sc_allocator::AllocationStats;
 use sc_executor_common::{
 	error::{Error, MessageWithBacktrace, WasmError},
 	runtime_blob::{DataSegmentsSnapshot, RuntimeBlob},
@@ -27,17 +37,10 @@ use sc_executor_common::{
 	util::MemoryTransfer,
 	wasm_runtime::{InvokeMethod, WasmInstance, WasmModule},
 };
-use sp_core::sandbox as sandbox_primitives;
 use sp_runtime_interface::unpack_ptr_and_len;
+use sp_sandbox::env as sandbox_env;
 use sp_wasm_interface::{
 	Function, FunctionContext, MemoryId, Pointer, Result as WResult, Sandbox, WordSize,
-};
-use std::{cell::RefCell, rc::Rc, str, sync::Arc};
-use wasmi::{
-	memory_units::Pages,
-	FuncInstance, ImportsBuilder, MemoryInstance, MemoryRef, Module, ModuleInstance, ModuleRef,
-	RuntimeValue::{self, I32, I64},
-	TableRef,
 };
 
 struct FunctionExecutor {
@@ -101,7 +104,7 @@ impl<'a> sandbox::SandboxContext for SandboxContext<'a> {
 
 		match result {
 			Ok(Some(RuntimeValue::I64(val))) => Ok(val),
-			Ok(_) => return Err("Supervisor function returned unexpected result!".into()),
+			Ok(_) => Err("Supervisor function returned unexpected result!".into()),
 			Err(err) => Err(Error::Sandbox(err.to_string())),
 		}
 	}
@@ -155,15 +158,15 @@ impl Sandbox for FunctionExecutor {
 		let len = buf_len as usize;
 
 		let buffer = match sandboxed_memory.read(Pointer::new(offset as u32), len) {
-			Err(_) => return Ok(sandbox_primitives::ERR_OUT_OF_BOUNDS),
+			Err(_) => return Ok(sandbox_env::ERR_OUT_OF_BOUNDS),
 			Ok(buffer) => buffer,
 		};
 
-		if let Err(_) = self.memory.set(buf_ptr.into(), &buffer) {
-			return Ok(sandbox_primitives::ERR_OUT_OF_BOUNDS)
+		if self.memory.set(buf_ptr.into(), &buffer).is_err() {
+			return Ok(sandbox_env::ERR_OUT_OF_BOUNDS)
 		}
 
-		Ok(sandbox_primitives::ERR_OK)
+		Ok(sandbox_env::ERR_OK)
 	}
 
 	fn memory_set(
@@ -178,16 +181,17 @@ impl Sandbox for FunctionExecutor {
 
 		let len = val_len as usize;
 
+		#[allow(deprecated)]
 		let buffer = match self.memory.get(val_ptr.into(), len) {
-			Err(_) => return Ok(sandbox_primitives::ERR_OUT_OF_BOUNDS),
+			Err(_) => return Ok(sandbox_env::ERR_OUT_OF_BOUNDS),
 			Ok(buffer) => buffer,
 		};
 
-		if let Err(_) = sandboxed_memory.write_from(Pointer::new(offset as u32), &buffer) {
-			return Ok(sandbox_primitives::ERR_OUT_OF_BOUNDS)
+		if sandboxed_memory.write_from(Pointer::new(offset as u32), &buffer).is_err() {
+			return Ok(sandbox_env::ERR_OUT_OF_BOUNDS)
 		}
 
-		Ok(sandbox_primitives::ERR_OK)
+		Ok(sandbox_env::ERR_OK)
 	}
 
 	fn memory_teardown(&mut self, memory_id: MemoryId) -> WResult<()> {
@@ -236,18 +240,18 @@ impl Sandbox for FunctionExecutor {
 			state,
 			&mut SandboxContext { dispatch_thunk, executor: self },
 		) {
-			Ok(None) => Ok(sandbox_primitives::ERR_OK),
+			Ok(None) => Ok(sandbox_env::ERR_OK),
 			Ok(Some(val)) => {
 				// Serialize return value and write it back into the memory.
-				sp_wasm_interface::ReturnValue::Value(val.into()).using_encoded(|val| {
+				sp_wasm_interface::ReturnValue::Value(val).using_encoded(|val| {
 					if val.len() > return_val_len as usize {
-						Err("Return value buffer is too small")?;
+						return Err("Return value buffer is too small".into())
 					}
 					self.write_memory(return_val, val).map_err(|_| "Return value buffer is OOB")?;
-					Ok(sandbox_primitives::ERR_OK)
+					Ok(sandbox_env::ERR_OK)
 				})
 			},
-			Err(_) => Ok(sandbox_primitives::ERR_EXECUTION),
+			Err(_) => Ok(sandbox_env::ERR_EXECUTION),
 		}
 	}
 
@@ -270,17 +274,17 @@ impl Sandbox for FunctionExecutor {
 			let table = self
 				.table
 				.as_ref()
-				.ok_or_else(|| "Runtime doesn't have a table; sandbox is unavailable")?;
+				.ok_or("Runtime doesn't have a table; sandbox is unavailable")?;
 			table
 				.get(dispatch_thunk_id)
 				.map_err(|_| "dispatch_thunk_idx is out of the table bounds")?
-				.ok_or_else(|| "dispatch_thunk_idx points on an empty table entry")?
+				.ok_or("dispatch_thunk_idx points on an empty table entry")?
 		};
 
 		let guest_env =
 			match sandbox::GuestEnvironment::decode(&*self.sandbox_store.borrow(), raw_env_def) {
 				Ok(guest_env) => guest_env,
-				Err(_) => return Ok(sandbox_primitives::ERR_MODULE as u32),
+				Err(_) => return Ok(sandbox_env::ERR_MODULE as u32),
 			};
 
 		let store = self.sandbox_store.clone();
@@ -294,8 +298,8 @@ impl Sandbox for FunctionExecutor {
 		let instance_idx_or_err_code =
 			match result.map(|i| i.register(&mut store.borrow_mut(), dispatch_thunk)) {
 				Ok(instance_idx) => instance_idx,
-				Err(sandbox::InstantiationError::StartTrapped) => sandbox_primitives::ERR_EXECUTION,
-				Err(_) => sandbox_primitives::ERR_MODULE,
+				Err(sandbox::InstantiationError::StartTrapped) => sandbox_env::ERR_EXECUTION,
+				Err(_) => sandbox_env::ERR_MODULE,
 			};
 
 		Ok(instance_idx_or_err_code)
@@ -456,9 +460,9 @@ impl wasmi::Externals for FunctionExecutor {
 fn get_mem_instance(module: &ModuleRef) -> Result<MemoryRef, Error> {
 	Ok(module
 		.export_by_name("memory")
-		.ok_or_else(|| Error::InvalidMemoryReference)?
+		.ok_or(Error::InvalidMemoryReference)?
 		.as_memory()
-		.ok_or_else(|| Error::InvalidMemoryReference)?
+		.ok_or(Error::InvalidMemoryReference)?
 		.clone())
 }
 
@@ -467,9 +471,9 @@ fn get_mem_instance(module: &ModuleRef) -> Result<MemoryRef, Error> {
 fn get_heap_base(module: &ModuleRef) -> Result<u32, Error> {
 	let heap_base_val = module
 		.export_by_name("__heap_base")
-		.ok_or_else(|| Error::HeapBaseNotFoundOrInvalid)?
+		.ok_or(Error::HeapBaseNotFoundOrInvalid)?
 		.as_global()
-		.ok_or_else(|| Error::HeapBaseNotFoundOrInvalid)?
+		.ok_or(Error::HeapBaseNotFoundOrInvalid)?
 		.get();
 
 	match heap_base_val {
@@ -487,6 +491,7 @@ fn call_in_wasm_module(
 	host_functions: Arc<Vec<&'static dyn Function>>,
 	allow_missing_func_imports: bool,
 	missing_functions: Arc<Vec<String>>,
+	allocation_stats: &mut Option<AllocationStats>,
 ) -> Result<Vec<u8>, Error> {
 	// Initialize FunctionExecutor.
 	let table: Option<TableRef> = module_instance
@@ -559,10 +564,13 @@ fn call_in_wasm_module(
 		},
 	};
 
+	*allocation_stats = Some(function_executor.heap.borrow().stats());
+
 	match result {
 		Ok(Some(I64(r))) => {
 			let (ptr, length) = unpack_ptr_and_len(r as u64);
-			memory.get(ptr.into(), length as usize).map_err(|_| Error::Runtime)
+			#[allow(deprecated)]
+			memory.get(ptr, length as usize).map_err(|_| Error::Runtime)
 		},
 		Err(e) => {
 			trace!(
@@ -570,7 +578,7 @@ fn call_in_wasm_module(
 				"Failed to execute code with {} pages",
 				memory.current_size().0,
 			);
-			Err(e.into())
+			Err(e)
 		},
 		_ => Err(Error::InvalidReturn),
 	}
@@ -759,8 +767,13 @@ pub struct WasmiInstance {
 // `self.instance`
 unsafe impl Send for WasmiInstance {}
 
-impl WasmInstance for WasmiInstance {
-	fn call(&mut self, method: InvokeMethod, data: &[u8]) -> Result<Vec<u8>, Error> {
+impl WasmiInstance {
+	fn call_impl(
+		&mut self,
+		method: InvokeMethod,
+		data: &[u8],
+		allocation_stats: &mut Option<AllocationStats>,
+	) -> Result<Vec<u8>, Error> {
 		// We reuse a single wasm instance for multiple calls and a previous call (if any)
 		// altered the state. Therefore, we need to restore the instance to original state.
 
@@ -788,7 +801,20 @@ impl WasmInstance for WasmiInstance {
 			self.host_functions.clone(),
 			self.allow_missing_func_imports,
 			self.missing_functions.clone(),
+			allocation_stats,
 		)
+	}
+}
+
+impl WasmInstance for WasmiInstance {
+	fn call_with_allocation_stats(
+		&mut self,
+		method: InvokeMethod,
+		data: &[u8],
+	) -> (Result<Vec<u8>, Error>, Option<AllocationStats>) {
+		let mut allocation_stats = None;
+		let result = self.call_impl(method, data, &mut allocation_stats);
+		(result, allocation_stats)
 	}
 
 	fn get_global_const(&mut self, name: &str) -> Result<Option<sp_wasm_interface::Value>, Error> {

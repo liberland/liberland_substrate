@@ -47,7 +47,7 @@ pub fn migrate<T: pallet_session_historical::Config, P: GetStorageVersion + Pall
 			target: "runtime::session_historical",
 			"New pallet name is equal to the old prefix. No migration needs to be done.",
 		);
-		return 0
+		return Weight::zero()
 	}
 
 	let on_chain_storage_version = <P as GetStorageVersion>::on_chain_storage_version();
@@ -82,12 +82,12 @@ pub fn migrate<T: pallet_session_historical::Config, P: GetStorageVersion + Pall
 			"Attempted to apply migration to v1 but failed because storage version is {:?}",
 			on_chain_storage_version,
 		);
-		0
+		Weight::zero()
 	}
 }
 
 /// Some checks prior to migration. This can be linked to
-/// [`frame_support::traits::OnRuntimeUpgrade::pre_upgrade`] for further testing.
+/// `frame_support::traits::OnRuntimeUpgrade::pre_upgrade` for further testing.
 ///
 /// Panics if anything goes wrong.
 pub fn pre_migrate<
@@ -123,7 +123,7 @@ pub fn pre_migrate<
 }
 
 /// Some checks for after migration. This can be linked to
-/// [`frame_support::traits::OnRuntimeUpgrade::post_upgrade`] for further testing.
+/// `frame_support::traits::OnRuntimeUpgrade::post_upgrade` for further testing.
 ///
 /// Panics if anything goes wrong.
 pub fn post_migrate<

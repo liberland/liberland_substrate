@@ -50,8 +50,6 @@ pub fn time_until_next_slot(slot_duration: Duration) -> Duration {
 pub struct SlotInfo<B: BlockT> {
 	/// The slot number as found in the inherent data.
 	pub slot: Slot,
-	/// Current timestamp as found in the inherent data.
-	pub timestamp: sp_timestamp::Timestamp,
 	/// The instant at which the slot ends.
 	pub ends_at: Instant,
 	/// The inherent data.
@@ -72,7 +70,6 @@ impl<B: BlockT> SlotInfo<B> {
 	/// `ends_at` is calculated using `timestamp` and `duration`.
 	pub fn new(
 		slot: Slot,
-		timestamp: sp_timestamp::Timestamp,
 		inherent_data: InherentData,
 		duration: Duration,
 		chain_head: B::Header,
@@ -80,7 +77,6 @@ impl<B: BlockT> SlotInfo<B> {
 	) -> Self {
 		Self {
 			slot,
-			timestamp,
 			inherent_data,
 			duration,
 			chain_head,
@@ -91,33 +87,37 @@ impl<B: BlockT> SlotInfo<B> {
 }
 
 /// A stream that returns every time there is a new slot.
-pub(crate) struct Slots<Block, C, IDP> {
+pub(crate) struct Slots<Block, SC, IDP> {
 	last_slot: Slot,
 	slot_duration: Duration,
 	inner_delay: Option<Delay>,
 	create_inherent_data_providers: IDP,
-	client: C,
+	select_chain: SC,
 	_phantom: std::marker::PhantomData<Block>,
 }
 
-impl<Block, C, IDP> Slots<Block, C, IDP> {
+impl<Block, SC, IDP> Slots<Block, SC, IDP> {
 	/// Create a new `Slots` stream.
-	pub fn new(slot_duration: Duration, create_inherent_data_providers: IDP, client: C) -> Self {
+	pub fn new(
+		slot_duration: Duration,
+		create_inherent_data_providers: IDP,
+		select_chain: SC,
+	) -> Self {
 		Slots {
 			last_slot: 0.into(),
 			slot_duration,
 			inner_delay: None,
 			create_inherent_data_providers,
-			client,
+			select_chain,
 			_phantom: Default::default(),
 		}
 	}
 }
 
-impl<Block, C, IDP> Slots<Block, C, IDP>
+impl<Block, SC, IDP> Slots<Block, SC, IDP>
 where
 	Block: BlockT,
-	C: SelectChain<Block>,
+	SC: SelectChain<Block>,
 	IDP: CreateInherentDataProviders<Block, ()>,
 	IDP::InherentDataProviders: crate::InherentDataProviderExt,
 {
@@ -145,7 +145,7 @@ where
 
 			let ends_at = Instant::now() + ends_in;
 
-			let chain_head = match self.client.best_chain().await {
+			let chain_head = match self.select_chain.best_chain().await {
 				Ok(x) => x,
 				Err(e) => {
 					log::warn!(
@@ -171,7 +171,6 @@ where
 				);
 			}
 
-			let timestamp = inherent_data_providers.timestamp();
 			let slot = inherent_data_providers.slot();
 			let inherent_data = inherent_data_providers.create_inherent_data()?;
 
@@ -179,14 +178,7 @@ where
 			if slot > self.last_slot {
 				self.last_slot = slot;
 
-				break Ok(SlotInfo::new(
-					slot,
-					timestamp,
-					inherent_data,
-					self.slot_duration,
-					chain_head,
-					None,
-				))
+				break Ok(SlotInfo::new(slot, inherent_data, self.slot_duration, chain_head, None))
 			}
 		}
 	}

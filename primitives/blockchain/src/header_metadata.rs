@@ -21,6 +21,7 @@
 use lru::LruCache;
 use parking_lot::RwLock;
 use sp_runtime::traits::{Block as BlockT, Header, NumberFor, One};
+use std::num::NonZeroUsize;
 
 /// Set to the expected max difference between `best` and `finalized` blocks at sync.
 const LRU_CACHE_SIZE: usize = 5_000;
@@ -176,6 +177,21 @@ pub struct TreeRoute<Block: BlockT> {
 }
 
 impl<Block: BlockT> TreeRoute<Block> {
+	/// Creates a new `TreeRoute`.
+	///
+	/// To preserve the structure safety invariats it is required that `pivot < route.len()`.
+	pub fn new(route: Vec<HashAndNumber<Block>>, pivot: usize) -> Result<Self, String> {
+		if pivot < route.len() {
+			Ok(TreeRoute { route, pivot })
+		} else {
+			Err(format!(
+				"TreeRoute pivot ({}) should be less than route length ({})",
+				pivot,
+				route.len()
+			))
+		}
+	}
+
 	/// Get a slice of all retracted blocks in reverse order (towards common ancestor).
 	pub fn retracted(&self) -> &[HashAndNumber<Block>] {
 		&self.route[..self.pivot]
@@ -200,6 +216,11 @@ impl<Block: BlockT> TreeRoute<Block> {
 	/// Get a slice of enacted blocks (descendents of the common ancestor)
 	pub fn enacted(&self) -> &[HashAndNumber<Block>] {
 		&self.route[self.pivot + 1..]
+	}
+
+	/// Returns the last block.
+	pub fn last(&self) -> Option<&HashAndNumber<Block>> {
+		self.route.last()
 	}
 }
 
@@ -227,14 +248,15 @@ pub struct HeaderMetadataCache<Block: BlockT> {
 
 impl<Block: BlockT> HeaderMetadataCache<Block> {
 	/// Creates a new LRU header metadata cache with `capacity`.
-	pub fn new(capacity: usize) -> Self {
+	pub fn new(capacity: NonZeroUsize) -> Self {
 		HeaderMetadataCache { cache: RwLock::new(LruCache::new(capacity)) }
 	}
 }
 
 impl<Block: BlockT> Default for HeaderMetadataCache<Block> {
 	fn default() -> Self {
-		HeaderMetadataCache { cache: RwLock::new(LruCache::new(LRU_CACHE_SIZE)) }
+		let cap = NonZeroUsize::new(LRU_CACHE_SIZE).expect("cache capacity is not zero");
+		HeaderMetadataCache { cache: RwLock::new(LruCache::new(cap)) }
 	}
 }
 
@@ -270,11 +292,11 @@ pub struct CachedHeaderMetadata<Block: BlockT> {
 impl<Block: BlockT> From<&Block::Header> for CachedHeaderMetadata<Block> {
 	fn from(header: &Block::Header) -> Self {
 		CachedHeaderMetadata {
-			hash: header.hash().clone(),
-			number: header.number().clone(),
-			parent: header.parent_hash().clone(),
-			state_root: header.state_root().clone(),
-			ancestor: header.parent_hash().clone(),
+			hash: header.hash(),
+			number: *header.number(),
+			parent: *header.parent_hash(),
+			state_root: *header.state_root(),
+			ancestor: *header.parent_hash(),
 		}
 	}
 }

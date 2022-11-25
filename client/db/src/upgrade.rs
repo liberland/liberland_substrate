@@ -30,7 +30,7 @@ use kvdb_rocksdb::{Database, DatabaseConfig};
 use sp_runtime::traits::Block as BlockT;
 
 /// Version file name.
-const VERSION_FILE_NAME: &'static str = "db_version";
+const VERSION_FILE_NAME: &str = "db_version";
 
 /// Current db version.
 const CURRENT_VERSION: u32 = 4;
@@ -115,7 +115,7 @@ pub fn upgrade_db<Block: BlockT>(db_path: &Path, db_type: DatabaseType) -> Upgra
 /// 2) transactions column is added;
 fn migrate_1_to_2<Block: BlockT>(db_path: &Path, _db_type: DatabaseType) -> UpgradeResult<()> {
 	let db_cfg = DatabaseConfig::with_columns(V1_NUM_COLUMNS);
-	let db = Database::open(&db_cfg, db_path)?;
+	let mut db = Database::open(&db_cfg, db_path)?;
 	db.add_column().map_err(Into::into)
 }
 
@@ -126,7 +126,10 @@ fn migrate_2_to_3<Block: BlockT>(db_path: &Path, _db_type: DatabaseType) -> Upgr
 	let db = Database::open(&db_cfg, db_path)?;
 
 	// Get all the keys we need to update
-	let keys: Vec<_> = db.iter(columns::JUSTIFICATIONS).map(|entry| entry.0).collect();
+	let keys: Vec<_> = db
+		.iter(columns::JUSTIFICATIONS)
+		.map(|r| r.map(|e| e.0))
+		.collect::<Result<_, _>>()?;
 
 	// Read and update each entry
 	let mut transaction = db.transaction();
@@ -152,7 +155,7 @@ fn migrate_2_to_3<Block: BlockT>(db_path: &Path, _db_type: DatabaseType) -> Upgr
 /// 2) BODY_INDEX column is added;
 fn migrate_3_to_4<Block: BlockT>(db_path: &Path, _db_type: DatabaseType) -> UpgradeResult<()> {
 	let db_cfg = DatabaseConfig::with_columns(V3_NUM_COLUMNS);
-	let db = Database::open(&db_cfg, db_path)?;
+	let mut db = Database::open(&db_cfg, db_path)?;
 	db.add_column().map_err(Into::into)
 }
 
@@ -190,8 +193,7 @@ fn version_file_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{tests::Block, DatabaseSettings, DatabaseSource, KeepBlocks};
-	use sc_state_db::PruningMode;
+	use crate::{tests::Block, DatabaseSource};
 
 	fn create_db(db_path: &Path, version: Option<u32>) {
 		if let Some(version) = version {
@@ -203,16 +205,12 @@ mod tests {
 
 	fn open_database(db_path: &Path, db_type: DatabaseType) -> sp_blockchain::Result<()> {
 		crate::utils::open_database::<Block>(
-			&DatabaseSettings {
-				state_cache_size: 0,
-				state_cache_child_ratio: None,
-				state_pruning: PruningMode::ArchiveAll,
-				source: DatabaseSource::RocksDb { path: db_path.to_owned(), cache_size: 128 },
-				keep_blocks: KeepBlocks::All,
-			},
+			&DatabaseSource::RocksDb { path: db_path.to_owned(), cache_size: 128 },
 			db_type,
+			true,
 		)
 		.map(|_| ())
+		.map_err(|e| sp_blockchain::Error::Backend(e.to_string()))
 	}
 
 	#[test]

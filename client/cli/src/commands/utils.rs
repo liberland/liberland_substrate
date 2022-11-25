@@ -31,7 +31,7 @@ use sp_core::{
 	Pair,
 };
 use sp_runtime::{traits::IdentifyAccount, MultiSigner};
-use std::{convert::TryFrom, io::Read, path::PathBuf};
+use std::{io::Read, path::PathBuf};
 
 /// Public key type for Runtime
 pub type PublicFor<P> = <P as sp_core::Pair>::Public;
@@ -48,7 +48,7 @@ pub fn read_uri(uri: Option<&String>) -> error::Result<String> {
 			uri.into()
 		}
 	} else {
-		rpassword::read_password_from_tty(Some("URI: "))?
+		rpassword::prompt_password("URI: ")?
 	};
 
 	Ok(uri)
@@ -74,7 +74,7 @@ pub fn print_from_uri<Pair>(
 {
 	let password = password.as_ref().map(|s| s.expose_secret().as_str());
 	let network_id = String::from(unwrap_or_default_ss58_version(network_override));
-	if let Ok((pair, seed)) = Pair::from_phrase(uri, password.clone()) {
+	if let Ok((pair, seed)) = Pair::from_phrase(uri, password) {
 		let public_key = pair.public();
 		let network_override = unwrap_or_default_ss58_version(network_override);
 
@@ -113,7 +113,7 @@ pub fn print_from_uri<Pair>(
 				);
 			},
 		}
-	} else if let Ok((pair, seed)) = Pair::from_string_with_seed(uri, password.clone()) {
+	} else if let Ok((pair, seed)) = Pair::from_string_with_seed(uri, password) {
 		let public_key = pair.public();
 		let network_override = unwrap_or_default_ss58_version(network_override);
 
@@ -203,7 +203,7 @@ where
 	Pair: sp_core::Pair,
 	Pair::Public: Into<MultiSigner>,
 {
-	let public = decode_hex(public_str)?;
+	let public = array_bytes::hex2bytes(public_str)?;
 
 	let public_key = Pair::Public::try_from(&public)
 		.map_err(|_| "Failed to construct public key from given hex")?;
@@ -273,26 +273,17 @@ where
 	format!("0x{}", HexDisplay::from(&public_key.into().into_account().as_ref()))
 }
 
-/// helper method for decoding hex
-pub fn decode_hex<T: AsRef<[u8]>>(message: T) -> Result<Vec<u8>, Error> {
-	let mut message = message.as_ref();
-	if message[..2] == [b'0', b'x'] {
-		message = &message[2..]
-	}
-	Ok(hex::decode(message)?)
-}
-
 /// checks if message is Some, otherwise reads message from stdin and optionally decodes hex
 pub fn read_message(msg: Option<&String>, should_decode: bool) -> Result<Vec<u8>, Error> {
 	let mut message = vec![];
 	match msg {
 		Some(m) => {
-			message = decode_hex(m)?;
+			message = array_bytes::hex2bytes(m.as_str())?;
 		},
 		None => {
 			std::io::stdin().lock().read_to_end(&mut message)?;
 			if should_decode {
-				message = decode_hex(&message)?;
+				message = array_bytes::hex2bytes(array_bytes::hex_bytes2hex_str(&message)?)?;
 			}
 		},
 	}

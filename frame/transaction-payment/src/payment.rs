@@ -12,7 +12,7 @@ use sp_runtime::{
 use sp_std::{fmt::Debug, marker::PhantomData};
 
 use frame_support::{
-	traits::{Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, WithdrawReasons},
+	traits::{Currency, ExistenceRequirement, Imbalance, OnUnbalanced, WithdrawReasons},
 	unsigned::TransactionValidityError,
 };
 
@@ -37,8 +37,8 @@ pub trait OnChargeTransaction<T: Config> {
 	/// Note: The `fee` already includes the `tip`.
 	fn withdraw_fee(
 		who: &T::AccountId,
-		call: &T::Call,
-		dispatch_info: &DispatchInfoOf<T::Call>,
+		call: &T::RuntimeCall,
+		dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
 		fee: Self::Balance,
 		tip: Self::Balance,
 	) -> Result<Self::LiquidityInfo, TransactionValidityError>;
@@ -50,8 +50,8 @@ pub trait OnChargeTransaction<T: Config> {
 	/// Note: The `fee` already includes the `tip`.
 	fn correct_and_deposit_fee(
 		who: &T::AccountId,
-		dispatch_info: &DispatchInfoOf<T::Call>,
-		post_info: &PostDispatchInfoOf<T::Call>,
+		dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
+		post_info: &PostDispatchInfoOf<T::RuntimeCall>,
 		corrected_fee: Self::Balance,
 		tip: Self::Balance,
 		already_withdrawn: Self::LiquidityInfo,
@@ -73,7 +73,6 @@ pub struct CurrencyAdapter<C, OU>(PhantomData<(C, OU)>);
 impl<T, C, OU> OnChargeTransaction<T> for CurrencyAdapter<C, OU>
 where
 	T: Config,
-	T::TransactionByteFee: Get<<C as Currency<<T as frame_system::Config>::AccountId>>::Balance>,
 	C: Currency<<T as frame_system::Config>::AccountId>,
 	C::PositiveImbalance: Imbalance<
 		<C as Currency<<T as frame_system::Config>::AccountId>>::Balance,
@@ -93,8 +92,8 @@ where
 	/// Note: The `fee` already includes the `tip`.
 	fn withdraw_fee(
 		who: &T::AccountId,
-		_call: &T::Call,
-		_info: &DispatchInfoOf<T::Call>,
+		_call: &T::RuntimeCall,
+		_info: &DispatchInfoOf<T::RuntimeCall>,
 		fee: Self::Balance,
 		tip: Self::Balance,
 	) -> Result<Self::LiquidityInfo, TransactionValidityError> {
@@ -121,8 +120,8 @@ where
 	/// Note: The `corrected_fee` already includes the `tip`.
 	fn correct_and_deposit_fee(
 		who: &T::AccountId,
-		_dispatch_info: &DispatchInfoOf<T::Call>,
-		_post_info: &PostDispatchInfoOf<T::Call>,
+		_dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
+		_post_info: &PostDispatchInfoOf<T::RuntimeCall>,
 		corrected_fee: Self::Balance,
 		tip: Self::Balance,
 		already_withdrawn: Self::LiquidityInfo,
@@ -133,7 +132,7 @@ where
 			// refund to the the account that paid the fees. If this fails, the
 			// account might have dropped below the existential balance. In
 			// that case we don't refund anything.
-			let refund_imbalance = C::deposit_into_existing(&who, refund_amount)
+			let refund_imbalance = C::deposit_into_existing(who, refund_amount)
 				.unwrap_or_else(|_| C::PositiveImbalance::zero());
 			// merge the imbalance caused by paying the fees and refunding parts of it again.
 			let adjusted_paid = paid

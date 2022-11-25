@@ -25,7 +25,7 @@ use sp_runtime::{
 	traits::{Block as BlockT, NumberFor},
 	Justifications,
 };
-use std::{collections::HashSet, convert::TryFrom, fmt, sync::Arc};
+use std::{collections::HashSet, fmt, sync::Arc};
 
 use crate::{blockchain::Info, notifications::StorageEventStream, FinalizeSummary, ImportSummary};
 
@@ -110,7 +110,7 @@ pub trait BlockBackend<Block: BlockT> {
 	/// Get block body by ID. Returns `None` if the body is not stored.
 	fn block_body(
 		&self,
-		id: &BlockId<Block>,
+		hash: Block::Hash,
 	) -> sp_blockchain::Result<Option<Vec<<Block as BlockT>::Extrinsic>>>;
 
 	/// Get all indexed transactions for a block,
@@ -118,10 +118,7 @@ pub trait BlockBackend<Block: BlockT> {
 	///
 	/// Note that this will only fetch transactions
 	/// that are indexed by the runtime with `storage_index_transaction`.
-	fn block_indexed_body(
-		&self,
-		id: &BlockId<Block>,
-	) -> sp_blockchain::Result<Option<Vec<Vec<u8>>>>;
+	fn block_indexed_body(&self, hash: Block::Hash) -> sp_blockchain::Result<Option<Vec<Vec<u8>>>>;
 
 	/// Get full block by id.
 	fn block(&self, id: &BlockId<Block>) -> sp_blockchain::Result<Option<SignedBlock<Block>>>;
@@ -131,7 +128,7 @@ pub trait BlockBackend<Block: BlockT> {
 		-> sp_blockchain::Result<sp_consensus::BlockStatus>;
 
 	/// Get block justifications for the block with the given id.
-	fn justifications(&self, id: &BlockId<Block>) -> sp_blockchain::Result<Option<Justifications>>;
+	fn justifications(&self, hash: Block::Hash) -> sp_blockchain::Result<Option<Justifications>>;
 
 	/// Get block hash by number.
 	fn block_hash(&self, number: NumberFor<Block>) -> sp_blockchain::Result<Option<Block::Hash>>;
@@ -140,12 +137,15 @@ pub trait BlockBackend<Block: BlockT> {
 	///
 	/// Note that this will only fetch transactions
 	/// that are indexed by the runtime with `storage_index_transaction`.
-	fn indexed_transaction(&self, hash: &Block::Hash) -> sp_blockchain::Result<Option<Vec<u8>>>;
+	fn indexed_transaction(&self, hash: Block::Hash) -> sp_blockchain::Result<Option<Vec<u8>>>;
 
 	/// Check if transaction index exists.
-	fn has_indexed_transaction(&self, hash: &Block::Hash) -> sp_blockchain::Result<bool> {
+	fn has_indexed_transaction(&self, hash: Block::Hash) -> sp_blockchain::Result<bool> {
 		Ok(self.indexed_transaction(hash)?.is_some())
 	}
+
+	/// Tells whether the current client configuration requires full-sync mode.
+	fn requires_full_sync(&self) -> bool;
 }
 
 /// Provide a list of potential uncle headers for a given block.
@@ -307,6 +307,8 @@ pub struct FinalityNotification<Block: BlockT> {
 	/// Finalized block header.
 	pub header: Block::Header,
 	/// Path from the old finalized to new finalized parent (implicitly finalized blocks).
+	///
+	/// This maps to the range `(old_finalized, new_finalized)`.
 	pub tree_route: Arc<[Block::Hash]>,
 	/// Stale branches heads.
 	pub stale_heads: Arc<[Block::Hash]>,

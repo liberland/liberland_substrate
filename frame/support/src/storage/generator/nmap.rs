@@ -138,6 +138,13 @@ where
 		unhashed::get(&Self::storage_n_map_final_key::<K, _>(key)).ok_or(())
 	}
 
+	fn set<KArg: EncodeLikeTuple<K::KArg> + TupleToEncodedIter>(key: KArg, q: Self::Query) {
+		match G::from_query_to_optional_value(q) {
+			Some(v) => Self::insert(key, v),
+			None => Self::remove(key),
+		}
+	}
+
 	fn take<KArg: EncodeLikeTuple<K::KArg> + TupleToEncodedIter>(key: KArg) -> Self::Query {
 		let final_key = Self::storage_n_map_final_key::<K, _>(key);
 
@@ -183,7 +190,22 @@ where
 	where
 		K: HasKeyPrefix<KP>,
 	{
-		unhashed::kill_prefix(&Self::storage_n_map_partial_key(partial_key), limit)
+		unhashed::clear_prefix(&Self::storage_n_map_partial_key(partial_key), limit, None).into()
+	}
+
+	fn clear_prefix<KP>(
+		partial_key: KP,
+		limit: u32,
+		maybe_cursor: Option<&[u8]>,
+	) -> sp_io::MultiRemovalResults
+	where
+		K: HasKeyPrefix<KP>,
+	{
+		unhashed::clear_prefix(
+			&Self::storage_n_map_partial_key(partial_key),
+			Some(limit),
+			maybe_cursor,
+		)
 	}
 
 	fn iter_prefix_values<KP>(partial_key: KP) -> PrefixIterator<V>
@@ -438,14 +460,14 @@ mod test_iterators {
 	use codec::{Decode, Encode};
 
 	pub trait Config: 'static {
-		type Origin;
+		type RuntimeOrigin;
 		type BlockNumber;
 		type PalletInfo: crate::traits::PalletInfo;
 		type DbWeight: crate::traits::Get<crate::weights::RuntimeDbWeight>;
 	}
 
 	crate::decl_module! {
-		pub struct Module<T: Config> for enum Call where origin: T::Origin, system=self {}
+		pub struct Module<T: Config> for enum Call where origin: T::RuntimeOrigin, system=self {}
 	}
 
 	#[derive(PartialEq, Eq, Clone, Encode, Decode)]
@@ -475,10 +497,12 @@ mod test_iterators {
 	fn n_map_iter_from() {
 		sp_io::TestExternalities::default().execute_with(|| {
 			use crate::{hash::Identity, storage::Key as NMapKey};
-			crate::generate_storage_alias!(
+			#[crate::storage_alias]
+			type MyNMap = StorageNMap<
 				MyModule,
-				MyNMap => NMap<Key<(u64, Identity), (u64, Identity), (u64, Identity)>, u64>
-			);
+				(NMapKey<Identity, u64>, NMapKey<Identity, u64>, NMapKey<Identity, u64>),
+				u64,
+			>;
 
 			MyNMap::insert((1, 1, 1), 11);
 			MyNMap::insert((1, 1, 2), 21);
@@ -518,11 +542,15 @@ mod test_iterators {
 			let key_hash = NMap::hashed_key_for((1, 2));
 
 			{
-				crate::generate_storage_alias!(Test, NMap => DoubleMap<
-					(u16, crate::Blake2_128Concat),
-					(u32, crate::Twox64Concat),
-					u64
-				>);
+				#[crate::storage_alias]
+				type NMap = StorageDoubleMap<
+					Test,
+					crate::Blake2_128Concat,
+					u16,
+					crate::Twox64Concat,
+					u32,
+					u64,
+				>;
 
 				let value = NMap::get(1, 2).unwrap();
 				assert_eq!(value, 50);

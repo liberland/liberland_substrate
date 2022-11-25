@@ -33,7 +33,7 @@ use crate::wasm::*;
 #[cfg(feature = "std")]
 use sp_wasm_interface::{FunctionContext, Pointer, Result};
 
-use sp_std::{convert::TryFrom, marker::PhantomData};
+use sp_std::marker::PhantomData;
 
 #[cfg(not(feature = "std"))]
 use sp_std::vec::Vec;
@@ -248,12 +248,12 @@ impl<T: codec::Codec> PassByImpl<T> for Codec<T> {
 		let len = len as usize;
 
 		let encoded = if len == 0 {
-			Vec::new()
+			bytes::Bytes::new()
 		} else {
-			unsafe { Vec::from_raw_parts(ptr as *mut u8, len, len) }
+			bytes::Bytes::from(unsafe { Vec::from_raw_parts(ptr as *mut u8, len, len) })
 		};
 
-		T::decode(&mut &encoded[..]).expect("Host to wasm values are encoded correctly; qed")
+		codec::decode_from_bytes(encoded).expect("Host to wasm values are encoded correctly; qed")
 	}
 }
 
@@ -382,7 +382,7 @@ impl<T: PassByInner<Inner = I>, I: RIType> RIType for Inner<T, I> {
 ///     }
 /// }
 ///
-/// impl std::convert::TryFrom<u8> for Test {
+/// impl TryFrom<u8> for Test {
 ///     type Error = ();
 ///
 ///     fn try_from(val: u8) -> Result<Test, ()> {

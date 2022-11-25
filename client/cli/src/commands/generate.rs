@@ -25,10 +25,10 @@ use clap::Parser;
 
 /// The `generate` command
 #[derive(Debug, Clone, Parser)]
-#[clap(name = "generate", about = "Generate a random account")]
+#[command(name = "generate", about = "Generate a random account")]
 pub struct GenerateCmd {
 	/// The number of words in the phrase to generate. One of 12 (default), 15, 18, 21 and 24.
-	#[clap(short = 'w', long, value_name = "WORDS")]
+	#[arg(short = 'w', long, value_name = "WORDS")]
 	words: Option<usize>,
 
 	#[allow(missing_docs)]
@@ -61,16 +61,11 @@ impl GenerateCmd {
 		};
 		let mnemonic = Mnemonic::new(words, Language::English);
 		let password = self.keystore_params.read_password()?;
-		let output = self.output_scheme.output_type.clone();
+		let output = self.output_scheme.output_type;
 
 		with_crypto_scheme!(
 			self.crypto_scheme.scheme,
-			print_from_uri(
-				mnemonic.phrase(),
-				password,
-				self.network_scheme.network.clone(),
-				output,
-			)
+			print_from_uri(mnemonic.phrase(), password, self.network_scheme.network, output)
 		);
 		Ok(())
 	}

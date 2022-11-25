@@ -17,7 +17,6 @@
 //! Test to check the migration of the voter bag.
 
 use crate::{RuntimeT, LOG_TARGET};
-use frame_election_provider_support::SortedListProvider;
 use frame_support::traits::PalletInfoAccess;
 use pallet_staking::Nominators;
 use remote_externalities::{Builder, Mode, OnlineConfig};
@@ -25,11 +24,15 @@ use sp_runtime::{traits::Block as BlockT, DeserializeOwned};
 
 /// Test voter bags migration. `currency_unit` is the number of planks per the the runtimes `UNITS`
 /// (i.e. number of decimal places per DOT, KSM etc)
-pub async fn execute<Runtime: RuntimeT, Block: BlockT + DeserializeOwned>(
+pub async fn execute<Runtime, Block>(
 	currency_unit: u64,
 	currency_name: &'static str,
 	ws_url: String,
-) {
+) where
+	Runtime: RuntimeT<pallet_bags_list::Instance1>,
+	Block: BlockT,
+	Block::Header: DeserializeOwned,
+{
 	let mut ext = Builder::<Block>::new()
 		.mode(Mode::Online(OnlineConfig {
 			transport: ws_url.to_string().into(),
@@ -45,16 +48,16 @@ pub async fn execute<Runtime: RuntimeT, Block: BlockT + DeserializeOwned>(
 		let pre_migrate_nominator_count = <Nominators<Runtime>>::iter().count() as u32;
 		log::info!(target: LOG_TARGET, "Nominator count: {}", pre_migrate_nominator_count);
 
-		// run the actual migration,
-		let moved = <Runtime as pallet_staking::Config>::SortedListProvider::unsafe_regenerate(
+		use frame_election_provider_support::SortedListProvider;
+		// run the actual migration
+		let moved = <Runtime as pallet_staking::Config>::VoterList::unsafe_regenerate(
 			pallet_staking::Nominators::<Runtime>::iter().map(|(n, _)| n),
 			pallet_staking::Pallet::<Runtime>::weight_of_fn(),
 		);
 		log::info!(target: LOG_TARGET, "Moved {} nominators", moved);
 
-		let voter_list_len =
-			<Runtime as pallet_staking::Config>::SortedListProvider::iter().count() as u32;
-		let voter_list_count = <Runtime as pallet_staking::Config>::SortedListProvider::count();
+		let voter_list_len = <Runtime as pallet_staking::Config>::VoterList::iter().count() as u32;
+		let voter_list_count = <Runtime as pallet_staking::Config>::VoterList::count();
 		// and confirm it is equal to the length of the `VoterList`.
 		assert_eq!(pre_migrate_nominator_count, voter_list_len);
 		assert_eq!(pre_migrate_nominator_count, voter_list_count);

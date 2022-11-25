@@ -33,7 +33,7 @@ use std::{
 #[derive(Debug, Clone, Parser)]
 pub struct PurgeChainCmd {
 	/// Skip interactive prompt by answering yes automatically.
-	#[clap(short = 'y')]
+	#[arg(short = 'y')]
 	pub yes: bool,
 
 	#[allow(missing_docs)]
@@ -60,7 +60,7 @@ impl PurgeChainCmd {
 			io::stdin().read_line(&mut input)?;
 			let input = input.trim();
 
-			match input.chars().nth(0) {
+			match input.chars().next() {
 				Some('y') | Some('Y') => {},
 				_ => {
 					println!("Aborted");

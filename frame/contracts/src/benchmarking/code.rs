@@ -24,14 +24,10 @@
 //! we define this simple definition of a contract that can be passed to `create_code` that
 //! compiles it down into a `WasmModule` that can be used as a contract's code.
 
-use crate::Config;
+use crate::{Config, Determinism};
 use frame_support::traits::Get;
 use sp_core::crypto::UncheckedFrom;
 use sp_runtime::traits::Hash;
-use sp_sandbox::{
-	default_executor::{EnvironmentDefinitionBuilder, Memory},
-	SandboxEnvironmentBuilder, SandboxMemory,
-};
 use sp_std::{borrow::ToOwned, prelude::*};
 use wasm_instrument::parity_wasm::{
 	builder,
@@ -128,7 +124,7 @@ pub struct ImportedFunction {
 pub struct WasmModule<T: Config> {
 	pub code: Vec<u8>,
 	pub hash: <T::Hashing as Hash>::Output,
-	memory: Option<ImportedMemory>,
+	pub memory: Option<ImportedMemory>,
 }
 
 impl<T: Config> From<ModuleDefinition> for WasmModule<T>
@@ -195,7 +191,7 @@ where
 		for func in def.imported_functions {
 			let sig = builder::signature()
 				.with_params(func.params)
-				.with_results(func.return_type.into_iter().collect())
+				.with_results(func.return_type)
 				.build_sig();
 			let sig = contract.push_signature(sig);
 			contract = contract
@@ -254,9 +250,9 @@ where
 			code = inject_stack_metering::<T>(code);
 		}
 
-		let code = code.to_bytes().unwrap();
+		let code = code.into_bytes().unwrap();
 		let hash = T::Hashing::hash(&code);
-		Self { code, hash, memory: def.memory }
+		Self { code: code.into(), hash, memory: def.memory }
 	}
 }
 
@@ -277,20 +273,19 @@ where
 			}
 			module
 		};
-		let limits = module
+		let limits = *module
 			.import_section()
 			.unwrap()
 			.entries()
 			.iter()
 			.find_map(|e| if let External::Memory(mem) = e.external() { Some(mem) } else { None })
 			.unwrap()
-			.limits()
-			.clone();
-		let code = module.to_bytes().unwrap();
+			.limits();
+		let code = module.into_bytes().unwrap();
 		let hash = T::Hashing::hash(&code);
 		let memory =
 			ImportedMemory { min_pages: limits.initial(), max_pages: limits.maximum().unwrap() };
-		Self { code, hash, memory: Some(memory) }
+		Self { code: code.into(), hash, memory: Some(memory) }
 	}
 
 	/// Creates a wasm module with an empty `call` and `deploy` function and nothing else.
@@ -339,12 +334,12 @@ where
 	/// Creates a wasm module that calls the imported function named `getter_name` `repeat`
 	/// times. The imported function is expected to have the "getter signature" of
 	/// (out_ptr: u32, len_ptr: u32) -> ().
-	pub fn getter(getter_name: &'static str, repeat: u32) -> Self {
+	pub fn getter(module_name: &'static str, getter_name: &'static str, repeat: u32) -> Self {
 		let pages = max_pages::<T>();
 		ModuleDefinition {
 			memory: Some(ImportedMemory::max::<T>()),
 			imported_functions: vec![ImportedFunction {
-				module: "seal0",
+				module: module_name,
 				name: getter_name,
 				params: vec![ValueType::I32, ValueType::I32],
 				return_type: None,
@@ -394,16 +389,6 @@ where
 			..Default::default()
 		}
 		.into()
-	}
-
-	/// Creates a memory instance for use in a sandbox with dimensions declared in this module
-	/// and adds it to `env`. A reference to that memory is returned so that it can be used to
-	/// access the memory contents from the supervisor.
-	pub fn add_memory<S>(&self, env: &mut EnvironmentDefinitionBuilder<S>) -> Option<Memory> {
-		let memory = if let Some(memory) = &self.memory { memory } else { return None };
-		let memory = Memory::new(memory.min_pages, Some(memory.max_pages)).unwrap();
-		env.add_memory("env", "memory", memory.clone());
-		Some(memory)
 	}
 
 	pub fn unary_instr(instr: Instruction, repeat: u32) -> Self {
@@ -512,16 +497,10 @@ pub mod body {
 				DynInstr::RandomI32(low, high) => {
 					vec![Instruction::I32Const(rng.gen_range(*low..*high))]
 				},
-				DynInstr::RandomI32Repeated(num) => (&mut rng)
-					.sample_iter(Standard)
-					.take(*num)
-					.map(|val| Instruction::I32Const(val))
-					.collect(),
-				DynInstr::RandomI64Repeated(num) => (&mut rng)
-					.sample_iter(Standard)
-					.take(*num)
-					.map(|val| Instruction::I64Const(val))
-					.collect(),
+				DynInstr::RandomI32Repeated(num) =>
+					(&mut rng).sample_iter(Standard).take(*num).map(Instruction::I32Const).collect(),
+				DynInstr::RandomI64Repeated(num) =>
+					(&mut rng).sample_iter(Standard).take(*num).map(Instruction::I64Const).collect(),
 				DynInstr::RandomGetLocal(low, high) => {
 					vec![Instruction::GetLocal(rng.gen_range(*low..*high))]
 				},
@@ -561,7 +540,7 @@ where
 
 fn inject_gas_metering<T: Config>(module: Module) -> Module {
 	let schedule = T::Schedule::get();
-	let gas_rules = schedule.rules(&module);
+	let gas_rules = schedule.rules(&module, Determinism::Deterministic);
 	wasm_instrument::gas_metering::inject(module, &gas_rules, "seal0").unwrap()
 }
 
