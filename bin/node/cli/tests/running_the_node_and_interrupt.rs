@@ -50,7 +50,7 @@ async fn running_the_node_works_and_can_be_interrupted() {
 
 		let (ws_url, _) = common::find_ws_url_from_output(stderr);
 
-		common::wait_n_finalized_blocks(3, 30, &ws_url)
+		common::wait_n_finalized_blocks(3, 60, &ws_url)
 			.await
 			.expect("Blocks are produced in time");
 		assert!(cmd.try_wait().unwrap().is_none(), "the process should still be running");
@@ -90,7 +90,7 @@ async fn running_two_nodes_with_the_same_ws_port_should_work() {
 	let stderr = first_node.stderr.take().unwrap();
 	let (ws_url, _) = common::find_ws_url_from_output(stderr);
 
-	common::wait_n_finalized_blocks(3, 30, &ws_url).await.unwrap();
+	common::wait_n_finalized_blocks(3, 60, &ws_url).await.unwrap();
 
 	assert!(first_node.try_wait().unwrap().is_none(), "The first node should still be running");
 	assert!(second_node.try_wait().unwrap().is_none(), "The second node should still be running");
