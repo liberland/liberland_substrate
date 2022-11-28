@@ -18,6 +18,10 @@
 
 //! Substrate chain configurations.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
@@ -88,7 +92,7 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 	// for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
 
 	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![
-		// F 
+		// F
 		(
 		// 5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ
 			array_bytes::hex_n_into_unchecked("3c1305e6cfd61af1ca30dd3532705c614ebcc4ee8431bbae97fbadf778fdaa7e"),
@@ -117,20 +121,20 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 			// audi:  5D57EqeRzTyeoMpFZViVRGC6wzC8rFg2joxBTK2fciZb9maj
 			array_bytes::hex2array_unchecked("2c8af1f4a2043a08170164ad6eb0d45c15005204074c7cb99a0d36190d7f1a7a").unchecked_into(),
 		),
-		(
-			// 5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8
-			array_bytes::hex_n_into_unchecked("22c695a1919847596698b7fc8f8efc23bf96f4156d14472f42736d6475c3280b"),
-			// 5DAvZ3ynu3wQbEJBbxWy8MDa7T8LuUjpRmf5ooCJWFeLrbhw
-			array_bytes::hex_n_into_unchecked("30fa7200854b9d8db626e8dc0721b49286a2e9eec4323547b5ea64a5d07caf33"),
-			// grandpa:5EnR7f7T1ZxKHPjs6FKm9xGzzvT3bMPCtMVHg8PNN5Jnai2U
-			array_bytes::hex2array_unchecked("78486ab057148ea8082d40703ce950b7611e74582100d4b3febfee20b0ba9de8").unchecked_into(),
-			// babe:  5CccJe3SYWD4Syw93BruVn3AMN3GV14cRDZ5PdFv2cTpE7Uv
-			array_bytes::hex2array_unchecked("18552997b0f38c215d599420bd0e3c464dc28dcb95af1f5e5c95a95cb1ae5e3c").unchecked_into(),
-			// imol:  5Cqt26giAT8pKkdmsPpF9Lrjhzg7fH9RSeBG2dX49YmzESFV
-			array_bytes::hex2array_unchecked("227440e662ccff1316b02ac03a1a70e7e33f5a4e6ed2f10c983c7ba7bce46f78").unchecked_into(),
-			// audi:  5HR2VDzZutnsGyys4bE3hSSspdYjNmpRXysTcP1fnLVPaW1Y
-			array_bytes::hex2array_unchecked("ecacca5b4a5408b3d191bf6d22ad78a04fd27af249ffaa07441dcc5b2a5fff69").unchecked_into(),
-		),
+//		(
+//			// 5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8
+//			array_bytes::hex_n_into_unchecked("22c695a1919847596698b7fc8f8efc23bf96f4156d14472f42736d6475c3280b"),
+//			// 5DAvZ3ynu3wQbEJBbxWy8MDa7T8LuUjpRmf5ooCJWFeLrbhw
+//			array_bytes::hex_n_into_unchecked("30fa7200854b9d8db626e8dc0721b49286a2e9eec4323547b5ea64a5d07caf33"),
+//			// grandpa:5EnR7f7T1ZxKHPjs6FKm9xGzzvT3bMPCtMVHg8PNN5Jnai2U
+//			array_bytes::hex2array_unchecked("78486ab057148ea8082d40703ce950b7611e74582100d4b3febfee20b0ba9de8").unchecked_into(),
+//			// babe:  5CccJe3SYWD4Syw93BruVn3AMN3GV14cRDZ5PdFv2cTpE7Uv
+//			array_bytes::hex2array_unchecked("18552997b0f38c215d599420bd0e3c464dc28dcb95af1f5e5c95a95cb1ae5e3c").unchecked_into(),
+//			// imol:  5Cqt26giAT8pKkdmsPpF9Lrjhzg7fH9RSeBG2dX49YmzESFV
+//			array_bytes::hex2array_unchecked("227440e662ccff1316b02ac03a1a70e7e33f5a4e6ed2f10c983c7ba7bce46f78").unchecked_into(),
+//			// audi:  5HR2VDzZutnsGyys4bE3hSSspdYjNmpRXysTcP1fnLVPaW1Y
+//			array_bytes::hex2array_unchecked("ecacca5b4a5408b3d191bf6d22ad78a04fd27af249ffaa07441dcc5b2a5fff69").unchecked_into(),
+//		),
 	];
 
 	let root_key: AccountId = array_bytes::hex_n_into_unchecked(
