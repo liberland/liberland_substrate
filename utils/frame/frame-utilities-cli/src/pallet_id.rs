@@ -28,31 +28,30 @@ use sp_runtime::traits::AccountIdConversion;
 
 /// The `palletid` command
 #[derive(Debug, Parser)]
-#[clap(name = "palletid", about = "Inspect a module ID address")]
+#[command(name = "palletid", about = "Inspect a module ID address")]
 pub struct PalletIdCmd {
 	/// The module ID used to derive the account
 	id: String,
 
 	/// network address format
-	#[clap(
+	#[arg(
 		long,
 		value_name = "NETWORK",
-		possible_values = &Ss58AddressFormat::all_names()[..],
-		parse(try_from_str = Ss58AddressFormat::try_from),
+		value_parser = sc_cli::parse_ss58_address_format,
 		ignore_case = true,
 	)]
 	pub network: Option<Ss58AddressFormat>,
 
 	#[allow(missing_docs)]
-	#[clap(flatten)]
+	#[command(flatten)]
 	pub output_scheme: OutputTypeFlag,
 
 	#[allow(missing_docs)]
-	#[clap(flatten)]
+	#[command(flatten)]
 	pub crypto_scheme: CryptoSchemeFlag,
 
 	#[allow(missing_docs)]
-	#[clap(flatten)]
+	#[command(flatten)]
 	pub keystore_params: KeystoreParams,
 }
 
@@ -64,7 +63,7 @@ impl PalletIdCmd {
 		R::AccountId: Ss58Codec,
 	{
 		if self.id.len() != 8 {
-			Err("a module id must be a string of 8 characters")?
+			return Err("a module id must be a string of 8 characters".into())
 		}
 		let password = self.keystore_params.read_password()?;
 
@@ -72,7 +71,7 @@ impl PalletIdCmd {
 			"Cannot convert argument to palletid: argument should be 8-character string"
 		})?;
 
-		let account_id: R::AccountId = PalletId(id_fixed_array).into_account();
+		let account_id: R::AccountId = PalletId(id_fixed_array).into_account_truncating();
 
 		with_crypto_scheme!(
 			self.crypto_scheme.scheme,
@@ -80,7 +79,7 @@ impl PalletIdCmd {
 				&account_id.to_ss58check_with_version(unwrap_or_default_ss58_version(self.network)),
 				password,
 				self.network,
-				self.output_scheme.output_type.clone()
+				self.output_scheme.output_type
 			)
 		);
 

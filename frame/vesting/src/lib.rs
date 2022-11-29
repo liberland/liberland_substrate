@@ -24,7 +24,8 @@
 //!
 //! A simple pallet providing a means of placing a linear curve on an account's locked balance. This
 //! pallet ensures that there is a lock in place preventing the balance to drop below the *unvested*
-//! amount for any reason other than transaction fee payment.
+//! amount for any reason other than the ones specified in `UnvestedFundsAllowedWithdrawReasons`
+//! configuration value.
 //!
 //! As the amount vested increases over time, the amount unvested reduces. However, locks remain in
 //! place and explicit action is needed on behalf of the user to ensure that the amount locked is
@@ -57,15 +58,15 @@ pub mod weights;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
 	ensure,
-	pallet_prelude::*,
+	storage::bounded_vec::BoundedVec,
 	traits::{
 		Currency, ExistenceRequirement, Get, LockIdentifier, LockableCurrency, VestingSchedule,
 		WithdrawReasons,
 	},
+	weights::Weight,
 };
-use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
-pub use pallet::*;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{
@@ -74,7 +75,9 @@ use sp_runtime::{
 	},
 	RuntimeDebug,
 };
-use sp_std::{convert::TryInto, fmt::Debug, prelude::*};
+use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
+
+pub use pallet::*;
 pub use vesting_info::*;
 pub use weights::WeightInfo;
 
@@ -82,6 +85,7 @@ type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type MaxLocksOf<T> =
 	<<T as Config>::Currency as LockableCurrency<<T as frame_system::Config>::AccountId>>::MaxLocks;
+type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
 
 const VESTING_ID: LockIdentifier = *b"vesting ";
 
@@ -121,10 +125,10 @@ impl VestingAction {
 	}
 
 	/// Pick the schedules that this action dictates should continue vesting undisturbed.
-	fn pick_schedules<'a, T: Config>(
-		&'a self,
+	fn pick_schedules<T: Config>(
+		&self,
 		schedules: Vec<VestingInfo<BalanceOf<T>, T::BlockNumber>>,
-	) -> impl Iterator<Item = VestingInfo<BalanceOf<T>, T::BlockNumber>> + 'a {
+	) -> impl Iterator<Item = VestingInfo<BalanceOf<T>, T::BlockNumber>> + '_ {
 		schedules.into_iter().enumerate().filter_map(move |(index, schedule)| {
 			if self.should_remove(index) {
 				None
@@ -146,11 +150,13 @@ impl<T: Config> Get<u32> for MaxVestingSchedulesGet<T> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The currency trait.
 		type Currency: LockableCurrency<Self::AccountId>;
@@ -164,6 +170,10 @@ pub mod pallet {
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
+
+		/// Reasons that determine under which conditions the balance may drop below
+		/// the unvested amount.
+		type UnvestedFundsAllowedWithdrawReasons: Get<WithdrawReasons>;
 
 		/// Maximum number of vesting schedules an account may have at a given moment.
 		const MAX_VESTING_SCHEDULES: u32;
@@ -244,7 +254,9 @@ pub mod pallet {
 				Vesting::<T>::try_append(who, vesting_info)
 					.expect("Too many vesting schedules at genesis.");
 
-				let reasons = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
+				let reasons =
+					WithdrawReasons::except(T::UnvestedFundsAllowedWithdrawReasons::get());
+
 				T::Currency::set_lock(VESTING_ID, who, locked, reasons);
 			}
 		}
@@ -317,10 +329,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::vest_other_locked(MaxLocksOf::<T>::get(), T::MAX_VESTING_SCHEDULES)
 			.max(T::WeightInfo::vest_other_unlocked(MaxLocksOf::<T>::get(), T::MAX_VESTING_SCHEDULES))
 		)]
-		pub fn vest_other(
-			origin: OriginFor<T>,
-			target: <T::Lookup as StaticLookup>::Source,
-		) -> DispatchResult {
+		pub fn vest_other(origin: OriginFor<T>, target: AccountIdLookupOf<T>) -> DispatchResult {
 			ensure_signed(origin)?;
 			let who = T::Lookup::lookup(target)?;
 			Self::do_vest(who)
@@ -348,7 +357,7 @@ pub mod pallet {
 		)]
 		pub fn vested_transfer(
 			origin: OriginFor<T>,
-			target: <T::Lookup as StaticLookup>::Source,
+			target: AccountIdLookupOf<T>,
 			schedule: VestingInfo<BalanceOf<T>, T::BlockNumber>,
 		) -> DispatchResult {
 			let transactor = ensure_signed(origin)?;
@@ -379,8 +388,8 @@ pub mod pallet {
 		)]
 		pub fn force_vested_transfer(
 			origin: OriginFor<T>,
-			source: <T::Lookup as StaticLookup>::Source,
-			target: <T::Lookup as StaticLookup>::Source,
+			source: AccountIdLookupOf<T>,
+			target: AccountIdLookupOf<T>,
 			schedule: VestingInfo<BalanceOf<T>, T::BlockNumber>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
@@ -490,8 +499,8 @@ impl<T: Config> Pallet<T> {
 
 	// Execute a vested transfer from `source` to `target` with the given `schedule`.
 	fn do_vested_transfer(
-		source: <T::Lookup as StaticLookup>::Source,
-		target: <T::Lookup as StaticLookup>::Source,
+		source: AccountIdLookupOf<T>,
+		target: AccountIdLookupOf<T>,
 		schedule: VestingInfo<BalanceOf<T>, T::BlockNumber>,
 	) -> DispatchResult {
 		// Validate user inputs.
@@ -567,7 +576,7 @@ impl<T: Config> Pallet<T> {
 			T::Currency::remove_lock(VESTING_ID, who);
 			Self::deposit_event(Event::<T>::VestingCompleted { account: who.clone() });
 		} else {
-			let reasons = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
+			let reasons = WithdrawReasons::except(T::UnvestedFundsAllowedWithdrawReasons::get());
 			T::Currency::set_lock(VESTING_ID, who, total_locked_now, reasons);
 			Self::deposit_event(Event::<T>::VestingUpdated {
 				account: who.clone(),
@@ -710,7 +719,7 @@ where
 		let (schedules, locked_now) =
 			Self::exec_action(schedules.to_vec(), VestingAction::Passive)?;
 
-		Self::write_vesting(&who, schedules)?;
+		Self::write_vesting(who, schedules)?;
 		Self::write_lock(who, locked_now);
 
 		Ok(())
@@ -744,7 +753,7 @@ where
 
 		let (schedules, locked_now) = Self::exec_action(schedules.to_vec(), remove_action)?;
 
-		Self::write_vesting(&who, schedules)?;
+		Self::write_vesting(who, schedules)?;
 		Self::write_lock(who, locked_now);
 		Ok(())
 	}

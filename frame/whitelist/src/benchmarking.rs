@@ -20,10 +20,11 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
-use core::convert::TryInto;
 use frame_benchmarking::benchmarks;
-use frame_support::{ensure, traits::PreimageRecipient};
-use sp_runtime::traits::Hash;
+use frame_support::{
+	ensure,
+	traits::{EnsureOrigin, Get, PreimageRecipient},
+};
 
 #[cfg(test)]
 use crate::Pallet as Whitelist;
@@ -32,7 +33,7 @@ benchmarks! {
 	whitelist_call {
 		let origin = T::WhitelistOrigin::successful_origin();
 		let call_hash = Default::default();
-	}: _<T::Origin>(origin, call_hash)
+	}: _<T::RuntimeOrigin>(origin, call_hash)
 	verify {
 		ensure!(
 			WhitelistedCall::<T>::contains_key(call_hash),
@@ -49,7 +50,7 @@ benchmarks! {
 		let call_hash = Default::default();
 		Pallet::<T>::whitelist_call(origin.clone(), call_hash)
 			.expect("whitelisting call must be successful");
-	}: _<T::Origin>(origin, call_hash)
+	}: _<T::RuntimeOrigin>(origin, call_hash)
 	verify {
 		ensure!(
 			!WhitelistedCall::<T>::contains_key(call_hash),
@@ -68,9 +69,9 @@ benchmarks! {
 		let origin = T::DispatchWhitelistedOrigin::successful_origin();
 		// NOTE: we remove `10` because we need some bytes to encode the variants and vec length
 		let remark_len = <T::PreimageProvider as PreimageRecipient<_>>::MaxSize::get() - 10;
-		let remark = sp_std::vec![1_8; remark_len as usize];
+		let remark = sp_std::vec![1u8; remark_len as usize];
 
-		let call: <T as Config>::Call = frame_system::Call::remark { remark }.into();
+		let call: <T as Config>::RuntimeCall = frame_system::Call::remark { remark }.into();
 		let call_weight = call.get_dispatch_info().weight;
 		let encoded_call = call.encode();
 		let call_hash = T::Hashing::hash(&encoded_call[..]);
@@ -81,7 +82,7 @@ benchmarks! {
 		let encoded_call = encoded_call.try_into().expect("encoded_call must be small enough");
 		T::PreimageProvider::note_preimage(encoded_call);
 
-	}: _<T::Origin>(origin, call_hash, call_weight)
+	}: _<T::RuntimeOrigin>(origin, call_hash, call_weight)
 	verify {
 		ensure!(
 			!WhitelistedCall::<T>::contains_key(call_hash),
@@ -99,12 +100,12 @@ benchmarks! {
 		let origin = T::DispatchWhitelistedOrigin::successful_origin();
 		let remark = sp_std::vec![1u8; n as usize];
 
-		let call: <T as Config>::Call = frame_system::Call::remark { remark }.into();
+		let call: <T as Config>::RuntimeCall = frame_system::Call::remark { remark }.into();
 		let call_hash = T::Hashing::hash_of(&call);
 
 		Pallet::<T>::whitelist_call(origin.clone(), call_hash)
 			.expect("whitelisting call must be successful");
-	}: _<T::Origin>(origin, Box::new(call))
+	}: _<T::RuntimeOrigin>(origin, Box::new(call))
 	verify {
 		ensure!(
 			!WhitelistedCall::<T>::contains_key(call_hash),

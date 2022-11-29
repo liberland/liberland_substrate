@@ -19,10 +19,6 @@
 
 #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-// to allow benchmarking
-#![cfg_attr(feature = "bench", feature(test))]
-#[cfg(feature = "bench")]
-extern crate test;
 
 #[doc(hidden)]
 pub use codec;
@@ -36,6 +32,8 @@ pub use sp_std;
 
 #[doc(hidden)]
 pub use paste;
+#[doc(hidden)]
+pub use sp_arithmetic::traits::Saturating;
 
 #[doc(hidden)]
 pub use sp_application_crypto as app_crypto;
@@ -50,13 +48,14 @@ use sp_core::{
 	hash::{H256, H512},
 	sr25519,
 };
-use sp_std::{convert::TryFrom, prelude::*};
+use sp_std::prelude::*;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 
 pub mod curve;
 pub mod generic;
+pub mod legacy;
 mod multiaddress;
 pub mod offchain;
 pub mod runtime_logger;
@@ -77,9 +76,13 @@ pub use generic::{Digest, DigestItem};
 pub use sp_application_crypto::{BoundToRuntimeAppPublic, RuntimeAppPublic};
 /// Re-export this since it's part of the API of this crate.
 pub use sp_core::{
+	bounded::{BoundedBTreeMap, BoundedBTreeSet, BoundedSlice, BoundedVec, WeakBoundedVec},
 	crypto::{key_types, AccountId32, CryptoType, CryptoTypeId, KeyTypeId},
 	TypeId,
 };
+/// Re-export bounded_vec and bounded_btree_map macros only when std is enabled.
+#[cfg(feature = "std")]
+pub use sp_core::{bounded_btree_map, bounded_vec};
 
 /// Re-export `RuntimeDebug`, to avoid dependency clutter.
 pub use sp_core::RuntimeDebug;
@@ -92,10 +95,14 @@ pub use sp_arithmetic::helpers_128bit;
 pub use sp_arithmetic::{
 	traits::SaturatedConversion, FixedI128, FixedI64, FixedPointNumber, FixedPointOperand,
 	FixedU128, InnerOf, PerThing, PerU16, Perbill, Percent, Permill, Perquintill, Rational128,
-	UpperOf,
+	Rounding, UpperOf,
 };
 
 pub use either::Either;
+
+/// The number of bytes of the module-specific `error` field defined in [`ModuleError`].
+/// In FRAME, this is the maximum encoded size of a pallet error type.
+pub const MAX_MODULE_ERROR_ENCODED_SIZE: usize = 4;
 
 /// An abstraction over justification for a block's validity under a consensus algorithm.
 ///
@@ -140,6 +147,11 @@ impl Justifications {
 	/// exists.
 	pub fn get(&self, engine_id: ConsensusEngineId) -> Option<&EncodedJustification> {
 		self.iter().find(|j| j.0 == engine_id).map(|j| &j.1)
+	}
+
+	/// Remove the encoded justification for the given consensus engine, if it exists.
+	pub fn remove(&mut self, engine_id: ConsensusEngineId) {
+		self.0.retain(|j| j.0 != engine_id)
 	}
 
 	/// Return a copy of the encoded justification for the given consensus
@@ -468,7 +480,7 @@ pub struct ModuleError {
 	/// Module index, matching the metadata module index.
 	pub index: u8,
 	/// Module specific error value.
-	pub error: u8,
+	pub error: [u8; MAX_MODULE_ERROR_ENCODED_SIZE],
 	/// Optional error message.
 	#[codec(skip)]
 	#[cfg_attr(feature = "std", serde(skip_deserializing))]
@@ -478,6 +490,31 @@ pub struct ModuleError {
 impl PartialEq for ModuleError {
 	fn eq(&self, other: &Self) -> bool {
 		(self.index == other.index) && (self.error == other.error)
+	}
+}
+
+/// Errors related to transactional storage layers.
+#[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Debug, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum TransactionalError {
+	/// Too many transactional layers have been spawned.
+	LimitReached,
+	/// A transactional layer was expected, but does not exist.
+	NoLayer,
+}
+
+impl From<TransactionalError> for &'static str {
+	fn from(e: TransactionalError) -> &'static str {
+		match e {
+			TransactionalError::LimitReached => "Too many transactional layers have been spawned",
+			TransactionalError::NoLayer => "A transactional layer was expected, but does not exist",
+		}
+	}
+}
+
+impl From<TransactionalError> for DispatchError {
+	fn from(e: TransactionalError) -> DispatchError {
+		Self::Transactional(e)
 	}
 }
 
@@ -507,6 +544,15 @@ pub enum DispatchError {
 	Token(TokenError),
 	/// An arithmetic error.
 	Arithmetic(ArithmeticError),
+	/// The number of transactional layers has been reached, or we are not in a transactional
+	/// layer.
+	Transactional(TransactionalError),
+	/// Resources exhausted, e.g. attempt to read/write data which is too large to manipulate.
+	Exhausted,
+	/// The state is corrupt; this is generally not going to fix itself.
+	Corruption,
+	/// Some resource (e.g. a preimage) is unavailable right now. This might fix itself later.
+	Unavailable,
 }
 
 /// Result of a `Dispatchable` which contains the `DispatchResult` and additional information about
@@ -631,17 +677,21 @@ impl From<&'static str> for DispatchError {
 
 impl From<DispatchError> for &'static str {
 	fn from(err: DispatchError) -> &'static str {
+		use DispatchError::*;
 		match err {
-			DispatchError::Other(msg) => msg,
-			DispatchError::CannotLookup => "Cannot lookup",
-			DispatchError::BadOrigin => "Bad origin",
-			DispatchError::Module(ModuleError { message, .. }) =>
-				message.unwrap_or("Unknown module error"),
-			DispatchError::ConsumerRemaining => "Consumer remaining",
-			DispatchError::NoProviders => "No providers",
-			DispatchError::TooManyConsumers => "Too many consumers",
-			DispatchError::Token(e) => e.into(),
-			DispatchError::Arithmetic(e) => e.into(),
+			Other(msg) => msg,
+			CannotLookup => "Cannot lookup",
+			BadOrigin => "Bad origin",
+			Module(ModuleError { message, .. }) => message.unwrap_or("Unknown module error"),
+			ConsumerRemaining => "Consumer remaining",
+			NoProviders => "No providers",
+			TooManyConsumers => "Too many consumers",
+			Token(e) => e.into(),
+			Arithmetic(e) => e.into(),
+			Transactional(e) => e.into(),
+			Exhausted => "Resources exhausted",
+			Corruption => "State corrupt",
+			Unavailable => "Resource unavailable",
 		}
 	}
 }
@@ -657,29 +707,37 @@ where
 
 impl traits::Printable for DispatchError {
 	fn print(&self) {
+		use DispatchError::*;
 		"DispatchError".print();
 		match self {
-			Self::Other(err) => err.print(),
-			Self::CannotLookup => "Cannot lookup".print(),
-			Self::BadOrigin => "Bad origin".print(),
-			Self::Module(ModuleError { index, error, message }) => {
+			Other(err) => err.print(),
+			CannotLookup => "Cannot lookup".print(),
+			BadOrigin => "Bad origin".print(),
+			Module(ModuleError { index, error, message }) => {
 				index.print();
 				error.print();
 				if let Some(msg) = message {
 					msg.print();
 				}
 			},
-			Self::ConsumerRemaining => "Consumer remaining".print(),
-			Self::NoProviders => "No providers".print(),
-			Self::TooManyConsumers => "Too many consumers".print(),
-			Self::Token(e) => {
+			ConsumerRemaining => "Consumer remaining".print(),
+			NoProviders => "No providers".print(),
+			TooManyConsumers => "Too many consumers".print(),
+			Token(e) => {
 				"Token error: ".print();
 				<&'static str>::from(*e).print();
 			},
-			Self::Arithmetic(e) => {
+			Arithmetic(e) => {
 				"Arithmetic error: ".print();
 				<&'static str>::from(*e).print();
 			},
+			Transactional(e) => {
+				"Transactional error: ".print();
+				<&'static str>::from(*e).print();
+			},
+			Exhausted => "Resources exhausted".print(),
+			Corruption => "State corrupt".print(),
+			Unavailable => "Resource unavailable".print(),
 		}
 	}
 }
@@ -778,7 +836,24 @@ pub fn verify_encoded_lazy<V: Verify, T: codec::Encode>(
 macro_rules! assert_eq_error_rate {
 	($x:expr, $y:expr, $error:expr $(,)?) => {
 		assert!(
-			($x) >= (($y) - ($error)) && ($x) <= (($y) + ($error)),
+			($x >= $crate::Saturating::saturating_sub($y, $error)) &&
+				($x <= $crate::Saturating::saturating_add($y, $error)),
+			"{:?} != {:?} (with error rate {:?})",
+			$x,
+			$y,
+			$error,
+		);
+	};
+}
+
+/// Same as [`assert_eq_error_rate`], but intended to be used with floating point number, or
+/// generally those who do not have over/underflow potentials.
+#[macro_export]
+#[cfg(feature = "std")]
+macro_rules! assert_eq_error_rate_float {
+	($x:expr, $y:expr, $error:expr $(,)?) => {
+		assert!(
+			($x >= $y - $error) && ($x <= $y + $error),
 			"{:?} != {:?} (with error rate {:?})",
 			$x,
 			$y,
@@ -922,15 +997,15 @@ mod tests {
 	fn dispatch_error_encoding() {
 		let error = DispatchError::Module(ModuleError {
 			index: 1,
-			error: 2,
+			error: [2, 0, 0, 0],
 			message: Some("error message"),
 		});
 		let encoded = error.encode();
 		let decoded = DispatchError::decode(&mut &encoded[..]).unwrap();
-		assert_eq!(encoded, vec![3, 1, 2]);
+		assert_eq!(encoded, vec![3, 1, 2, 0, 0, 0]);
 		assert_eq!(
 			decoded,
-			DispatchError::Module(ModuleError { index: 1, error: 2, message: None })
+			DispatchError::Module(ModuleError { index: 1, error: [2, 0, 0, 0], message: None })
 		);
 	}
 
@@ -943,9 +1018,9 @@ mod tests {
 			Other("bar"),
 			CannotLookup,
 			BadOrigin,
-			Module(ModuleError { index: 1, error: 1, message: None }),
-			Module(ModuleError { index: 1, error: 2, message: None }),
-			Module(ModuleError { index: 2, error: 1, message: None }),
+			Module(ModuleError { index: 1, error: [1, 0, 0, 0], message: None }),
+			Module(ModuleError { index: 1, error: [2, 0, 0, 0], message: None }),
+			Module(ModuleError { index: 2, error: [1, 0, 0, 0], message: None }),
 			ConsumerRemaining,
 			NoProviders,
 			Token(TokenError::NoFunds),
@@ -970,8 +1045,8 @@ mod tests {
 
 		// Ignores `message` field in `Module` variant.
 		assert_eq!(
-			Module(ModuleError { index: 1, error: 1, message: Some("foo") }),
-			Module(ModuleError { index: 1, error: 1, message: None }),
+			Module(ModuleError { index: 1, error: [1, 0, 0, 0], message: Some("foo") }),
+			Module(ModuleError { index: 1, error: [1, 0, 0, 0], message: None }),
 		);
 	}
 
@@ -1032,7 +1107,7 @@ mod tests {
 		ext.insert(b"c".to_vec(), vec![3u8; 33]);
 		ext.insert(b"d".to_vec(), vec![4u8; 33]);
 
-		let pre_root = ext.backend.root().clone();
+		let pre_root = *ext.backend.root();
 		let (_, proof) = ext.execute_and_prove(|| {
 			sp_io::storage::get(b"a");
 			sp_io::storage::get(b"b");

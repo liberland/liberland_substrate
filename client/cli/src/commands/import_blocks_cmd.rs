@@ -37,17 +37,17 @@ use std::{
 #[derive(Debug, Parser)]
 pub struct ImportBlocksCmd {
 	/// Input file or stdin if unspecified.
-	#[clap(parse(from_os_str))]
+	#[arg()]
 	pub input: Option<PathBuf>,
 
 	/// The default number of 64KB pages to ever allocate for Wasm execution.
 	///
 	/// Don't alter this unless you know what you're doing.
-	#[clap(long, value_name = "COUNT")]
+	#[arg(long, value_name = "COUNT")]
 	pub default_heap_pages: Option<u32>,
 
 	/// Try importing blocks from binary format rather than JSON.
-	#[clap(long)]
+	#[arg(long)]
 	pub binary: bool,
 
 	#[allow(missing_docs)]
@@ -72,13 +72,9 @@ impl ImportBlocksCmd {
 		B: BlockT + for<'de> serde::Deserialize<'de>,
 		IQ: sc_service::ImportQueue<B> + 'static,
 	{
-		let file: Box<dyn ReadPlusSeek + Send> = match &self.input {
+		let file: Box<dyn Read + Send> = match &self.input {
 			Some(filename) => Box::new(fs::File::open(filename)?),
-			None => {
-				let mut buffer = Vec::new();
-				io::stdin().read_to_end(&mut buffer)?;
-				Box::new(io::Cursor::new(buffer))
-			},
+			None => Box::new(io::stdin()),
 		};
 
 		import_blocks(client, import_queue, file, false, self.binary)

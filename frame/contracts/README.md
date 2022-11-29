@@ -2,10 +2,10 @@
 
 The Contract module provides functionality for the runtime to deploy and execute WebAssembly smart-contracts.
 
-- [`Call`](https://docs.rs/pallet-contracts/latest/pallet_contracts/enum.Call.html)
-- [`Config`](https://docs.rs/pallet-contracts/latest/pallet_contracts/trait.Config.html)
-- [`Error`](https://docs.rs/pallet-contracts/latest/pallet_contracts/enum.Error.html)
-- [`Event`](https://docs.rs/pallet-contracts/latest/pallet_contracts/enum.Event.html)
+- [`Call`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/enum.Call.html)
+- [`Config`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/trait.Config.html)
+- [`Error`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/enum.Error.html)
+- [`Event`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/enum.Error.html)
 
 ## Overview
 
@@ -37,17 +37,42 @@ changes still persist.
 One gas is equivalent to one [weight](https://docs.substrate.io/v3/runtime/weights-and-fees)
 which is defined as one picosecond of execution time on the runtime's reference machine.
 
-### Notable Scenarios
+### Revert Behaviour
 
-Contract call failures are not always cascading. When failures occur in a sub-call, they do not "bubble up",
+Contract call failures are not cascading. When failures occur in a sub-call, they do not "bubble up",
 and the call will only revert at the specific contract level. For example, if contract A calls contract B, and B
 fails, A can decide how to handle that failure, either proceeding or reverting A's changes.
+
+### Offchain Execution
+
+In general, a contract execution needs to be deterministic so that all nodes come to the same
+conclusion when executing it. To that end we disallow any instructions that could cause
+indeterminism. Most notable are any floating point arithmetic. That said, sometimes contracts
+are executed off-chain and hence are not subject to consensus. If code is only executed by a
+single node and implicitly trusted by other actors is such a case. Trusted execution environments
+come to mind. To that end we allow the execution of indeterminstic code for offchain usages
+with the following constraints:
+
+1. No contract can ever be instantiated from an indeterministic code. The only way to execute
+the code is to use a delegate call from a deterministic contract.
+2. The code that wants to use this feature needs to depend on `pallet-contracts` and use `bare_call`
+directly. This makes sure that by default `pallet-contracts` does not expose any indeterminism.
+
+## How to use
+
+When setting up the `Schedule` for your runtime make sure to set `InstructionWeights::fallback`
+to a non zero value. The default is `0` and prevents the upload of any non deterministic code.
+
+An indeterministic code can be deployed on-chain by passing `Determinism::AllowIndeterministic`
+to `upload_code`. A determinstic contract can then delegate call into it if and only if it
+is ran by using `bare_call` and passing `Determinism::AllowIndeterministic` to it. **Never use
+this argument when the contract is called from an on-chain transaction.**
 
 ## Interface
 
 ### Dispatchable functions
 
-Those are documented in the [reference documentation](https://docs.rs/pallet-contracts/latest/pallet_contracts/#dispatchable-functions).
+Those are documented in the [reference documentation](https://paritytech.github.io/substrate/master/pallet_contracts/index.html#dispatchable-functions).
 
 ### Interface exposed to contracts
 
@@ -89,7 +114,7 @@ writing WebAssembly based smart contracts in the Rust programming language.
 
 Contracts can emit messages to the client when called as RPC through the `seal_debug_message`
 API. This is exposed in ink! via
-[`ink_env::debug_println()`](https://docs.rs/ink_env/latest/ink_env/fn.debug_println.html).
+[`ink_env::debug_message()`](https://paritytech.github.io/ink/ink_env/fn.debug_message.html).
 
 Those messages are gathered into an internal buffer and send to the RPC client.
 It is up the the individual client if and how those messages are presented to the user.

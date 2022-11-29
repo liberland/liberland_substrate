@@ -27,36 +27,38 @@ pub type AccountId = u32;
 pub type Balance = u32;
 
 parameter_types! {
-	// Set the vote weight for any id who's weight has _not_ been set with `set_vote_weight_of`.
+	// Set the vote weight for any id who's weight has _not_ been set with `set_score_of`.
 	pub static NextVoteWeight: VoteWeight = 0;
 	pub static NextVoteWeightMap: HashMap<AccountId, VoteWeight> = Default::default();
 }
 
 pub struct StakingMock;
-impl frame_election_provider_support::VoteWeightProvider<AccountId> for StakingMock {
-	fn vote_weight(id: &AccountId) -> VoteWeight {
+impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
+	type Score = VoteWeight;
+
+	fn score(id: &AccountId) -> Self::Score {
 		*NextVoteWeightMap::get().get(id).unwrap_or(&NextVoteWeight::get())
 	}
 
-	#[cfg(any(feature = "runtime-benchmarks", test))]
-	fn set_vote_weight_of(id: &AccountId, weight: VoteWeight) {
-		NEXT_VOTE_WEIGHT_MAP.with(|m| m.borrow_mut().insert(id.clone(), weight));
+	#[cfg(any(feature = "runtime-benchmarks", feature = "fuzz", test))]
+	fn set_score_of(id: &AccountId, weight: Self::Score) {
+		NEXT_VOTE_WEIGHT_MAP.with(|m| m.borrow_mut().insert(*id, weight));
 	}
 }
 
 impl frame_system::Config for Runtime {
 	type SS58Prefix = ();
 	type BaseCallFilter = frame_support::traits::Everything;
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = u64;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = sp_core::H256;
 	type Hashing = sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = sp_runtime::traits::IdentityLookup<Self::AccountId>;
 	type Header = sp_runtime::testing::Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ();
 	type DbWeight = ();
 	type BlockLength = ();
@@ -76,10 +78,11 @@ parameter_types! {
 }
 
 impl bags_list::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type BagThresholds = BagThresholds;
-	type VoteWeightProvider = StakingMock;
+	type ScoreProvider = StakingMock;
+	type Score = VoteWeight;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -105,6 +108,7 @@ pub struct ExtBuilder {
 	skip_genesis_ids: bool,
 }
 
+#[cfg(any(feature = "runtime-benchmarks", feature = "fuzz", test))]
 impl ExtBuilder {
 	/// Skip adding the default genesis ids to the list.
 	#[cfg(test)]
@@ -134,7 +138,7 @@ impl ExtBuilder {
 		ext.execute_with(|| {
 			for (id, weight) in ids_with_weight {
 				frame_support::assert_ok!(List::<Runtime>::insert(*id, *weight));
-				StakingMock::set_vote_weight_of(id, *weight);
+				StakingMock::set_score_of(id, *weight);
 			}
 		});
 
@@ -144,7 +148,7 @@ impl ExtBuilder {
 	pub fn build_and_execute(self, test: impl FnOnce() -> ()) {
 		self.build().execute_with(|| {
 			test();
-			List::<Runtime>::sanity_check().expect("Sanity check post condition failed")
+			List::<Runtime>::try_state().expect("Try-state post condition failed")
 		})
 	}
 

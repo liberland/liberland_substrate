@@ -40,23 +40,24 @@ use futures::{
 	prelude::*,
 };
 use libp2p::{
-	core::{
-		connection::{ConnectionId, ListenerId},
-		ConnectedPoint, Multiaddr, PeerId,
-	},
+	core::{connection::ConnectionId, transport::ListenerId, ConnectedPoint, Multiaddr, PeerId},
 	request_response::{
 		handler::RequestResponseHandler, ProtocolSupport, RequestResponse, RequestResponseCodec,
 		RequestResponseConfig, RequestResponseEvent, RequestResponseMessage, ResponseChannel,
 	},
 	swarm::{
-		protocols_handler::multi::MultiHandler, IntoProtocolsHandler, NetworkBehaviour,
-		NetworkBehaviourAction, PollParameters, ProtocolsHandler,
+		handler::multi::MultiHandler, ConnectionHandler, IntoConnectionHandler, NetworkBehaviour,
+		NetworkBehaviourAction, PollParameters,
+	},
+};
+use sc_network_common::{
+	protocol::ProtocolName,
+	request_responses::{
+		IfDisconnected, IncomingRequest, OutgoingResponse, ProtocolConfig, RequestFailure,
 	},
 };
 use std::{
-	borrow::Cow,
 	collections::{hash_map::Entry, HashMap},
-	convert::TryFrom as _,
 	io, iter,
 	pin::Pin,
 	task::{Context, Poll},
@@ -65,96 +66,6 @@ use std::{
 
 pub use libp2p::request_response::{InboundFailure, OutboundFailure, RequestId};
 use sc_peerset::{PeersetHandle, BANNED_THRESHOLD};
-
-/// Configuration for a single request-response protocol.
-#[derive(Debug, Clone)]
-pub struct ProtocolConfig {
-	/// Name of the protocol on the wire. Should be something like `/foo/bar`.
-	pub name: Cow<'static, str>,
-
-	/// Maximum allowed size, in bytes, of a request.
-	///
-	/// Any request larger than this value will be declined as a way to avoid allocating too
-	/// much memory for it.
-	pub max_request_size: u64,
-
-	/// Maximum allowed size, in bytes, of a response.
-	///
-	/// Any response larger than this value will be declined as a way to avoid allocating too
-	/// much memory for it.
-	pub max_response_size: u64,
-
-	/// Duration after which emitted requests are considered timed out.
-	///
-	/// If you expect the response to come back quickly, you should set this to a smaller duration.
-	pub request_timeout: Duration,
-
-	/// Channel on which the networking service will send incoming requests.
-	///
-	/// Every time a peer sends a request to the local node using this protocol, the networking
-	/// service will push an element on this channel. The receiving side of this channel then has
-	/// to pull this element, process the request, and send back the response to send back to the
-	/// peer.
-	///
-	/// The size of the channel has to be carefully chosen. If the channel is full, the networking
-	/// service will discard the incoming request send back an error to the peer. Consequently,
-	/// the channel being full is an indicator that the node is overloaded.
-	///
-	/// You can typically set the size of the channel to `T / d`, where `T` is the
-	/// `request_timeout` and `d` is the expected average duration of CPU and I/O it takes to
-	/// build a response.
-	///
-	/// Can be `None` if the local node does not support answering incoming requests.
-	/// If this is `None`, then the local node will not advertise support for this protocol towards
-	/// other peers. If this is `Some` but the channel is closed, then the local node will
-	/// advertise support for this protocol, but any incoming request will lead to an error being
-	/// sent back.
-	pub inbound_queue: Option<mpsc::Sender<IncomingRequest>>,
-}
-
-/// A single request received by a peer on a request-response protocol.
-#[derive(Debug)]
-pub struct IncomingRequest {
-	/// Who sent the request.
-	pub peer: PeerId,
-
-	/// Request sent by the remote. Will always be smaller than
-	/// [`ProtocolConfig::max_request_size`].
-	pub payload: Vec<u8>,
-
-	/// Channel to send back the response.
-	///
-	/// There are two ways to indicate that handling the request failed:
-	///
-	/// 1. Drop `pending_response` and thus not changing the reputation of the peer.
-	///
-	/// 2. Sending an `Err(())` via `pending_response`, optionally including reputation changes for
-	/// the given peer.
-	pub pending_response: oneshot::Sender<OutgoingResponse>,
-}
-
-/// Response for an incoming request to be send by a request protocol handler.
-#[derive(Debug)]
-pub struct OutgoingResponse {
-	/// The payload of the response.
-	///
-	/// `Err(())` if none is available e.g. due an error while handling the request.
-	pub result: Result<Vec<u8>, ()>,
-
-	/// Reputation changes accrued while handling the request. To be applied to the reputation of
-	/// the peer sending the request.
-	pub reputation_changes: Vec<ReputationChange>,
-
-	/// If provided, the `oneshot::Sender` will be notified when the request has been sent to the
-	/// peer.
-	///
-	/// > **Note**: Operating systems typically maintain a buffer of a few dozen kilobytes of
-	/// >			outgoing data for each TCP socket, and it is not possible for a user
-	/// >			application to inspect this buffer. This channel here is not actually notified
-	/// >			when the response has been fully sent out, but rather when it has fully been
-	/// >			written to the buffer managed by the operating system.
-	pub sent_feedback: Option<oneshot::Sender<()>>,
-}
 
 /// Event generated by the [`RequestResponsesBehaviour`].
 #[derive(Debug)]
@@ -166,7 +77,7 @@ pub enum Event {
 		/// Peer which has emitted the request.
 		peer: PeerId,
 		/// Name of the protocol in question.
-		protocol: Cow<'static, str>,
+		protocol: ProtocolName,
 		/// Whether handling the request was successful or unsuccessful.
 		///
 		/// When successful contains the time elapsed between when we received the request and when
@@ -182,7 +93,7 @@ pub enum Event {
 		/// Peer that we send a request to.
 		peer: PeerId,
 		/// Name of the protocol in question.
-		protocol: Cow<'static, str>,
+		protocol: ProtocolName,
 		/// Duration the request took.
 		duration: Duration,
 		/// Result of the request.
@@ -201,33 +112,13 @@ pub enum Event {
 /// [`ProtocolRequestId`]s.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct ProtocolRequestId {
-	protocol: Cow<'static, str>,
+	protocol: ProtocolName,
 	request_id: RequestId,
 }
 
-impl From<(Cow<'static, str>, RequestId)> for ProtocolRequestId {
-	fn from((protocol, request_id): (Cow<'static, str>, RequestId)) -> Self {
+impl From<(ProtocolName, RequestId)> for ProtocolRequestId {
+	fn from((protocol, request_id): (ProtocolName, RequestId)) -> Self {
 		Self { protocol, request_id }
-	}
-}
-
-/// When sending a request, what to do on a disconnected recipient.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum IfDisconnected {
-	/// Try to connect to the peer.
-	TryConnect,
-	/// Just fail if the destination is not yet connected.
-	ImmediateError,
-}
-
-/// Convenience functions for `IfDisconnected`.
-impl IfDisconnected {
-	/// Shall we connect to a disconnected peer?
-	pub fn should_connect(self) -> bool {
-		match self {
-			Self::TryConnect => true,
-			Self::ImmediateError => false,
-		}
 	}
 }
 
@@ -237,7 +128,7 @@ pub struct RequestResponsesBehaviour {
 	/// Contains the underlying libp2p `RequestResponse` behaviour, plus an optional
 	/// "response builder" used to build responses for incoming requests.
 	protocols: HashMap<
-		Cow<'static, str>,
+		ProtocolName,
 		(RequestResponse<GenericCodec>, Option<mpsc::Sender<IncomingRequest>>),
 	>,
 
@@ -273,7 +164,7 @@ struct MessageRequest {
 	request_id: RequestId,
 	request: Vec<u8>,
 	channel: ResponseChannel<Result<Vec<u8>, ()>>,
-	protocol: String,
+	protocol: ProtocolName,
 	resp_builder: Option<futures::channel::mpsc::Sender<IncomingRequest>>,
 	// Once we get incoming request we save all params, create an async call to Peerset
 	// to get the reputation of the peer.
@@ -284,7 +175,7 @@ struct MessageRequest {
 struct RequestProcessingOutcome {
 	peer: PeerId,
 	request_id: RequestId,
-	protocol: Cow<'static, str>,
+	protocol: ProtocolName,
 	inner_channel: ResponseChannel<Result<Vec<u8>, ()>>,
 	response: OutgoingResponse,
 }
@@ -313,7 +204,9 @@ impl RequestResponsesBehaviour {
 					max_request_size: protocol.max_request_size,
 					max_response_size: protocol.max_response_size,
 				},
-				iter::once((protocol.name.as_bytes().to_vec(), protocol_support)),
+				iter::once(protocol.name.as_bytes().to_vec())
+					.chain(protocol.fallback_names.iter().map(|name| name.as_bytes().to_vec()))
+					.zip(iter::repeat(protocol_support)),
 				cfg,
 			);
 
@@ -356,25 +249,21 @@ impl RequestResponsesBehaviour {
 					(Instant::now(), pending_response),
 				);
 				debug_assert!(prev_req_id.is_none(), "Expect request id to be unique.");
-			} else {
-				if pending_response.send(Err(RequestFailure::NotConnected)).is_err() {
-					log::debug!(
-						target: "sub-libp2p",
-						"Not connected to peer {:?}. At the same time local \
-						 node is no longer interested in the result.",
-						target,
-					);
-				};
-			}
-		} else {
-			if pending_response.send(Err(RequestFailure::UnknownProtocol)).is_err() {
+			} else if pending_response.send(Err(RequestFailure::NotConnected)).is_err() {
 				log::debug!(
 					target: "sub-libp2p",
-					"Unknown protocol {:?}. At the same time local \
+					"Not connected to peer {:?}. At the same time local \
 					 node is no longer interested in the result.",
-					protocol_name,
+					target,
 				);
-			};
+			}
+		} else if pending_response.send(Err(RequestFailure::UnknownProtocol)).is_err() {
+			log::debug!(
+				target: "sub-libp2p",
+				"Unknown protocol {:?}. At the same time local \
+				 node is no longer interested in the result.",
+				protocol_name,
+			);
 		}
 	}
 
@@ -382,7 +271,7 @@ impl RequestResponsesBehaviour {
 		&mut self,
 		protocol: String,
 		handler: RequestResponseHandler<GenericCodec>,
-	) -> <RequestResponsesBehaviour as NetworkBehaviour>::ProtocolsHandler {
+	) -> <RequestResponsesBehaviour as NetworkBehaviour>::ConnectionHandler {
 		let mut handlers: HashMap<_, _> = self
 			.protocols
 			.iter_mut()
@@ -401,11 +290,13 @@ impl RequestResponsesBehaviour {
 }
 
 impl NetworkBehaviour for RequestResponsesBehaviour {
-	type ProtocolsHandler =
-		MultiHandler<String, <RequestResponse<GenericCodec> as NetworkBehaviour>::ProtocolsHandler>;
+	type ConnectionHandler = MultiHandler<
+		String,
+		<RequestResponse<GenericCodec> as NetworkBehaviour>::ConnectionHandler,
+	>;
 	type OutEvent = Event;
 
-	fn new_handler(&mut self) -> Self::ProtocolsHandler {
+	fn new_handler(&mut self) -> Self::ConnectionHandler {
 		let iter = self
 			.protocols
 			.iter_mut()
@@ -427,6 +318,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 		conn: &ConnectionId,
 		endpoint: &ConnectedPoint,
 		failed_addresses: Option<&Vec<Multiaddr>>,
+		other_established: usize,
 	) {
 		for (p, _) in self.protocols.values_mut() {
 			NetworkBehaviour::inject_connection_established(
@@ -435,13 +327,8 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 				conn,
 				endpoint,
 				failed_addresses,
+				other_established,
 			)
-		}
-	}
-
-	fn inject_connected(&mut self, peer_id: &PeerId) {
-		for (p, _) in self.protocols.values_mut() {
-			NetworkBehaviour::inject_connected(p, peer_id)
 		}
 	}
 
@@ -450,17 +337,25 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 		peer_id: &PeerId,
 		conn: &ConnectionId,
 		endpoint: &ConnectedPoint,
-		_handler: <Self::ProtocolsHandler as IntoProtocolsHandler>::Handler,
+		handler: <Self::ConnectionHandler as IntoConnectionHandler>::Handler,
+		remaining_established: usize,
 	) {
-		for (p, _) in self.protocols.values_mut() {
-			let handler = p.new_handler();
-			NetworkBehaviour::inject_connection_closed(p, peer_id, conn, endpoint, handler);
-		}
-	}
-
-	fn inject_disconnected(&mut self, peer_id: &PeerId) {
-		for (p, _) in self.protocols.values_mut() {
-			NetworkBehaviour::inject_disconnected(p, peer_id)
+		for (p_name, event) in handler.into_iter() {
+			if let Some((proto, _)) = self.protocols.get_mut(p_name.as_str()) {
+				proto.inject_connection_closed(
+					peer_id,
+					conn,
+					endpoint,
+					event,
+					remaining_established,
+				)
+			} else {
+				log::error!(
+					target: "sub-libp2p",
+					"inject_connection_closed: no request-response instance registered for protocol {:?}",
+					p_name,
+				)
+			}
 		}
 	}
 
@@ -468,7 +363,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 		&mut self,
 		peer_id: PeerId,
 		connection: ConnectionId,
-		(p_name, event): <Self::ProtocolsHandler as ProtocolsHandler>::OutEvent,
+		(p_name, event): <Self::ConnectionHandler as ConnectionHandler>::OutEvent,
 	) {
 		if let Some((proto, _)) = self.protocols.get_mut(&*p_name) {
 			return proto.inject_event(peer_id, connection, event)
@@ -500,7 +395,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 	fn inject_dial_failure(
 		&mut self,
 		peer_id: Option<PeerId>,
-		_: Self::ProtocolsHandler,
+		_: Self::ConnectionHandler,
 		error: &libp2p::swarm::DialError,
 	) {
 		for (p, _) in self.protocols.values_mut() {
@@ -537,7 +432,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 		&mut self,
 		cx: &mut Context,
 		params: &mut impl PollParameters,
-	) -> Poll<NetworkBehaviourAction<Self::OutEvent, Self::ProtocolsHandler>> {
+	) -> Poll<NetworkBehaviourAction<Self::OutEvent, Self::ConnectionHandler>> {
 		'poll_all: loop {
 			if let Some(message_request) = self.message_request.take() {
 				// Now we can can poll `MessageRequest` until we get the reputation
@@ -594,7 +489,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 							// will be reported by the corresponding `RequestResponse` through
 							// an `InboundFailure::Omission` event.
 							let _ = resp_builder.try_send(IncomingRequest {
-								peer: peer.clone(),
+								peer,
 								payload: request,
 								pending_response: tx,
 							});
@@ -602,7 +497,6 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 							debug_assert!(false, "Received message on outbound-only protocol.");
 						}
 
-						let protocol = Cow::from(protocol);
 						self.pending_responses.push(Box::pin(async move {
 							// The `tx` created above can be dropped if we are not capable of
 							// processing this request, which is reflected as a
@@ -643,7 +537,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 
 				if let Ok(payload) = result {
 					if let Some((protocol, _)) = self.protocols.get_mut(&*protocol_name) {
-						if let Err(_) = protocol.send_response(inner_channel, Ok(payload)) {
+						if protocol.send_response(inner_channel, Ok(payload)).is_err() {
 							// Note: Failure is handled further below when receiving
 							// `InboundFailure` event from `RequestResponse` behaviour.
 							log::debug!(
@@ -653,11 +547,9 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 								 Dropping response",
 								request_id, protocol_name,
 							);
-						} else {
-							if let Some(sent_feedback) = sent_feedback {
-								self.send_feedback
-									.insert((protocol_name, request_id).into(), sent_feedback);
-							}
+						} else if let Some(sent_feedback) = sent_feedback {
+							self.send_feedback
+								.insert((protocol_name, request_id).into(), sent_feedback);
 						}
 					}
 				}
@@ -678,25 +570,15 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 
 						// Other events generated by the underlying behaviour are transparently
 						// passed through.
-						NetworkBehaviourAction::DialAddress { address, handler } => {
-							log::error!(
-								"The request-response isn't supposed to start dialing peers"
-							);
+						NetworkBehaviourAction::Dial { opts, handler } => {
+							if opts.get_peer_id().is_none() {
+								log::error!(
+									"The request-response isn't supposed to start dialing addresses"
+								);
+							}
 							let protocol = protocol.to_string();
 							let handler = self.new_handler_with_replacement(protocol, handler);
-							return Poll::Ready(NetworkBehaviourAction::DialAddress {
-								address,
-								handler,
-							})
-						},
-						NetworkBehaviourAction::DialPeer { peer_id, condition, handler } => {
-							let protocol = protocol.to_string();
-							let handler = self.new_handler_with_replacement(protocol, handler);
-							return Poll::Ready(NetworkBehaviourAction::DialPeer {
-								peer_id,
-								condition,
-								handler,
-							})
+							return Poll::Ready(NetworkBehaviourAction::Dial { opts, handler })
 						},
 						NetworkBehaviourAction::NotifyHandler { peer_id, handler, event } =>
 							return Poll::Ready(NetworkBehaviourAction::NotifyHandler {
@@ -723,13 +605,10 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 							message:
 								RequestResponseMessage::Request { request_id, request, channel, .. },
 						} => {
-							self.pending_responses_arrival_time.insert(
-								(protocol.clone(), request_id.clone()).into(),
-								Instant::now(),
-							);
+							self.pending_responses_arrival_time
+								.insert((protocol.clone(), request_id).into(), Instant::now());
 
-							let get_peer_reputation =
-								self.peerset.clone().peer_reputation(peer.clone());
+							let get_peer_reputation = self.peerset.clone().peer_reputation(peer);
 							let get_peer_reputation = Box::pin(get_peer_reputation);
 
 							// Save the Future-like state with params to poll `get_peer_reputation`
@@ -740,7 +619,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 								request_id,
 								request,
 								channel,
-								protocol: protocol.to_string(),
+								protocol: protocol.clone(),
 								resp_builder: resp_builder.clone(),
 								get_peer_reputation,
 							});
@@ -888,24 +767,7 @@ impl NetworkBehaviour for RequestResponsesBehaviour {
 pub enum RegisterError {
 	/// A protocol has been specified multiple times.
 	#[error("{0}")]
-	DuplicateProtocol(Cow<'static, str>),
-}
-
-/// Error in a request.
-#[derive(Debug, thiserror::Error)]
-#[allow(missing_docs)]
-pub enum RequestFailure {
-	#[error("We are not currently connected to the requested peer.")]
-	NotConnected,
-	#[error("Given protocol hasn't been registered.")]
-	UnknownProtocol,
-	#[error("Remote has closed the substream before answering, thereby signaling that it considers the request as valid, but refused to answer it.")]
-	Refused,
-	#[error("The remote replied, but the local node is no longer interested in the response.")]
-	Obsolete,
-	/// Problem on the network.
-	#[error("Problem on the network: {0}")]
-	Network(OutboundFailure),
+	DuplicateProtocol(ProtocolName),
 }
 
 /// Error when processing a request sent by a remote.
@@ -1071,7 +933,7 @@ mod tests {
 		let noise_keys =
 			noise::Keypair::<noise::X25519Spec>::new().into_authentic(&keypair).unwrap();
 
-		let transport = MemoryTransport
+		let transport = MemoryTransport::new()
 			.upgrade(upgrade::Version::V1)
 			.authenticate(noise::NoiseConfig::xx(noise_keys).into_authenticated())
 			.multiplex(libp2p::yamux::YamuxConfig::default())
@@ -1133,6 +995,7 @@ mod tests {
 
 				let protocol_config = ProtocolConfig {
 					name: From::from(protocol_name),
+					fallback_names: Vec::new(),
 					max_request_size: 1024,
 					max_response_size: 1024 * 1024,
 					request_timeout: Duration::from_secs(30),
@@ -1147,7 +1010,7 @@ mod tests {
 		// this test, so they wouldn't connect to each other.
 		{
 			let dial_addr = swarms[1].1.clone();
-			Swarm::dial_addr(&mut swarms[0].0, dial_addr).unwrap();
+			Swarm::dial(&mut swarms[0].0, dial_addr).unwrap();
 		}
 
 		let (mut swarm, _, peerset) = swarms.remove(0);
@@ -1233,6 +1096,7 @@ mod tests {
 
 				let protocol_config = ProtocolConfig {
 					name: From::from(protocol_name),
+					fallback_names: Vec::new(),
 					max_request_size: 1024,
 					max_response_size: 8, // <-- important for the test
 					request_timeout: Duration::from_secs(30),
@@ -1247,7 +1111,7 @@ mod tests {
 		// this test, so they wouldn't connect to each other.
 		{
 			let dial_addr = swarms[1].1.clone();
-			Swarm::dial_addr(&mut swarms[0].0, dial_addr).unwrap();
+			Swarm::dial(&mut swarms[0].0, dial_addr).unwrap();
 		}
 
 		// Running `swarm[0]` in the background until a `InboundRequest` event happens,
@@ -1329,6 +1193,7 @@ mod tests {
 			let protocol_configs = vec![
 				ProtocolConfig {
 					name: From::from(protocol_name_1),
+					fallback_names: Vec::new(),
 					max_request_size: 1024,
 					max_response_size: 1024 * 1024,
 					request_timeout: Duration::from_secs(30),
@@ -1336,6 +1201,7 @@ mod tests {
 				},
 				ProtocolConfig {
 					name: From::from(protocol_name_2),
+					fallback_names: Vec::new(),
 					max_request_size: 1024,
 					max_response_size: 1024 * 1024,
 					request_timeout: Duration::from_secs(30),
@@ -1353,6 +1219,7 @@ mod tests {
 			let protocol_configs = vec![
 				ProtocolConfig {
 					name: From::from(protocol_name_1),
+					fallback_names: Vec::new(),
 					max_request_size: 1024,
 					max_response_size: 1024 * 1024,
 					request_timeout: Duration::from_secs(30),
@@ -1360,6 +1227,7 @@ mod tests {
 				},
 				ProtocolConfig {
 					name: From::from(protocol_name_2),
+					fallback_names: Vec::new(),
 					max_request_size: 1024,
 					max_response_size: 1024 * 1024,
 					request_timeout: Duration::from_secs(30),
@@ -1376,7 +1244,7 @@ mod tests {
 
 		// Ask swarm 1 to dial swarm 2. There isn't any discovery mechanism in place in this test,
 		// so they wouldn't connect to each other.
-		swarm_1.dial_addr(listen_add_2).unwrap();
+		swarm_1.dial(listen_add_2).unwrap();
 
 		// Run swarm 2 in the background, receiving two requests.
 		pool.spawner()

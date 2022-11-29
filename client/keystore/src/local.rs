@@ -198,7 +198,7 @@ impl SyncCryptoStore for LocalKeystore {
 					.0
 					.read()
 					.key_pair_by_type::<ed25519::Pair>(&pub_key, id)
-					.map_err(|e| TraitError::from(e))?;
+					.map_err(TraitError::from)?;
 				key_pair.map(|k| k.sign(msg).encode()).map(Ok).transpose()
 			},
 			sr25519::CRYPTO_ID => {
@@ -209,7 +209,7 @@ impl SyncCryptoStore for LocalKeystore {
 					.0
 					.read()
 					.key_pair_by_type::<sr25519::Pair>(&pub_key, id)
-					.map_err(|e| TraitError::from(e))?;
+					.map_err(TraitError::from)?;
 				key_pair.map(|k| k.sign(msg).encode()).map(Ok).transpose()
 			},
 			ecdsa::CRYPTO_ID => {
@@ -220,7 +220,7 @@ impl SyncCryptoStore for LocalKeystore {
 					.0
 					.read()
 					.key_pair_by_type::<ecdsa::Pair>(&pub_key, id)
-					.map_err(|e| TraitError::from(e))?;
+					.map_err(TraitError::from)?;
 				key_pair.map(|k| k.sign(msg).encode()).map(Ok).transpose()
 			},
 			_ => Err(TraitError::KeyNotSupported(id)),
@@ -320,7 +320,7 @@ impl SyncCryptoStore for LocalKeystore {
 	fn has_keys(&self, public_keys: &[(Vec<u8>, KeyTypeId)]) -> bool {
 		public_keys
 			.iter()
-			.all(|(p, t)| self.0.read().key_phrase_by_type(&p, *t).ok().flatten().is_some())
+			.all(|(p, t)| self.0.read().key_phrase_by_type(p, *t).ok().flatten().is_some())
 	}
 
 	fn sr25519_vrf_sign(
@@ -512,8 +512,8 @@ impl KeystoreInner {
 	/// Returns `None` if the keystore only exists in-memory and there isn't any path to provide.
 	fn key_file_path(&self, public: &[u8], key_type: KeyTypeId) -> Option<PathBuf> {
 		let mut buf = self.path.as_ref()?.clone();
-		let key_type = hex::encode(key_type.0);
-		let key = hex::encode(public);
+		let key_type = array_bytes::bytes2hex("", &key_type.0);
+		let key = array_bytes::bytes2hex("", public);
 		buf.push(key_type + key.as_str());
 		Some(buf)
 	}
@@ -534,9 +534,9 @@ impl KeystoreInner {
 
 				// skip directories and non-unicode file names (hex is unicode)
 				if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-					match hex::decode(name) {
+					match array_bytes::hex2bytes(name) {
 						Ok(ref hex) if hex.len() > 4 => {
-							if &hex[0..4] != &id.0 {
+							if hex[0..4] != id.0 {
 								continue
 							}
 							let public = hex[4..].to_vec();
@@ -739,7 +739,7 @@ mod tests {
 		let temp_dir = TempDir::new().unwrap();
 		let store = LocalKeystore::open(temp_dir.path(), None).unwrap();
 
-		let file_name = temp_dir.path().join(hex::encode(&SR25519.0[..2]));
+		let file_name = temp_dir.path().join(array_bytes::bytes2hex("", &SR25519.0[..2]));
 		fs::write(file_name, "test").expect("Invalid file is written");
 
 		assert!(SyncCryptoStore::sr25519_public_keys(&store, SR25519).is_empty());

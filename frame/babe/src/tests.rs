@@ -20,12 +20,13 @@
 use super::{Call, *};
 use frame_support::{
 	assert_err, assert_noop, assert_ok,
+	dispatch::{GetDispatchInfo, Pays},
 	traits::{Currency, EstimateNextSessionRotation, OnFinalize},
-	weights::{GetDispatchInfo, Pays},
 };
 use mock::*;
 use pallet_session::ShouldEndSession;
 use sp_consensus_babe::{AllowedSlots, BabeEpochConfiguration, Slot};
+use sp_consensus_vrf::schnorrkel::{VRFOutput, VRFProof};
 use sp_core::crypto::Pair;
 
 const EMPTY_RANDOMNESS: [u8; 32] = [
@@ -76,11 +77,11 @@ fn first_block_epoch_zero_start() {
 		assert_eq!(Babe::genesis_slot(), genesis_slot);
 		assert_eq!(Babe::current_slot(), genesis_slot);
 		assert_eq!(Babe::epoch_index(), 0);
-		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
 
 		Babe::on_finalize(1);
 		let header = System::finalize();
 
+		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
 		assert_eq!(SegmentIndex::<Test>::get(), 0);
 		assert_eq!(UnderConstruction::<Test>::get(0), vec![vrf_randomness]);
 		assert_eq!(Babe::randomness(), [0; 32]);
@@ -105,46 +106,69 @@ fn first_block_epoch_zero_start() {
 }
 
 #[test]
-fn author_vrf_output_for_primary() {
+fn current_slot_is_processed_on_initialization() {
 	let (pairs, mut ext) = new_test_ext_with_pairs(1);
 
 	ext.execute_with(|| {
 		let genesis_slot = Slot::from(10);
 		let (vrf_output, vrf_proof, vrf_randomness) = make_vrf_output(genesis_slot, &pairs[0]);
-		let primary_pre_digest = make_primary_pre_digest(0, genesis_slot, vrf_output, vrf_proof);
+		let pre_digest = make_primary_pre_digest(0, genesis_slot, vrf_output, vrf_proof);
 
 		System::reset_events();
-		System::initialize(&1, &Default::default(), &primary_pre_digest);
+		System::initialize(&1, &Default::default(), &pre_digest);
+		assert_eq!(Babe::current_slot(), Slot::from(0));
+		assert!(Babe::initialized().is_none());
 
-		Babe::do_initialize(1);
+		// current slot is updated on initialization
+		Babe::initialize(1);
+		assert_eq!(Babe::current_slot(), genesis_slot);
+		assert!(Babe::initialized().is_some());
+		// but author vrf randomness isn't
+		assert_eq!(Babe::author_vrf_randomness(), None);
+
+		// instead it is updated on block finalization
+		Babe::on_finalize(1);
+		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
+	})
+}
+
+fn test_author_vrf_output<F>(make_pre_digest: F)
+where
+	F: Fn(sp_consensus_babe::AuthorityIndex, Slot, VRFOutput, VRFProof) -> sp_runtime::Digest,
+{
+	let (pairs, mut ext) = new_test_ext_with_pairs(1);
+
+	ext.execute_with(|| {
+		let genesis_slot = Slot::from(10);
+		let (vrf_output, vrf_proof, vrf_randomness) = make_vrf_output(genesis_slot, &pairs[0]);
+		let pre_digest = make_pre_digest(0, genesis_slot, vrf_output, vrf_proof);
+
+		System::reset_events();
+		System::initialize(&1, &Default::default(), &pre_digest);
+
+		// author vrf randomness is not updated on initialization
+		Babe::initialize(1);
+		assert_eq!(Babe::author_vrf_randomness(), None);
+
+		// instead it is updated on block finalization to account for any
+		// epoch changes that might happen during the block
+		Babe::on_finalize(1);
 		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
 
-		Babe::on_finalize(1);
+		// and it is kept after finalizing the block
 		System::finalize();
 		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
 	})
 }
 
 #[test]
+fn author_vrf_output_for_primary() {
+	test_author_vrf_output(make_primary_pre_digest);
+}
+
+#[test]
 fn author_vrf_output_for_secondary_vrf() {
-	let (pairs, mut ext) = new_test_ext_with_pairs(1);
-
-	ext.execute_with(|| {
-		let genesis_slot = Slot::from(10);
-		let (vrf_output, vrf_proof, vrf_randomness) = make_vrf_output(genesis_slot, &pairs[0]);
-		let secondary_vrf_pre_digest =
-			make_secondary_vrf_pre_digest(0, genesis_slot, vrf_output, vrf_proof);
-
-		System::reset_events();
-		System::initialize(&1, &Default::default(), &secondary_vrf_pre_digest);
-
-		Babe::do_initialize(1);
-		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
-
-		Babe::on_finalize(1);
-		System::finalize();
-		assert_eq!(Babe::author_vrf_randomness(), Some(vrf_randomness));
-	})
+	test_author_vrf_output(make_secondary_vrf_pre_digest);
 }
 
 #[test]
@@ -157,7 +181,7 @@ fn no_author_vrf_output_for_secondary_plain() {
 		System::initialize(&1, &Default::default(), &secondary_plain_pre_digest);
 		assert_eq!(Babe::author_vrf_randomness(), None);
 
-		Babe::do_initialize(1);
+		Babe::initialize(1);
 		assert_eq!(Babe::author_vrf_randomness(), None);
 
 		Babe::on_finalize(1);
@@ -265,7 +289,7 @@ fn can_enact_next_config() {
 		assert_eq!(NextEpochConfig::<Test>::get(), Some(next_config.clone()));
 
 		Babe::plan_config_change(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			NextConfigDescriptor::V1 {
 				c: next_next_config.c,
 				allowed_slots: next_next_config.allowed_slots,
@@ -299,15 +323,15 @@ fn only_root_can_enact_config_change() {
 		let next_config =
 			NextConfigDescriptor::V1 { c: (1, 4), allowed_slots: AllowedSlots::PrimarySlots };
 
-		let res = Babe::plan_config_change(Origin::none(), next_config.clone());
+		let res = Babe::plan_config_change(RuntimeOrigin::none(), next_config.clone());
 
 		assert_noop!(res, DispatchError::BadOrigin);
 
-		let res = Babe::plan_config_change(Origin::signed(1), next_config.clone());
+		let res = Babe::plan_config_change(RuntimeOrigin::signed(1), next_config.clone());
 
 		assert_noop!(res, DispatchError::BadOrigin);
 
-		let res = Babe::plan_config_change(Origin::root(), next_config);
+		let res = Babe::plan_config_change(RuntimeOrigin::root(), next_config);
 
 		assert!(res.is_ok());
 	});
@@ -440,7 +464,7 @@ fn report_equivocation_current_session_works() {
 
 		// report the equivocation
 		Babe::report_equivocation_unsigned(
-			Origin::none(),
+			RuntimeOrigin::none(),
 			Box::new(equivocation_proof),
 			key_owner_proof,
 		)
@@ -512,7 +536,7 @@ fn report_equivocation_old_session_works() {
 
 		// report the equivocation
 		Babe::report_equivocation_unsigned(
-			Origin::none(),
+			RuntimeOrigin::none(),
 			Box::new(equivocation_proof),
 			key_owner_proof,
 		)
@@ -564,7 +588,7 @@ fn report_equivocation_invalid_key_owner_proof() {
 		key_owner_proof.session = 0;
 		assert_err!(
 			Babe::report_equivocation_unsigned(
-				Origin::none(),
+				RuntimeOrigin::none(),
 				Box::new(equivocation_proof.clone()),
 				key_owner_proof
 			),
@@ -584,7 +608,7 @@ fn report_equivocation_invalid_key_owner_proof() {
 
 		assert_err!(
 			Babe::report_equivocation_unsigned(
-				Origin::none(),
+				RuntimeOrigin::none(),
 				Box::new(equivocation_proof),
 				key_owner_proof,
 			),
@@ -618,7 +642,7 @@ fn report_equivocation_invalid_equivocation_proof() {
 		let assert_invalid_equivocation = |equivocation_proof| {
 			assert_err!(
 				Babe::report_equivocation_unsigned(
-					Origin::none(),
+					RuntimeOrigin::none(),
 					Box::new(equivocation_proof),
 					key_owner_proof.clone(),
 				),
@@ -635,7 +659,7 @@ fn report_equivocation_invalid_equivocation_proof() {
 		equivocation_proof.second_header = equivocation_proof.first_header.clone();
 		assert_invalid_equivocation(equivocation_proof);
 
-		// missing preruntime digest from one header
+		// missing pre-runtime digest from one header
 		let mut equivocation_proof = generate_equivocation_proof(
 			offending_validator_index as u32,
 			&offending_authority_pair,
@@ -760,7 +784,7 @@ fn report_equivocation_validate_unsigned_prevents_duplicates() {
 
 		// we submit the report
 		Babe::report_equivocation_unsigned(
-			Origin::none(),
+			RuntimeOrigin::none(),
 			Box::new(equivocation_proof),
 			key_owner_proof,
 		)
@@ -799,7 +823,7 @@ fn report_equivocation_has_valid_weight() {
 		.map(<Test as Config>::WeightInfo::report_equivocation)
 		.collect::<Vec<_>>()
 		.windows(2)
-		.all(|w| w[0] < w[1]));
+		.all(|w| w[0].ref_time() < w[1].ref_time()));
 }
 
 #[test]
@@ -828,12 +852,13 @@ fn valid_equivocation_reports_dont_pay_fees() {
 		.get_dispatch_info();
 
 		// it should have non-zero weight and the fee has to be paid.
-		assert!(info.weight > 0);
+		// TODO: account for proof size weight
+		assert!(info.weight.ref_time() > 0);
 		assert_eq!(info.pays_fee, Pays::Yes);
 
 		// report the equivocation.
 		let post_info = Babe::report_equivocation_unsigned(
-			Origin::none(),
+			RuntimeOrigin::none(),
 			Box::new(equivocation_proof.clone()),
 			key_owner_proof.clone(),
 		)
@@ -847,7 +872,7 @@ fn valid_equivocation_reports_dont_pay_fees() {
 		// report the equivocation again which is invalid now since it is
 		// duplicate.
 		let post_info = Babe::report_equivocation_unsigned(
-			Origin::none(),
+			RuntimeOrigin::none(),
 			Box::new(equivocation_proof),
 			key_owner_proof,
 		)
@@ -900,5 +925,26 @@ fn add_epoch_configurations_migration_works() {
 
 		assert_eq!(EpochConfig::<Test>::get(), Some(current_epoch));
 		assert_eq!(PendingEpochConfigChange::<Test>::get(), Some(next_config_descriptor));
+	});
+}
+
+#[test]
+fn generate_equivocation_report_blob() {
+	let (pairs, mut ext) = new_test_ext_with_pairs(3);
+
+	let offending_authority_index = 0;
+	let offending_authority_pair = &pairs[0];
+
+	ext.execute_with(|| {
+		start_era(1);
+
+		let equivocation_proof = generate_equivocation_proof(
+			offending_authority_index,
+			offending_authority_pair,
+			CurrentSlot::<Test>::get() + 1,
+		);
+
+		println!("equivocation_proof: {:?}", equivocation_proof);
+		println!("equivocation_proof.encode(): {:?}", equivocation_proof.encode());
 	});
 }

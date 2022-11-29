@@ -31,15 +31,21 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 
 pub(crate) fn initialize_transport() -> Result<WsTrans, io::Error> {
 	let transport = {
-		let inner = block_on(libp2p::dns::DnsConfig::system(libp2p::tcp::TcpConfig::new()))?;
+		let tcp_transport = libp2p::tcp::TcpTransport::new(libp2p::tcp::GenTcpConfig::new());
+		let inner = block_on(libp2p::dns::DnsConfig::system(tcp_transport))?;
 		libp2p::websocket::framed::WsConfig::new(inner).and_then(|connec, _| {
 			let connec = connec
 				.with(|item| {
 					let item = libp2p::websocket::framed::OutgoingData::Binary(item);
 					future::ready(Ok::<_, io::Error>(item))
 				})
-				.try_filter(|item| future::ready(item.is_data()))
-				.map_ok(|data| data.into_bytes());
+				.try_filter_map(|item| async move {
+					if let libp2p::websocket::framed::Incoming::Data(data) = item {
+						Ok(Some(data.into_bytes()))
+					} else {
+						Ok(None)
+					}
+				});
 			future::ready(Ok::<_, io::Error>(connec))
 		})
 	};

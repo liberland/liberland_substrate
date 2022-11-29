@@ -156,27 +156,32 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::traits::{CheckedAdd, CheckedMul, Dispatchable, SaturatedConversion};
+use sp_runtime::traits::{CheckedAdd, CheckedMul, Dispatchable, SaturatedConversion, StaticLookup};
 use sp_std::prelude::*;
 
 use frame_support::{
-	dispatch::PostDispatchInfo,
+	dispatch::{GetDispatchInfo, PostDispatchInfo},
 	traits::{BalanceStatus, Currency, ReservableCurrency},
-	weights::GetDispatchInfo,
 	BoundedVec, RuntimeDebug,
 };
 
 pub use pallet::*;
+pub use weights::WeightInfo;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
+pub mod weights;
 
 type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 type FriendsOf<T> = BoundedVec<<T as frame_system::Config>::AccountId, <T as Config>::MaxFriends>;
+type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
 
 /// An active recovery process.
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -220,12 +225,16 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		/// Weight information for extrinsics in this pallet.
+		type WeightInfo: WeightInfo;
 
 		/// The overarching call type.
-		type Call: Parameter
-			+ Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
-			+ GetDispatchInfo;
+		type RuntimeCall: Parameter
+			+ Dispatchable<RuntimeOrigin = Self::RuntimeOrigin, PostInfo = PostDispatchInfo>
+			+ GetDispatchInfo
+			+ From<frame_system::Call<Self>>;
 
 		/// The currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>;
@@ -365,30 +374,22 @@ pub mod pallet {
 		/// Parameters:
 		/// - `account`: The recovered account you want to make a call on-behalf-of.
 		/// - `call`: The call you want to make with the recovered account.
-		///
-		/// # <weight>
-		/// - The weight of the `call` + 10,000.
-		/// - One storage lookup to check account is recovered by `who`. O(1)
-		/// # </weight>
 		#[pallet::weight({
 			let dispatch_info = call.get_dispatch_info();
 			(
-				dispatch_info.weight
-					.saturating_add(10_000)
-					// AccountData for inner call origin accountdata.
-					.saturating_add(T::DbWeight::get().reads_writes(1, 1)),
+				T::WeightInfo::as_recovered().saturating_add(dispatch_info.weight),
 				dispatch_info.class,
-			)
-		})]
+			)})]
 		pub fn as_recovered(
 			origin: OriginFor<T>,
-			account: T::AccountId,
-			call: Box<<T as Config>::Call>,
+			account: AccountIdLookupOf<T>,
+			call: Box<<T as Config>::RuntimeCall>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let account = T::Lookup::lookup(account)?;
 			// Check `who` is allowed to make a call on behalf of `account`
 			let target = Self::proxy(&who).ok_or(Error::<T>::NotAllowed)?;
-			ensure!(&target == &account, Error::<T>::NotAllowed);
+			ensure!(target == account, Error::<T>::NotAllowed);
 			call.dispatch(frame_system::RawOrigin::Signed(account).into())
 				.map(|_| ())
 				.map_err(|e| e.error)
@@ -402,18 +403,15 @@ pub mod pallet {
 		/// Parameters:
 		/// - `lost`: The "lost account" to be recovered.
 		/// - `rescuer`: The "rescuer account" which can call as the lost account.
-		///
-		/// # <weight>
-		/// - One storage write O(1)
-		/// - One event
-		/// # </weight>
-		#[pallet::weight(30_000_000)]
+		#[pallet::weight(T::WeightInfo::set_recovered())]
 		pub fn set_recovered(
 			origin: OriginFor<T>,
-			lost: T::AccountId,
-			rescuer: T::AccountId,
+			lost: AccountIdLookupOf<T>,
+			rescuer: AccountIdLookupOf<T>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
+			let lost = T::Lookup::lookup(lost)?;
+			let rescuer = T::Lookup::lookup(rescuer)?;
 			// Create the recovery storage item.
 			<Proxy<T>>::insert(&rescuer, &lost);
 			Self::deposit_event(Event::<T>::AccountRecovered {
@@ -439,18 +437,7 @@ pub mod pallet {
 		///   friends.
 		/// - `delay_period`: The number of blocks after a recovery attempt is initialized that
 		///   needs to pass before the account can be recovered.
-		///
-		/// # <weight>
-		/// - Key: F (len of friends)
-		/// - One storage read to check that account is not already recoverable. O(1).
-		/// - A check that the friends list is sorted and unique. O(F)
-		/// - One currency reserve operation. O(X)
-		/// - One storage write. O(1). Codec O(F).
-		/// - One event.
-		///
-		/// Total Complexity: O(F + X)
-		/// # </weight>
-		#[pallet::weight(100_000_000)]
+		#[pallet::weight(T::WeightInfo::create_recovery(friends.len() as u32))]
 		pub fn create_recovery(
 			origin: OriginFor<T>,
 			friends: Vec<T::AccountId>,
@@ -465,7 +452,7 @@ pub mod pallet {
 			ensure!(!friends.is_empty(), Error::<T>::NotEnoughFriends);
 			ensure!(threshold as usize <= friends.len(), Error::<T>::NotEnoughFriends);
 			let bounded_friends: FriendsOf<T> =
-				friends.try_into().map_err(|()| Error::<T>::MaxFriends)?;
+				friends.try_into().map_err(|_| Error::<T>::MaxFriends)?;
 			ensure!(Self::is_sorted_and_unique(&bounded_friends), Error::<T>::NotSorted);
 			// Total deposit is base fee + number of friends * factor fee
 			let friend_deposit = T::FriendDepositFactor::get()
@@ -501,20 +488,13 @@ pub mod pallet {
 		/// Parameters:
 		/// - `account`: The lost account that you want to recover. This account needs to be
 		///   recoverable (i.e. have a recovery configuration).
-		///
-		/// # <weight>
-		/// - One storage read to check that account is recoverable. O(F)
-		/// - One storage read to check that this recovery process hasn't already started. O(1)
-		/// - One currency reserve operation. O(X)
-		/// - One storage read to get the current block number. O(1)
-		/// - One storage write. O(1).
-		/// - One event.
-		///
-		/// Total Complexity: O(F + X)
-		/// # </weight>
-		#[pallet::weight(100_000_000)]
-		pub fn initiate_recovery(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::initiate_recovery())]
+		pub fn initiate_recovery(
+			origin: OriginFor<T>,
+			account: AccountIdLookupOf<T>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let account = T::Lookup::lookup(account)?;
 			// Check that the account is recoverable
 			ensure!(<Recoverable<T>>::contains_key(&account), Error::<T>::NotRecoverable);
 			// Check that the recovery process has not already been started
@@ -552,25 +532,15 @@ pub mod pallet {
 		///
 		/// The combination of these two parameters must point to an active recovery
 		/// process.
-		///
-		/// # <weight>
-		/// Key: F (len of friends in config), V (len of vouching friends)
-		/// - One storage read to get the recovery configuration. O(1), Codec O(F)
-		/// - One storage read to get the active recovery process. O(1), Codec O(V)
-		/// - One binary search to confirm caller is a friend. O(logF)
-		/// - One binary search to confirm caller has not already vouched. O(logV)
-		/// - One storage write. O(1), Codec O(V).
-		/// - One event.
-		///
-		/// Total Complexity: O(F + logF + V + logV)
-		/// # </weight>
-		#[pallet::weight(100_000_000)]
+		#[pallet::weight(T::WeightInfo::vouch_recovery(T::MaxFriends::get()))]
 		pub fn vouch_recovery(
 			origin: OriginFor<T>,
-			lost: T::AccountId,
-			rescuer: T::AccountId,
+			lost: AccountIdLookupOf<T>,
+			rescuer: AccountIdLookupOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let lost = T::Lookup::lookup(lost)?;
+			let rescuer = T::Lookup::lookup(rescuer)?;
 			// Get the recovery configuration for the lost account.
 			let recovery_config = Self::recovery_config(&lost).ok_or(Error::<T>::NotRecoverable)?;
 			// Get the active recovery process for the rescuer.
@@ -580,11 +550,11 @@ pub mod pallet {
 			ensure!(Self::is_friend(&recovery_config.friends, &who), Error::<T>::NotFriend);
 			// Either insert the vouch, or return an error that the user already vouched.
 			match active_recovery.friends.binary_search(&who) {
-				Ok(_pos) => Err(Error::<T>::AlreadyVouched)?,
+				Ok(_pos) => return Err(Error::<T>::AlreadyVouched.into()),
 				Err(pos) => active_recovery
 					.friends
 					.try_insert(pos, who.clone())
-					.map_err(|()| Error::<T>::MaxFriends)?,
+					.map_err(|_| Error::<T>::MaxFriends)?,
 			}
 			// Update storage with the latest details
 			<ActiveRecoveries<T>>::insert(&lost, &rescuer, active_recovery);
@@ -605,20 +575,13 @@ pub mod pallet {
 		/// Parameters:
 		/// - `account`: The lost account that you want to claim has been successfully recovered by
 		///   you.
-		///
-		/// # <weight>
-		/// Key: F (len of friends in config), V (len of vouching friends)
-		/// - One storage read to get the recovery configuration. O(1), Codec O(F)
-		/// - One storage read to get the active recovery process. O(1), Codec O(V)
-		/// - One storage read to get the current block number. O(1)
-		/// - One storage write. O(1), Codec O(V).
-		/// - One event.
-		///
-		/// Total Complexity: O(F + V)
-		/// # </weight>
-		#[pallet::weight(100_000_000)]
-		pub fn claim_recovery(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::claim_recovery(T::MaxFriends::get()))]
+		pub fn claim_recovery(
+			origin: OriginFor<T>,
+			account: AccountIdLookupOf<T>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let account = T::Lookup::lookup(account)?;
 			// Get the recovery configuration for the lost account
 			let recovery_config =
 				Self::recovery_config(&account).ok_or(Error::<T>::NotRecoverable)?;
@@ -659,18 +622,13 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - `rescuer`: The account trying to rescue this recoverable account.
-		///
-		/// # <weight>
-		/// Key: V (len of vouching friends)
-		/// - One storage read/remove to get the active recovery process. O(1), Codec O(V)
-		/// - One balance call to repatriate reserved. O(X)
-		/// - One event.
-		///
-		/// Total Complexity: O(V + X)
-		/// # </weight>
-		#[pallet::weight(30_000_000)]
-		pub fn close_recovery(origin: OriginFor<T>, rescuer: T::AccountId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::close_recovery(T::MaxFriends::get()))]
+		pub fn close_recovery(
+			origin: OriginFor<T>,
+			rescuer: AccountIdLookupOf<T>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let rescuer = T::Lookup::lookup(rescuer)?;
 			// Take the active recovery process started by the rescuer for this account.
 			let active_recovery =
 				<ActiveRecoveries<T>>::take(&who, &rescuer).ok_or(Error::<T>::NotStarted)?;
@@ -701,17 +659,7 @@ pub mod pallet {
 		///
 		/// The dispatch origin for this call must be _Signed_ and must be a
 		/// recoverable account (i.e. has a recovery configuration).
-		///
-		/// # <weight>
-		/// Key: F (len of friends)
-		/// - One storage read to get the prefix iterator for active recoveries. O(1)
-		/// - One storage read/remove to get the recovery configuration. O(1), Codec O(F)
-		/// - One balance call to unreserved. O(X)
-		/// - One event.
-		///
-		/// Total Complexity: O(F + X)
-		/// # </weight>
-		#[pallet::weight(30_000_000)]
+		#[pallet::weight(T::WeightInfo::remove_recovery(T::MaxFriends::get()))]
 		pub fn remove_recovery(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// Check there are no active recoveries
@@ -733,16 +681,17 @@ pub mod pallet {
 		///
 		/// Parameters:
 		/// - `account`: The recovered account you are able to call on-behalf-of.
-		///
-		/// # <weight>
-		/// - One storage mutation to check account is recovered by `who`. O(1)
-		/// # </weight>
-		#[pallet::weight(30_000_000)]
-		pub fn cancel_recovered(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::cancel_recovered())]
+		pub fn cancel_recovered(
+			origin: OriginFor<T>,
+			account: AccountIdLookupOf<T>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let account = T::Lookup::lookup(account)?;
 			// Check `who` is allowed to make a call on behalf of `account`
 			ensure!(Self::proxy(&who) == Some(account), Error::<T>::NotAllowed);
 			Proxy::<T>::remove(&who);
+
 			frame_system::Pallet::<T>::dec_consumers(&who);
 			Ok(())
 		}

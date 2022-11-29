@@ -25,7 +25,7 @@ use crate::{
 	start_rpc_servers, RpcHandlers, SpawnTaskHandle, TaskManager, TransactionPoolAdapter,
 };
 use futures::{channel::oneshot, future::ready, FutureExt, StreamExt};
-use jsonrpc_pubsub::manager::SubscriptionManager;
+use jsonrpsee::RpcModule;
 use log::info;
 use prometheus_endpoint::Registry;
 use sc_chain_spec::get_extension;
@@ -37,14 +37,28 @@ use sc_client_db::{Backend, DatabaseSettings};
 use sc_consensus::import_queue::ImportQueue;
 use sc_executor::RuntimeVersionOf;
 use sc_keystore::LocalKeystore;
-use sc_network::{
-	block_request_handler::{self, BlockRequestHandler},
-	config::Role,
-	light_client_requests::{self, handler::LightClientRequestHandler},
-	state_request_handler::{self, StateRequestHandler},
-	warp_request_handler::{self, RequestHandler as WarpSyncRequestHandler, WarpSyncProvider},
-	NetworkService,
+use sc_network::{config::SyncMode, NetworkService};
+use sc_network_bitswap::BitswapRequestHandler;
+use sc_network_common::{
+	protocol::role::Roles,
+	service::{NetworkStateInfo, NetworkStatusProvider},
+	sync::warp::WarpSyncProvider,
 };
+use sc_network_light::light_client_requests::handler::LightClientRequestHandler;
+use sc_network_sync::{
+	block_request_handler::BlockRequestHandler, service::network::NetworkServiceProvider,
+	state_request_handler::StateRequestHandler,
+	warp_request_handler::RequestHandler as WarpSyncRequestHandler, ChainSync,
+};
+use sc_rpc::{
+	author::AuthorApiServer,
+	chain::ChainApiServer,
+	offchain::OffchainApiServer,
+	state::{ChildStateApiServer, StateApiServer},
+	system::SystemApiServer,
+	DenyUnsafe, SubscriptionTaskExecutor,
+};
+use sc_rpc_spec_v2::transaction::TransactionApiServer;
 use sc_telemetry::{telemetry, ConnectionMessage, Telemetry, TelemetryHandle, SUBSTRATE_INFO};
 use sc_transaction_pool_api::MaintainedTransactionPool;
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedSender};
@@ -61,69 +75,6 @@ use sp_runtime::{
 	BuildStorage,
 };
 use std::{str::FromStr, sync::Arc, time::SystemTime};
-
-/// A utility trait for building an RPC extension given a `DenyUnsafe` instance.
-/// This is useful since at service definition time we don't know whether the
-/// specific interface where the RPC extension will be exposed is safe or not.
-/// This trait allows us to lazily build the RPC extension whenever we bind the
-/// service to an interface.
-pub trait RpcExtensionBuilder {
-	/// The type of the RPC extension that will be built.
-	type Output: sc_rpc::RpcExtension<sc_rpc::Metadata>;
-
-	/// Returns an instance of the RPC extension for a particular `DenyUnsafe`
-	/// value, e.g. the RPC extension might not expose some unsafe methods.
-	fn build(
-		&self,
-		deny: sc_rpc::DenyUnsafe,
-		subscription_executor: sc_rpc::SubscriptionTaskExecutor,
-	) -> Result<Self::Output, Error>;
-}
-
-impl<F, R> RpcExtensionBuilder for F
-where
-	F: Fn(sc_rpc::DenyUnsafe, sc_rpc::SubscriptionTaskExecutor) -> Result<R, Error>,
-	R: sc_rpc::RpcExtension<sc_rpc::Metadata>,
-{
-	type Output = R;
-
-	fn build(
-		&self,
-		deny: sc_rpc::DenyUnsafe,
-		subscription_executor: sc_rpc::SubscriptionTaskExecutor,
-	) -> Result<Self::Output, Error> {
-		(*self)(deny, subscription_executor)
-	}
-}
-
-/// A utility struct for implementing an `RpcExtensionBuilder` given a cloneable
-/// `RpcExtension`, the resulting builder will simply ignore the provided
-/// `DenyUnsafe` instance and return a static `RpcExtension` instance.
-pub struct NoopRpcExtensionBuilder<R>(pub R);
-
-impl<R> RpcExtensionBuilder for NoopRpcExtensionBuilder<R>
-where
-	R: Clone + sc_rpc::RpcExtension<sc_rpc::Metadata>,
-{
-	type Output = R;
-
-	fn build(
-		&self,
-		_deny: sc_rpc::DenyUnsafe,
-		_subscription_executor: sc_rpc::SubscriptionTaskExecutor,
-	) -> Result<Self::Output, Error> {
-		Ok(self.0.clone())
-	}
-}
-
-impl<R> From<R> for NoopRpcExtensionBuilder<R>
-where
-	R: sc_rpc::RpcExtension<sc_rpc::Metadata>,
-{
-	fn from(e: R) -> NoopRpcExtensionBuilder<R> {
-		NoopRpcExtensionBuilder(e)
-	}
-}
 
 /// Full client type.
 pub type TFullClient<TBl, TRtApi, TExec> =
@@ -259,11 +210,10 @@ where
 
 	let (client, backend) = {
 		let db_config = sc_client_db::DatabaseSettings {
-			state_cache_size: config.state_cache_size,
-			state_cache_child_ratio: config.state_cache_child_ratio.map(|v| (v, 100)),
+			trie_cache_maximum_size: config.trie_cache_maximum_size,
 			state_pruning: config.state_pruning.clone(),
 			source: config.database.clone(),
-			keep_blocks: config.keep_blocks.clone(),
+			blocks_pruning: config.blocks_pruning,
 		};
 
 		let backend = new_db_backend(db_config)?;
@@ -307,7 +257,7 @@ where
 				wasm_runtime_overrides: config.wasm_runtime_overrides.clone(),
 				no_genesis: matches!(
 					config.network.sync_mode,
-					sc_network::config::SyncMode::Fast { .. } | sc_network::config::SyncMode::Warp
+					SyncMode::Fast { .. } | SyncMode::Warp { .. }
 				),
 				wasm_runtime_substitutes,
 			},
@@ -375,6 +325,29 @@ where
 	)
 }
 
+/// Shared network instance implementing a set of mandatory traits.
+pub trait SpawnTaskNetwork<Block: BlockT>:
+	sc_offchain::NetworkProvider
+	+ NetworkStateInfo
+	+ NetworkStatusProvider<Block>
+	+ Send
+	+ Sync
+	+ 'static
+{
+}
+
+impl<T, Block> SpawnTaskNetwork<Block> for T
+where
+	Block: BlockT,
+	T: sc_offchain::NetworkProvider
+		+ NetworkStateInfo
+		+ NetworkStatusProvider<Block>
+		+ Send
+		+ Sync
+		+ 'static,
+{
+}
+
 /// Parameters to pass into `build`.
 pub struct SpawnTasksParams<'a, TBl: BlockT, TCl, TExPool, TRpc, Backend> {
 	/// The service configuration.
@@ -389,13 +362,16 @@ pub struct SpawnTasksParams<'a, TBl: BlockT, TCl, TExPool, TRpc, Backend> {
 	pub keystore: SyncCryptoStorePtr,
 	/// A shared transaction pool.
 	pub transaction_pool: Arc<TExPool>,
-	/// A RPC extension builder. Use `NoopRpcExtensionBuilder` if you just want to pass in the
-	/// extensions directly.
-	pub rpc_extensions_builder: Box<dyn RpcExtensionBuilder<Output = TRpc> + Send>,
+	/// Builds additional [`RpcModule`]s that should be added to the server
+	pub rpc_builder:
+		Box<dyn Fn(DenyUnsafe, SubscriptionTaskExecutor) -> Result<RpcModule<TRpc>, Error>>,
 	/// A shared network instance.
-	pub network: Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
+	pub network: Arc<dyn SpawnTaskNetwork<TBl>>,
 	/// A Sender for RPC requests.
 	pub system_rpc_tx: TracingUnboundedSender<sc_rpc::system::Request<TBl>>,
+	/// Controller for transactions handlers
+	pub tx_handler_controller:
+		sc_network_transactions::TransactionsHandlerController<<TBl as BlockT>::Hash>,
 	/// Telemetry instance for this node.
 	pub telemetry: Option<&'a mut Telemetry>,
 }
@@ -405,7 +381,7 @@ pub fn build_offchain_workers<TBl, TCl>(
 	config: &Configuration,
 	spawn_handle: SpawnTaskHandle,
 	client: Arc<TCl>,
-	network: Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
+	network: Arc<dyn sc_offchain::NetworkProvider + Send + Sync>,
 ) -> Option<Arc<sc_offchain::OffchainWorkers<TCl, TBl>>>
 where
 	TBl: BlockT,
@@ -421,10 +397,10 @@ where
 			Some("offchain-worker"),
 			sc_offchain::notification_future(
 				config.role.is_authority(),
-				client.clone(),
+				client,
 				offchain,
 				Clone::clone(&spawn_handle),
-				network.clone(),
+				network,
 			),
 		);
 	}
@@ -463,7 +439,6 @@ where
 	TExPool: MaintainedTransactionPool<Block = TBl, Hash = <TBl as BlockT>::Hash>
 		+ parity_util_mem::MallocSizeOf
 		+ 'static,
-	TRpc: sc_rpc::RpcExtension<sc_rpc::Metadata>,
 {
 	let SpawnTasksParams {
 		mut config,
@@ -472,9 +447,10 @@ where
 		backend,
 		keystore,
 		transaction_pool,
-		rpc_extensions_builder,
+		rpc_builder,
 		network,
 		system_rpc_tx,
+		tx_handler_controller,
 		telemetry,
 	} = params;
 
@@ -487,8 +463,13 @@ where
 	)
 	.map_err(|e| Error::Application(Box::new(e)))?;
 
+	let sysinfo = sc_sysinfo::gather_sysinfo();
+	sc_sysinfo::print_sysinfo(&sysinfo);
+
 	let telemetry = telemetry
-		.map(|telemetry| init_telemetry(&mut config, network.clone(), client.clone(), telemetry))
+		.map(|telemetry| {
+			init_telemetry(&mut config, network.clone(), client.clone(), telemetry, Some(sysinfo))
+		})
 		.transpose()?;
 
 	info!("📦 Highest known block at #{}", chain_info.best_number);
@@ -505,14 +486,18 @@ where
 	spawn_handle.spawn(
 		"on-transaction-imported",
 		Some("transaction-pool"),
-		transaction_notifications(transaction_pool.clone(), network.clone(), telemetry.clone()),
+		transaction_notifications(
+			transaction_pool.clone(),
+			tx_handler_controller,
+			telemetry.clone(),
+		),
 	);
 
 	// Prometheus metrics.
 	let metrics_service =
 		if let Some(PrometheusConfig { port, registry }) = config.prometheus_config.clone() {
 			// Set static metrics.
-			let metrics = MetricsService::with_prometheus(telemetry.clone(), &registry, &config)?;
+			let metrics = MetricsService::with_prometheus(telemetry, &registry, &config)?;
 			spawn_handle.spawn(
 				"prometheus-endpoint",
 				None,
@@ -521,7 +506,7 @@ where
 
 			metrics
 		} else {
-			MetricsService::new(telemetry.clone())
+			MetricsService::new(telemetry)
 		};
 
 	// Periodically updated metrics and telemetry updates.
@@ -531,35 +516,25 @@ where
 		metrics_service.run(client.clone(), transaction_pool.clone(), network.clone()),
 	);
 
-	// RPC
-	let gen_handler = |deny_unsafe: sc_rpc::DenyUnsafe,
-	                   rpc_middleware: sc_rpc_server::RpcMiddleware| {
-		gen_handler(
+	let rpc_id_provider = config.rpc_id_provider.take();
+
+	// jsonrpsee RPC
+	let gen_rpc_module = |deny_unsafe: DenyUnsafe| {
+		gen_rpc_module(
 			deny_unsafe,
-			rpc_middleware,
-			&config,
 			task_manager.spawn_handle(),
 			client.clone(),
 			transaction_pool.clone(),
 			keystore.clone(),
-			&*rpc_extensions_builder,
-			backend.offchain_storage(),
 			system_rpc_tx.clone(),
+			&config,
+			backend.offchain_storage(),
+			&*rpc_builder,
 		)
 	};
-	let rpc_metrics = sc_rpc_server::RpcMetrics::new(config.prometheus_registry())?;
-	let server_metrics = sc_rpc_server::ServerMetrics::new(config.prometheus_registry())?;
-	let rpc = start_rpc_servers(&config, gen_handler, rpc_metrics.clone(), server_metrics)?;
-	// This is used internally, so don't restrict access to unsafe RPC
-	let known_rpc_method_names =
-		sc_rpc_server::method_names(|m| gen_handler(sc_rpc::DenyUnsafe::No, m))?;
-	let rpc_handlers = RpcHandlers(Arc::new(
-		gen_handler(
-			sc_rpc::DenyUnsafe::No,
-			sc_rpc_server::RpcMiddleware::new(rpc_metrics, known_rpc_method_names, "inbrowser"),
-		)?
-		.into(),
-	));
+
+	let rpc = start_rpc_servers(&config, gen_rpc_module, rpc_id_provider)?;
+	let rpc_handlers = RpcHandlers(Arc::new(gen_rpc_module(sc_rpc::DenyUnsafe::No)?.into()));
 
 	// Spawn informant task
 	spawn_handle.spawn(
@@ -567,30 +542,32 @@ where
 		None,
 		sc_informant::build(
 			client.clone(),
-			network.clone(),
+			network,
 			transaction_pool.clone(),
 			config.informant_output_format,
 		),
 	);
 
-	task_manager.keep_alive((config.base_path, rpc, rpc_handlers.clone()));
+	task_manager.keep_alive((config.base_path, rpc));
 
 	Ok(rpc_handlers)
 }
 
-async fn transaction_notifications<TBl, TExPool>(
-	transaction_pool: Arc<TExPool>,
-	network: Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
+async fn transaction_notifications<Block, ExPool>(
+	transaction_pool: Arc<ExPool>,
+	tx_handler_controller: sc_network_transactions::TransactionsHandlerController<
+		<Block as BlockT>::Hash,
+	>,
 	telemetry: Option<TelemetryHandle>,
 ) where
-	TBl: BlockT,
-	TExPool: MaintainedTransactionPool<Block = TBl, Hash = <TBl as BlockT>::Hash>,
+	Block: BlockT,
+	ExPool: MaintainedTransactionPool<Block = Block, Hash = <Block as BlockT>::Hash>,
 {
 	// transaction notifications
 	transaction_pool
 		.import_notification_stream()
 		.for_each(move |hash| {
-			network.propagate_transaction(hash);
+			tx_handler_controller.propagate_transaction(hash);
 			let status = transaction_pool.status();
 			telemetry!(
 				telemetry;
@@ -604,17 +581,26 @@ async fn transaction_notifications<TBl, TExPool>(
 		.await;
 }
 
-fn init_telemetry<TBl: BlockT, TCl: BlockBackend<TBl>>(
+fn init_telemetry<Block, Client, Network>(
 	config: &mut Configuration,
-	network: Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
-	client: Arc<TCl>,
+	network: Network,
+	client: Arc<Client>,
 	telemetry: &mut Telemetry,
-) -> sc_telemetry::Result<TelemetryHandle> {
+	sysinfo: Option<sc_telemetry::SysInfo>,
+) -> sc_telemetry::Result<TelemetryHandle>
+where
+	Block: BlockT,
+	Client: BlockBackend<Block>,
+	Network: NetworkStateInfo,
+{
 	let genesis_hash = client.block_hash(Zero::zero()).ok().flatten().unwrap_or_default();
 	let connection_message = ConnectionMessage {
 		name: config.network.node_name.to_owned(),
 		implementation: config.impl_name.to_owned(),
 		version: config.impl_version.to_owned(),
+		target_os: sc_sysinfo::TARGET_OS.into(),
+		target_arch: sc_sysinfo::TARGET_ARCH.into(),
+		target_env: sc_sysinfo::TARGET_ENV.into(),
 		config: String::new(),
 		chain: config.chain_spec.name().to_owned(),
 		genesis_hash: format!("{:?}", genesis_hash),
@@ -625,6 +611,7 @@ fn init_telemetry<TBl: BlockT, TCl: BlockBackend<TBl>>(
 			.unwrap_or(0)
 			.to_string(),
 		network_id: network.local_peer_id().to_base58(),
+		sysinfo,
 	};
 
 	telemetry.start_telemetry(connection_message)?;
@@ -632,18 +619,17 @@ fn init_telemetry<TBl: BlockT, TCl: BlockBackend<TBl>>(
 	Ok(telemetry.handle())
 }
 
-fn gen_handler<TBl, TBackend, TExPool, TRpc, TCl>(
-	deny_unsafe: sc_rpc::DenyUnsafe,
-	rpc_middleware: sc_rpc_server::RpcMiddleware,
-	config: &Configuration,
+fn gen_rpc_module<TBl, TBackend, TCl, TRpc, TExPool>(
+	deny_unsafe: DenyUnsafe,
 	spawn_handle: SpawnTaskHandle,
 	client: Arc<TCl>,
 	transaction_pool: Arc<TExPool>,
 	keystore: SyncCryptoStorePtr,
-	rpc_extensions_builder: &(dyn RpcExtensionBuilder<Output = TRpc> + Send),
-	offchain_storage: Option<<TBackend as sc_client_api::backend::Backend<TBl>>::OffchainStorage>,
 	system_rpc_tx: TracingUnboundedSender<sc_rpc::system::Request<TBl>>,
-) -> Result<sc_rpc_server::RpcHandler<sc_rpc::Metadata>, Error>
+	config: &Configuration,
+	offchain_storage: Option<<TBackend as sc_client_api::backend::Backend<TBl>>::OffchainStorage>,
+	rpc_builder: &(dyn Fn(DenyUnsafe, SubscriptionTaskExecutor) -> Result<RpcModule<TRpc>, Error>),
+) -> Result<RpcModule<()>, Error>
 where
 	TBl: BlockT,
 	TCl: ProvideRuntimeApi<TBl>
@@ -658,15 +644,12 @@ where
 		+ Send
 		+ Sync
 		+ 'static,
-	TExPool: MaintainedTransactionPool<Block = TBl, Hash = <TBl as BlockT>::Hash> + 'static,
 	TBackend: sc_client_api::backend::Backend<TBl> + 'static,
-	TRpc: sc_rpc::RpcExtension<sc_rpc::Metadata>,
 	<TCl as ProvideRuntimeApi<TBl>>::Api: sp_session::SessionKeys<TBl> + sp_api::Metadata<TBl>,
+	TExPool: MaintainedTransactionPool<Block = TBl, Hash = <TBl as BlockT>::Hash> + 'static,
 	TBl::Hash: Unpin,
 	TBl::Header: Unpin,
 {
-	use sc_rpc::{author, chain, offchain, state, system};
-
 	let system_info = sc_rpc::system::SystemInfo {
 		chain_name: config.chain_spec.name().into(),
 		impl_name: config.impl_name.clone(),
@@ -675,42 +658,61 @@ where
 		chain_type: config.chain_spec.chain_type(),
 	};
 
-	let task_executor = sc_rpc::SubscriptionTaskExecutor::new(spawn_handle);
-	let subscriptions = SubscriptionManager::new(Arc::new(task_executor.clone()));
+	let mut rpc_api = RpcModule::new(());
+	let task_executor = Arc::new(spawn_handle);
 
 	let (chain, state, child_state) = {
-		// Full nodes
-		let chain = sc_rpc::chain::new_full(client.clone(), subscriptions.clone());
+		let chain = sc_rpc::chain::new_full(client.clone(), task_executor.clone()).into_rpc();
 		let (state, child_state) = sc_rpc::state::new_full(
 			client.clone(),
-			subscriptions.clone(),
+			task_executor.clone(),
 			deny_unsafe,
 			config.rpc_max_payload,
 		);
+		let state = state.into_rpc();
+		let child_state = child_state.into_rpc();
+
 		(chain, state, child_state)
 	};
 
-	let author =
-		sc_rpc::author::Author::new(client, transaction_pool, subscriptions, keystore, deny_unsafe);
-	let system = system::System::new(system_info, system_rpc_tx, deny_unsafe);
+	let transaction_v2 = sc_rpc_spec_v2::transaction::Transaction::new(
+		client.clone(),
+		transaction_pool.clone(),
+		task_executor.clone(),
+	)
+	.into_rpc();
 
-	let maybe_offchain_rpc = offchain_storage.map(|storage| {
-		let offchain = sc_rpc::offchain::Offchain::new(storage, deny_unsafe);
-		offchain::OffchainApi::to_delegate(offchain)
-	});
+	let author = sc_rpc::author::Author::new(
+		client.clone(),
+		transaction_pool,
+		keystore,
+		deny_unsafe,
+		task_executor.clone(),
+	)
+	.into_rpc();
 
-	Ok(sc_rpc_server::rpc_handler(
-		(
-			state::StateApi::to_delegate(state),
-			state::ChildStateApi::to_delegate(child_state),
-			chain::ChainApi::to_delegate(chain),
-			maybe_offchain_rpc,
-			author::AuthorApi::to_delegate(author),
-			system::SystemApi::to_delegate(system),
-			rpc_extensions_builder.build(deny_unsafe, task_executor)?,
-		),
-		rpc_middleware,
-	))
+	let system = sc_rpc::system::System::new(system_info, system_rpc_tx, deny_unsafe).into_rpc();
+
+	if let Some(storage) = offchain_storage {
+		let offchain = sc_rpc::offchain::Offchain::new(storage, deny_unsafe).into_rpc();
+
+		rpc_api.merge(offchain).map_err(|e| Error::Application(e.into()))?;
+	}
+
+	// Part of the RPC v2 spec.
+	rpc_api.merge(transaction_v2).map_err(|e| Error::Application(e.into()))?;
+
+	// Part of the old RPC spec.
+	rpc_api.merge(chain).map_err(|e| Error::Application(e.into()))?;
+	rpc_api.merge(author).map_err(|e| Error::Application(e.into()))?;
+	rpc_api.merge(system).map_err(|e| Error::Application(e.into()))?;
+	rpc_api.merge(state).map_err(|e| Error::Application(e.into()))?;
+	rpc_api.merge(child_state).map_err(|e| Error::Application(e.into()))?;
+	// Additional [`RpcModule`]s defined in the node to fit the specific blockchain
+	let extra_rpcs = rpc_builder(deny_unsafe, task_executor.clone())?;
+	rpc_api.merge(extra_rpcs).map_err(|e| Error::Application(e.into()))?;
+
+	Ok(rpc_api)
 }
 
 /// Parameters to pass into `build_network`.
@@ -731,7 +733,6 @@ pub struct BuildNetworkParams<'a, TBl: BlockT, TExPool, TImpQu, TCl> {
 	/// An optional warp sync provider.
 	pub warp_sync: Option<Arc<dyn WarpSyncProvider<TBl>>>,
 }
-
 /// Build the network service, the network status sinks and an RPC sender.
 pub fn build_network<TBl, TExPool, TImpQu, TCl>(
 	params: BuildNetworkParams<TBl, TExPool, TImpQu, TCl>,
@@ -739,6 +740,7 @@ pub fn build_network<TBl, TExPool, TImpQu, TCl>(
 	(
 		Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
 		TracingUnboundedSender<sc_rpc::system::Request<TBl>>,
+		sc_network_transactions::TransactionsHandlerController<<TBl as BlockT>::Hash>,
 		NetworkStarter,
 	),
 	Error,
@@ -767,11 +769,19 @@ where
 		warp_sync,
 	} = params;
 
-	let transaction_pool_adapter = Arc::new(TransactionPoolAdapter {
-		imports_external_transactions: !matches!(config.role, Role::Light),
-		pool: transaction_pool,
-		client: client.clone(),
-	});
+	let mut request_response_protocol_configs = Vec::new();
+
+	if warp_sync.is_none() && config.network.sync_mode.is_warp() {
+		return Err("Warp sync enabled, but no warp sync provider configured.".into())
+	}
+
+	if client.requires_full_sync() {
+		match config.network.sync_mode {
+			SyncMode::Fast { .. } => return Err("Fast sync doesn't work for archive nodes".into()),
+			SyncMode::Warp => return Err("Warp sync doesn't work for archive nodes".into()),
+			SyncMode::Full => {},
+		}
+	}
 
 	let protocol_id = config.protocol_id();
 
@@ -782,66 +792,94 @@ where
 	};
 
 	let block_request_protocol_config = {
-		if matches!(config.role, Role::Light) {
-			// Allow outgoing requests but deny incoming requests.
-			block_request_handler::generate_protocol_config(&protocol_id)
-		} else {
-			// Allow both outgoing and incoming requests.
-			let (handler, protocol_config) = BlockRequestHandler::new(
-				&protocol_id,
-				client.clone(),
-				config.network.default_peers_set.in_peers as usize +
-					config.network.default_peers_set.out_peers as usize,
-			);
-			spawn_handle.spawn("block-request-handler", Some("networking"), handler.run());
-			protocol_config
-		}
+		// Allow both outgoing and incoming requests.
+		let (handler, protocol_config) = BlockRequestHandler::new(
+			&protocol_id,
+			config.chain_spec.fork_id(),
+			client.clone(),
+			config.network.default_peers_set.in_peers as usize +
+				config.network.default_peers_set.out_peers as usize,
+		);
+		spawn_handle.spawn("block-request-handler", Some("networking"), handler.run());
+		protocol_config
 	};
 
 	let state_request_protocol_config = {
-		if matches!(config.role, Role::Light) {
-			// Allow outgoing requests but deny incoming requests.
-			state_request_handler::generate_protocol_config(&protocol_id)
-		} else {
-			// Allow both outgoing and incoming requests.
-			let (handler, protocol_config) = StateRequestHandler::new(
-				&protocol_id,
-				client.clone(),
-				config.network.default_peers_set_num_full as usize,
-			);
-			spawn_handle.spawn("state-request-handler", Some("networking"), handler.run());
-			protocol_config
-		}
+		// Allow both outgoing and incoming requests.
+		let (handler, protocol_config) = StateRequestHandler::new(
+			&protocol_id,
+			config.chain_spec.fork_id(),
+			client.clone(),
+			config.network.default_peers_set_num_full as usize,
+		);
+		spawn_handle.spawn("state-request-handler", Some("networking"), handler.run());
+		protocol_config
 	};
 
-	let warp_sync_params = warp_sync.map(|provider| {
-		let protocol_config = if matches!(config.role, Role::Light) {
-			// Allow outgoing requests but deny incoming requests.
-			warp_request_handler::generate_request_response_config(protocol_id.clone())
-		} else {
+	let (warp_sync_provider, warp_sync_protocol_config) = warp_sync
+		.map(|provider| {
 			// Allow both outgoing and incoming requests.
-			let (handler, protocol_config) =
-				WarpSyncRequestHandler::new(protocol_id.clone(), provider.clone());
+			let (handler, protocol_config) = WarpSyncRequestHandler::new(
+				protocol_id.clone(),
+				client
+					.block_hash(0u32.into())
+					.ok()
+					.flatten()
+					.expect("Genesis block exists; qed"),
+				config.chain_spec.fork_id(),
+				provider.clone(),
+			);
 			spawn_handle.spawn("warp-sync-request-handler", Some("networking"), handler.run());
-			protocol_config
-		};
-		(provider, protocol_config)
-	});
+			(Some(provider), Some(protocol_config))
+		})
+		.unwrap_or_default();
 
 	let light_client_request_protocol_config = {
-		if matches!(config.role, Role::Light) {
-			// Allow outgoing requests but deny incoming requests.
-			light_client_requests::generate_protocol_config(&protocol_id)
-		} else {
-			// Allow both outgoing and incoming requests.
-			let (handler, protocol_config) =
-				LightClientRequestHandler::new(&protocol_id, client.clone());
-			spawn_handle.spawn("light-client-request-handler", Some("networking"), handler.run());
-			protocol_config
-		}
+		// Allow both outgoing and incoming requests.
+		let (handler, protocol_config) = LightClientRequestHandler::new(
+			&protocol_id,
+			config.chain_spec.fork_id(),
+			client.clone(),
+		);
+		spawn_handle.spawn("light-client-request-handler", Some("networking"), handler.run());
+		protocol_config
 	};
 
-	let network_params = sc_network::config::Params {
+	let (chain_sync_network_provider, chain_sync_network_handle) = NetworkServiceProvider::new();
+	let (chain_sync, chain_sync_service) = ChainSync::new(
+		match config.network.sync_mode {
+			SyncMode::Full => sc_network_common::sync::SyncMode::Full,
+			SyncMode::Fast { skip_proofs, storage_chain_mode } =>
+				sc_network_common::sync::SyncMode::LightState { skip_proofs, storage_chain_mode },
+			SyncMode::Warp => sc_network_common::sync::SyncMode::Warp,
+		},
+		client.clone(),
+		block_announce_validator,
+		config.network.max_parallel_downloads,
+		warp_sync_provider,
+		chain_sync_network_handle,
+	)?;
+
+	let block_announce_config = chain_sync.get_block_announce_proto_config(
+		protocol_id.clone(),
+		&config.chain_spec.fork_id().map(ToOwned::to_owned),
+		Roles::from(&config.role.clone()),
+		client.info().best_number,
+		client.info().best_hash,
+		client
+			.block_hash(Zero::zero())
+			.ok()
+			.flatten()
+			.expect("Genesis block exists; qed"),
+	);
+
+	request_response_protocol_configs.push(config.network.ipfs_server.then(|| {
+		let (handler, protocol_config) = BitswapRequestHandler::new(client.clone());
+		spawn_handle.spawn("bitswap-request-handler", Some("networking"), handler.run());
+		protocol_config
+	}));
+
+	let mut network_params = sc_network::config::Params {
 		role: config.role.clone(),
 		executor: {
 			let spawn_handle = Clone::clone(&spawn_handle);
@@ -849,28 +887,56 @@ where
 				spawn_handle.spawn("libp2p-node", Some("networking"), fut);
 			}))
 		},
-		transactions_handler_executor: {
-			let spawn_handle = Clone::clone(&spawn_handle);
-			Box::new(move |fut| {
-				spawn_handle.spawn("network-transactions-handler", Some("networking"), fut);
-			})
-		},
 		network_config: config.network.clone(),
 		chain: client.clone(),
-		transaction_pool: transaction_pool_adapter as _,
+		protocol_id: protocol_id.clone(),
+		fork_id: config.chain_spec.fork_id().map(ToOwned::to_owned),
 		import_queue: Box::new(import_queue),
-		protocol_id,
-		block_announce_validator,
+		chain_sync: Box::new(chain_sync),
+		chain_sync_service,
 		metrics_registry: config.prometheus_config.as_ref().map(|config| config.registry.clone()),
+		block_announce_config,
 		block_request_protocol_config,
 		state_request_protocol_config,
-		warp_sync: warp_sync_params,
+		warp_sync_protocol_config,
 		light_client_request_protocol_config,
+		request_response_protocol_configs: request_response_protocol_configs
+			.into_iter()
+			.flatten()
+			.collect::<Vec<_>>(),
 	};
+
+	// crate transactions protocol and add it to the list of supported protocols of `network_params`
+	let transactions_handler_proto = sc_network_transactions::TransactionsHandlerPrototype::new(
+		protocol_id.clone(),
+		client
+			.block_hash(0u32.into())
+			.ok()
+			.flatten()
+			.expect("Genesis block exists; qed"),
+		config.chain_spec.fork_id(),
+	);
+	network_params
+		.network_config
+		.extra_sets
+		.insert(0, transactions_handler_proto.set_config());
 
 	let has_bootnodes = !network_params.network_config.boot_nodes.is_empty();
 	let network_mut = sc_network::NetworkWorker::new(network_params)?;
 	let network = network_mut.service().clone();
+
+	let (tx_handler, tx_handler_controller) = transactions_handler_proto.build(
+		network.clone(),
+		Arc::new(TransactionPoolAdapter { pool: transaction_pool, client: client.clone() }),
+		config.prometheus_config.as_ref().map(|config| &config.registry),
+	)?;
+
+	spawn_handle.spawn("network-transactions-handler", Some("networking"), tx_handler.run());
+	spawn_handle.spawn(
+		"chain-sync-network-service-provider",
+		Some("networking"),
+		chain_sync_network_provider.run(network.clone()),
+	);
 
 	let (system_rpc_tx, system_rpc_rx) = tracing_unbounded("mpsc_system_rpc");
 
@@ -919,7 +985,7 @@ where
 		future.await
 	});
 
-	Ok((network, system_rpc_tx, NetworkStarter(network_start_tx)))
+	Ok((network, system_rpc_tx, tx_handler_controller, NetworkStarter(network_start_tx)))
 }
 
 /// Object used to start the network.
@@ -927,6 +993,11 @@ where
 pub struct NetworkStarter(oneshot::Sender<()>);
 
 impl NetworkStarter {
+	/// Create a new NetworkStarter
+	pub fn new(sender: oneshot::Sender<()>) -> Self {
+		NetworkStarter(sender)
+	}
+
 	/// Start the network. Call this after all sub-components have been initialized.
 	///
 	/// > **Note**: If you don't call this function, the networking will not work.

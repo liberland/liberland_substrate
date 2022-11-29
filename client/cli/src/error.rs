@@ -69,8 +69,8 @@ pub enum Error {
 	#[error("Key storage issue encountered")]
 	KeyStorage(#[from] sc_keystore::Error),
 
-	#[error("Invalid hexadecimal string data")]
-	HexDataConversion(#[from] hex::FromHexError),
+	#[error("Invalid hexadecimal string data, {0:?}")]
+	HexDataConversion(array_bytes::Error),
 
 	/// Application specific error chain sequence forwarder.
 	#[error(transparent)]
@@ -80,20 +80,26 @@ pub enum Error {
 	GlobalLoggerError(#[from] sc_tracing::logging::Error),
 }
 
-impl std::convert::From<&str> for Error {
+impl From<&str> for Error {
 	fn from(s: &str) -> Error {
 		Error::Input(s.to_string())
 	}
 }
 
-impl std::convert::From<String> for Error {
+impl From<String> for Error {
 	fn from(s: String) -> Error {
 		Error::Input(s)
 	}
 }
 
-impl std::convert::From<crypto::PublicError> for Error {
+impl From<crypto::PublicError> for Error {
 	fn from(e: crypto::PublicError) -> Error {
 		Error::InvalidUri(e)
+	}
+}
+
+impl From<array_bytes::Error> for Error {
+	fn from(e: array_bytes::Error) -> Error {
+		Error::HexDataConversion(e)
 	}
 }

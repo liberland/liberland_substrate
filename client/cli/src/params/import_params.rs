@@ -18,21 +18,17 @@
 
 use crate::{
 	arg_enums::{
-		ExecutionStrategy, WasmExecutionMethod, DEFAULT_EXECUTION_BLOCK_CONSTRUCTION,
-		DEFAULT_EXECUTION_IMPORT_BLOCK, DEFAULT_EXECUTION_IMPORT_BLOCK_VALIDATOR,
-		DEFAULT_EXECUTION_OFFCHAIN_WORKER, DEFAULT_EXECUTION_OTHER, DEFAULT_EXECUTION_SYNCING,
+		ExecutionStrategy, WasmExecutionMethod, WasmtimeInstantiationStrategy,
+		DEFAULT_EXECUTION_BLOCK_CONSTRUCTION, DEFAULT_EXECUTION_IMPORT_BLOCK,
+		DEFAULT_EXECUTION_IMPORT_BLOCK_VALIDATOR, DEFAULT_EXECUTION_OFFCHAIN_WORKER,
+		DEFAULT_EXECUTION_OTHER, DEFAULT_EXECUTION_SYNCING,
+		DEFAULT_WASMTIME_INSTANTIATION_STRATEGY, DEFAULT_WASM_EXECUTION_METHOD,
 	},
 	params::{DatabaseParams, PruningParams},
 };
 use clap::Args;
 use sc_client_api::execution_extensions::ExecutionStrategies;
 use std::path::PathBuf;
-
-#[cfg(feature = "wasmtime")]
-const WASM_METHOD_DEFAULT: &str = "Compiled";
-
-#[cfg(not(feature = "wasmtime"))]
-const WASM_METHOD_DEFAULT: &str = "interpreted-i-know-what-i-do";
 
 /// Parameters for block import.
 #[derive(Debug, Clone, Args)]
@@ -45,28 +41,41 @@ pub struct ImportParams {
 	#[clap(flatten)]
 	pub database_params: DatabaseParams,
 
-	/// Force start with unsafe pruning settings.
-	///
-	/// When running as a validator it is highly recommended to disable state
-	/// pruning (i.e. 'archive') which is the default. The node will refuse to
-	/// start as a validator if pruning is enabled unless this option is set.
-	#[clap(long)]
-	pub unsafe_pruning: bool,
-
 	/// Method for executing Wasm runtime code.
-	#[clap(
+	#[arg(
 		long = "wasm-execution",
 		value_name = "METHOD",
-		possible_values = WasmExecutionMethod::variants(),
+		value_enum,
 		ignore_case = true,
-		default_value = WASM_METHOD_DEFAULT
+		default_value_t = DEFAULT_WASM_EXECUTION_METHOD,
 	)]
 	pub wasm_method: WasmExecutionMethod,
+
+	/// The WASM instantiation method to use.
+	///
+	/// Only has an effect when `wasm-execution` is set to `compiled`.
+	///
+	/// The copy-on-write strategies are only supported on Linux.
+	/// If the copy-on-write variant of a strategy is unsupported
+	/// the executor will fall back to the non-CoW equivalent.
+	///
+	/// The fastest (and the default) strategy available is `pooling-copy-on-write`.
+	///
+	/// The `legacy-instance-reuse` strategy is deprecated and will
+	/// be removed in the future. It should only be used in case of
+	/// issues with the default instantiation strategy.
+	#[arg(
+		long,
+		value_name = "STRATEGY",
+		default_value_t = DEFAULT_WASMTIME_INSTANTIATION_STRATEGY,
+		value_enum,
+	)]
+	pub wasmtime_instantiation_strategy: WasmtimeInstantiationStrategy,
 
 	/// Specify the path where local WASM runtimes are stored.
 	///
 	/// These runtimes will override on-chain runtimes when the version matches.
-	#[clap(long, value_name = "PATH", parse(from_os_str))]
+	#[arg(long, value_name = "PATH")]
 	pub wasm_runtime_overrides: Option<PathBuf>,
 
 	#[allow(missing_docs)]
@@ -74,19 +83,35 @@ pub struct ImportParams {
 	pub execution_strategies: ExecutionStrategiesParams,
 
 	/// Specify the state cache size.
-	#[clap(long, value_name = "Bytes", default_value = "67108864")]
-	pub state_cache_size: usize,
+	///
+	/// Providing `0` will disable the cache.
+	#[arg(long, value_name = "Bytes", default_value_t = 67108864)]
+	pub trie_cache_size: usize,
+
+	/// DEPRECATED
+	///
+	/// Switch to `--trie-cache-size`.
+	#[arg(long)]
+	state_cache_size: Option<usize>,
 }
 
 impl ImportParams {
-	/// Specify the state cache size.
-	pub fn state_cache_size(&self) -> usize {
-		self.state_cache_size
+	/// Specify the trie cache maximum size.
+	pub fn trie_cache_maximum_size(&self) -> Option<usize> {
+		if self.state_cache_size.is_some() {
+			eprintln!("`--state-cache-size` was deprecated. Please switch to `--trie-cache-size`.");
+		}
+
+		if self.trie_cache_size == 0 {
+			None
+		} else {
+			Some(self.trie_cache_size)
+		}
 	}
 
 	/// Get the WASM execution method from the parameters
 	pub fn wasm_method(&self) -> sc_service::config::WasmExecutionMethod {
-		self.wasm_method.into()
+		crate::execution_method_from_cli(self.wasm_method, self.wasmtime_instantiation_strategy)
 	}
 
 	/// Enable overriding on-chain WASM with locally-stored WASM
@@ -131,39 +156,39 @@ impl ImportParams {
 pub struct ExecutionStrategiesParams {
 	/// The means of execution used when calling into the runtime for importing blocks as
 	/// part of an initial sync.
-	#[clap(long, value_name = "STRATEGY", arg_enum, ignore_case = true)]
+	#[arg(long, value_name = "STRATEGY", value_enum, ignore_case = true)]
 	pub execution_syncing: Option<ExecutionStrategy>,
 
 	/// The means of execution used when calling into the runtime for general block import
 	/// (including locally authored blocks).
-	#[clap(long, value_name = "STRATEGY", arg_enum, ignore_case = true)]
+	#[arg(long, value_name = "STRATEGY", value_enum, ignore_case = true)]
 	pub execution_import_block: Option<ExecutionStrategy>,
 
 	/// The means of execution used when calling into the runtime while constructing blocks.
-	#[clap(long, value_name = "STRATEGY", arg_enum, ignore_case = true)]
+	#[arg(long, value_name = "STRATEGY", value_enum, ignore_case = true)]
 	pub execution_block_construction: Option<ExecutionStrategy>,
 
 	/// The means of execution used when calling into the runtime while using an off-chain worker.
-	#[clap(long, value_name = "STRATEGY", arg_enum, ignore_case = true)]
+	#[arg(long, value_name = "STRATEGY", value_enum, ignore_case = true)]
 	pub execution_offchain_worker: Option<ExecutionStrategy>,
 
 	/// The means of execution used when calling into the runtime while not syncing, importing or
 	/// constructing blocks.
-	#[clap(long, value_name = "STRATEGY", arg_enum, ignore_case = true)]
+	#[arg(long, value_name = "STRATEGY", value_enum, ignore_case = true)]
 	pub execution_other: Option<ExecutionStrategy>,
 
 	/// The execution strategy that should be used by all execution contexts.
-	#[clap(
+	#[arg(
 		long,
 		value_name = "STRATEGY",
-		arg_enum,
+		value_enum,
 		ignore_case = true,
 		conflicts_with_all = &[
-			"execution-other",
-			"execution-offchain-worker",
-			"execution-block-construction",
-			"execution-import-block",
-			"execution-syncing",
+			"execution_other",
+			"execution_offchain_worker",
+			"execution_block_construction",
+			"execution_import_block",
+			"execution_syncing",
 		]
 	)]
 	pub execution: Option<ExecutionStrategy>,

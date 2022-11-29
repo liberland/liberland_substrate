@@ -78,8 +78,8 @@ pub trait HeaderBackend<Block: BlockT>: Send + Sync {
 	/// Convert an arbitrary block ID into a block hash. Returns `UnknownBlock` error if block is
 	/// not found.
 	fn expect_block_hash_from_id(&self, id: &BlockId<Block>) -> Result<Block::Hash> {
-		self.block_hash_from_id(id).and_then(|n| {
-			n.ok_or_else(|| Error::UnknownBlock(format!("Expect block hash from id: {}", id)))
+		self.block_hash_from_id(id).and_then(|h| {
+			h.ok_or_else(|| Error::UnknownBlock(format!("Expect block hash from id: {}", id)))
 		})
 	}
 }
@@ -89,9 +89,9 @@ pub trait Backend<Block: BlockT>:
 	HeaderBackend<Block> + HeaderMetadata<Block, Error = Error>
 {
 	/// Get block body. Returns `None` if block is not found.
-	fn body(&self, id: BlockId<Block>) -> Result<Option<Vec<<Block as BlockT>::Extrinsic>>>;
+	fn body(&self, hash: Block::Hash) -> Result<Option<Vec<<Block as BlockT>::Extrinsic>>>;
 	/// Get block justifications. Returns `None` if no justification exists.
-	fn justifications(&self, id: BlockId<Block>) -> Result<Option<Justifications>>;
+	fn justifications(&self, hash: Block::Hash) -> Result<Option<Justifications>>;
 	/// Get last finalized block hash.
 	fn last_finalized(&self) -> Result<Block::Hash>;
 
@@ -99,6 +99,14 @@ pub trait Backend<Block: BlockT>:
 	/// in other words, that have no children, are chain heads.
 	/// Results must be ordered best (longest, highest) chain first.
 	fn leaves(&self) -> Result<Vec<Block::Hash>>;
+
+	/// Returns displaced leaves after the given block would be finalized.
+	///
+	/// The returned leaves do not contain the leaves from the same height as `block_number`.
+	fn displaced_leaves_after_finalizing(
+		&self,
+		block_number: NumberFor<Block>,
+	) -> Result<Vec<Block::Hash>>;
 
 	/// Return hashes of all blocks that are children of the block with `parent_hash`.
 	fn children(&self, parent_hash: Block::Hash) -> Result<Vec<Block::Hash>>;
@@ -176,7 +184,7 @@ pub trait Backend<Block: BlockT>:
 			if let Some(max_number) = maybe_max_number {
 				loop {
 					let current_header = self
-						.header(BlockId::Hash(current_hash.clone()))?
+						.header(BlockId::Hash(current_hash))?
 						.ok_or_else(|| Error::MissingHeader(current_hash.to_string()))?;
 
 					if current_header.number() <= &max_number {
@@ -196,7 +204,7 @@ pub trait Backend<Block: BlockT>:
 				}
 
 				let current_header = self
-					.header(BlockId::Hash(current_hash.clone()))?
+					.header(BlockId::Hash(current_hash))?
 					.ok_or_else(|| Error::MissingHeader(current_hash.to_string()))?;
 
 				// stop search in this chain once we go below the target's block number
@@ -223,14 +231,14 @@ pub trait Backend<Block: BlockT>:
 
 	/// Get single indexed transaction by content hash. Note that this will only fetch transactions
 	/// that are indexed by the runtime with `storage_index_transaction`.
-	fn indexed_transaction(&self, hash: &Block::Hash) -> Result<Option<Vec<u8>>>;
+	fn indexed_transaction(&self, hash: Block::Hash) -> Result<Option<Vec<u8>>>;
 
 	/// Check if indexed transaction exists.
-	fn has_indexed_transaction(&self, hash: &Block::Hash) -> Result<bool> {
+	fn has_indexed_transaction(&self, hash: Block::Hash) -> Result<bool> {
 		Ok(self.indexed_transaction(hash)?.is_some())
 	}
 
-	fn block_indexed_body(&self, id: BlockId<Block>) -> Result<Option<Vec<Vec<u8>>>>;
+	fn block_indexed_body(&self, hash: Block::Hash) -> Result<Option<Vec<Vec<u8>>>>;
 }
 
 /// Blockchain info

@@ -16,8 +16,8 @@
 // limitations under the License.
 
 use sc_cli::Result;
-use sc_client_api::UsageProvider;
-use sc_client_db::{DbHash, DbState, DB_HASH_LEN};
+use sc_client_api::{Backend as ClientBackend, StorageProvider, UsageProvider};
+use sc_client_db::{DbHash, DbState, DbStateBuilder};
 use sp_api::StateBackend;
 use sp_blockchain::HeaderBackend;
 use sp_database::{ColumnId, Transaction};
@@ -27,16 +27,22 @@ use sp_runtime::{
 };
 use sp_trie::PrefixedMemoryDB;
 
-use log::info;
+use log::{info, trace};
 use rand::prelude::*;
-use std::{fmt::Debug, sync::Arc, time::Instant};
+use sp_storage::{ChildInfo, StateVersion};
+use std::{
+	fmt::Debug,
+	sync::Arc,
+	time::{Duration, Instant},
+};
 
-use super::{cmd::StorageCmd, record::BenchRecord};
+use super::cmd::StorageCmd;
+use crate::shared::{new_rng, BenchRecord};
 
 impl StorageCmd {
 	/// Benchmarks the time it takes to write a single Storage item.
 	/// Uses the latest state that is available for the given client.
-	pub(crate) fn bench_write<Block, H, C>(
+	pub(crate) fn bench_write<Block, BA, H, C>(
 		&self,
 		client: Arc<C>,
 		(db, state_col): (Arc<dyn sp_database::Database<DbHash>>, ColumnId),
@@ -45,47 +51,112 @@ impl StorageCmd {
 	where
 		Block: BlockT<Header = H, Hash = DbHash> + Debug,
 		H: HeaderT<Hash = DbHash>,
-		C: UsageProvider<Block> + HeaderBackend<Block>,
+		BA: ClientBackend<Block>,
+		C: UsageProvider<Block> + HeaderBackend<Block> + StorageProvider<Block, BA>,
 	{
 		// Store the time that it took to write each value.
 		let mut record = BenchRecord::default();
 
-		let supports_rc = db.supports_ref_counting();
-		let block = BlockId::Number(client.usage_info().chain.best_number);
-		let header = client.header(block)?.ok_or("Header not found")?;
+		let best_hash = client.usage_info().chain.best_hash;
+		let header = client.header(BlockId::Hash(best_hash))?.ok_or("Header not found")?;
 		let original_root = *header.state_root();
-		let trie = DbState::<Block>::new(storage.clone(), original_root);
+		let trie = DbStateBuilder::<Block>::new(storage.clone(), original_root).build();
 
-		info!("Preparing keys from block {}", block);
+		info!("Preparing keys from block {}", best_hash);
 		// Load all KV pairs and randomly shuffle them.
 		let mut kvs = trie.pairs();
-		let mut rng = Self::setup_rng();
+		let (mut rng, _) = new_rng(None);
 		kvs.shuffle(&mut rng);
-
 		info!("Writing {} keys", kvs.len());
-		// Write each value in one commit.
-		for (k, original_v) in kvs.iter() {
-			// Create a random value to overwrite with.
-			// NOTE: We use a possibly higher entropy than the original value,
-			// could be improved but acts as an over-estimation which is fine for now.
-			let mut new_v = vec![0; original_v.len()];
-			rng.fill_bytes(&mut new_v[..]);
 
-			// Interesting part here:
-			let start = Instant::now();
-			// Create a TX that will modify the Trie in the DB and
-			// calculate the root hash of the Trie after the modification.
-			let replace = vec![(k.as_ref(), Some(new_v.as_ref()))];
-			let (_, stx) = trie.storage_root(replace.iter().cloned(), self.state_version());
-			// Only the keep the insertions, since we do not want to benchmark pruning.
-			let tx = convert_tx::<Block>(stx.clone(), true, state_col, supports_rc);
-			db.commit(tx).map_err(|e| format!("Writing to the Database: {}", e))?;
-			record.append(new_v.len(), start.elapsed())?;
+		let mut child_nodes = Vec::new();
 
-			// Now undo the changes by removing what was added.
-			let tx = convert_tx::<Block>(stx.clone(), false, state_col, supports_rc);
-			db.commit(tx).map_err(|e| format!("Writing to the Database: {}", e))?;
+		// Generate all random values first; Make sure there are no collisions with existing
+		// db entries, so we can rollback all additions without corrupting existing entries.
+		for (k, original_v) in kvs {
+			match (self.params.include_child_trees, self.is_child_key(k.to_vec())) {
+				(true, Some(info)) => {
+					let child_keys =
+						client.child_storage_keys_iter(best_hash, info.clone(), None, None)?;
+					for ck in child_keys {
+						child_nodes.push((ck.clone(), info.clone()));
+					}
+				},
+				_ => {
+					// regular key
+					let mut new_v = vec![0; original_v.len()];
+					loop {
+						// Create a random value to overwrite with.
+						// NOTE: We use a possibly higher entropy than the original value,
+						// could be improved but acts as an over-estimation which is fine for now.
+						rng.fill_bytes(&mut new_v[..]);
+						if check_new_value::<Block>(
+							db.clone(),
+							&trie,
+							&k.to_vec(),
+							&new_v,
+							self.state_version(),
+							state_col,
+							None,
+						) {
+							break
+						}
+					}
+
+					// Write each value in one commit.
+					let (size, duration) = measure_write::<Block>(
+						db.clone(),
+						&trie,
+						k.to_vec(),
+						new_v.to_vec(),
+						self.state_version(),
+						state_col,
+						None,
+					)?;
+					record.append(size, duration)?;
+				},
+			}
 		}
+
+		if self.params.include_child_trees {
+			child_nodes.shuffle(&mut rng);
+			info!("Writing {} child keys", child_nodes.len());
+
+			for (key, info) in child_nodes {
+				if let Some(original_v) = client
+					.child_storage(best_hash, &info.clone(), &key)
+					.expect("Checked above to exist")
+				{
+					let mut new_v = vec![0; original_v.0.len()];
+					loop {
+						rng.fill_bytes(&mut new_v[..]);
+						if check_new_value::<Block>(
+							db.clone(),
+							&trie,
+							&key.0,
+							&new_v,
+							self.state_version(),
+							state_col,
+							Some(&info),
+						) {
+							break
+						}
+					}
+
+					let (size, duration) = measure_write::<Block>(
+						db.clone(),
+						&trie,
+						key.0,
+						new_v.to_vec(),
+						self.state_version(),
+						state_col,
+						Some(&info),
+					)?;
+					record.append(size, duration)?;
+				}
+			}
+		}
+
 		Ok(record)
 	}
 }
@@ -93,39 +164,84 @@ impl StorageCmd {
 /// Converts a Trie transaction into a DB transaction.
 /// Removals are ignored and will not be included in the final tx.
 /// `invert_inserts` replaces all inserts with removals.
-///
-/// The keys of Trie transactions are prefixed, this is treated differently by each DB.
-/// ParityDB can use an optimization where only the last `DB_HASH_LEN` byte are needed.
-/// The last `DB_HASH_LEN` byte are the hash of the actual stored data, everything
-/// before that is the route in the Patricia Trie.
-/// RocksDB cannot do this and needs the whole route, hence no key truncating for RocksDB.
-///
-/// TODO:
-/// This copies logic from [`sp_client_db::Backend::try_commit_operation`] and should be
-/// refactored to use a canonical `sanitize_key` function from `sp_client_db` which
-/// does not yet exist.
 fn convert_tx<B: BlockT>(
+	db: Arc<dyn sp_database::Database<DbHash>>,
 	mut tx: PrefixedMemoryDB<HashFor<B>>,
 	invert_inserts: bool,
 	col: ColumnId,
-	supports_rc: bool,
 ) -> Transaction<DbHash> {
 	let mut ret = Transaction::<DbHash>::default();
 
 	for (mut k, (v, rc)) in tx.drain().into_iter() {
-		if supports_rc {
-			let _prefix = k.drain(0..k.len() - DB_HASH_LEN);
-		}
-
 		if rc > 0 {
+			db.sanitize_key(&mut k);
 			if invert_inserts {
-				ret.set(col, k.as_ref(), &v);
-			} else {
 				ret.remove(col, &k);
+			} else {
+				ret.set(col, &k, &v);
 			}
 		}
 		// < 0 means removal - ignored.
 		// 0 means no modification.
 	}
 	ret
+}
+
+/// Measures write benchmark
+/// if `child_info` exist then it means this is a child tree key
+fn measure_write<Block: BlockT>(
+	db: Arc<dyn sp_database::Database<DbHash>>,
+	trie: &DbState<Block>,
+	key: Vec<u8>,
+	new_v: Vec<u8>,
+	version: StateVersion,
+	col: ColumnId,
+	child_info: Option<&ChildInfo>,
+) -> Result<(usize, Duration)> {
+	let start = Instant::now();
+	// Create a TX that will modify the Trie in the DB and
+	// calculate the root hash of the Trie after the modification.
+	let replace = vec![(key.as_ref(), Some(new_v.as_ref()))];
+	let stx = match child_info {
+		Some(info) => trie.child_storage_root(info, replace.iter().cloned(), version).2,
+		None => trie.storage_root(replace.iter().cloned(), version).1,
+	};
+	// Only the keep the insertions, since we do not want to benchmark pruning.
+	let tx = convert_tx::<Block>(db.clone(), stx.clone(), false, col);
+	db.commit(tx).map_err(|e| format!("Writing to the Database: {}", e))?;
+	let result = (new_v.len(), start.elapsed());
+
+	// Now undo the changes by removing what was added.
+	let tx = convert_tx::<Block>(db.clone(), stx.clone(), true, col);
+	db.commit(tx).map_err(|e| format!("Writing to the Database: {}", e))?;
+	Ok(result)
+}
+
+/// Checks if a new value causes any collision in tree updates
+/// returns true if there is no collision
+/// if `child_info` exist then it means this is a child tree key
+fn check_new_value<Block: BlockT>(
+	db: Arc<dyn sp_database::Database<DbHash>>,
+	trie: &DbState<Block>,
+	key: &Vec<u8>,
+	new_v: &Vec<u8>,
+	version: StateVersion,
+	col: ColumnId,
+	child_info: Option<&ChildInfo>,
+) -> bool {
+	let new_kv = vec![(key.as_ref(), Some(new_v.as_ref()))];
+	let mut stx = match child_info {
+		Some(info) => trie.child_storage_root(info, new_kv.iter().cloned(), version).2,
+		None => trie.storage_root(new_kv.iter().cloned(), version).1,
+	};
+	for (mut k, (_, rc)) in stx.drain().into_iter() {
+		if rc > 0 {
+			db.sanitize_key(&mut k);
+			if db.get(col, &k).is_some() {
+				trace!("Benchmark-store key creation: Key collision detected, retry");
+				return false
+			}
+		}
+	}
+	true
 }

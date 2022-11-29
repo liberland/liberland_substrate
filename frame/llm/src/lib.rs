@@ -22,14 +22,13 @@ pub mod pallet {
 	use super::{traits::LLM, *};
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		sp_runtime::traits::AccountIdConversion,
 		traits::fungibles::Mutate,
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
 	use hex_literal::hex;
 	use scale_info::prelude::vec;
-	use sp_runtime::{traits::StaticLookup, AccountId32, SaturatedConversion};
+	use sp_runtime::{traits::{AccountIdConversion, StaticLookup}, AccountId32, SaturatedConversion};
 	use sp_std::vec::Vec;
 
 	#[pallet::storage]
@@ -80,6 +79,10 @@ pub mod pallet {
 	pub trait Config:
 		pallet_assets::Config + frame_system::Config + pallet_identity::Config
 	{
+		/// The overarching event type.
+		type RuntimeEvent: From<Event<Self>>
+			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
 		// include pallet asset config aswell
 
 		type TotalSupply: Get<u64>; // Pre defined the total supply in runtime
@@ -90,8 +93,6 @@ pub mod pallet {
 			+ From<u32>
 			+ Ord
 			+ Copy;
-
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -141,7 +142,7 @@ pub mod pallet {
 
 			// todo: have a function that runs on blocknumber as input and checks if it can mint llm
 			// based on blocknumber 	Self::mint_llm(origin);
-			0
+			Weight::zero()
 		}
 
 		fn on_finalize(_n: T::BlockNumber) {}
@@ -323,7 +324,7 @@ pub mod pallet {
 
 			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
 
-			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 			let treasury_balance = LLMBalance::<T>::get(&treasury_account.clone());
 			let amount_balance = Self::u64_to_balance(amount);
 			ensure!(treasury_balance >= amount_balance, Error::<T>::LowBalance);
@@ -381,7 +382,7 @@ pub mod pallet {
 			ensure_signed(origin)?;
 			let assetid: AssetId<T> = Self::llm_id();
 			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
-			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 			let maxcap: u64 = T::TotalSupply::get();
 			let t_balance: u64 =
 				pallet_assets::Pallet::<T>::balance(Self::llm_id().into(), &treasury.into())
@@ -454,10 +455,10 @@ pub mod pallet {
 			let assetid: AssetId<T> = Self::llm_id(); //0u32.into();
 										  // check if asset is created
 
-			let owner: T::AccountId = PalletId(*b"py/trsry").into_account(); // treasury is the owner
+			let owner: T::AccountId = PalletId(*b"py/trsry").into_account_truncating(); // treasury is the owner
 			let challenger_lookup: <T::Lookup as StaticLookup>::Source =
 				T::Lookup::unlookup(owner.clone());
-			let t_ac2: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let t_ac2: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 			let asset_balance: u128 = pallet_assets::Pallet::<T>::balance(assetid.into(), t_ac2)
 				.try_into()
 				.unwrap_or(0u128);
@@ -477,7 +478,7 @@ pub mod pallet {
 				min_balance,
 			)
 			.unwrap_or_default();
-			let t_ac: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let t_ac: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 			let new_balance: T::Balance =
 				T::PreMintedAmount::get().try_into().unwrap_or(Default::default());
 
@@ -516,11 +517,11 @@ pub mod pallet {
 		}
 
 		fn get_llm_vault_account() -> T::AccountId {
-			PalletId(*b"llm/safe").into_account()
+			PalletId(*b"llm/safe").into_account_truncating()
 		}
 
 		fn get_llm_account() -> T::AccountId {
-			PalletId(*b"llm/trsy").into_account()
+			PalletId(*b"llm/trsy").into_account_truncating()
 		}
 
 		fn u64_to_balance(amount: u64) -> T::Balance {
@@ -560,7 +561,7 @@ pub mod pallet {
 				return false
 			}
 			NextMint::<T>::put(Self::get_future_block());
-			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 
 			// mint 0.9%
 			let zeronine: u64 = Self::get_allowed_spending();
@@ -578,7 +579,7 @@ pub mod pallet {
 		/// Mint tokens to the treasury account. Sends tokens from the llm/vault to the treasury
 		fn mint_tokens(_assetid: AssetId<T>, amount: u64) {
 			let transfer_amount: T::Balance = amount.try_into().unwrap_or(Default::default());
-			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account();
+			let treasury: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 			// update balance of the treasury account, balances should be u128 and not u64
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
 				treasury.clone(),

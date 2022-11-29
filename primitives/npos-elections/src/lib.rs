@@ -62,7 +62,7 @@
 //!
 //! The `Assignment` field of the election result is voter-major, i.e. it is from the perspective of
 //! the voter. The struct that represents the opposite is called a `Support`. This struct is usually
-//! accessed in a map-like manner, i.e. keyed by voters, therefor it is stored as a mapping called
+//! accessed in a map-like manner, i.e. keyed by voters, therefore it is stored as a mapping called
 //! `SupportMap`.
 //!
 //! Moreover, the support is built from absolute backing values, not ratios like the example above.
@@ -74,14 +74,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use scale_info::TypeInfo;
-use sp_arithmetic::{traits::Zero, Normalizable, PerThing, Rational128, ThresholdOrd};
-use sp_core::RuntimeDebug;
-use sp_std::{cell::RefCell, cmp::Ordering, collections::btree_map::BTreeMap, prelude::*, rc::Rc};
-
 use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_arithmetic::{traits::Zero, Normalizable, PerThing, Rational128, ThresholdOrd};
+use sp_core::{bounded::BoundedVec, RuntimeDebug};
+use sp_std::{
+	cell::RefCell, cmp::Ordering, collections::btree_map::BTreeMap, prelude::*, rc::Rc, vec,
+};
 
 #[cfg(test)]
 mod mock;
@@ -98,29 +99,16 @@ pub mod pjr;
 pub mod reduce;
 pub mod traits;
 
-pub use assignments::{Assignment, IndexAssignment, IndexAssignmentOf, StakedAssignment};
+pub use assignments::{Assignment, StakedAssignment};
 pub use balancing::*;
 pub use helpers::*;
 pub use phragmen::*;
 pub use phragmms::*;
 pub use pjr::*;
 pub use reduce::reduce;
-pub use traits::{IdentifierT, NposSolution, PerThing128, __OrInvalidIndex};
+pub use traits::{IdentifierT, PerThing128};
 
-// re-export for the solution macro, with the dependencies of the macro.
-#[doc(hidden)]
-pub use codec;
-#[doc(hidden)]
-pub use scale_info;
-#[doc(hidden)]
-pub use sp_arithmetic;
-#[doc(hidden)]
-pub use sp_std;
-
-// re-export the solution type macro.
-pub use sp_npos_elections_solution_type::generate_solution_type;
-
-/// The errors that might occur in the this crate and solution-type.
+/// The errors that might occur in this crate and `frame-election-provider-solution-type`.
 #[derive(Eq, PartialEq, RuntimeDebug)]
 pub enum Error {
 	/// While going from solution indices to ratio, the weight of all the edges has gone above the
@@ -130,12 +118,14 @@ pub enum Error {
 	SolutionTargetOverflow,
 	/// One of the index functions returned none.
 	SolutionInvalidIndex,
-	/// One of the page indices was invalid
+	/// One of the page indices was invalid.
 	SolutionInvalidPageIndex,
 	/// An error occurred in some arithmetic operation.
 	ArithmeticError(&'static str),
 	/// The data provided to create support map was invalid.
 	InvalidSupportEdge,
+	/// The number of voters is bigger than the `MaxVoters` bound.
+	TooManyVoters,
 }
 
 /// A type which is used in the API of this crate as a numeric weight of a vote, most often the
@@ -224,6 +214,13 @@ impl sp_std::cmp::PartialOrd for ElectionScore {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
+}
+
+/// Utility struct to group parameters for the balancing algorithm.
+#[derive(Clone, Copy)]
+pub struct BalancingConfig {
+	pub iterations: usize,
+	pub tolerance: ExtendedBalance,
 }
 
 /// A pointer to a candidate struct with interior mutability.
@@ -329,7 +326,7 @@ impl<AccountId: IdentifierT> Voter<AccountId> {
 	///
 	/// Note that this might create _un-normalized_ assignments, due to accuracy loss of `P`. Call
 	/// site might compensate by calling `normalize()` on the returned `Assignment` as a
-	/// post-precessing.
+	/// post-processing.
 	pub fn into_assignment<P: PerThing>(self) -> Option<Assignment<AccountId, P>> {
 		let who = self.who;
 		let budget = self.budget;
@@ -453,6 +450,11 @@ impl<AccountId> Default for Support<AccountId> {
 /// The main advantage of this is that it is encodable.
 pub type Supports<A> = Vec<(A, Support<A>)>;
 
+/// Same as `Supports` but bounded by `B`.
+///
+/// To note, the inner `Support` is still unbounded.
+pub type BoundedSupports<A, B> = BoundedVec<(A, Support<A>), B>;
+
 /// Linkage from a winner to their [`Support`].
 ///
 /// This is more helpful than a normal [`Supports`] as it allows faster error checking.
@@ -465,8 +467,8 @@ pub fn to_support_map<AccountId: IdentifierT>(
 	let mut supports = <BTreeMap<AccountId, Support<AccountId>>>::new();
 
 	// build support struct.
-	for StakedAssignment { who, distribution } in assignments.into_iter() {
-		for (c, weight_extended) in distribution.into_iter() {
+	for StakedAssignment { who, distribution } in assignments.iter() {
+		for (c, weight_extended) in distribution.iter() {
 			let mut support = supports.entry(c.clone()).or_default();
 			support.total = support.total.saturating_add(*weight_extended);
 			support.voters.push((who.clone(), *weight_extended));

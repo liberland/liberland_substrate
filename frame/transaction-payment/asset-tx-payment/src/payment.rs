@@ -54,8 +54,8 @@ pub trait OnChargeAssetTransaction<T: Config> {
 	/// Note: The `fee` already includes the `tip`.
 	fn withdraw_fee(
 		who: &T::AccountId,
-		call: &T::Call,
-		dispatch_info: &DispatchInfoOf<T::Call>,
+		call: &T::RuntimeCall,
+		dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
 		asset_id: Self::AssetId,
 		fee: Self::Balance,
 		tip: Self::Balance,
@@ -68,8 +68,8 @@ pub trait OnChargeAssetTransaction<T: Config> {
 	/// Note: The `fee` already includes the `tip`.
 	fn correct_and_deposit_fee(
 		who: &T::AccountId,
-		dispatch_info: &DispatchInfoOf<T::Call>,
-		post_info: &PostDispatchInfoOf<T::Call>,
+		dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
+		post_info: &PostDispatchInfoOf<T::RuntimeCall>,
 		corrected_fee: Self::Balance,
 		tip: Self::Balance,
 		already_withdrawn: Self::LiquidityInfo,
@@ -114,8 +114,8 @@ where
 	/// Note: The `fee` already includes the `tip`.
 	fn withdraw_fee(
 		who: &T::AccountId,
-		_call: &T::Call,
-		_info: &DispatchInfoOf<T::Call>,
+		_call: &T::RuntimeCall,
+		_info: &DispatchInfoOf<T::RuntimeCall>,
 		asset_id: Self::AssetId,
 		fee: Self::Balance,
 		_tip: Self::Balance,
@@ -127,15 +127,12 @@ where
 		let converted_fee = CON::to_asset_balance(fee, asset_id)
 			.map_err(|_| TransactionValidityError::from(InvalidTransaction::Payment))?
 			.max(min_converted_fee);
-		let can_withdraw = <T::Fungibles as Inspect<T::AccountId>>::can_withdraw(
-			asset_id.into(),
-			who,
-			converted_fee,
-		);
+		let can_withdraw =
+			<T::Fungibles as Inspect<T::AccountId>>::can_withdraw(asset_id, who, converted_fee);
 		if !matches!(can_withdraw, WithdrawConsequence::Success) {
 			return Err(InvalidTransaction::Payment.into())
 		}
-		<T::Fungibles as Balanced<T::AccountId>>::withdraw(asset_id.into(), who, converted_fee)
+		<T::Fungibles as Balanced<T::AccountId>>::withdraw(asset_id, who, converted_fee)
 			.map_err(|_| TransactionValidityError::from(InvalidTransaction::Payment))
 	}
 
@@ -145,15 +142,15 @@ where
 	/// Note: The `corrected_fee` already includes the `tip`.
 	fn correct_and_deposit_fee(
 		who: &T::AccountId,
-		_dispatch_info: &DispatchInfoOf<T::Call>,
-		_post_info: &PostDispatchInfoOf<T::Call>,
+		_dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
+		_post_info: &PostDispatchInfoOf<T::RuntimeCall>,
 		corrected_fee: Self::Balance,
 		_tip: Self::Balance,
 		paid: Self::LiquidityInfo,
 	) -> Result<(), TransactionValidityError> {
 		let min_converted_fee = if corrected_fee.is_zero() { Zero::zero() } else { One::one() };
 		// Convert the corrected fee into the asset used for payment.
-		let converted_fee = CON::to_asset_balance(corrected_fee, paid.asset().into())
+		let converted_fee = CON::to_asset_balance(corrected_fee, paid.asset())
 			.map_err(|_| -> TransactionValidityError { InvalidTransaction::Payment.into() })?
 			.max(min_converted_fee);
 		// Calculate how much refund we should return.

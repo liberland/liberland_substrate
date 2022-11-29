@@ -21,16 +21,18 @@
 
 pub mod error;
 
+use async_trait::async_trait;
 use futures::{Future, Stream};
-use serde::{Deserialize, Serialize};
-pub use sp_runtime::transaction_validity::{
-	TransactionLongevity, TransactionPriority, TransactionSource, TransactionTag,
-};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sp_runtime::{
 	generic::BlockId,
 	traits::{Block as BlockT, Member, NumberFor},
 };
 use std::{collections::HashMap, hash::Hash, pin::Pin, sync::Arc};
+
+pub use sp_runtime::transaction_validity::{
+	TransactionLongevity, TransactionPriority, TransactionSource, TransactionTag,
+};
 
 /// Transaction pool status.
 #[derive(Debug)]
@@ -107,15 +109,18 @@ pub enum TransactionStatus<Hash, BlockHash> {
 	Ready,
 	/// The transaction has been broadcast to the given peers.
 	Broadcast(Vec<String>),
-	/// Transaction has been included in block with given hash.
-	InBlock(BlockHash),
+	/// Transaction has been included in block with given hash
+	/// at the given position.
+	#[serde(with = "v1_compatible")]
+	InBlock((BlockHash, TxIndex)),
 	/// The block this transaction was included in has been retracted.
 	Retracted(BlockHash),
 	/// Maximum number of finality watchers has been reached,
 	/// old watchers are being removed.
 	FinalityTimeout(BlockHash),
-	/// Transaction has been finalized by a finality-gadget, e.g GRANDPA
-	Finalized(BlockHash),
+	/// Transaction has been finalized by a finality-gadget, e.g GRANDPA.
+	#[serde(with = "v1_compatible")]
+	Finalized((BlockHash, TxIndex)),
 	/// Transaction has been replaced in the pool, by another transaction
 	/// that provides the same tags. (e.g. same (sender, nonce)).
 	Usurped(Hash),
@@ -142,6 +147,8 @@ pub type TransactionFor<P> = <<P as TransactionPool>::Block as BlockT>::Extrinsi
 pub type TransactionStatusStreamFor<P> = TransactionStatusStream<TxHash<P>, BlockHash<P>>;
 /// Transaction type for a local pool.
 pub type LocalTransactionFor<P> = <<P as LocalTransactionPool>::Block as BlockT>::Extrinsic;
+/// Transaction's index within the block in which it was included.
+pub type TxIndex = usize;
 
 /// Typical future type used in transaction pool api.
 pub type PoolFuture<T, E> = std::pin::Pin<Box<dyn Future<Output = Result<T, E>> + Send>>;
@@ -177,7 +184,7 @@ pub trait TransactionPool: Send + Sync {
 	/// Block type.
 	type Block: BlockT;
 	/// Transaction hash type.
-	type Hash: Hash + Eq + Member + Serialize;
+	type Hash: Hash + Eq + Member + Serialize + DeserializeOwned;
 	/// In-pool transaction type.
 	type InPoolTransaction: InPoolTransaction<
 		Transaction = TransactionFor<Self>,
@@ -297,9 +304,10 @@ pub enum ChainEvent<B: BlockT> {
 }
 
 /// Trait for transaction pool maintenance.
+#[async_trait]
 pub trait MaintainedTransactionPool: TransactionPool {
 	/// Perform maintenance
-	fn maintain(&self, event: ChainEvent<Self::Block>) -> Pin<Box<dyn Future<Output = ()> + Send>>;
+	async fn maintain(&self, event: ChainEvent<Self::Block>);
 }
 
 /// Transaction pool interface for submitting local transactions that exposes a
@@ -350,7 +358,7 @@ impl<TPool: LocalTransactionPool> OffchainSubmitTransaction<TPool::Block> for TP
 			extrinsic
 		);
 
-		let result = self.submit_local(&at, extrinsic);
+		let result = self.submit_local(at, extrinsic);
 
 		result.map(|_| ()).map_err(|e| {
 			log::warn!(
@@ -359,5 +367,54 @@ impl<TPool: LocalTransactionPool> OffchainSubmitTransaction<TPool::Block> for TP
 				e
 			)
 		})
+	}
+}
+
+/// Wrapper functions to keep the API backwards compatible over the wire for the old RPC spec.
+mod v1_compatible {
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	pub fn serialize<S, H>(data: &(H, usize), serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+		H: Serialize,
+	{
+		let (hash, _) = data;
+		serde::Serialize::serialize(&hash, serializer)
+	}
+
+	pub fn deserialize<'de, D, H>(deserializer: D) -> Result<(H, usize), D::Error>
+	where
+		D: Deserializer<'de>,
+		H: Deserialize<'de>,
+	{
+		let hash: H = serde::Deserialize::deserialize(deserializer)?;
+		Ok((hash, 0))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn tx_status_compatibility() {
+		let event: TransactionStatus<u8, u8> = TransactionStatus::InBlock((1, 2));
+		let ser = serde_json::to_string(&event).unwrap();
+
+		let exp = r#"{"inBlock":1}"#;
+		assert_eq!(ser, exp);
+
+		let event_dec: TransactionStatus<u8, u8> = serde_json::from_str(exp).unwrap();
+		assert_eq!(event_dec, TransactionStatus::InBlock((1, 0)));
+
+		let event: TransactionStatus<u8, u8> = TransactionStatus::Finalized((1, 2));
+		let ser = serde_json::to_string(&event).unwrap();
+
+		let exp = r#"{"finalized":1}"#;
+		assert_eq!(ser, exp);
+
+		let event_dec: TransactionStatus<u8, u8> = serde_json::from_str(exp).unwrap();
+		assert_eq!(event_dec, TransactionStatus::Finalized((1, 0)));
 	}
 }

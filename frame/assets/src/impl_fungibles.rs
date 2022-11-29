@@ -47,8 +47,9 @@ impl<T: Config<I>, I: 'static> fungibles::Inspect<<T as SystemConfig>::AccountId
 		asset: Self::AssetId,
 		who: &<T as SystemConfig>::AccountId,
 		amount: Self::Balance,
+		mint: bool,
 	) -> DepositConsequence {
-		Pallet::<T, I>::can_increase(asset, who, amount)
+		Pallet::<T, I>::can_increase(asset, who, amount, mint)
 	}
 
 	fn can_withdraw(
@@ -260,5 +261,25 @@ impl<T: Config<I>, I: 'static> fungibles::approvals::Mutate<<T as SystemConfig>:
 		amount: T::Balance,
 	) -> DispatchResult {
 		Self::do_transfer_approved(asset, owner, delegate, dest, amount)
+	}
+}
+
+impl<T: Config<I>, I: 'static> fungibles::roles::Inspect<<T as SystemConfig>::AccountId>
+	for Pallet<T, I>
+{
+	fn owner(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
+		Asset::<T, I>::get(asset).map(|x| x.owner)
+	}
+
+	fn issuer(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
+		Asset::<T, I>::get(asset).map(|x| x.issuer)
+	}
+
+	fn admin(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
+		Asset::<T, I>::get(asset).map(|x| x.admin)
+	}
+
+	fn freezer(asset: T::AssetId) -> Option<<T as SystemConfig>::AccountId> {
+		Asset::<T, I>::get(asset).map(|x| x.freezer)
 	}
 }

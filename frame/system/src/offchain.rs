@@ -88,7 +88,7 @@ where
 		call: <T as SendTransactionTypes<LocalCall>>::OverarchingCall,
 		signature: Option<<T::Extrinsic as ExtrinsicT>::SignaturePayload>,
 	) -> Result<(), ()> {
-		let xt = T::Extrinsic::new(call.into(), signature).ok_or(())?;
+		let xt = T::Extrinsic::new(call, signature).ok_or(())?;
 		sp_io::offchain::submit_transaction(xt.encode())
 	}
 
@@ -163,7 +163,7 @@ impl<T: SigningTypes, C: AppCrypto<T::Public, T::Signature>, X> Signer<T, C, X> 
 					keystore_accounts.map(|account| account.public).collect();
 
 				Box::new(
-					keys.into_iter()
+					keys.iter()
 						.enumerate()
 						.map(|(index, key)| {
 							let account_id = key.clone().into_account();
@@ -617,7 +617,7 @@ pub trait SignedPayload<T: SigningTypes>: Encode {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{Call, Test as TestRuntime, CALL};
+	use crate::mock::{RuntimeCall, Test as TestRuntime, CALL};
 	use codec::Decode;
 	use sp_core::offchain::{testing, TransactionPoolExt};
 	use sp_runtime::testing::{TestSignature, TestXt, UintAuthorityId};
@@ -627,11 +627,11 @@ mod tests {
 		type Signature = TestSignature;
 	}
 
-	type Extrinsic = TestXt<Call, ()>;
+	type Extrinsic = TestXt<RuntimeCall, ()>;
 
-	impl SendTransactionTypes<Call> for TestRuntime {
+	impl SendTransactionTypes<RuntimeCall> for TestRuntime {
 		type Extrinsic = Extrinsic;
-		type OverarchingCall = Call;
+		type OverarchingCall = RuntimeCall;
 	}
 
 	#[derive(codec::Encode, codec::Decode)]

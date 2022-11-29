@@ -34,12 +34,14 @@ use crate::{
 };
 #[cfg(feature = "std")]
 use bip39::{Language, Mnemonic, MnemonicType};
-#[cfg(feature = "full_crypto")]
-use core::convert::TryFrom;
+#[cfg(all(feature = "full_crypto", not(feature = "std")))]
+use secp256k1::Secp256k1;
+#[cfg(feature = "std")]
+use secp256k1::SECP256K1;
 #[cfg(feature = "full_crypto")]
 use secp256k1::{
 	ecdsa::{RecoverableSignature, RecoveryId},
-	Message, PublicKey, SecretKey, SECP256K1,
+	Message, PublicKey, SecretKey,
 };
 #[cfg(feature = "std")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -135,7 +137,7 @@ impl AsMut<[u8]> for Public {
 	}
 }
 
-impl sp_std::convert::TryFrom<&[u8]> for Public {
+impl TryFrom<&[u8]> for Public {
 	type Error = ();
 
 	fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
@@ -207,7 +209,7 @@ impl<'de> Deserialize<'de> for Public {
 #[derive(Encode, Decode, MaxEncodedLen, PassByInner, TypeInfo, PartialEq, Eq)]
 pub struct Signature(pub [u8; 65]);
 
-impl sp_std::convert::TryFrom<&[u8]> for Signature {
+impl TryFrom<&[u8]> for Signature {
 	type Error = ();
 
 	fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
@@ -227,7 +229,7 @@ impl Serialize for Signature {
 	where
 		S: Serializer,
 	{
-		serializer.serialize_str(&hex::encode(self))
+		serializer.serialize_str(&array_bytes::bytes2hex("", self.as_ref()))
 	}
 }
 
@@ -237,7 +239,7 @@ impl<'de> Deserialize<'de> for Signature {
 	where
 		D: Deserializer<'de>,
 	{
-		let signature_hex = hex::decode(&String::deserialize(deserializer)?)
+		let signature_hex = array_bytes::hex2bytes(&String::deserialize(deserializer)?)
 			.map_err(|e| de::Error::custom(format!("{:?}", e)))?;
 		Signature::try_from(signature_hex.as_ref())
 			.map_err(|e| de::Error::custom(format!("{:?}", e)))
@@ -334,7 +336,13 @@ impl Signature {
 		let rid = RecoveryId::from_i32(self.0[64] as i32).ok()?;
 		let sig = RecoverableSignature::from_compact(&self.0[..64], rid).ok()?;
 		let message = Message::from_slice(message).expect("Message is 32 bytes; qed");
-		SECP256K1
+
+		#[cfg(feature = "std")]
+		let context = SECP256K1;
+		#[cfg(not(feature = "std"))]
+		let context = Secp256k1::verification_only();
+
+		context
 			.recover_ecdsa(&message, &sig)
 			.ok()
 			.map(|pubkey| Public(pubkey.serialize()))
@@ -356,7 +364,7 @@ impl From<RecoverableSignature> for Signature {
 /// Derive a single hard junction.
 #[cfg(feature = "full_crypto")]
 fn derive_hard_junction(secret_seed: &Seed, cc: &[u8; 32]) -> Seed {
-	("Secp256k1HDKD", secret_seed, cc).using_encoded(|data| sp_core_hashing::blake2_256(data))
+	("Secp256k1HDKD", secret_seed, cc).using_encoded(sp_core_hashing::blake2_256)
 }
 
 /// An error when deriving a key.
@@ -425,7 +433,13 @@ impl TraitPair for Pair {
 	fn from_seed_slice(seed_slice: &[u8]) -> Result<Pair, SecretStringError> {
 		let secret =
 			SecretKey::from_slice(seed_slice).map_err(|_| SecretStringError::InvalidSeedLength)?;
-		let public = PublicKey::from_secret_key(SECP256K1, &secret);
+
+		#[cfg(feature = "std")]
+		let context = SECP256K1;
+		#[cfg(not(feature = "std"))]
+		let context = Secp256k1::signing_only();
+
+		let public = PublicKey::from_secret_key(&context, &secret);
 		let public = Public(public.serialize());
 		Ok(Pair { public, secret })
 	}
@@ -485,7 +499,7 @@ impl TraitPair for Pair {
 impl Pair {
 	/// Get the seed for this key.
 	pub fn seed(&self) -> Seed {
-		self.secret.serialize_secret()
+		self.secret.secret_bytes()
 	}
 
 	/// Exactly as `from_string` except that if no matches are found then, the the first 32
@@ -503,7 +517,13 @@ impl Pair {
 	/// Sign a pre-hashed message
 	pub fn sign_prehashed(&self, message: &[u8; 32]) -> Signature {
 		let message = Message::from_slice(message).expect("Message is 32 bytes; qed");
-		SECP256K1.sign_ecdsa_recoverable(&message, &self.secret).into()
+
+		#[cfg(feature = "std")]
+		let context = SECP256K1;
+		#[cfg(not(feature = "std"))]
+		let context = Secp256k1::signing_only();
+
+		context.sign_ecdsa_recoverable(&message, &self.secret).into()
 	}
 
 	/// Verify a signature on a pre-hashed message. Return `true` if the signature is valid
@@ -577,7 +597,6 @@ mod test {
 		set_default_ss58_version, PublicError, Ss58AddressFormat, Ss58AddressFormatRegistry,
 		DEV_PHRASE,
 	};
-	use hex_literal::hex;
 	use serde_json;
 
 	#[test]
@@ -592,31 +611,35 @@ mod test {
 
 	#[test]
 	fn seed_and_derive_should_work() {
-		let seed = hex!("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+		let seed = array_bytes::hex2array_unchecked(
+			"9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+		);
 		let pair = Pair::from_seed(&seed);
 		assert_eq!(pair.seed(), seed);
 		let path = vec![DeriveJunction::Hard([0u8; 32])];
 		let derived = pair.derive(path.into_iter(), None).ok().unwrap();
 		assert_eq!(
 			derived.0.seed(),
-			hex!("b8eefc4937200a8382d00050e050ced2d4ab72cc2ef1b061477afb51564fdd61")
+			array_bytes::hex2array_unchecked::<32>(
+				"b8eefc4937200a8382d00050e050ced2d4ab72cc2ef1b061477afb51564fdd61"
+			)
 		);
 	}
 
 	#[test]
 	fn test_vector_should_work() {
-		let pair = Pair::from_seed(&hex!(
-			"9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+		let pair = Pair::from_seed(&array_bytes::hex2array_unchecked(
+			"9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
 		));
 		let public = pair.public();
 		assert_eq!(
 			public,
 			Public::from_full(
-				&hex!("8db55b05db86c0b1786ca49f095d76344c9e6056b2f02701a7e7f3c20aabfd913ebbe148dd17c56551a52952371071a6c604b3f3abe8f2c8fa742158ea6dd7d4")[..],
+				&array_bytes::hex2bytes_unchecked("8db55b05db86c0b1786ca49f095d76344c9e6056b2f02701a7e7f3c20aabfd913ebbe148dd17c56551a52952371071a6c604b3f3abe8f2c8fa742158ea6dd7d4"),
 			).unwrap(),
 		);
 		let message = b"";
-		let signature = hex!("3dde91174bd9359027be59a428b8146513df80a2a3c7eda2194f64de04a69ab97b753169e94db6ffd50921a2668a48b94ca11e3d32c1ff19cfe88890aa7e8f3c00");
+		let signature = array_bytes::hex2array_unchecked("3dde91174bd9359027be59a428b8146513df80a2a3c7eda2194f64de04a69ab97b753169e94db6ffd50921a2668a48b94ca11e3d32c1ff19cfe88890aa7e8f3c00");
 		let signature = Signature::from_raw(signature);
 		assert!(pair.sign(&message[..]) == signature);
 		assert!(Pair::verify(&signature, &message[..], &public));
@@ -633,11 +656,11 @@ mod test {
 		assert_eq!(
 			public,
 			Public::from_full(
-				&hex!("8db55b05db86c0b1786ca49f095d76344c9e6056b2f02701a7e7f3c20aabfd913ebbe148dd17c56551a52952371071a6c604b3f3abe8f2c8fa742158ea6dd7d4")[..],
+				&array_bytes::hex2bytes_unchecked("8db55b05db86c0b1786ca49f095d76344c9e6056b2f02701a7e7f3c20aabfd913ebbe148dd17c56551a52952371071a6c604b3f3abe8f2c8fa742158ea6dd7d4"),
 			).unwrap(),
 		);
 		let message = b"";
-		let signature = hex!("3dde91174bd9359027be59a428b8146513df80a2a3c7eda2194f64de04a69ab97b753169e94db6ffd50921a2668a48b94ca11e3d32c1ff19cfe88890aa7e8f3c00");
+		let signature = array_bytes::hex2array_unchecked("3dde91174bd9359027be59a428b8146513df80a2a3c7eda2194f64de04a69ab97b753169e94db6ffd50921a2668a48b94ca11e3d32c1ff19cfe88890aa7e8f3c00");
 		let signature = Signature::from_raw(signature);
 		assert!(pair.sign(&message[..]) == signature);
 		assert!(Pair::verify(&signature, &message[..], &public));
@@ -660,10 +683,10 @@ mod test {
 		assert_eq!(
 			public,
 			Public::from_full(
-				&hex!("5676109c54b9a16d271abeb4954316a40a32bcce023ac14c8e26e958aa68fba995840f3de562156558efbfdac3f16af0065e5f66795f4dd8262a228ef8c6d813")[..],
+				&array_bytes::hex2bytes_unchecked("5676109c54b9a16d271abeb4954316a40a32bcce023ac14c8e26e958aa68fba995840f3de562156558efbfdac3f16af0065e5f66795f4dd8262a228ef8c6d813"),
 			).unwrap(),
 		);
-		let message = hex!("2f8c6129d816cf51c374bc7f08c3e63ed156cf78aefb4a6550d97b87997977ee00000000000000000200d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a4500000000000000");
+		let message = array_bytes::hex2bytes_unchecked("2f8c6129d816cf51c374bc7f08c3e63ed156cf78aefb4a6550d97b87997977ee00000000000000000200d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a4500000000000000");
 		let signature = pair.sign(&message[..]);
 		println!("Correct signature: {:?}", signature);
 		assert!(Pair::verify(&signature, &message[..], &public));
@@ -743,12 +766,12 @@ mod test {
 			set_default_ss58_version(Ss58AddressFormat::custom(200));
 			// custom addr encoded by version 200
 			let addr = "4pbsSkWcBaYoFHrKJZp5fDVUKbqSYD9dhZZGvpp3vQ5ysVs5ybV";
-			Public::from_ss58check(&addr).unwrap();
+			Public::from_ss58check(addr).unwrap();
 
 			set_default_ss58_version(default_format);
 			// set current ss58 version to default version
 			let addr = "KWAfgC2aRG5UVD6CpbPQXCx4YZZUhvWqqAJE6qcYc9Rtr6g5C";
-			Public::from_ss58check(&addr).unwrap();
+			Public::from_ss58check(addr).unwrap();
 
 			println!("CUSTOM_FORMAT_SUCCESSFUL");
 		} else {
