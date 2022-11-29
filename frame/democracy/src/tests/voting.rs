@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! The tests for normal voting functionality.
 
 use super::*;
@@ -25,7 +29,7 @@ fn overvoting_should_fail() {
 		let r = begin_referendum();
 		assert_noop!(
 			Democracy::vote(RuntimeOrigin::signed(1), r, aye(2)),
-			Error::<Test>::InsufficientFunds
+			Error::<Test>::InsufficientLLM
 		);
 	});
 }
@@ -37,7 +41,7 @@ fn split_voting_should_work() {
 		let v = AccountVote::Split { aye: 40, nay: 20 };
 		assert_noop!(
 			Democracy::vote(RuntimeOrigin::signed(5), r, v),
-			Error::<Test>::InsufficientFunds
+			Error::<Test>::InsufficientLLM
 		);
 		let v = AccountVote::Split { aye: 30, nay: 20 };
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, v));

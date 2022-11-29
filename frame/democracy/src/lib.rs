@@ -163,7 +163,7 @@ use frame_support::{
 		defensive_prelude::*,
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
 		Bounded, Currency, Get, LockIdentifier, LockableCurrency, OnUnbalanced, QueryPreimage,
-		ReservableCurrency, StorePreimage, WithdrawReasons,
+		ReservableCurrency, StorePreimage,
 	},
 	weights::Weight,
 };
@@ -348,7 +348,7 @@ pub mod pallet {
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
-		type LLM: LLM<Self::AccountId, u128>; // FIXME should use generic for Balance
+		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
 	}
 
 	/// The number of (public) proposals that have been made so far.
@@ -588,7 +588,7 @@ pub mod pallet {
 				);
 			}
 
-			let ubalance: u128 = value.clone().try_into().unwrap_or(0u128);
+			let ubalance = value.clone();
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			let depositors = BoundedVec::<_, T::MaxDeposits>::truncate_from(vec![who.clone()]);
@@ -620,8 +620,7 @@ pub mod pallet {
 			let seconds = Self::len_of_deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
 			ensure!(seconds < T::MaxDeposits::get(), Error::<T>::TooMany);
 			let mut deposit = Self::deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
-
-			let ubalance: u128 = deposit.clone().1.try_into().unwrap_or(0u128);
+			let ubalance = deposit.clone().1;
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 			let ok = deposit.0.try_push(who.clone()).is_ok();
 			debug_assert!(ok, "`seconds` is below static limit; `try_insert` should succeed; qed");
@@ -1186,7 +1185,7 @@ impl<T: Config> Pallet<T> {
 		vote: AccountVote<BalanceOf<T>>,
 	) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
-		let ubalance: u128 = vote.balance().try_into().unwrap_or(0u128); // / 100000000000u128;
+		let ubalance = vote.balance();
 		ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
@@ -1331,8 +1330,7 @@ impl<T: Config> Pallet<T> {
 		balance: BalanceOf<T>,
 	) -> Result<u32, DispatchError> {
 		ensure!(who != target, Error::<T>::Nonsense);
-		let ubalance: u128 = balance.try_into().unwrap_or(0u128);
-		ensure!(ubalance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
+		ensure!(balance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
 
 		let votes = VotingOf::<T>::try_mutate(&who, |voting| -> Result<u32, DispatchError> {
 			let mut old = Voting::Delegating {
@@ -1363,9 +1361,6 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 			let votes = Self::increase_upstream_delegation(&target, conviction.votes(balance));
-			// Extend the lock to `balance` (rather than setting it) since we don't know what other
-			// votes are in place.
-			T::Currency::extend_lock(DEMOCRACY_ID, &who, balance, WithdrawReasons::TRANSFER); // change me
 			Ok(votes)
 		})?;
 		Self::deposit_event(Event::<T>::Delegated { who, target });
@@ -1407,8 +1402,8 @@ impl<T: Config> Pallet<T> {
 			voting.rejig(frame_system::Pallet::<T>::block_number());
 			voting.locked_balance()
 		});
-		if !lock_needed.is_zero() {
-			T::Currency::set_lock(DEMOCRACY_ID, who, lock_needed, WithdrawReasons::TRANSFER);
+		if lock_needed.is_zero() {
+			T::Currency::remove_lock(DEMOCRACY_ID, who);
 		}
 	}
 

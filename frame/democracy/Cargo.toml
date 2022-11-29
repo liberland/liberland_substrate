@@ -34,6 +34,7 @@ pallet-identity = { path = "../identity", default-features = false }
 pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-scheduler = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-preimage = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
+pallet-assets = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 
 [features]
 default = ["std"]

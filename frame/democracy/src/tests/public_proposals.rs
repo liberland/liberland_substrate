@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! The tests for the public proposal queue.
 
 use super::*;
@@ -39,9 +43,11 @@ fn deposit_for_proposals_should_be_taken() {
 		assert_ok!(Democracy::second(RuntimeOrigin::signed(5), 0));
 		assert_ok!(Democracy::second(RuntimeOrigin::signed(5), 0));
 		assert_ok!(Democracy::second(RuntimeOrigin::signed(5), 0));
-		assert_eq!(Balances::free_balance(1), 5);
-		assert_eq!(Balances::free_balance(2), 15);
-		assert_eq!(Balances::free_balance(5), 35);
+		// liberland specific - free balance shouldn't change, seconds shouldn't
+		// lock anything
+		assert_eq!(Balances::free_balance(1), 10);
+		assert_eq!(Balances::free_balance(2), 20);
+		assert_eq!(Balances::free_balance(5), 50);
 	});
 }
 
@@ -70,7 +76,7 @@ fn proposal_with_deposit_below_minimum_should_not_work() {
 #[test]
 fn poor_proposer_should_not_work() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(propose_set_balance(1, 2, 11), BalancesError::<Test, _>::InsufficientBalance);
+		assert_noop!(propose_set_balance(1, 2, 11), Error::<Test>::InsufficientLLM);
 	});
 }
 
@@ -80,7 +86,7 @@ fn poor_seconder_should_not_work() {
 		assert_ok!(propose_set_balance(2, 2, 11));
 		assert_noop!(
 			Democracy::second(RuntimeOrigin::signed(1), 0),
-			BalancesError::<Test, _>::InsufficientBalance
+			Error::<Test>::InsufficientLLM
 		);
 	});
 }
