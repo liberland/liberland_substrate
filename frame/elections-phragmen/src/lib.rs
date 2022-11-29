@@ -281,7 +281,7 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
-		type LLM: LLM<Self::AccountId, u128>; // FIXME should use generic for Balance
+		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
 	}
 
 	#[pallet::hooks]
@@ -358,7 +358,7 @@ pub mod pallet {
 			let new_deposit = Self::deposit_of(votes.len());
 			let Voter { deposit: old_deposit, .. } = <Voting<T>>::get(&who);
 
-			let ubalance: u128 = value.try_into().unwrap_or(0u128);
+			let ubalance = value.try_into().unwrap_or(0u8.into());
 			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
 
 			match new_deposit.cmp(&old_deposit) {
@@ -1185,32 +1185,51 @@ impl<T: Config> ContainsLengthBound for Pallet<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate as pallet_elections_phragmen;
 	use crate as elections_phragmen;
 	use frame_support::{
-		assert_noop, assert_ok,
 		dispatch::DispatchResultWithPostInfo,
 		parameter_types,
-		traits::{ConstU32, ConstU64, OnInitialize},
+		traits::{ConstU32, ConstU64},
 	};
 	use frame_system::ensure_signed;
-	use sp_core::H256;
+	use pallet_identity::{Data, IdentityInfo};
 	use sp_runtime::{
-		testing::Header,
-		traits::{BlakeTwo256, IdentityLookup},
+		testing::{Header, H256},
+		traits::{BlakeTwo256, IdentityLookup, Hash},
 		BuildStorage,
 	};
+
+	use frame_support::{construct_runtime, ord_parameter_types, traits::EitherOfDiverse};
+	use frame_system::{EnsureRoot, EnsureSignedBy, EnsureSigned};
+
+	use crate::{Candidates, Config, Error, Renouncing, SeatHolder, Voter};
+	use frame_support::{assert_noop, assert_ok};
+
+	use frame_support::traits::{AsEnsureOriginWithArg, OnInitialize};
 	use substrate_test_utils::assert_eq_uvec;
 
-	parameter_types! {
-		pub BlockWeights: frame_system::limits::BlockWeights =
-			frame_system::limits::BlockWeights::simple_max(
-				frame_support::weights::Weight::from_ref_time(1024).set_proof_size(u64::MAX),
-			);
-	}
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+	type Block = frame_system::mocking::MockBlock<Test>;
+
+	construct_runtime!(
+		pub enum Test where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic,
+		{
+			System: frame_system::{Pallet, Call, Storage, Event<T>},
+			Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+			Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+			Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
+			Elections: pallet_elections_phragmen::{Pallet, Call, Event<T>, Config<T>},
+			LLM: pallet_llm::{Pallet, Call, Storage, Event<T>},
+		}
+	);
 
 	impl frame_system::Config for Test {
 		type BaseCallFilter = frame_support::traits::Everything;
-		type BlockWeights = BlockWeights;
+		type BlockWeights = ();
 		type BlockLength = ();
 		type DbWeight = ();
 		type RuntimeOrigin = RuntimeOrigin;
@@ -1237,27 +1256,72 @@ mod tests {
 
 	impl pallet_balances::Config for Test {
 		type Balance = u64;
-		type RuntimeEvent = RuntimeEvent;
 		type DustRemoval = ();
+		type RuntimeEvent = RuntimeEvent;
 		type ExistentialDeposit = ConstU64<1>;
-		type AccountStore = frame_system::Pallet<Test>;
+		type AccountStore = System;
+		type WeightInfo = ();
 		type MaxLocks = ();
 		type MaxReserves = ();
 		type ReserveIdentifier = [u8; 8];
+	}
+
+	impl pallet_assets::Config for Test {
+		type RuntimeEvent = RuntimeEvent;
+		type Balance = u64;
+		type AssetId = u32;
+		type Currency = Balances;
+		type ForceOrigin = frame_system::EnsureRoot<u64>;
+		type AssetDeposit = ConstU64<1>;
+		type AssetAccountDeposit = ConstU64<10>;
+		type MetadataDepositBase = ConstU64<1>;
+		type MetadataDepositPerByte = ConstU64<1>;
+		type ApprovalDeposit = ConstU64<1>;
+		type StringLimit = ConstU32<50>;
+		type Freezer = ();
+		type WeightInfo = ();
+		type Extra = ();
+		type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	}
+
+	parameter_types! {
+		pub const MaxAdditionalFields: u32 = 2;
+		pub const MaxRegistrars: u32 = 20;
+	}
+
+	ord_parameter_types! {
+		pub const One: u64 = 1;
+		pub const Two: u64 = 2;
+	}
+	type EnsureOneOrRoot = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<One, u64>>;
+	type EnsureTwoOrRoot = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<Two, u64>>;
+	impl pallet_identity::Config for Test {
+		type RuntimeEvent = RuntimeEvent;
+		type Currency = Balances;
+		type Slashed = ();
+		type BasicDeposit = ConstU64<0>;
+		type FieldDeposit = ConstU64<0>;
+		type SubAccountDeposit = ConstU64<0>;
+		type MaxSubAccounts = ConstU32<2>;
+		type MaxAdditionalFields = MaxAdditionalFields;
+		type MaxRegistrars = MaxRegistrars;
+		type RegistrarOrigin = EnsureOneOrRoot;
+		type ForceOrigin = EnsureTwoOrRoot;
 		type WeightInfo = ();
 	}
 
-	frame_support::parameter_types! {
-		pub static VotingBondBase: u64 = 2;
-		pub static VotingBondFactor: u64 = 0;
-		pub static CandidacyBond: u64 = 3;
-		pub static DesiredMembers: u32 = 2;
-		pub static DesiredRunnersUp: u32 = 0;
-		pub static TermDuration: u64 = 5;
-		pub static Members: Vec<u64> = vec![];
-		pub static Prime: Option<u64> = None;
+	parameter_types! {
+		pub const TOTALLLM: u64 = 70000000u64;
+		pub const PREMINTLLM: u64 = 7000000u64;
+		pub const ASSETID: u32 = 0u32;
 	}
 
+	impl pallet_llm::Config for Test {
+		type RuntimeEvent = RuntimeEvent;
+		type TotalSupply = TOTALLLM;
+		type PreMintedAmount = PREMINTLLM;
+		type AssetId = u32;
+	}
 	pub struct TestChangeMembers;
 	impl ChangeMembers<u64> for TestChangeMembers {
 		fn change_members_sorted(incoming: &[u64], outgoing: &[u64], new: &[u64]) {
@@ -1306,9 +1370,17 @@ mod tests {
 		pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 		pub const PhragmenMaxVoters: u32 = 1000;
 		pub const PhragmenMaxCandidates: u32 = 100;
+		pub static VotingBondBase: u64 = 2;
+		pub static VotingBondFactor: u64 = 0;
+		pub static CandidacyBond: u64 = 3;
+		pub static DesiredMembers: u32 = 2;
+		pub static DesiredRunnersUp: u32 = 0;
+		pub static TermDuration: u64 = 5;
+		pub static Members: Vec<u64> = vec![];
+		pub static Prime: Option<u64> = None;
 	}
 
-	impl Config for Test {
+	impl pallet_elections_phragmen::Config for Test {
 		type PalletId = ElectionsPhragmenPalletId;
 		type RuntimeEvent = RuntimeEvent;
 		type Currency = Balances;
@@ -1324,25 +1396,13 @@ mod tests {
 		type LoserCandidate = ();
 		type KickedMember = ();
 		type WeightInfo = ();
+		type MaxAdditionalFields = MaxAdditionalFields;
+		type MaxRegistrars = MaxRegistrars;
+		type Citizenship = LLM;
+		type LLM = LLM;
 		type MaxVoters = PhragmenMaxVoters;
 		type MaxCandidates = PhragmenMaxCandidates;
 	}
-
-	pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-	pub type UncheckedExtrinsic =
-		sp_runtime::generic::UncheckedExtrinsic<u32, u64, RuntimeCall, ()>;
-
-	frame_support::construct_runtime!(
-		pub enum Test where
-			Block = Block,
-			NodeBlock = Block,
-			UncheckedExtrinsic = UncheckedExtrinsic
-		{
-			System: frame_system::{Pallet, Call, Event<T>},
-			Balances: pallet_balances::{Pallet, Call, Event<T>, Config<T>},
-			Elections: elections_phragmen::{Pallet, Call, Event<T>, Config<T>},
-		}
-	);
 
 	pub struct ExtBuilder {
 		balance_factor: u64,
@@ -1373,7 +1433,9 @@ mod tests {
 			self
 		}
 		pub fn genesis_members(mut self, members: Vec<(u64, u64)>) -> Self {
-			MEMBERS.with(|m| *m.borrow_mut() = members.iter().map(|(m, _)| *m).collect::<Vec<_>>());
+			MEMBERS.with(|m| {
+				*m.borrow_mut() = members.iter().map(|(m, _)| m.clone()).collect::<Vec<_>>()
+			});
 			self.genesis_members = members;
 			self
 		}
@@ -1386,21 +1448,21 @@ mod tests {
 			self
 		}
 		pub fn build_and_execute(self, test: impl FnOnce() -> ()) {
-			sp_tracing::try_init_simple();
 			MEMBERS.with(|m| {
-				*m.borrow_mut() = self.genesis_members.iter().map(|(m, _)| *m).collect::<Vec<_>>()
+				*m.borrow_mut() =
+					self.genesis_members.iter().map(|(m, _)| m.clone()).collect::<Vec<_>>()
 			});
+			let balances = vec![
+				(1, 10 * self.balance_factor),
+				(2, 20 * self.balance_factor),
+				(3, 30 * self.balance_factor),
+				(4, 40 * self.balance_factor),
+				(5, 50 * self.balance_factor),
+				(6, 60 * self.balance_factor),
+				(7, 1),
+			];
 			let mut ext: sp_io::TestExternalities = GenesisConfig {
-				balances: pallet_balances::GenesisConfig::<Test> {
-					balances: vec![
-						(1, 10 * self.balance_factor),
-						(2, 20 * self.balance_factor),
-						(3, 30 * self.balance_factor),
-						(4, 40 * self.balance_factor),
-						(5, 50 * self.balance_factor),
-						(6, 60 * self.balance_factor),
-					],
-				},
+				balances: pallet_balances::GenesisConfig::<Test> { balances: balances.clone() },
 				elections: elections_phragmen::GenesisConfig::<Test> {
 					members: self.genesis_members,
 				},
@@ -1408,6 +1470,9 @@ mod tests {
 			.build_storage()
 			.unwrap()
 			.into();
+			ext.execute_with(|| {
+				setup_citizenships(balances);
+			});
 			ext.execute_with(pre_conditions);
 			ext.execute_with(test);
 			ext.execute_with(post_conditions)
@@ -1501,6 +1566,37 @@ mod tests {
 		assert!(!intersects(&members_ids(), &candidate_ids()));
 		assert!(!intersects(&members_ids(), &runners_up_ids()));
 		assert!(!intersects(&candidate_ids(), &runners_up_ids()));
+	}
+
+	fn setup_citizenships(account_balances: Vec<(u64, u64)>) {
+		let data = Data::Raw(b"1".to_vec().try_into().unwrap());
+		let info = IdentityInfo {
+			citizen: data.clone(),
+			additional: vec![].try_into().unwrap(),
+			display: data.clone(),
+			legal: data.clone(),
+			web: data.clone(),
+			riot: data.clone(),
+			email: data.clone(),
+			pgp_fingerprint: Some([0; 20]),
+			image: data,
+		};
+
+		Identity::add_registrar(RuntimeOrigin::root(), 0).unwrap();
+		for (id, balance) in account_balances {
+			let o = RuntimeOrigin::signed(id);
+			LLM::fake_send(o.clone(), id, balance).unwrap();
+			LLM::politics_lock(o.clone(), balance).unwrap();
+			Identity::set_identity(o, Box::new(info.clone())).unwrap();
+			Identity::provide_judgement(
+				RuntimeOrigin::signed(0),
+				0,
+				id,
+				pallet_identity::Judgement::KnownGood,
+				BlakeTwo256::hash_of(&info),
+			)
+			.unwrap();
+		}
 	}
 
 	fn pre_conditions() {
@@ -2098,32 +2194,6 @@ mod tests {
 					Error::<Test>::TooManyVotes,
 				);
 			});
-	}
-
-	#[test]
-	fn cannot_vote_for_less_than_ed() {
-		ExtBuilder::default().build_and_execute(|| {
-			assert_ok!(submit_candidacy(RuntimeOrigin::signed(5)));
-			assert_ok!(submit_candidacy(RuntimeOrigin::signed(4)));
-
-			assert_noop!(vote(RuntimeOrigin::signed(2), vec![4], 1), Error::<Test>::LowBalance);
-		})
-	}
-
-	#[test]
-	fn can_vote_for_more_than_free_balance_but_moot() {
-		ExtBuilder::default().build_and_execute(|| {
-			assert_ok!(submit_candidacy(RuntimeOrigin::signed(5)));
-			assert_ok!(submit_candidacy(RuntimeOrigin::signed(4)));
-
-			// User has 100 free and 50 reserved.
-			assert_ok!(Balances::set_balance(RuntimeOrigin::root(), 2, 100, 50));
-			// User tries to vote with 150 tokens.
-			assert_ok!(vote(RuntimeOrigin::signed(2), vec![4, 5], 150));
-			// We truncate to only their free balance, after reserving additional for voting.
-			assert_eq!(locked_stake_of(&2), 98);
-			assert_eq!(has_lock(&2), 98);
-		});
 	}
 
 	#[test]
