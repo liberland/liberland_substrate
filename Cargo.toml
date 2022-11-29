@@ -84,3 +84,10 @@ inherits = "release"
 lto = "fat"
 # https://doc.rust-lang.org/rustc/codegen-options/index.html#codegen-units
 codegen-units = 1
+
+[patch."https://github.com/paritytech/substrate"]
+kitchensink-runtime = { path = "bin/node/runtime" }
+node-cli = { path = "bin/node/cli" }
+pallet-democracy = { path = "frame/democracy" }
+pallet-identity = { path = "frame/identity" }
+pallet-elections-phragmen = { path = "frame/elections-phragmen" }
