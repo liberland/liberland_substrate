@@ -117,9 +117,8 @@ fn create_identity_info<T: Config>(num_fields: u32) -> IdentityInfo<T::MaxAdditi
 		email: data.clone(),
 		pgp_fingerprint: Some([0; 20]),
 		image: data.clone(),
-	};
-
-	return info
+		citizen: data.clone(),
+	}
 }
 
 benchmarks! {
