@@ -1,7 +1,7 @@
 # Liberland Blockchain
 <p>
 <center>
-   <img src="[/assets/img/MarineGEO_logo.png](https://lgl.liberland.org/uploads/-/system/appearance/header_logo/1/Liberland_vlajka.png)" alt="Liberland Logo" style="height: 100px; width:100px;"/>
+   <img src="https://lgl.liberland.org/uploads/-/system/appearance/header_logo/1/Liberland_vlajka.png" alt="Liberland Logo" style="height: 100px; width:100px;"/>
 
 </center>
 </p>
