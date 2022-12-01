@@ -2,7 +2,7 @@
 <p>
 <center>
 
-  <img style="max-height: 50px;" alt="Liberland blockchain node" title="Liberland Logo" src="(https://lgl.liberland.org/uploads/-/system/appearance/header_logo/1/Liberland_vlajka.png)">
+  <img style="max-height: 50px;" alt="Liberland blockchain node" title="Liberland Logo" src="([https://lgl.liberland.org/uploads/-/system/appearance/header_logo/1/Liberland_vlajka.png](https://pbs.twimg.com/profile_images/598605265840267264/oqs-BXq3_400x400.jpg))">
 </center>
 </p>
 
