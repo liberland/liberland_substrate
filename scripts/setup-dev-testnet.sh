@@ -48,7 +48,7 @@ done
 echo "Providing KnownGood judgement for:"
 for i in $CITIZENS_ADDRS; do
     echo "  $i..."
-    $api --seed "$REGISTRAR_SEED" tx.identity.provideJudgement 0 $i KnownGood
+    $api --seed "$REGISTRAR_SEED" tx.identity.provideJudgement 0 $i KnownGood 0xc96da2e4148c82ce1a9373a740206ed930da055bd21c3bd6316b6b9368fd75c4
 done
 
 echo "Fake sending LLM to:"

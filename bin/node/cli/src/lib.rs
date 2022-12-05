@@ -35,6 +35,8 @@ pub mod chain_spec;
 #[macro_use]
 pub mod service;
 #[cfg(feature = "cli")]
+mod benchmarking;
+#[cfg(feature = "cli")]
 mod cli;
 #[cfg(feature = "cli")]
 mod command;
