@@ -7,7 +7,7 @@
 //! The LLM pallet handles:
 //!
 //! * creating LLM asset in `pallet-assets` on genesis
-//! * LLM inflation to treasury
+//! * LLM release from **Vault** to **Treasury**
 //! * locking, a.k.a. politipooling the LLM for use in politics
 //! * veryfing citizenship status
 //!
@@ -93,6 +93,16 @@
 //! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called
 //!   by selected accounts and Senate.
 //!
+//! ### Public functions
+//!
+//! * `llm_id`: Asset ID of the LLM asset for `pallet-assets`
+//! * `get_llm_vault_account`: AccountId of **Vault** account. **Vault** account stores all LLM
+//!   created initially on genesis and releases it to treasury on LLM Release Events.
+//! * `get_llm_treasury_account`: AccountId of **Treasury** account. **Treasury** accounts receives
+//!   prereleased amount of LLM on genesis and part of LLM from **Vault** on LLM Release Events.
+//! * `get_llm_politipool_account`: AccountId of **Politipool** account. **Politipool** account
+//!   stores LLM locked in politics by all other accounts.
+//!
 //! ### LLM trait
 //!
 //! LLM pallet implements LLM trait with following functions available for other pallets:
@@ -120,6 +130,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 pub mod traits;
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
 
 /// Liberland Merit Pallet
 /*
@@ -440,14 +456,10 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn account_id32_to_accountid(accountid32: AccountId32) -> T::AccountId {
+		pub fn account_id32_to_accountid(accountid32: AccountId32) -> T::AccountId {
 			let mut init_account32 = AccountId32::as_ref(&accountid32);
 			let init_account: T::AccountId = T::AccountId::decode(&mut init_account32).unwrap();
 			init_account
-		}
-
-		pub fn has_llm_politics(sender: T::AccountId) -> bool {
-			LLMPolitics::<T>::get(sender) > 0u8.into()
 		}
 
 		fn balance(account: T::AccountId) -> T::Balance {
@@ -543,19 +555,28 @@ pub mod pallet {
 			Self::release_tokens_from_vault(prereleased)
 		}
 
-		fn llm_id() -> AssetId<T> {
+		/// Asset ID of the LLM asset for `pallet-assets`
+		pub fn llm_id() -> AssetId<T> {
 			1u32.into()
 		}
 
-		fn get_llm_vault_account() -> T::AccountId {
+		/// AccountId of **Vault** account. **Vault** account stores all LLM
+		/// created initially on genesis and releases it to treasury on LLM
+		/// Release Events.
+		pub fn get_llm_vault_account() -> T::AccountId {
 			PalletId(*b"llm/safe").into_account_truncating()
 		}
 
-		fn get_llm_treasury_account() -> T::AccountId {
+		/// AccountId of **Treasury** account. **Treasury** accounts receives
+		/// prereleased amount of LLM on genesis and part of LLM from **Vault**
+		/// on LLM Release Events.
+		pub fn get_llm_treasury_account() -> T::AccountId {
 			PalletId(*b"py/trsry").into_account_truncating()
 		}
 
-		fn get_llm_politipool_account() -> T::AccountId {
+		/// AccountId of **Politipool** account. **Politipool** account stores
+		/// LLM locked in politics by all other accounts.
+		pub fn get_llm_politipool_account() -> T::AccountId {
 			PalletId(*b"polilock").into_account_truncating()
 		}
 
@@ -613,7 +634,7 @@ pub mod pallet {
 
 	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
-			Self::has_llm_politics(account.clone())
+			Self::get_llm_politics(account) > 0u8.into()
 		}
 
 		fn is_election_unlocked(account: &T::AccountId) -> bool {
@@ -621,7 +642,7 @@ pub mod pallet {
 				let current_block_number: u64 =
 					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
 				let unlocked_on_block = Electionlock::<T>::get(account);
-				return current_block_number >= unlocked_on_block
+				return current_block_number > unlocked_on_block
 			}
 			true
 		}

@@ -7,7 +7,7 @@ Liberland Merit is a Liberland currency that gives political power to citizens.
 The LLM pallet handles:
 
 * creating LLM asset in `pallet-assets` on genesis
-* LLM inflation to treasury
+* LLM release from **Vault** to **Treasury**
 * locking, a.k.a. politipooling the LLM for use in politics
 * veryfing citizenship status
 
@@ -81,6 +81,13 @@ These calls can be made from any _Signed_ origin.
 #### Restricted
 
 * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called by selected accounts and Senate.
+
+### Public functions
+
+* `llm_id`: Asset ID of the LLM asset for `pallet-assets`
+* `get_llm_vault_account`: AccountId of **Vault** account. **Vault** account stores all LLM created initially on genesis and releases it to treasury on LLM Release Events.
+* `get_llm_treasury_account`: AccountId of **Treasury** account. **Treasury** accounts receives prereleased amount of LLM on genesis and part of LLM from **Vault** on LLM Release Events.
+* `get_llm_politipool_account`: AccountId of **Politipool** account. **Politipool** account stores LLM locked in politics by all other accounts.
 
 ### LLM trait
 
