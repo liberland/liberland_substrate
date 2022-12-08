@@ -2937,6 +2937,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
+ "pallet-liberland-initializer",
  "pallet-liberland-legislation",
  "pallet-llm",
  "pallet-lottery",
@@ -4663,6 +4664,25 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-liberland-initializer"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-identity",
+ "pallet-llm",
  "parity-scale-codec",
  "scale-info",
  "sp-core",

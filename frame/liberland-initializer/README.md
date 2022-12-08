@@ -1,0 +1,1 @@
+Pallet that initializes citizenships in genesis block.
