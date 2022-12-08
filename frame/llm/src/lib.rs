@@ -506,7 +506,8 @@ pub mod pallet {
 				vaultac.clone(),
 				money_left.clone(),
 			);
-			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left)?;
+			pallet_assets::Pallet::<T>::mint_into(assetid.into().clone(), &vaultac, money_left)
+				.unwrap_or_default(); // temporary, should be replaced after https://github.com/liberland/liberland_substrate/issues/176 is fixed
 
 			Self::mint_tokens(assetid, T::PreMintedAmount::get()); // mint the preminted amount
 			Ok(())
@@ -548,13 +549,13 @@ pub mod pallet {
 			block
 		}
 
-		/// get the 0.9% of the amount we are able to mint
+		// each time we mint (should be each year), release 10% from vault
 		fn get_allowed_spending() -> u64 {
-			let minted_amount: u64 = <MintedAmount<T>>::get(); // Get the amount of llm minted so far
-			let maxcap: u64 = T::TotalSupply::get();
-			let hardlimit: f64 = 0.9;
-			let allow_spend: f64 = maxcap as f64 - minted_amount as f64 * hardlimit; // 0.9% of the total supply minus the minted on is what we are allowed to spend per year
-			allow_spend as u64
+			let unminted_amount = T::TotalSupply::get() - MintedAmount::<T>::get();
+			assert_eq!(Self::u64_to_balance(unminted_amount), LLMBalance::<T>::get(Self::get_llm_vault_account()));
+
+			let release_amount = unminted_amount / 10;
+			release_amount
 		}
 
 		fn try_mint(block: u64) -> bool {
@@ -571,9 +572,8 @@ pub mod pallet {
 			}
 			NextMint::<T>::put(Self::get_future_block());
 
-			// mint 0.9%
-			let zeronine: u64 = Self::get_allowed_spending();
-			Self::mint_tokens(0.into(), zeronine);
+			let mint_amount: u64 = Self::get_allowed_spending();
+			Self::mint_tokens(0.into(), mint_amount);
 
 			log::info!("try_mint ran all the way");
 			true
@@ -595,16 +595,17 @@ pub mod pallet {
 
 			// deduct from the vault
 
-			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(
-				Self::get_llm_vault_account(),
-				LLMBalance::<T>::get(&treasury) + amount.try_into().unwrap_or_default(),
+			let vault_account = Self::get_llm_vault_account();
+			LLMBalance::<T>::mutate(
+				vault_account,
+				|balance| *balance -= Self::u64_to_balance(amount)
 			);
 
 			// add the amount that we have minted into MintedAmount to add allow_sped
 			<MintedAmount<T>>::mutate(|minted_amount| *minted_amount += amount);
 
 			let vlookup: <T::Lookup as StaticLookup>::Source =
-				T::Lookup::unlookup(Self::get_llm_vault_account());
+				T::Lookup::unlookup(vault_account);
 			let rootorg: OriginFor<T> = frame_system::RawOrigin::Root.into();
 			// transfer from the vault to the treasury
 			pallet_assets::Pallet::<T>::transfer(
