@@ -92,8 +92,6 @@ pub use pallet_sudo::Call as SudoCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
-//use LLM_Pallet;
-
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
 use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop};
@@ -1407,6 +1405,8 @@ parameter_types! {
 
 pub(crate) type AssetId = u32; // u32 is better supported by the runtime
 
+impl pallet_liberland_initializer::Config for Runtime {}
+
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM; //70 million in hardcap
@@ -1565,6 +1565,7 @@ construct_runtime!(
 		Whitelist: pallet_whitelist,
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
 		LiberlandLegislation: pallet_liberland_legislation,
+		LiberlandInitializer: pallet_liberland_initializer,
 	}
 );
 

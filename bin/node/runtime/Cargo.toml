@@ -104,6 +104,7 @@ pallet-elections-phragmen = { version = "5.0.0-dev", default-features = false, p
 pallet-identity = { version = "4.0.0-dev", default-features = false, path = "../../../frame/identity" }
 pallet-llm = { path = "../../../frame/llm", version = "0.1.0", default-features = false }
 pallet-liberland-legislation = { version = "0.1.0", path = "../../../frame/liberland-legislation", default-features = false }
+pallet-liberland-initializer = { version = "0.1.0", path = "../../../frame/liberland-initializer", default-features = false }
 
 
 [build-dependencies]

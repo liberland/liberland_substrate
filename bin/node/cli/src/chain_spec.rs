@@ -28,7 +28,7 @@ use kitchensink_runtime::{
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
 	ImOnlineConfig, IndicesConfig, MaxNominations, SessionConfig,
 	SessionKeys, SocietyConfig, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig,
+	TechnicalCommitteeConfig, LiberlandInitializerConfig,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::{ChainSpecExtension, Properties};
@@ -145,7 +145,7 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 
 	let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
 
-	testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts), Some(vec![]))
+	testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts), Some(vec![]), None, vec![])
 }
 
 fn properties() -> sc_chain_spec::Properties {
@@ -223,6 +223,8 @@ pub fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Option<Vec<AccountId>>,
 	council_group: Option<Vec<AccountId>>,
+	citizenship_registrar: Option<AccountId>,
+	initial_citizens: Vec<(AccountId, Balance)>,
 ) -> GenesisConfig {
 	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
@@ -364,16 +366,26 @@ pub fn testnet_genesis(
 		transaction_storage: Default::default(),
 		transaction_payment: Default::default(),
 		llm: Default::default(),
+		liberland_initializer: LiberlandInitializerConfig {
+			citizenship_registrar, initial_citizens
+		},
 	}
 }
 
 fn development_config_genesis() -> GenesisConfig {
+	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
 	testnet_genesis(
 		vec![authority_keys_from_seed("Alice")],
 		vec![],
-		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		alice.clone(),
 		None,
 		None,
+		Some(alice.clone()),
+		vec![
+			(alice, 1000),
+			(get_account_id_from_seed::<sr25519::Public>("Bob"), 1000),
+			(get_account_id_from_seed::<sr25519::Public>("Charlie"), 1000),
+		],
 	)
 }
 
@@ -400,6 +412,8 @@ fn local_testnet_genesis() -> GenesisConfig {
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,
 		None,
+		None,
+		vec![],
 	)
 }
 
@@ -433,6 +447,8 @@ pub(crate) mod tests {
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
 			None,
 			None,
+			None,
+			vec![],
 		)
 	}
 
