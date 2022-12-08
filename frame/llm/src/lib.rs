@@ -205,7 +205,7 @@ pub mod pallet {
 			// match statement
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(receiver.clone(), receiver_balance);
 
-			Event::<T>::TransferedLLM(sender, receiver, amount);
+			Self::deposit_event(Event::<T>::TransferedLLM(sender, receiver, amount));
 
 			Ok(())
 		}
@@ -227,12 +227,13 @@ pub mod pallet {
 			let llm_balance: T::Balance = LLMBalance::<T>::get(&sender) - amount;
 
 			// update llm balance storage map
-			Self::update_user_balance(sender, llm_balance);
+			Self::update_user_balance(sender.clone(), llm_balance);
 
 			// transfer to llm to llm trsy
 			Self::deposit_political_llm(origin, amount);
 			Self::add_politi_pooled_stats(amount.try_into().unwrap_or(0u64));
 
+			Self::deposit_event(Event::<T>::LLMPoliticsLocked(sender, amount.try_into().unwrap_or_default()));
 			Ok(())
 		}
 
@@ -267,6 +268,7 @@ pub mod pallet {
 			Electionlock::<T>::insert(&sender, timelimit);
 			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u64));
 
+			Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(sender, ten_percent.try_into().unwrap_or_default()));
 			Ok(())
 		}
 
@@ -350,7 +352,7 @@ pub mod pallet {
 				new_treasury_balance,
 			);
 
-			Event::<T>::TransferedLLM(treasury_account, to_account, amount);
+			Self::deposit_event(Event::<T>::TransferedLLM(treasury_account, to_account, amount));
 
 			Ok(())
 		}
@@ -404,6 +406,7 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// New llm has been minted
 		MintedLLM(T::AccountId, u64),
@@ -415,10 +418,6 @@ pub mod pallet {
 		LLMPoliticsLocked(T::AccountId, u64),
 		/// sent to user account, amount
 		LLMPoliticsUnlocked(T::AccountId, u64),
-		/// freeze llm for politics
-		LLMPoliticsFreeze(T::AccountId, u64),
-		/// unfreeze llm for politics
-		LLMPoliticsUnfreeze(T::AccountId, u64),
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -485,7 +484,7 @@ pub mod pallet {
 			LLMBalance::<T>::insert::<T::AccountId, T::Balance>(t_ac.clone(), new_balance);
 
 			let my_amount: u64 = min_balance.try_into().unwrap_or(0u64);
-			Event::<T>::LLMCreated(t_ac.clone(), my_amount);
+			Self::deposit_event(Event::<T>::LLMCreated(t_ac.clone(), my_amount));
 			pallet_assets::Pallet::<T>::force_set_metadata(
 				origin.clone(),
 				assetid.into(),
@@ -561,12 +560,10 @@ pub mod pallet {
 				return false
 			}
 			NextMint::<T>::put(Self::get_future_block());
-			let treasury_account: T::AccountId = PalletId(*b"py/trsry").into_account_truncating();
 
 			// mint 0.9%
 			let zeronine: u64 = Self::get_allowed_spending();
 			Self::mint_tokens(0.into(), zeronine);
-			Event::<T>::MintedLLM(treasury_account.into(), zeronine);
 
 			log::info!("try_mint ran all the way");
 			true
@@ -607,6 +604,7 @@ pub mod pallet {
 				transfer_amount.clone(),
 			)
 			.unwrap_or_default();
+			Self::deposit_event(Event::<T>::MintedLLM(treasury.into(), amount));
 		}
 
 		fn add_politi_pooled_stats(amount: u64) {
