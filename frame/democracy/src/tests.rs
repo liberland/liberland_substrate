@@ -71,7 +71,7 @@ frame_support::construct_runtime!(
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
-		LLM: pallet_llm::{Pallet, Call, Storage, Event<T>},
+		LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
 		LiberlandInitializer: pallet_liberland_initializer,
 	}
 );
@@ -271,6 +271,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.assimilate_storage(&mut t)
 		.unwrap();
 	pallet_democracy::GenesisConfig::<Test>::default()
+		.assimilate_storage(&mut t)
+		.unwrap();
+	pallet_llm::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut t)
 		.unwrap();
 	pallet_liberland_initializer::GenesisConfig::<Test> {

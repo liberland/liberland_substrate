@@ -1224,7 +1224,7 @@ mod tests {
 			Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 			Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 			Elections: pallet_elections_phragmen::{Pallet, Call, Event<T>, Config<T>},
-			LLM: pallet_llm::{Pallet, Call, Storage, Event<T>},
+			LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
 			LiberlandInitializer: pallet_liberland_initializer,
 		}
 	);
@@ -1473,6 +1473,7 @@ mod tests {
 				elections: elections_phragmen::GenesisConfig::<Test> {
 					members: self.genesis_members,
 				},
+				llm: pallet_llm::GenesisConfig::<Test>::default(),
 				liberland_initializer: pallet_liberland_initializer::GenesisConfig::<Test> {
 					citizenship_registrar: Some(0),
 					initial_citizens: llm_balances,
