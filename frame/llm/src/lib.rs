@@ -41,16 +41,6 @@ pub mod pallet {
 	pub(super) type LLMPolitics<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
 
-	#[pallet::storage] // LLM that are frozen in the politics queue
-	#[pallet::getter(fn get_politics_lock)]
-	pub(super) type LLMPoliticsLock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_locked_llm)] //locked llm used for voting
-	pub(super) type LockedLLM<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
-
 	#[pallet::storage]
 	#[pallet::getter(fn get_fluf)] //locked llm used for voting
 	pub(super) type Withdrawlock<T: Config> =
@@ -270,41 +260,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Freeze X amount of LLM for a certain account
-		#[pallet::weight(10_000)] //change me
-		pub fn freeze_llm(
-			origin: OriginFor<T>,
-			account: T::AccountId,
-			amount: T::Balance,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
-			// ensure that we have balance
-			ensure!(LLMBalance::<T>::get(&sender) >= amount, Error::<T>::InvalidAmount);
-			let sender_balance: T::Balance = LLMBalance::<T>::get(&sender) - amount;
-			//check if LockedLLM contains the sender account
-			//todo: replace with match statement
-
-			if LockedLLM::<T>::contains_key::<T::AccountId>(sender.clone()) {
-				LockedLLM::<T>::mutate_exists(&sender, |b| {
-					*b = Some(amount + LockedLLM::<T>::get(&sender))
-				}); // dont overwrite it, append to balance
-			} else {
-				LockedLLM::<T>::insert::<T::AccountId, T::Balance>(account.clone(), amount); // lock in the amount
-			}
-
-			pallet_assets::Pallet::<T>::transfer(
-				origin.clone(),
-				Self::llm_id().into(),
-				T::Lookup::unlookup(Self::get_llm_account()),
-				amount.clone(),
-			)
-			.unwrap_or_default();
-
-			LLMBalance::<T>::mutate_exists(&sender, |b| *b = Some(sender_balance));
-
-			Ok(())
-		}
-
 		/// Request a transfer from the treasury llm account to a certain account.
 		#[pallet::weight(10_000)]
 		pub fn treasury_llm_transfer(
@@ -415,10 +370,6 @@ pub mod pallet {
 		LLMPoliticsLocked(T::AccountId, u64),
 		/// sent to user account, amount
 		LLMPoliticsUnlocked(T::AccountId, u64),
-		/// freeze llm for politics
-		LLMPoliticsFreeze(T::AccountId, u64),
-		/// unfreeze llm for politics
-		LLMPoliticsUnfreeze(T::AccountId, u64),
 	}
 
 	impl<T: Config> Pallet<T> {
