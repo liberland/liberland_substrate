@@ -1486,7 +1486,7 @@ impl<T: Config> Pallet<T> {
 		let politi_pooled = T::LLM::get_politi_pooled_amount();
 		let approved = status
 			.threshold
-			.approved(status.tally, politi_pooled.try_into().unwrap_or_default()); // convert to balance
+			.approved(status.tally, politi_pooled);
 
 		if approved {
 			Self::deposit_event(Event::<T>::Passed { ref_index: index });

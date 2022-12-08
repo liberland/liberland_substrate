@@ -3,7 +3,6 @@
 
 ### Current Functionality:
 *  Minting 0.9% of the total supply per year to the treasury
-*  Keeping track of the Minted amount
 *  Sending and Receiving
 *  Locking in currency
 *  [MIT License](https://mit-license.org/)
@@ -15,11 +14,11 @@
 *  `send_llm`:
 Send LLM to a person
 
-*  `lock_llm`:
-Freeze current LLM, allowing you to vote
+*  `politics_lock`
+Freeze current LLM, allowing you to vote        
 
-*  `unlock_llm`:
-Unlock the frozen assets
+*  `politics_unlock`
+Unlock the freezed assets       
 
 *  `createllm`:
 Create LLM Asset and premint if the counter is not working
@@ -37,24 +36,6 @@ LLM pallet has 2 different storage types:
 - `LLMBalance`
 - `MintedAmount`
 
-##### `LLMBalance`
-Stores Account and Balances in a `StorageMap`, you can query by account
-
-![Polkadot Js Query user account](account_query.png) 
-
-
-![Polkadot Js Treasury](treasury_account.png)
-
-
-##### `MintedAmount`
-Keeps track of the amount of currently minted(/created) amount of LLM.
-This can be queried and will return a `u64` number
-
-
-
-https://docs.substrate.io/v3/runtime/storage/ 
-
-
 ### Debugging: 
 
 run node: 
@@ -62,12 +43,6 @@ run node:
 ```shell
 $ ./target/release/substrate --dev --unsafe-rpc-external --
 ```
-
-#### Check amount of minted llm
-Polkadot.js apps > Developer > Chainstate > llm > minted amount
-
-![Polkadot Js](minted_amount_query.png)
-
 
 ## There are 3 types of owners that interact with llm:
 
@@ -79,8 +54,8 @@ Polkadot.js apps > Developer > Chainstate > llm > minted amount
 ### LLM Vault(llm/safe): 
 5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk
 
-### LLM Treasury(llm/trsy):
-5EYCAe5hvejUE35Lv2zZBMP1iA41yzs2UoiJuxsCidZPFDzJ
+### LLM Politipool (llm/trsy):  
+5EYCAe5hvejUE35Lv2zZBMP1iA41yzs2UoiJuxsCidZPFDzJ     
 
 
 From the start, funds are moved into the llm Vault, the premint is moved into the Treasury, funds are continously moved from the llm vault to the treasury.
@@ -105,12 +80,8 @@ LLVM version: 14.0.0
 ## Storage:
 
 ```
-LLMBalance      // llm balance 
 LLMPolitics     // allocated in politics, storage is synced and used by other pallets
-LLMPoliticsLock // LLM that are frozen in the politics queue
-LockedLLM       // locked llm
 Withdrawlock    // time lock for withdrawing pooled llm	 
-MintedAmount    // Keep track of the amount of minted llm
 NextMint        // block number for next llm mint 
 Electionlock    // time lock for elections - triggered after unpooling llm
 ```

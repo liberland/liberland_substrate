@@ -54,6 +54,7 @@ std = [
 	"sp-npos-elections/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"pallet-llm/std",
 	"pallet-liberland-initializer/std",
 ]
 runtime-benchmarks = [

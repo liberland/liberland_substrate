@@ -192,6 +192,7 @@ std = [
 	"frame-try-runtime?/std",
 	"sp-io/std",
 	"pallet-child-bounties/std",
+	"pallet-liberland-initializer/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
