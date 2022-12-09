@@ -27,7 +27,6 @@ frame-system = { version = "4.0.0-dev", default-features = false, branch = "polk
 sp-std = { version = "4.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 sp-io = { version = "6.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 sp-runtime = { version = "6.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
-pallet-assets = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate", default-features = false }
 pallet-balances =  { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate", default-features = false }
 pallet-identity = { path = "../identity", default-features = false }
 

@@ -1402,17 +1402,13 @@ parameter_types! {
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PREMINTLLM: u64 = 7000000u64;
-	pub const ASSETID: u32 = 0u32; // asset id 0 for llm
 }
-
-pub(crate) type AssetId = u32; // u32 is better supported by the runtime
 
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM; //70 million in hardcap
 	type PreMintedAmount = PREMINTLLM; // Premint 7 million
-	type AssetId = AssetId; //pallet_assets::Config::AssetId;
-						//	type AccountId = AccountId;
+	type Balance = Balance;
 }
 
 impl pallet_gilt::Config for Runtime {

@@ -4696,7 +4696,6 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "log",
- "pallet-assets",
  "pallet-balances",
  "pallet-identity",
  "parity-scale-codec",
