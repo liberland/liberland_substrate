@@ -24,4 +24,11 @@ pub trait CitizenshipChecker<AccountId> {
 	/// * not have LLM Electionlock
 	/// * have a KnownGood judgement
 	fn ensure_elections_allowed(account: &AccountId) -> Result<(), DispatchError>;
+
+	/// Check if given account is a citizen (KnownGood judgement)
+	fn is_citizen(account: &AccountId) -> bool;
+
+	/// Calculate number of valid citizens (KnownGood judgements). This is expensive.
+	fn citizens_count() -> usize;
+
 }

@@ -985,6 +985,14 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	/// Get iterator to all identities
+	pub fn identities_iter() -> frame_support::storage::PrefixIterator<(
+		T::AccountId,
+		Registration<BalanceOf<T>, T::MaxRegistrars, T::MaxAdditionalFields>,
+	)> {
+		IdentityOf::<T>::iter()
+	}
+
 	/// Get the subs of an account.
 	pub fn subs(who: &T::AccountId) -> Vec<(T::AccountId, Data)> {
 		SubsOf::<T>::get(who)

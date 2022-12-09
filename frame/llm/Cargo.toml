@@ -43,6 +43,8 @@ std = [
 	"frame-system/std",
 	"log/std",
 	"pallet-balances/std",
+	"pallet-identity/std",
+	"pallet-assets/std",
 	"scale-info/std",
 	"sp-io/std",
 	"sp-runtime/std",
