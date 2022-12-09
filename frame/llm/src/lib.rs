@@ -16,20 +16,27 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 */
 
+
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
 	use super::{traits::LLM, *};
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::fungibles::Mutate,
+		traits::{Currency, fungibles::Mutate},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
 	use hex_literal::hex;
 	use scale_info::prelude::vec;
-	use sp_runtime::{traits::{AccountIdConversion, StaticLookup}, AccountId32, SaturatedConversion};
+	use sp_runtime::{
+		traits::{AccountIdConversion, StaticLookup},
+		AccountId32, SaturatedConversion,
+	};
 	use sp_std::vec::Vec;
+
+	type BalanceOf<T> =
+		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_balance)]
@@ -114,8 +121,7 @@ pub mod pallet {
 		pallet_assets::Config + frame_system::Config + pallet_identity::Config
 	{
 		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self>>
-			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		// include pallet asset config aswell
 
@@ -267,7 +273,10 @@ pub mod pallet {
 			Self::deposit_political_llm(origin, amount);
 			Self::add_politi_pooled_stats(amount.try_into().unwrap_or(0u64));
 
-			Self::deposit_event(Event::<T>::LLMPoliticsLocked(sender, amount.try_into().unwrap_or_default()));
+			Self::deposit_event(Event::<T>::LLMPoliticsLocked(
+				sender,
+				amount.try_into().unwrap_or_default(),
+			));
 			Ok(())
 		}
 
@@ -305,7 +314,10 @@ pub mod pallet {
 			Electionlock::<T>::insert(&sender, election_lock_end);
 			Self::substract_politi_pooled_stats(ten_percent.try_into().unwrap_or(0u64));
 
-			Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(sender, ten_percent.try_into().unwrap_or_default()));
+			Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(
+				sender,
+				ten_percent.try_into().unwrap_or_default(),
+			));
 			Ok(())
 		}
 
@@ -652,11 +664,20 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn is_known_good_identity(
+			reg: &pallet_identity::Registration<
+				BalanceOf<T>,
+				T::MaxRegistrars,
+				T::MaxAdditionalFields,
+			>,
+		) -> bool {
+			reg.info.citizen != pallet_identity::Data::None &&
+				reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood))
+		}
+
 		fn is_known_good(account: &T::AccountId) -> bool {
 			match pallet_identity::Pallet::<T>::identity(account) {
-				Some(reg) =>
-					reg.info.citizen != pallet_identity::Data::None &&
-						reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood)),
+				Some(reg) => Self::is_known_good_identity(&reg),
 				None => false,
 			}
 		}
@@ -674,6 +695,16 @@ pub mod pallet {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			Ok(())
+		}
+
+		fn is_citizen(account: &T::AccountId) -> bool {
+			Self::is_known_good(account)
+		}
+
+		fn citizens_count() -> usize {
+			pallet_identity::Pallet::<T>::identities_iter()
+				.filter(|(_account, registration)| Self::is_known_good_identity(registration))
+				.count()
 		}
 	}
 }

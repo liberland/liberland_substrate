@@ -4700,6 +4700,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-llm",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
