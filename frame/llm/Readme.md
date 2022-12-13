@@ -1,42 +1,44 @@
-## Liberland Merit(LLM) Pallet
+## Liberland Merit (LLM) Pallet
 
 
-### Current Functionality:   
+### Current Functionality:
 *  Minting 0.9% of the total supply per year to the treasury
-*  Keeping track of Minted amount  
-*  Sending and Recieving  
+*  Keeping track of the Minted amount
+*  Sending and Receiving
 *  Locking in currency
-*  [MIT License](https://mit-license.org/)   
-*  for a full feature set, read the src/lib.rs file   
+*  [MIT License](https://mit-license.org/)
+*  for the full feature set, please refer to the [src/lib.rs](src/lib.rs) file
 
 
-### On-chain Pallet functions:   
+### On-chain Pallet functions:
 
-*  send_llm   
+*  `send_llm`:
 Send LLM to a person
 
-*  lock_llm        
-Freeze current LLM, allowing you to vote        
+*  `lock_llm`:
+Freeze current LLM, allowing you to vote
 
-*  unlock_llm         
-Unlock the freezed assets       
+*  `unlock_llm`:
+Unlock the frozen assets
 
-*  createllm      
-Create LLM Asset and premint if the counter is not working           
+*  `createllm`:
+Create LLM Asset and premint if the counter is not working
 
-*  delegated_transfer         
-Request a LLM transfer that needs to be approved by the assembly members              
+*  `delegated_transfer`:
+Request a LLM transfer that needs to be approved by the assembly members
+
+*  `approve_transfer`:
+As an assembly member you can approve a transfer of LLM
 
 
-*  approve_transfer          
-As an assembly member you can approve a transfer of LLM         
+### Storage, balances and keeping track of LLM
+LLM pallet has 2 different storage types:
 
+- `LLMBalance`
+- `MintedAmount`
 
-### Storage, balances and keeping track of LLM      
-LLM pallet has 2 different storage types:      
-
-##### LLMBalance    
-Stores Account and Balances in storagemap, you can query by account  
+##### `LLMBalance`
+Stores Account and Balances in a `StorageMap`, you can query by account
 
 ![Polkadot Js Query user account](account_query.png) 
 
@@ -44,13 +46,13 @@ Stores Account and Balances in storagemap, you can query by account
 ![Polkadot Js Treasury](treasury_account.png)
 
 
-##### MintedAmount    
-Keeps track of the amount of current minted(/created) amount of LLM   
-This can be queried and will return a number(u64)      
+##### `MintedAmount`
+Keeps track of the amount of currently minted(/created) amount of LLM.
+This can be queried and will return a `u64` number
 
 
 
-https://docs.substrate.io/v3/runtime/storage/    
+https://docs.substrate.io/v3/runtime/storage/ 
 
 
 ### Debugging: 
@@ -64,24 +66,24 @@ $ ./target/release/substrate --dev --unsafe-rpc-external --
 #### Check amount of minted llm
 Polkadot.js apps > Developer > Chainstate > llm > minted amount
 
-![Polkadot Js](minted_amount_query.png)  
+![Polkadot Js](minted_amount_query.png)
 
 
-## There are 3 types of owners that interact with llm:  
+## There are 3 types of owners that interact with llm:
 
 ![Minting llm](llm_minting.png)
 
 ### Treasury address(py/trsry):
-5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z   
+5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z
 
 ### LLM Vault(llm/safe): 
-5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk  
+5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk
 
-### LLM Treasury(llm/trsy):  
-5EYCAe5hvejUE35Lv2zZBMP1iA41yzs2UoiJuxsCidZPFDzJ     
+### LLM Treasury(llm/trsy):
+5EYCAe5hvejUE35Lv2zZBMP1iA41yzs2UoiJuxsCidZPFDzJ
 
 
-From starts funds are moved into llm Vault, the premint is moved into Treasury, funds are continously moved from llm vault to treasury.
+From the start, funds are moved into the llm Vault, the premint is moved into the Treasury, funds are continously moved from the llm vault to the treasury.
 
 
 
@@ -97,34 +99,30 @@ commit-date: 2022-04-04
 host: x86_64-unknown-linux-gnu
 release: 1.60.0
 LLVM version: 14.0.0
-
-
 ```
 
 
 ## Storage:
 
-LLMBalance // llm balance    
-LLMPolitics // allocated in politics, storage is synced and used by other pallets      
-LLMPoliticsLock// LLM that are frozen in the politics queue        
-LockedLLM // locked llm      
-Withdrawlock // time lock for withdrawing pooled llm	 
-MintedAmount /// Keep track of the amount of minted llm   
-NextMint /// block number for next llm mint    
-Electionlock // time lock for elections - triggered after unpooling llm
-
+```
+LLMBalance      // llm balance 
+LLMPolitics     // allocated in politics, storage is synced and used by other pallets
+LLMPoliticsLock // LLM that are frozen in the politics queue
+LockedLLM       // locked llm
+Withdrawlock    // time lock for withdrawing pooled llm	 
+MintedAmount    // Keep track of the amount of minted llm
+NextMint        // block number for next llm mint 
+Electionlock    // time lock for elections - triggered after unpooling llm
+```
 
 
 
 
 ### Approved Multisig llm transfers
 
-
-
 ![Polkadot Js Treasury](treasury_account_query.png)
 
 ![Polkadot Js Treasury](check_multisig.png)
-
 
 ![Polkadot Js Treasury](treasuryllm_transfer_with_multisig.png)
 
@@ -137,4 +135,3 @@ Electionlock // time lock for elections - triggered after unpooling llm
 ![Polkadot Js Treasury](pasted_multisig_approved_data.png)
 
 ![Polkadot Js Treasury](after_multisig.png)
-
