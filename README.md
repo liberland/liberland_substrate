@@ -81,3 +81,8 @@ cargo run --release -- --dev
 
 See dev chain at
 https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944
+
+## Running automated tests
+
+1. Follow [Local setup](#local-setup).
+2. Run `cargo test --release --features runtime-benchmarks --no-fail-fast`

@@ -113,6 +113,7 @@ use frame_support::{
 	weights::Weight,
 };
 use pallet_llm::traits::{LLM, CitizenshipChecker};
+use pallet_liberland_initializer::traits::LLInitializer;
 use scale_info::TypeInfo;
 use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
@@ -282,6 +283,7 @@ pub mod pallet {
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
+		type LLInitializer: LLInitializer<Self::AccountId, BalanceOf<Self>>;
 	}
 
 	#[pallet::hooks]
@@ -1193,10 +1195,9 @@ mod tests {
 		traits::{ConstU32, ConstU64},
 	};
 	use frame_system::ensure_signed;
-	use pallet_identity::{Data, IdentityInfo};
 	use sp_runtime::{
 		testing::{Header, H256},
-		traits::{BlakeTwo256, IdentityLookup, Hash},
+		traits::{BlakeTwo256, IdentityLookup},
 		BuildStorage,
 	};
 
@@ -1224,6 +1225,7 @@ mod tests {
 			Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 			Elections: pallet_elections_phragmen::{Pallet, Call, Event<T>, Config<T>},
 			LLM: pallet_llm::{Pallet, Call, Storage, Event<T>},
+			LiberlandInitializer: pallet_liberland_initializer,
 		}
 	);
 
@@ -1316,6 +1318,8 @@ mod tests {
 		pub const ASSETID: u32 = 0u32;
 	}
 
+	impl pallet_liberland_initializer::Config for Test {}
+
 	impl pallet_llm::Config for Test {
 		type RuntimeEvent = RuntimeEvent;
 		type TotalSupply = TOTALLLM;
@@ -1400,6 +1404,7 @@ mod tests {
 		type MaxRegistrars = MaxRegistrars;
 		type Citizenship = LLM;
 		type LLM = LLM;
+		type LLInitializer = LiberlandInitializer;
 		type MaxVoters = PhragmenMaxVoters;
 		type MaxCandidates = PhragmenMaxCandidates;
 	}
@@ -1461,18 +1466,21 @@ mod tests {
 				(6, 60 * self.balance_factor),
 				(7, 1),
 			];
+			let llm_balances = balances.iter().map(|(id, b)| (*id, *b, *b)).collect();
+
 			let mut ext: sp_io::TestExternalities = GenesisConfig {
 				balances: pallet_balances::GenesisConfig::<Test> { balances: balances.clone() },
 				elections: elections_phragmen::GenesisConfig::<Test> {
 					members: self.genesis_members,
 				},
+				liberland_initializer: pallet_liberland_initializer::GenesisConfig::<Test> {
+					citizenship_registrar: Some(0),
+					initial_citizens: llm_balances,
+				},
 			}
 			.build_storage()
 			.unwrap()
 			.into();
-			ext.execute_with(|| {
-				setup_citizenships(balances);
-			});
 			ext.execute_with(pre_conditions);
 			ext.execute_with(test);
 			ext.execute_with(post_conditions)
@@ -1566,37 +1574,6 @@ mod tests {
 		assert!(!intersects(&members_ids(), &candidate_ids()));
 		assert!(!intersects(&members_ids(), &runners_up_ids()));
 		assert!(!intersects(&candidate_ids(), &runners_up_ids()));
-	}
-
-	fn setup_citizenships(account_balances: Vec<(u64, u64)>) {
-		let data = Data::Raw(b"1".to_vec().try_into().unwrap());
-		let info = IdentityInfo {
-			citizen: data.clone(),
-			additional: vec![].try_into().unwrap(),
-			display: data.clone(),
-			legal: data.clone(),
-			web: data.clone(),
-			riot: data.clone(),
-			email: data.clone(),
-			pgp_fingerprint: Some([0; 20]),
-			image: data,
-		};
-
-		Identity::add_registrar(RuntimeOrigin::root(), 0).unwrap();
-		for (id, balance) in account_balances {
-			let o = RuntimeOrigin::signed(id);
-			LLM::fake_send(o.clone(), id, balance).unwrap();
-			LLM::politics_lock(o.clone(), balance).unwrap();
-			Identity::set_identity(o, Box::new(info.clone())).unwrap();
-			Identity::provide_judgement(
-				RuntimeOrigin::signed(0),
-				0,
-				id,
-				pallet_identity::Judgement::KnownGood,
-				BlakeTwo256::hash_of(&info),
-			)
-			.unwrap();
-		}
 	}
 
 	fn pre_conditions() {

@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Elections-Phragmen pallet benchmarking.
 
 #![cfg(feature = "runtime-benchmarks")]
@@ -39,6 +43,9 @@ fn endowed_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	// important to increase the total issuance since T::CurrencyToVote will need it to be sane for
 	// phragmen to work.
 	T::Currency::issue(amount);
+
+	// Liberland specific - make sure it's a citizen with politipooled LLM
+	T::LLInitializer::make_citizen(&account, amount);
 
 	account
 }

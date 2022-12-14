@@ -53,9 +53,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
+pub mod traits;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use super::*;
 	use frame_support::pallet_prelude::*;
 	use pallet_identity::{Data, IdentityInfo, RegistrarIndex};
 	use sp_runtime::traits::{Hash, StaticLookup};
@@ -166,6 +168,21 @@ pub mod pallet {
 		fn politics_lock_llm(citizen: T::AccountId, amount: T::Balance) {
 			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
 			pallet_llm::Pallet::<T>::politics_lock(origin, amount).unwrap();
+		}
+	}
+
+	impl<T: Config> traits::LLInitializer<T::AccountId, T::Balance> for Pallet<T> {
+		#[cfg(feature = "runtime-benchmarks")]
+		fn make_citizen(account: &T::AccountId, amount: T::Balance) {
+			if pallet_identity::Pallet::<T>::registrars().len() == 0 {
+				let registrar: T::AccountId = frame_benchmarking::account("liberland_registrar", 0u32, 0u32);
+				Self::add_registrar(registrar);
+			}
+			let registrar = pallet_identity::Pallet::<T>::registrars()[0].clone().unwrap().account;
+
+			Self::give_citizenship(registrar, 0, account.clone());
+			Self::give_llm(account.clone(), amount);
+			Self::politics_lock_llm(account.clone(), amount);
 		}
 	}
 }

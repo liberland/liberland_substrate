@@ -32,11 +32,10 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy, EnsureSigned};
-use pallet_identity::{Data, IdentityInfo};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BadOrigin, BlakeTwo256, IdentityLookup, Hash},
+	traits::{BadOrigin, BlakeTwo256, IdentityLookup},
 	Perbill,
 };
 use frame_support::traits::{AsEnsureOriginWithArg, EitherOfDiverse};
@@ -73,6 +72,7 @@ frame_support::construct_runtime!(
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 		LLM: pallet_llm::{Pallet, Call, Storage, Event<T>},
+		LiberlandInitializer: pallet_liberland_initializer,
 	}
 );
 impl pallet_assets::Config for Test {
@@ -195,6 +195,8 @@ parameter_types! {
 	pub const ASSETID: u32 = 0u32;
 }
 
+impl pallet_liberland_initializer::Config for Test {}
+
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
@@ -257,53 +259,26 @@ impl Config for Test {
 	type MaxRegistrars = MaxRegistrars;
 	type Citizenship = LLM;
 	type LLM = LLM;
-}
-
-pub fn setup_citizenships(account_balances: Vec<(u64, u64)>) {
-	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
-	let info = IdentityInfo {
-		citizen: data.clone(),
-		additional: vec![].try_into().unwrap(),
-		display: data.clone(),
-		legal: data.clone(),
-		web: data.clone(),
-		riot: data.clone(),
-		email: data.clone(),
-		pgp_fingerprint: Some([0; 20]),
-		image: data,
-	};
-
-	Identity::add_registrar(RuntimeOrigin::root(), 0).unwrap();
-	for (id, balance) in account_balances {
-		let o = RuntimeOrigin::signed(id);
-		LLM::fake_send(o.clone(), id, balance).unwrap();
-		LLM::politics_lock(o.clone(), balance).unwrap();
-		Identity::set_identity(o, Box::new(info.clone())).unwrap();
-		Identity::provide_judgement(
-			RuntimeOrigin::signed(0),
-			0,
-			id,
-			pallet_identity::Judgement::KnownGood,
-			BlakeTwo256::hash_of(&info),
-		)
-		.unwrap();
-	}
+	type LLInitializer = LiberlandInitializer;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
+	let llm_balances = balances.iter().map(|(id, b)| (*id, *b, *b)).collect();
+
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();
 	pallet_democracy::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut t)
 		.unwrap();
+	pallet_liberland_initializer::GenesisConfig::<Test> {
+		citizenship_registrar: Some(0),
+		initial_citizens: llm_balances,
+	}.assimilate_storage(&mut t).unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
-	ext.execute_with(|| {
-		setup_citizenships(balances);
-	});
 	ext
 }
 
