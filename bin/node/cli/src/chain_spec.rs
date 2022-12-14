@@ -37,7 +37,7 @@ use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
+use sp_core::{crypto::{Ss58Codec, UncheckedInto}, sr25519, Pair, Public};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
@@ -224,7 +224,7 @@ pub fn testnet_genesis(
 	endowed_accounts: Option<Vec<AccountId>>,
 	council_group: Option<Vec<AccountId>>,
 	citizenship_registrar: Option<AccountId>,
-	initial_citizens: Vec<(AccountId, Balance)>,
+	initial_citizens: Vec<(AccountId, Balance, Balance)>,
 ) -> GenesisConfig {
 	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
@@ -284,6 +284,7 @@ pub fn testnet_genesis(
 	const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
 	const STASH: Balance = ENDOWMENT / 1000;
 
+
 	// Add Prefunded accounts
 	let f_ac: Vec<AccountId> = vec![
 		array_bytes::hex_n_into_unchecked("061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"), //F
@@ -292,10 +293,21 @@ pub fn testnet_genesis(
 		array_bytes::hex_n_into_unchecked("f874b8c112a9bb565e0798d9b5dcfee0fdbd54dd0fcc865c1251a75bd3faee45"), // M
 		array_bytes::hex_n_into_unchecked("52fd11392742ccf58bcff90c33ca15bdf4bd3416aabcd5d51a654c1f387b6d18"),
 	];
+
 	// rewrite, not to use for loop
 	for ac in f_ac.iter() {
 		endowed_accounts.push(ac.clone());
 	}
+
+	// endow all citizens.
+	initial_citizens.iter().map(|x| &x.0)
+		.for_each(|x| {
+			if !endowed_accounts.contains(x) {
+				endowed_accounts.push(x.clone())
+			}
+		});
+
+
 
 	GenesisConfig {
 		system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
@@ -382,9 +394,15 @@ fn development_config_genesis() -> GenesisConfig {
 		None,
 		Some(alice.clone()),
 		vec![
-			(alice, 1000),
-			(get_account_id_from_seed::<sr25519::Public>("Bob"), 1000),
-			(get_account_id_from_seed::<sr25519::Public>("Charlie"), 1000),
+			(alice, 6000, 5000),
+			(get_account_id_from_seed::<sr25519::Public>("Bob"), 6000, 5000),
+			(get_account_id_from_seed::<sr25519::Public>("Charlie"), 6000, 5000),
+			(AccountId::from_ss58check("5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR").unwrap(), 6000, 5000), // Citizen1
+			(AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(), 6000, 5000), // Dorian
+			(AccountId::from_ss58check("5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL").unwrap(), 6000, 5000), // Laissez sudo
+			(AccountId::from_ss58check("5GjYePC6HKJGGnEzEZzSvimy6uctuMat4Kr2tjACtKyY9nhT").unwrap(), 6000, 5000), // Web3_Test1
+			(AccountId::from_ss58check("5EqhBxsfDdbddFxcdRPhDBx8V3N2QyQspV5FNfQeT8nFQtj8").unwrap(), 6000, 5000), // Web3_Test2
+			(AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap(), 6000, 5000), // Web3_Test3
 		],
 	)
 }

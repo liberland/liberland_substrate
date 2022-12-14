@@ -8,7 +8,8 @@ pub mod pallet {
 	use pallet_identity::{Data, IdentityInfo, RegistrarIndex};
 	use sp_runtime::traits::{Hash, StaticLookup};
 	use sp_std::prelude::*;
-  type IdentityPallet<T> = pallet_identity::Pallet<T>;
+
+	type IdentityPallet<T> = pallet_identity::Pallet<T>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -19,7 +20,7 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub citizenship_registrar: Option<T::AccountId>,
-		pub initial_citizens: Vec<(T::AccountId, T::Balance)>,
+		pub initial_citizens: Vec<(T::AccountId, T::Balance, T::Balance)>,
 	}
 
 	#[cfg(feature = "std")]
@@ -35,12 +36,17 @@ pub mod pallet {
 			if let Some(registrar_account) = &self.citizenship_registrar {
 				let registrar_idx = Pallet::<T>::add_registrar(registrar_account.clone());
 				for citizen in &self.initial_citizens {
-					Pallet::<T>::give_citizenship(registrar_account.clone(), registrar_idx, citizen.0.clone());
+					Pallet::<T>::give_citizenship(
+						registrar_account.clone(),
+						registrar_idx,
+						citizen.0.clone(),
+					);
 				}
 			}
 
 			for citizen in &self.initial_citizens {
 				Pallet::<T>::give_llm(citizen.0.clone(), citizen.1.clone());
+				Pallet::<T>::politics_lock_llm(citizen.0.clone(), citizen.2.clone());
 			}
 		}
 	}
@@ -48,7 +54,8 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		fn add_registrar(registrar: T::AccountId) -> RegistrarIndex {
 			let root = frame_system::RawOrigin::Root;
-			IdentityPallet::<T>::add_registrar(root.into(), T::Lookup::unlookup(registrar)).unwrap();
+			IdentityPallet::<T>::add_registrar(root.into(), T::Lookup::unlookup(registrar))
+				.unwrap();
 			let registrars_count = pallet_identity::Pallet::<T>::registrars().len();
 			assert!(registrars_count > 0);
 			(registrars_count - 1).try_into().unwrap()
@@ -92,6 +99,11 @@ pub mod pallet {
 		fn give_llm(citizen: T::AccountId, amount: T::Balance) {
 			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
 			pallet_llm::Pallet::<T>::fake_send(origin, citizen, amount).unwrap();
+		}
+
+		fn politics_lock_llm(citizen: T::AccountId, amount: T::Balance) {
+			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
+			pallet_llm::Pallet::<T>::politics_lock(origin, amount).unwrap();
 		}
 	}
 }
