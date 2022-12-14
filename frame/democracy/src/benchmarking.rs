@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Democracy pallet benchmarking.
 
 use super::*;
@@ -37,7 +41,12 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	// Give the account half of the maximum value of the `Balance` type.
 	// Otherwise some transfers will fail with an overflow error.
-	T::Currency::make_free_balance_be(&caller, BalanceOf::<T>::max_value() / 2u32.into());
+	let balance = BalanceOf::<T>::max_value() / 2u32.into();
+	T::Currency::make_free_balance_be(&caller, balance);
+
+	// Liberland specific - make sure it's a citizen with politipooled LLM
+	T::LLInitializer::make_citizen(&caller, balance);
+
 	caller
 }
 

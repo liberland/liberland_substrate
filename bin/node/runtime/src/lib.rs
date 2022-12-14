@@ -894,6 +894,7 @@ impl pallet_democracy::Config for Runtime {
 	type MaxProposals = MaxProposals;
 	type Citizenship = LLM;
 	type LLM = LLM;
+	type LLInitializer = LiberlandInitializer;
 	type Preimages = Preimage;
 	type MaxDeposits = ConstU32<100>;
 	type MaxBlacklisted = ConstU32<100>;
@@ -959,6 +960,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 	type Citizenship = LLM;
 	type LLM = LLM;
+	type LLInitializer = LiberlandInitializer;
 }
 
 parameter_types! {

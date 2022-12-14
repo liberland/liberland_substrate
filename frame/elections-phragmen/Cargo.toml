@@ -28,6 +28,7 @@ sp-runtime = { version = "6.0.0", default-features = false, branch = "polkadot-v
 sp-std = { version = "4.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-llm = { default-features = false, path = "../llm" }
 pallet-identity = { path = "../identity", default-features = false }
+pallet-liberland-initializer = { path = "../liberland-initializer", default-features = false}
 
 [dev-dependencies]
 frame-benchmarking = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
@@ -53,10 +54,12 @@ std = [
 	"sp-npos-elections/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"pallet-liberland-initializer/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-liberland-initializer/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime"]

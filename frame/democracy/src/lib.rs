@@ -168,6 +168,7 @@ use frame_support::{
 	weights::Weight,
 };
 use pallet_llm::traits::{CitizenshipChecker, LLM};
+use pallet_liberland_initializer::traits::LLInitializer;
 use sp_runtime::{
 	traits::{Bounded as ArithBounded, One, Saturating, StaticLookup, Zero},
 	ArithmeticError, DispatchError, DispatchResult,
@@ -349,6 +350,7 @@ pub mod pallet {
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
+		type LLInitializer: LLInitializer<Self::AccountId, BalanceOf<Self>>;
 	}
 
 	/// The number of (public) proposals that have been made so far.
