@@ -48,8 +48,8 @@ pub mod pallet {
 	#[derive(Clone, Copy)]
 	pub enum LegislationTier {
 		Constitution = 0,
-		Tier1, // FIXME proper names
-		Tier2,
+		InternationalTreaty,
+		Tier2, // FIXME proper names
 		Tier3,
 		Tier4,
 		Tier5,
@@ -63,7 +63,7 @@ pub mod pallet {
 	impl From<u32> for LegislationTier {
 		fn from(v: u32) -> Self {
 			static VALUES: [LegislationTier; 7] =
-				[Constitution, Tier1, Tier2, Tier3, Tier4, Tier5, Decision];
+				[Constitution, InternationalTreaty, Tier2, Tier3, Tier4, Tier5, Decision];
 			for i in VALUES {
 				if v == i as u32 {
 					return i
@@ -74,6 +74,7 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
+	#[pallet::getter(fn laws)]
 	//metadata stored on centralized db in order for it to be available during proposal, referendum
 	pub(super) type Laws<T: Config> = StorageDoubleMap<
 		_,
@@ -86,6 +87,7 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn vetos)]
 	pub(super) type Vetos<T: Config> = StorageNMap<
 		_,
 		(
@@ -94,17 +96,6 @@ pub mod pallet {
 			NMapKey<Blake2_128Concat, T::AccountId>,
 		),
 		bool,
-	>;
-
-	#[pallet::storage]
-	pub(super) type VetoCleanup<T: Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		u32,
-		Blake2_128Concat,
-		u32,
-		BoundedVec<u8, ConstU32<65536>>,
-		ValueQuery,
 	>;
 
 	#[pallet::call]
@@ -144,6 +135,7 @@ pub mod pallet {
 		pub fn submit_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
+			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 			ensure!(T::Citizenship::is_citizen(&account), Error::<T>::NonCitizen);
 			Vetos::<T>::insert((tier, index, &account), true);
@@ -168,10 +160,10 @@ pub mod pallet {
 			ensure_signed(origin)?;
 
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
+			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 
 			let citizens = T::Citizenship::citizens_count();
 			let required = match tier.into() {
-				Tier1 => citizens / 2 + 1,
 				Tier2 => citizens / 2 + 1,
 				Tier3 => citizens / 2 + 1,
 				Tier4 => citizens / 2 + 1,
@@ -197,6 +189,7 @@ pub mod pallet {
 
 			// FIXME we should allow doing this over multiple transactions by saving cursor in
 			// storage. See example: https://github.com/paritytech/substrate/blob/70351393fd632317124f35ab8b24ef7134e08864/frame/ranked-collective/src/lib.rs#L622
+			// We could skip clearing if instead we prevent reusing indexes of repealed laws
 			let mut res = Vetos::<T>::clear_prefix((tier, index), u32::MAX, None);
 			while let Some(cursor) = res.maybe_cursor {
 				res = Vetos::<T>::clear_prefix((tier, index), u32::MAX, Some(&cursor));
