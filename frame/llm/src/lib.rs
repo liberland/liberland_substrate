@@ -597,7 +597,7 @@ pub mod pallet {
 
 			let vault_account = Self::get_llm_vault_account();
 			LLMBalance::<T>::mutate(
-				vault_account,
+				vault_account.clone(),
 				|balance| *balance -= Self::u64_to_balance(amount)
 			);
 
