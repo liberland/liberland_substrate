@@ -127,7 +127,6 @@ pub mod pallet {
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
-	pub const LLM_PALLET_ID: PalletId = PalletId(*b"llm/trsy"); // lets give llm a unique pallet id and it's own treasury
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -423,7 +422,7 @@ pub mod pallet {
 		}
 
 		fn get_llm_politipool_account() -> T::AccountId {
-			PalletId(*b"llm/trsy").into_account_truncating()
+			PalletId(*b"polilock").into_account_truncating()
 		}
 
 		fn get_future_block_with_seconds(seconds: u64) -> u64 {
