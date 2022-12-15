@@ -41,6 +41,13 @@ trate/chains/startlight_testnet/db/full
 
 ```
 
+
+### Run a Liberland Hazlitt Full Node
+```bash
+./target/release/substrate --chain specs/hazlittv3.3.raw
+```
+
+
 ### How to run a Liberland Hazlitt Validator:
 https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md
 
