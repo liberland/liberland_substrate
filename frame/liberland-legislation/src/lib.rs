@@ -1,3 +1,40 @@
+//! # Liberland Legislation Pallet
+//!
+//! ## Overview
+//!
+//! The Liberland Legislation pallet handles adding and removing legislations.
+//!
+//! ### Terminology
+//!
+//! - **Tier:** Lower tier legislations are more important then higher tiers.
+//! - **Index:** Unique identifier of a legislation inside a tier.
+//! - **Headcount veto:** Process of legislation repeal driven by citizens.
+//!
+//! ### Headcount Veto
+//!
+//! Legislation pallet allows citizens to submit their veto for given legislation.
+//! After the required percentage of vetos (different for each tier) of vetos is
+//! collected, it's possible to trigger the headcount veto which removes given
+//! legislation.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! #### Signed Origin
+//!
+//! Basic actions:
+//! - `submit_veto` - Registers veto for given legislation for the signer.
+//! - `revert_veto` - Removes veto for given legislation for the signer.
+//! - `trigger_headcount_veto` - Removes legislation if veto count requirements are met for it.
+//!
+//! #### Root origin
+//!
+//! - `add_law` - Adds a new legislation.
+//! - `repeal_law` - Removes legislation.
+//!
+//! License: MIT
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
@@ -24,24 +61,36 @@ pub mod pallet {
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
+		/// Citizenship provider used to check for citizenship and number of citizens (for headcount
+		/// veto).
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// A legislation was added.
 		LawAdded { tier: u32, index: u32 },
+		/// A legislation was removed.
 		LawRepealed { tier: u32, index: u32 },
+		/// Citizen submitted a veto for a legislation.
 		VetoSubmitted { tier: u32, index: u32, account: T::AccountId },
+		/// Citizen reverted their veto for a legislation.
 		VetoReverted { tier: u32, index: u32, account: T::AccountId },
+		/// Legislation was removed by headcount veto process.
 		LawRepealedByHeadcountVeto { tier: u32, index: u32 },
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// Legislation with given Tier and Index already exists.
 		LawAlreadyExists,
+		/// Signer isn't a valid citizen.
 		NonCitizen,
+		/// Invalid tier was requested.
 		InvalidTier,
+		/// Number of vetos collected didn't meet the requirements for given
+		/// tier.
 		InsufficientVetoCount,
 	}
 
@@ -73,9 +122,9 @@ pub mod pallet {
 		}
 	}
 
+	/// Registered legislations.
 	#[pallet::storage]
 	#[pallet::getter(fn laws)]
-	//metadata stored on centralized db in order for it to be available during proposal, referendum
 	pub(super) type Laws<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
@@ -86,6 +135,7 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
+	/// Registered vetos per legislation.
 	#[pallet::storage]
 	#[pallet::getter(fn vetos)]
 	pub(super) type Vetos<T: Config> = StorageNMap<
@@ -100,6 +150,18 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Add a new legislation.
+		///
+		/// The dispatch origin of this call must be _Root_.
+		///
+		/// - `tier`: Tier of the legislation.
+		/// - `index`: Index of the legislation.
+		/// - `law_content`: Content of the legislation.
+		///
+		/// Will fail with `LawAlreadyExists` if legislation with given `tier` and
+		/// `index` already exists.
+		///
+		/// Emits `LawAdded`.
 		#[pallet::weight(10_000)]
 		pub fn add_law(
 			origin: OriginFor<T>,
@@ -119,6 +181,16 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Remove legislation. The result is as if the legislation never existed,
+		/// so the `tier` and `index` can be reused to add a new legislation with
+		/// `add_law` in the future.
+		///
+		/// The dispatch origin of this call must be _Root_.
+		///
+		/// - `tier`: Tier of the legislation.
+		/// - `index`: Index of the legislation.
+		///
+		/// Emits `LawRepealed`.
 		#[pallet::weight(10_000)]
 		pub fn repeal_law(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			ensure_root(origin)?;
@@ -131,6 +203,16 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Add a veto.
+		///
+		/// The dispatch origin of this call must be _Signed_.
+		///
+		/// - `tier`: Tier of the legislation.
+		/// - `index`: Index of the legislation.
+		///
+		/// Will fail with `NonCitizen` if caller isn't a valid citizen.
+		///
+		/// Emits `VetoSubmitted`.
 		#[pallet::weight(10_000)]
 		pub fn submit_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
@@ -143,6 +225,14 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Remove a veto.
+		///
+		/// The dispatch origin of this call must be _Signed_.
+		///
+		/// - `tier`: Tier of the legislation.
+		/// - `index`: Index of the legislation.
+		///
+		/// Emits `VetoReverted`.
 		#[pallet::weight(10_000)]
 		pub fn revert_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
@@ -151,6 +241,19 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Trigger a headcount veto, which removes a legislation. Registered
+		/// vetos are verified (to make sure citizenships are still valid)
+		/// before counting.
+		///
+		/// The dispatch origin of this call must be _Signed_.
+		///
+		/// - `tier`: Tier of the legislation.
+		/// - `index`: Index of the legislation.
+		///
+		/// Will fail with `InsufficientVetoCount` if number of valid vetos
+		/// doesn't meet requirements for given Tier.
+		///
+		/// Emits `LawRepealedByHeadcountVeto`.
 		#[pallet::weight(10_000)]
 		pub fn trigger_headcount_veto(
 			origin: OriginFor<T>,
