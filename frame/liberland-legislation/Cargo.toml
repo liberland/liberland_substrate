@@ -29,6 +29,10 @@ sp-runtime = { version = "6.0.0", default-features = false, branch = "polkadot-v
 pallet-llm = { default-features = false, path = "../llm" }
 
 [dev-dependencies]
+pallet-balances = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
+pallet-identity = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
+pallet-assets = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
+pallet-liberland-initializer = { path = "../liberland-initializer" }
 
 [features]
 default = ["std"]
