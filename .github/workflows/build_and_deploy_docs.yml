@@ -1,0 +1,34 @@
+name: Deploy docs
+on:
+  push:
+    branches:
+      - main
+      - develop
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.2.0
+
+      - name: Build docs
+        run: cargo doc --no-deps -p pallet-llm -p pallet-liberland-legislation -p pallet-liberland-initializer
+
+      - name: Deploy to liberland.github.io
+        uses: JamesIves/github-pages-deploy-action@4.1.7
+        with:
+          branch: gh-pages
+          repository-name: liberland/liberland.github.io
+          folder: target/doc/
+          target-folder: rust/${{ github.ref_name }}/
+          clean: true
+          token: ${{ secrets.LIBERLAND_GITHUB_IO_DEPLOY_TOKEN }}
