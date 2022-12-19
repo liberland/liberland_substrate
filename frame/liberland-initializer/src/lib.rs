@@ -1,3 +1,55 @@
+//! # Liberland Initializer Pallet
+//!
+//! ## Overview
+//!
+//! The Liberland Initializer pallet handles setting up citizenships and LLM
+//! balances in genesis block. Especially useful for setting up dev testnets and
+//! state for unit tests.
+//!
+//! ## Usage:
+//!
+//! Add the `liberland-initializer` pallet to the runtime's `Cargo.toml`. Use `[dev-dependencies]`
+//! if it's only for unit tests:
+//!
+//! ```
+//! pallet-liberland-initializer = { path = "../../../frame/liberland-initializer", default-features = false }
+//! ```
+//!
+//! Make it a part of the runtime. No parameters needed for the `Config` trait:
+//!
+//! ```
+//! construct_runtime!(
+//!     pub enum Runtime where
+//!         [...]
+//!     {
+//!         [...]
+//! 		LiberlandInitializer: pallet_liberland_initializer,
+//!     }
+//! )
+//!
+//! impl pallet_liberland_initializer::Config for Runtime {}
+//! ```
+//!
+//! Add the `LiberlandInitializerConfig` to your `GenesisConfig`:
+//! ```
+//! 	GenesisConfig {
+//!         [...]
+//! 		liberland_initializer: LiberlandInitializerConfig {
+//! 			citizenship_registrar, initial_citizens
+//! 		},
+//!     }
+//! ```
+//!
+//! * `citizenship_registrar: Option<AccountId>`: AccountID of account that should be used as an
+//!   identity registrar for providing citizenship judgements
+//! * `initial_citizens: Vec<(AccountId, Balance, Balance)>`: Vector of `(account: AccountId,
+//!   total_llm: Balance, politipooled_llm: Balance)` - specifies accounts that should get
+//!   citizenships together with amount of LLM sent to them and amount of LLM that should be
+//!   politipooled. Note that politipooled LLM will be taked from the `total_llm`, so `(0, 6000,
+//!   5000)` will result in account `0` having `5000` politipooled LLM and `1000` free LLM.
+//!
+//! License: MIT
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
@@ -52,6 +104,9 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Adds `registrar` as an identity registrar in identity pallet.
+		///
+		/// Returns index of the added registrar.
 		fn add_registrar(registrar: T::AccountId) -> RegistrarIndex {
 			let root = frame_system::RawOrigin::Root;
 			IdentityPallet::<T>::add_registrar(root.into(), T::Lookup::unlookup(registrar))
@@ -61,6 +116,8 @@ pub mod pallet {
 			(registrars_count - 1).try_into().unwrap()
 		}
 
+		/// Returns an IdentityInfo with placeholder values and citizen field
+		/// set.
 		fn get_citizen_identity_info() -> IdentityInfo<T::MaxAdditionalFields> {
 			let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 			IdentityInfo {
@@ -76,6 +133,9 @@ pub mod pallet {
 			}
 		}
 
+		/// Sets identity of `citizen` to IdentityInfo returned by
+		/// `get_citizen_identity_info()` and provides `KnownGood` judgement
+		/// using provided registrar.
 		fn give_citizenship(
 			registrar: T::AccountId,
 			registrar_idx: RegistrarIndex,
@@ -96,11 +156,13 @@ pub mod pallet {
 			.unwrap();
 		}
 
+		/// Sends `amount` of LLM to `citizen`.
 		fn give_llm(citizen: T::AccountId, amount: T::Balance) {
 			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
 			pallet_llm::Pallet::<T>::fake_send(origin, citizen, amount).unwrap();
 		}
 
+		/// Politipools `amount` of `citizen`'s LLM.
 		fn politics_lock_llm(citizen: T::AccountId, amount: T::Balance) {
 			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
 			pallet_llm::Pallet::<T>::politics_lock(origin, amount).unwrap();
