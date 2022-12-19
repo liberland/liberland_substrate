@@ -14,16 +14,11 @@ pub trait LLM<AccountId, Balance> {
 
 /// trait for more abstract methods that take data from multiple sources
 pub trait CitizenshipChecker<AccountId> {
-	/// Checks if account has democracy allowed. For democracy to be allowed, account needs to:
+	/// Checks if account has politics allowed. For politics to be allowed, account needs to:
 	/// * have LLM politipooled
 	/// * not have LLM Electionlock
 	/// * have a KnownGood judgement
-	fn ensure_democracy_allowed(account: &AccountId) -> Result<(), DispatchError>;
-
-	/// Checks if account has elections allowed. For elections to be allowed, account needs to:
-	/// * not have LLM Electionlock
-	/// * have a KnownGood judgement
-	fn ensure_elections_allowed(account: &AccountId) -> Result<(), DispatchError>;
+	fn ensure_politics_allowed(account: &AccountId) -> Result<(), DispatchError>;
 
 	/// Check if given account is a citizen (KnownGood judgement)
 	fn is_citizen(account: &AccountId) -> bool;

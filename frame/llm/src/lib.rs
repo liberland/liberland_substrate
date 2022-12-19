@@ -150,13 +150,19 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 type Assets<T> = pallet_assets::Pallet<T>;
 
+mod imbalances;
+
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
-	use super::{traits::LLM, *};
+	use super::{traits::*, *};
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{fungibles::Mutate, Currency},
+		parameter_types,
+		traits::{
+			fungibles::Mutate, BalanceStatus, Currency, ExistenceRequirement, LockIdentifier,
+			LockableCurrency, ReservableCurrency, SignedImbalance, WithdrawReasons,
+		},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -166,7 +172,7 @@ pub mod pallet {
 		traits::{AccountIdConversion, StaticLookup},
 		AccountId32, SaturatedConversion,
 	};
-	use sp_std::vec::Vec;
+	use sp_std::prelude::*;
 
 	type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
@@ -632,7 +638,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
+	impl<T: Config> LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
 			Self::get_llm_politics(account) > 0u8.into()
 		}
@@ -677,17 +683,11 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
-		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+	impl<T: Config> CitizenshipChecker<T::AccountId> for Pallet<T> {
+		fn ensure_politics_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
-			Ok(())
-		}
-
-		fn ensure_elections_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
-			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
-			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			Ok(())
 		}
 
@@ -699,6 +699,155 @@ pub mod pallet {
 			pallet_identity::Pallet::<T>::identities_iter()
 				.filter(|(_account, registration)| Self::is_known_good_identity(registration))
 				.count()
+		}
+	}
+
+	impl<T: Config> Currency<T::AccountId> for Pallet<T> {
+		type Balance = u128;
+		type PositiveImbalance = imbalances::PositiveImbalance;
+		type NegativeImbalance = imbalances::NegativeImbalance;
+
+		fn total_balance(who: &T::AccountId) -> Self::Balance {
+			if let Err(_) = Self::ensure_politics_allowed(who) {
+				return 0
+			}
+
+			LLMPolitics::<T>::get(who).try_into().unwrap_or_default()
+		}
+
+		fn can_slash(_who: &T::AccountId, _value: Self::Balance) -> bool {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn total_issuance() -> Self::Balance {
+			let politipool = Self::get_llm_politipool_account();
+			Assets::<T>::balance(Self::llm_id().into(), politipool)
+				.try_into()
+				.unwrap_or_default()
+		}
+
+		fn minimum_balance() -> Self::Balance {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn burn(_amount: Self::Balance) -> Self::PositiveImbalance {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn issue(_amount: Self::Balance) -> Self::NegativeImbalance {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn free_balance(who: &T::AccountId) -> Self::Balance {
+			Self::total_balance(who)
+		}
+
+		fn ensure_can_withdraw(
+			_who: &T::AccountId,
+			_amount: Self::Balance,
+			_reasons: WithdrawReasons,
+			_new_balance: Self::Balance,
+		) -> DispatchResult {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn transfer(
+			_source: &T::AccountId,
+			_dest: &T::AccountId,
+			_value: Self::Balance,
+			_existence_requirement: ExistenceRequirement,
+		) -> DispatchResult {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn slash(
+			_who: &T::AccountId,
+			_value: Self::Balance,
+		) -> (Self::NegativeImbalance, Self::Balance) {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn deposit_into_existing(
+			_who: &T::AccountId,
+			_value: Self::Balance,
+		) -> Result<Self::PositiveImbalance, DispatchError> {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn deposit_creating(_who: &T::AccountId, _value: Self::Balance) -> Self::PositiveImbalance {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn withdraw(
+			_who: &T::AccountId,
+			_value: Self::Balance,
+			_reasons: WithdrawReasons,
+			_liveness: ExistenceRequirement,
+		) -> Result<Self::NegativeImbalance, DispatchError> {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn make_free_balance_be(
+			_who: &T::AccountId,
+			_balance: Self::Balance,
+		) -> SignedImbalance<Self::Balance, Self::PositiveImbalance> {
+			unimplemented!("NOT SUPPORTED");
+		}
+	}
+
+	impl<T: Config> ReservableCurrency<T::AccountId> for Pallet<T> {
+		fn can_reserve(_who: &T::AccountId, _value: Self::Balance) -> bool {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn slash_reserved(
+			_who: &T::AccountId,
+			_value: Self::Balance,
+		) -> (Self::NegativeImbalance, Self::Balance) {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn reserved_balance(_who: &T::AccountId) -> Self::Balance {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn reserve(who: &T::AccountId, value: Self::Balance) -> DispatchResult {
+			ensure!(Self::free_balance(who) >= value, Error::<T>::LowBalance);
+			Self::ensure_politics_allowed(who)
+		}
+		fn unreserve(_who: &T::AccountId, _value: Self::Balance) -> Self::Balance {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn repatriate_reserved(
+			_slashed: &T::AccountId,
+			_beneficiary: &T::AccountId,
+			_value: Self::Balance,
+			_status: BalanceStatus,
+		) -> Result<Self::Balance, DispatchError> {
+			unimplemented!("NOT SUPPORTED");
+		}
+	}
+
+	parameter_types! {
+		pub MaxLocks: u8 = 1;
+	}
+
+	impl<T: Config> LockableCurrency<T::AccountId> for Pallet<T> {
+		type Moment = T::BlockNumber;
+		type MaxLocks = MaxLocks;
+
+		fn set_lock(
+			_id: LockIdentifier,
+			_who: &T::AccountId,
+			_amount: Self::Balance,
+			_reasons: WithdrawReasons,
+		) {
+			unimplemented!("NOT SUPPORTED");
+		}
+		fn extend_lock(
+			_id: LockIdentifier,
+			_who: &T::AccountId,
+			_amount: Self::Balance,
+			_reasons: WithdrawReasons,
+		) {
+			unimplemented!("NOT SUPPORTED");
+		}
+
+		fn remove_lock(_id: LockIdentifier, _who: &T::AccountId) {
+			unimplemented!("NOT SUPPORTED");
 		}
 	}
 }

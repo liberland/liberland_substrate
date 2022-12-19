@@ -99,8 +99,8 @@ pallet-uniques = { version = "4.0.0-dev", default-features = false, branch = "po
 pallet-vesting = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-whitelist = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 
-pallet-democracy = { version = "4.0.0-dev", default-features = false, path = "../../../frame/democracy" }
-pallet-elections-phragmen = { version = "5.0.0-dev", default-features = false, path = "../../../frame/elections-phragmen" }
+pallet-democracy = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
+pallet-elections-phragmen = { version = "5.0.0-dev", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-identity = { version = "4.0.0-dev", default-features = false, path = "../../../frame/identity" }
 pallet-llm = { path = "../../../frame/llm", version = "0.1.0", default-features = false }
 pallet-liberland-legislation = { version = "0.1.0", path = "../../../frame/liberland-legislation", default-features = false }
@@ -193,6 +193,7 @@ std = [
 	"sp-io/std",
 	"pallet-child-bounties/std",
 	"pallet-liberland-initializer/std",
+	"pallet-llm/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

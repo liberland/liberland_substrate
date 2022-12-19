@@ -283,6 +283,7 @@ pub fn testnet_genesis(
 
 	const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
 	const STASH: Balance = ENDOWMENT / 1000;
+	const COUNCIL_STAKE: Balance = 5000; // LLM
 
 
 	// Add Prefunded accounts
@@ -298,6 +299,16 @@ pub fn testnet_genesis(
 	for ac in f_ac.iter() {
 		endowed_accounts.push(ac.clone());
 	}
+
+	// council members must be citizens
+	let mut initial_citizens = initial_citizens;
+	council_group
+		.iter()
+		.for_each(|x| {
+			if initial_citizens.iter().map(|y| &y.0).filter(|y| *y == x).count() == 0 {
+				initial_citizens.push((x.clone(), COUNCIL_STAKE, COUNCIL_STAKE));
+			}
+		});
 
 	// endow all citizens.
 	initial_citizens.iter().map(|x| &x.0)
@@ -341,7 +352,7 @@ pub fn testnet_genesis(
 				.iter()
 				.take((num_endowed_accounts + 1) / 2)
 				.cloned()
-				.map(|member| (member, STASH))
+				.map(|member| (member, COUNCIL_STAKE))
 				.collect(),
 		},
 		council: CouncilConfig::default(),
@@ -432,7 +443,7 @@ fn local_testnet_genesis() -> GenesisConfig {
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,
 		None,
-		None,
+		Some(get_account_id_from_seed::<sr25519::Public>("Alice")),
 		vec![],
 	)
 }

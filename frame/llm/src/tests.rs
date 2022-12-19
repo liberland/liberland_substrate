@@ -291,67 +291,39 @@ fn get_llm_politics_works() {
 }
 
 #[test]
-fn ensure_democracy_allowed_fails_for_noncitizen() {
+fn ensure_politics_allowed_fails_for_noncitizen() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(LLM::ensure_democracy_allowed(&10), Error::<Test>::NonCitizen);
+		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 	});
 }
 
 #[test]
-fn ensure_democracy_allowed_fails_for_locked_election_rights() {
+fn ensure_politics_allowed_fails_for_locked_election_rights() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
 		assert_ok!(LLM::politics_lock(origin.clone(), 10));
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_noop!(LLM::ensure_democracy_allowed(&1), Error::<Test>::Locked);
+		assert_noop!(LLM::ensure_politics_allowed(&1), Error::<Test>::Locked);
 		System::set_block_number(Electionlock::<Test>::get(1));
-		assert_noop!(LLM::ensure_democracy_allowed(&1), Error::<Test>::Locked);
+		assert_noop!(LLM::ensure_politics_allowed(&1), Error::<Test>::Locked);
 		System::set_block_number(Electionlock::<Test>::get(1) + 1);
-		assert_ok!(LLM::ensure_democracy_allowed(&1));
+		assert_ok!(LLM::ensure_politics_allowed(&1));
 	});
 }
 
 #[test]
-fn ensure_democracy_allowed_fails_for_no_pooled_llm() {
+fn ensure_politics_allowed_fails_for_no_pooled_llm() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(LLM::ensure_democracy_allowed(&1), Error::<Test>::NoPolLLM);
+		assert_noop!(LLM::ensure_politics_allowed(&1), Error::<Test>::NoPolLLM);
 	});
 }
 
 #[test]
-fn ensure_democracy_allowed_succeeds_for_valid_citizen() {
+fn ensure_politics_allowed_succeeds_for_valid_citizen() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
 		assert_ok!(LLM::politics_lock(origin.clone(), 10));
-		assert_ok!(LLM::ensure_democracy_allowed(&1));
-	});
-}
-
-#[test]
-fn ensure_elections_allowed_fails_for_noncitizen() {
-	new_test_ext().execute_with(|| {
-		assert_noop!(LLM::ensure_elections_allowed(&10), Error::<Test>::NonCitizen);
-	});
-}
-
-#[test]
-fn ensure_elections_allowed_fails_for_locked_election_rights() {
-	new_test_ext().execute_with(|| {
-		let origin = RuntimeOrigin::signed(1);
-		assert_ok!(LLM::politics_lock(origin.clone(), 10));
-		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_noop!(LLM::ensure_elections_allowed(&1), Error::<Test>::Locked);
-		System::set_block_number(Electionlock::<Test>::get(1));
-		assert_noop!(LLM::ensure_elections_allowed(&1), Error::<Test>::Locked);
-		System::set_block_number(Electionlock::<Test>::get(1) + 1);
-		assert_ok!(LLM::ensure_elections_allowed(&1));
-	});
-}
-
-#[test]
-fn ensure_elections_allowed_succeeds_for_valid_citizen() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(LLM::ensure_elections_allowed(&1));
+		assert_ok!(LLM::ensure_politics_allowed(&1));
 	});
 }
 

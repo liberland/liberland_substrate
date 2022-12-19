@@ -4501,18 +4501,12 @@ dependencies = [
 [[package]]
 name = "pallet-democracy"
 version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.33#2dff067e9f7f6f3cc4dbfdaaa97753eccc407689"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
- "pallet-assets",
- "pallet-balances",
- "pallet-identity",
- "pallet-liberland-initializer",
- "pallet-llm",
- "pallet-preimage",
- "pallet-scheduler",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4562,16 +4556,12 @@ dependencies = [
 [[package]]
 name = "pallet-elections-phragmen"
 version = "5.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.33#2dff067e9f7f6f3cc4dbfdaaa97753eccc407689"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
- "pallet-assets",
- "pallet-balances",
- "pallet-identity",
- "pallet-liberland-initializer",
- "pallet-llm",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -4579,8 +4569,6 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime",
  "sp-std",
- "sp-tracing",
- "substrate-test-utils",
 ]
 
 [[package]]
@@ -8803,27 +8791,6 @@ dependencies = [
  "sp-runtime",
  "substrate-test-client",
  "substrate-test-runtime",
-]
-
-[[package]]
-name = "substrate-test-utils"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.33#2dff067e9f7f6f3cc4dbfdaaa97753eccc407689"
-dependencies = [
- "futures",
- "substrate-test-utils-derive",
- "tokio",
-]
-
-[[package]]
-name = "substrate-test-utils-derive"
-version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.33#2dff067e9f7f6f3cc4dbfdaaa97753eccc407689"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

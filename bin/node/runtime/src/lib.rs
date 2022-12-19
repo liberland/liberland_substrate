@@ -843,7 +843,7 @@ parameter_types! {
 
 impl pallet_democracy::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
+	type Currency = LLM;
 	type EnactmentPeriod = EnactmentPeriod;
 	type LaunchPeriod = LaunchPeriod;
 	type VotingPeriod = VotingPeriod;
@@ -855,9 +855,6 @@ impl pallet_democracy::Config for Runtime {
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
 	type ExternalMajorityOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
-
-	type MaxAdditionalFields = MaxAdditionalFields;
-	type MaxRegistrars = MaxRegistrars;
 
 	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 
@@ -886,15 +883,12 @@ impl pallet_democracy::Config for Runtime {
 	// only do it once and it lasts only for the cool-off period.
 	type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
 	type CooloffPeriod = CooloffPeriod;
-	type Slash = Treasury;
+	type Slash = ();
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
 	type MaxVotes = ConstU32<100>;
 	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
 	type MaxProposals = MaxProposals;
-	type Citizenship = LLM;
-	type LLM = LLM;
-	type LLInitializer = LiberlandInitializer;
 	type Preimages = Preimage;
 	type MaxDeposits = ConstU32<100>;
 	type MaxBlacklisted = ConstU32<100>;
@@ -938,7 +932,7 @@ const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
 impl pallet_elections_phragmen::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = ElectionsPhragmenPalletId;
-	type Currency = Balances;
+	type Currency = LLM;
 	type ChangeMembers = Council;
 	// NOTE: this implies that council's genesis members cannot be set directly and must come from
 	// this module.
@@ -946,8 +940,6 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type CurrencyToVote = U128CurrencyToVote;
 	type CandidacyBond = CandidacyBond;
 
-	type MaxAdditionalFields = MaxAdditionalFields;
-	type MaxRegistrars = MaxRegistrars;
 	type VotingBondBase = VotingBondBase;
 	type VotingBondFactor = VotingBondFactor;
 	type LoserCandidate = ();
@@ -958,9 +950,6 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type MaxVoters = MaxVoters;
 	type MaxCandidates = MaxCandidates;
 	type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
-	type Citizenship = LLM;
-	type LLM = LLM;
-	type LLInitializer = LiberlandInitializer;
 }
 
 parameter_types! {
@@ -1532,7 +1521,6 @@ construct_runtime!(
 		Democracy: pallet_democracy,
 		Council: pallet_collective::<Instance1>,
 		TechnicalCommittee: pallet_collective::<Instance2>,
-		Elections: pallet_elections_phragmen,
 		TechnicalMembership: pallet_membership::<Instance1>,
 		Grandpa: pallet_grandpa,
 		Treasury: pallet_treasury,
@@ -1568,6 +1556,7 @@ construct_runtime!(
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
 		LiberlandLegislation: pallet_liberland_legislation,
 		LiberlandInitializer: pallet_liberland_initializer,
+		Elections: pallet_elections_phragmen,
 	}
 );
 
