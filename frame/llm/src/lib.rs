@@ -1,3 +1,121 @@
+//! # Liberland Merit(LLM) Pallet
+//!
+//! ## Overview
+//!
+//! Liberland Merit is a Liberland currency that gives political power to citizens.
+//!
+//! The LLM pallet handles:
+//!
+//! * creating LLM asset in `pallet-assets` on genesis
+//! * LLM inflation to treasury
+//! * locking, a.k.a. politipooling the LLM for use in politics
+//! * veryfing citizenship status
+//!
+//! ## LLM lifecycle
+//!
+//! On Genesis (see `fn create_llm`):
+//!
+//! * LLM is created in `pallet-assets`
+//! * configured `TotalSupply` amount of LLM is created and transferred to **Vault**
+//! * configured `PreMintedAmount` is transferred from **Vault** to **Treasury**
+//!
+//! On yearly basis (see `fn try_mint`):
+//!
+//! * 90% of **Vault** balance is transferred to **Treasury**
+//!
+//! Accounts are free to locks in politics, a.k.a. politipool any amount of LLM at any time.
+//!
+//! Accounts may unlock 10% of locked LLM once every `Withdrawlock` duration (see [Genesis
+//! Config](#genesis-config)), but it will suspend their politics rights for `Electionlock`
+//! duration.
+//!
+//! Accounts may freely transfer their not-locked LLM to other accounts.
+//!
+//! ### Special accounts:
+//!
+//! * **Treasury**:
+//!     * gets preminted and inflation LLM
+//!     * derived from PalletID `py/trsry`: `5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z`
+//!
+//! * **Vault**:
+//!     * gets initial supply of LLM on genesis
+//!     * releases 90% of it's balance to **Trasury** on inflation event (yearly)
+//!     * derived from PalletID `llm/safe`: `5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk`
+//!
+//! * **Politipool**,
+//!     * gets LLM locked in politics by other accounts (`politics_lock`)
+//!     * releases locked LLM back on `politics_unlock`
+//!     * derived from PalletID `politilock`: `5EYCAe5ijGqt3WEM9aKUBdth51NEBNz9P84NaUMWZazzWt7c`
+//!
+//! ## Internal Storage:
+//!
+//! * `NextMint`: block number for next LLM inflation mint (transfer of 90% from **Vault** to
+//!   **Treasury**)
+//! * `LLMPolitics`: amount of LLM each account has allocated into politics
+//! * `Withdrawlock`: block number until which account can't do another `politics_unlock`
+//! * `Electionlock`: block number until which account can't participate in politics directly
+//!
+//! ## Runtime config
+//!
+//! * `RuntimeEvent`: Event type to use.
+//! * `AssetId`: Type of AssetId.
+//! * `TotalSupply`: Total amount of LLM to be created on genesis. That's all LLM that will ever
+//!   exit. It will be stored in **Vault**.
+//! * `PreMintedAmount`: Amount of LLM that should be minted (a.k.a. transferred from **Vault** to
+//!   **Treasury**) on genesis.
+//!
+//! ## Genesis Config
+//!
+//! * `unpooling_withdrawlock_duration`: duration, in seconds, for which additional unlocks should
+//!   be locked after `politics_unlock`
+//! * `unpooling_electionlock_duration`: duration, in seconds, for which politics rights should be
+//!   suspended after `politics_unlock`
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//!
+//! #### Public
+//!
+//! These calls can be made from any _Signed_ origin.
+//!
+//! * `fake_send`: Mint LLM to account. Development only, to be removed/restricted.
+//! * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
+//! * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
+//! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
+//!   period. Affects political rights for an ElectionLock period.
+//! * `createllm`: Creates LLM asset in `pallet-assets`.
+//! * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
+//!
+//! #### Restricted
+//!
+//! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called
+//!   by selected accounts and Senate.
+//!
+//! ### LLM trait
+//!
+//! LLM pallet implements LLM trait with following functions available for other pallets:
+//!
+//! * `check_pooled_llm`: Checks if given account has any LLM locked in politics.
+//! * `is_election_unlocked`: Checks if given account has rights to participate in politics
+//!   unlocked. They may be locked after `politics_unlock`. This does NOT check if account is a
+//!   valid citizen - use `CitizenshipChecker` trait for that.
+//! * `get_politi_pooled_amount`: Get total amount of locked LLM across all accounts.
+//! * `get_llm_politics`: Get amount of locked LLM for given account.
+//!
+//! ### CitizenshipChecker trait
+//!
+//! LLM pallet implements CitizenshipChecker trait with following functions available for other
+//! pallets:
+//!
+//! * `ensure_democracy_allowed`: Checks if given account can participate in democracy actions. It
+//!   verifies that it's a valid citizen, doesn't have election rights locked and has some LLM
+//!   locked in politics.
+//! * `ensure_elections_allowed`: Checks if given account can participate in election actions. It
+//!   verifies that it's a valid citizen, doesn't have election rights locked.
+//!
+//! License: MIT
+
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 pub mod traits;
@@ -39,16 +157,18 @@ pub mod pallet {
 	type BalanceOf<T> =
 		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
+	/// block number for next LLM inflation mint (transfer of 90% from **Vault** to **Treasury**)
 	#[pallet::storage]
 	#[pallet::getter(fn next_mint)]
-	/// block number for next llm mint
 	pub(super) type NextMint<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0
 
+	/// amount of LLM each account has allocated into politics
 	#[pallet::storage]
 	#[pallet::getter(fn llm_politics)]
 	pub(super) type LLMPolitics<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
 
+	/// block number until which account can't do another `politics_unlock`
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock)]
 	pub(super) type Withdrawlock<T: Config> =
@@ -64,6 +184,7 @@ pub mod pallet {
 	pub(super) type WithdrawlockDuration<T: Config> =
 		StorageValue<_, u64, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
 
+	/// block number until which account can't participate in politics directly
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock)]
 	pub(super) type Electionlock<T: Config> =
@@ -80,7 +201,11 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
+		/// duration, in seconds, for which additional unlocks should be locked
+		/// after `politics_unlock`
 		pub unpooling_withdrawlock_duration: u64,
+		/// duration, in seconds, for which politics rights should be suspended
+		/// after `politics_unlock`
 		pub unpooling_electionlock_duration: u64,
 		pub _phantom: PhantomData<T>,
 	}
@@ -114,9 +239,12 @@ pub mod pallet {
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-		// include pallet asset config aswell
+		/// Total amount of LLM to be created on genesis. That's all LLM that
+		/// will ever exit. It will be stored in **Vault**.
+		type TotalSupply: Get<u64>;
 
-		type TotalSupply: Get<u64>; // Pre defined the total supply in runtime
+		/// Amount of LLM that should be minted (a.k.a. transferred from
+		/// **Vault** to **Treasury**) on genesis.
 		type PreMintedAmount: Get<u64>; // Pre defined the total supply in runtime
 
 		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
@@ -134,18 +262,11 @@ pub mod pallet {
 		InvalidAmount,
 		/// Balance is less then sending amount
 		LowBalance,
-		LowAmount,
-		/// Not allowed to mint more
-		MaxCap,
 		/// Asset already created
 		AssetExists,
+		/// Account can't perform this action now
 		InvalidAccount,
-		InvalidTransfer,
-		// can not transfer asset
-		InvalidAssetMove,
-		// do not unfreeze more then 10% of the users total supply
-		Over10percentage,
-		/// not allowed to withdraw llm
+		/// Not allowed to withdraw more LLM, wait until Withdrawlock
 		Gottawait,
 		/// No politcal LLM allocated tokens
 		NoPolLLM,
@@ -153,8 +274,6 @@ pub mod pallet {
 		NonCitizen,
 		/// Temporary locked after unpooling LLM
 		Locked,
-		InsufficientLLM,
-		InvalidBalanceType,
 	}
 
 	#[pallet::pallet]
@@ -164,14 +283,8 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(b: T::BlockNumber) -> Weight {
-			log::info!("LLM Pallet Checking block");
-			// convert blocknumber to u64
 			let blocknumber = b.saturated_into::<u64>();
 			let _didmint = Self::try_mint(blocknumber);
-			log::info!("LLM Pallet Checked block");
-
-			// todo: have a function that runs on blocknumber as input and checks if it can mint llm
-			// based on blocknumber 	Self::mint_llm(origin);
 			Weight::zero()
 		}
 
@@ -182,8 +295,14 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)] // debug function, used for testing, DO NOT USE IN PROD, function mints llm to a raw account
-						  // based on input
+		/// Mint LLM to account by transferring LLM from **Vault**. Development
+		/// only, to be removed/restricted.  DO NOT USE IN PROD.
+		///
+		/// - `to_account`: Account to mint LLM to
+		/// - `amount`: Amount of LLM to mint
+		///
+		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::weight(10_000)]
 		pub fn fake_send(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -194,7 +313,14 @@ pub mod pallet {
 			Self::transfer_from_vault(to_account, balance)
 		}
 
-		#[pallet::weight(10_000)] // change me
+		/// Wrapper over `pallet-assets` `transfer`. Transfers LLM from sender
+		/// to specified account.
+		///
+		/// - `to_account`: Account to transfer LLM to
+		/// - `amount`: Amount of LLM to transfer
+		///
+		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::weight(10_000)]
 		pub fn send_llm(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -204,7 +330,14 @@ pub mod pallet {
 			Self::transfer(sender, to_account, amount)
 		}
 
-		/// allocate LLM for politics
+		/// Lock LLM into politics pool, a.k.a. politipool.  Internally it
+		/// transfers LLM to **Politipool** account.
+		///
+		/// * `amount`: Amount of LLM to lock.
+		///
+		/// Emits:
+		/// * `LLMPoliticsLocked`
+		/// * `Transferred` from `pallet-assets`
 		#[pallet::weight(10_000)]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -216,7 +349,15 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// unlock LLM from politics
+		/// Unlock 10% of account's LLM from politics pool, a.k.a. politipool.
+		/// Internally it transfers LLM from **Politipool** account.
+		///
+		/// Can only be called once per `Withdrawlock` duration, will fail with
+		/// `Gottawait` otherwise.
+		///
+		/// Emits:
+		/// * `LLMPoliticsLocked`
+		/// * `Transferred` from `pallet-assets`
 		#[pallet::weight(10_000)]
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
@@ -248,7 +389,13 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Request a transfer from the treasury llm account to a certain account.
+		/// Transfer LLM from treasury to specified account. Can only be called
+		/// by selected accounts and Senate.
+		///
+		/// - `to_account`: Account to transfer to.
+		/// - `amount`: Amount to transfer.
+		///
+		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::weight(10_000)]
 		pub fn treasury_llm_transfer(
 			origin: OriginFor<T>,
