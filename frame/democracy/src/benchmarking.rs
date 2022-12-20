@@ -30,7 +30,7 @@ use frame_support::{
 };
 use frame_system::RawOrigin;
 use sp_core::H256;
-use sp_runtime::{traits::Bounded, BoundedVec};
+use sp_runtime::BoundedVec;
 
 use crate::Pallet as Democracy;
 
@@ -39,13 +39,11 @@ const SEED: u32 = 0;
 
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
-	// Give the account half of the maximum value of the `Balance` type.
-	// Otherwise some transfers will fail with an overflow error.
-	let balance = BalanceOf::<T>::max_value() / 2u32.into();
+	let balance = 1000u32.into();
 	T::Currency::make_free_balance_be(&caller, balance);
 
 	// Liberland specific - make sure it's a citizen with politipooled LLM
-	T::LLInitializer::make_citizen(&caller, balance);
+	T::LLInitializer::make_citizen(&caller, 1000u32.into());
 
 	caller
 }
