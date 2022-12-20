@@ -40,7 +40,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
     * releases 90% of it's balance to **Trasury** on inflation event (yearly)
     * derived from PalletID `llm/safe`: `5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk`
 
-* **Politipool**, 
+* **Politipool**,
     * gets LLM locked in politics by other accounts (`politics_lock`)
     * releases locked LLM back on `politics_unlock`
     * derived from PalletID `politilock`: `5EYCAe5ijGqt3WEM9aKUBdth51NEBNz9P84NaUMWZazzWt7c`

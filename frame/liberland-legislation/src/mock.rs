@@ -138,6 +138,7 @@ impl pallet_liberland_legislation::Config for Test {
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	pallet_llm::GenesisConfig::<Test>::default().assimilate_storage(&mut t).unwrap();
 	pallet_liberland_initializer::GenesisConfig::<Test> {
 		citizenship_registrar: Some(0),
 		initial_citizens: vec![(1, 5000, 5000), (2, 5000, 5000), (3, 5000, 5000)],

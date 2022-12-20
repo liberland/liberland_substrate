@@ -142,7 +142,7 @@ pub mod pallet {
 	use super::{traits::LLM, *};
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{Currency, fungibles::Mutate},
+		traits::{fungibles::Mutate, Currency},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -154,8 +154,9 @@ pub mod pallet {
 	};
 	use sp_std::vec::Vec;
 
-	type BalanceOf<T> =
-		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance;
 
 	/// block number for next LLM inflation mint (transfer of 90% from **Vault** to **Treasury**)
 	#[pallet::storage]

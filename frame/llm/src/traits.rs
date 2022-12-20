@@ -30,5 +30,4 @@ pub trait CitizenshipChecker<AccountId> {
 
 	/// Calculate number of valid citizens (KnownGood judgements). This is expensive.
 	fn citizens_count() -> usize;
-
 }
