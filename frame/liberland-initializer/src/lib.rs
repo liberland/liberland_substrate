@@ -11,13 +11,13 @@
 //! Add the `liberland-initializer` pallet to the runtime's `Cargo.toml`. Use `[dev-dependencies]`
 //! if it's only for unit tests:
 //!
-//! ```
+//! ```ignore
 //! pallet-liberland-initializer = { path = "../../../frame/liberland-initializer", default-features = false }
 //! ```
 //!
 //! Make it a part of the runtime. No parameters needed for the `Config` trait:
 //!
-//! ```
+//! ```ignore
 //! construct_runtime!(
 //!     pub enum Runtime where
 //!         [...]
@@ -31,7 +31,7 @@
 //! ```
 //!
 //! Add the `LiberlandInitializerConfig` to your `GenesisConfig`:
-//! ```
+//! ```ignore
 //! 	GenesisConfig {
 //!         [...]
 //! 		liberland_initializer: LiberlandInitializerConfig {
