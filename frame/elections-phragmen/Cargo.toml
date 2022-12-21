@@ -27,12 +27,12 @@ sp-npos-elections = { version = "4.0.0-dev", default-features = false, branch = 
 sp-runtime = { version = "6.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 sp-std = { version = "4.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-llm = { default-features = false, path = "../llm" }
-pallet-identity = { path = "../identity", default-features = false }
+pallet-identity = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-liberland-initializer = { path = "../liberland-initializer", default-features = false}
 
 [dev-dependencies]
 frame-benchmarking = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
-pallet-identity = { path = "../identity" }
+pallet-identity = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-assets = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 sp-tracing = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }

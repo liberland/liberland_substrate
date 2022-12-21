@@ -127,10 +127,11 @@ impl pallet_identity::Config for Test {
 }
 
 pub fn setup_citizenships(accounts: Vec<u64>) {
+	let key = Data::Raw(b"citizen".to_vec().try_into().unwrap());
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 	let info = IdentityInfo {
-		citizen: data.clone(),
-		additional: vec![].try_into().unwrap(),
+		twitter: data.clone(),
+		additional: vec![(key, data.clone())].try_into().unwrap(),
 		display: data.clone(),
 		legal: data.clone(),
 		web: data.clone(),

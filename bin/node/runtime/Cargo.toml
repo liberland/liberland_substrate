@@ -101,7 +101,7 @@ pallet-whitelist = { version = "4.0.0-dev", default-features = false, branch = "
 
 pallet-democracy = { version = "4.0.0-dev", default-features = false, path = "../../../frame/democracy" }
 pallet-elections-phragmen = { version = "5.0.0-dev", default-features = false, path = "../../../frame/elections-phragmen" }
-pallet-identity = { version = "4.0.0-dev", default-features = false, path = "../../../frame/identity" }
+pallet-identity = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-llm = { path = "../../../frame/llm", version = "0.1.0", default-features = false }
 pallet-liberland-legislation = { version = "0.1.0", path = "../../../frame/liberland-legislation", default-features = false }
 pallet-liberland-initializer = { version = "0.1.0", path = "../../../frame/liberland-initializer", default-features = false }

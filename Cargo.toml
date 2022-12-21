@@ -8,7 +8,6 @@ members = [
 	"frame/liberland-legislation",
 	"frame/democracy",
 	"frame/elections-phragmen",
-	"frame/identity"
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
@@ -89,5 +88,4 @@ codegen-units = 1
 kitchensink-runtime = { path = "bin/node/runtime" }
 node-cli = { path = "bin/node/cli" }
 pallet-democracy = { path = "frame/democracy" }
-pallet-identity = { path = "frame/identity" }
 pallet-elections-phragmen = { path = "frame/elections-phragmen" }

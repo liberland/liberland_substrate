@@ -665,7 +665,13 @@ pub mod pallet {
 				T::MaxAdditionalFields,
 			>,
 		) -> bool {
-			reg.info.citizen != pallet_identity::Data::None &&
+			let key = pallet_identity::Data::Raw(b"citizen".to_vec().try_into().unwrap());
+			let citizen_data = match reg.info.additional.iter().find(|v| v.0 == key) {
+				Some(x) => x.1.clone(),
+				_ => return false,
+			};
+
+			citizen_data != pallet_identity::Data::None &&
 				reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood))
 		}
 
@@ -696,9 +702,46 @@ pub mod pallet {
 		}
 
 		fn citizens_count() -> usize {
-			pallet_identity::Pallet::<T>::identities_iter()
+			identity_access::identities_iter::<T>()
 				.filter(|(_account, registration)| Self::is_known_good_identity(registration))
 				.count()
+		}
+	}
+
+	/// pallet-identity doesn't have any public method of fetching list of all
+	/// identities this module builds a StorageMap equivalent to the one
+	/// pallet_identity is using, allowing direct access to the storage
+	mod identity_access {
+		use super::*;
+		use frame_support::traits::StorageInstance;
+
+		struct IdentityOfPrefix;
+		impl StorageInstance for IdentityOfPrefix {
+			fn pallet_prefix() -> &'static str {
+				"Identity"
+			}
+
+			const STORAGE_PREFIX: &'static str = "IdentityOf";
+		}
+
+		#[allow(type_alias_bounds)]
+		type IdentityOf<T> = frame_support::storage::types::StorageMap<
+			IdentityOfPrefix,
+			Twox64Concat,
+			<T as frame_system::Config>::AccountId,
+			pallet_identity::Registration<
+				BalanceOf<T>,
+				<T as pallet_identity::Config>::MaxRegistrars,
+				<T as pallet_identity::Config>::MaxAdditionalFields,
+			>,
+		>;
+
+		/// Get iterator to all identities defined in pallet-identity
+		pub fn identities_iter<T: Config>() -> frame_support::storage::PrefixIterator<(
+			T::AccountId,
+			pallet_identity::Registration<BalanceOf<T>, T::MaxRegistrars, T::MaxAdditionalFields>,
+		)> {
+			IdentityOf::<T>::iter()
 		}
 	}
 }

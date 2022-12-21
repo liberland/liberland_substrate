@@ -121,10 +121,11 @@ pub mod pallet {
 		/// Returns an IdentityInfo with placeholder values and citizen field
 		/// set.
 		fn get_citizen_identity_info() -> IdentityInfo<T::MaxAdditionalFields> {
+			let key = Data::Raw(b"citizen".to_vec().try_into().unwrap());
 			let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 			IdentityInfo {
-				citizen: data,
-				additional: vec![].try_into().unwrap(),
+				twitter: Data::None,
+				additional: vec![(key, data)].try_into().unwrap(),
 				display: Data::None,
 				legal: Data::None,
 				web: Data::None,
