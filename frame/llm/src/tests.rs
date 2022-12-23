@@ -67,8 +67,8 @@ fn send_llm_calls_assets() {
 fn cant_politics_lock_more_than_balance() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
-		assert_noop!(LLM::politics_lock(origin.clone(), 11), AssetsError::<Test>::BalanceLow);
-		assert_ok!(LLM::politics_lock(origin.clone(), 9));
+		assert_noop!(LLM::politics_lock(origin.clone(), 6001), AssetsError::<Test>::BalanceLow);
+		assert_ok!(LLM::politics_lock(origin.clone(), 5999));
 		assert_noop!(LLM::politics_lock(origin.clone(), 2), AssetsError::<Test>::BalanceLow);
 		assert_ok!(LLM::politics_lock(origin.clone(), 1));
 	});
@@ -93,22 +93,22 @@ fn politics_lock_properly_updates_balances() {
 
 		assert_ok!(LLM::politics_lock(origin.clone(), 4));
 		assert_eq!(LLMPolitics::<Test>::get(1), 4);
-		assert_eq!(Assets::balance(id, 1), 6);
+		assert_eq!(Assets::balance(id, 1), 5996);
 		assert_eq!(Assets::balance(id, politipool), 4);
 
 		assert_ok!(LLM::politics_lock(origin.clone(), 4));
 		assert_eq!(LLMPolitics::<Test>::get(1), 8);
-		assert_eq!(Assets::balance(id, 1), 2);
+		assert_eq!(Assets::balance(id, 1), 5992);
 		assert_eq!(Assets::balance(id, politipool), 8);
 
 		assert_ok!(LLM::politics_lock(origin.clone(), 2));
 		assert_eq!(LLMPolitics::<Test>::get(1), 10);
-		assert_eq!(Assets::balance(id, 1), 0);
+		assert_eq!(Assets::balance(id, 1), 5990);
 		assert_eq!(Assets::balance(id, politipool), 10);
 
 		assert_ok!(LLM::politics_lock(origin2.clone(), 20));
 		assert_eq!(LLMPolitics::<Test>::get(2), 20);
-		assert_eq!(Assets::balance(id, 2), 0);
+		assert_eq!(Assets::balance(id, 2), 5980);
 		assert_eq!(Assets::balance(id, politipool), 30);
 	});
 }
@@ -151,19 +151,18 @@ fn politics_unlock_releases_10_percent() {
 		let politipool = LLM::get_llm_politipool_account();
 		let origin = RuntimeOrigin::signed(2);
 
-		assert_ok!(LLM::politics_lock(origin.clone(), 20));
+		assert_ok!(LLM::politics_lock(origin.clone(), 5000));
 		assert_ok!(LLM::politics_unlock(origin.clone()));
 
-		assert_eq!(Assets::balance(id, 2), 2);
-		assert_eq!(LLMPolitics::<Test>::get(2), 18);
-		assert_eq!(Assets::balance(id, politipool), 18);
+		assert_eq!(Assets::balance(id, 2), 1000 + 500);
+		assert_eq!(LLMPolitics::<Test>::get(2), 5000 - 500);
+		assert_eq!(Assets::balance(id, politipool), 5000 - 500);
 
 		System::set_block_number(Withdrawlock::<Test>::get(2) + 1);
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		// we round down
-		assert_eq!(Assets::balance(id, 2), 3);
-		assert_eq!(LLMPolitics::<Test>::get(2), 17);
-		assert_eq!(Assets::balance(id, politipool), 17);
+		assert_eq!(Assets::balance(id, 2), 1500 + 450);
+		assert_eq!(LLMPolitics::<Test>::get(2), 4500 - 450);
+		assert_eq!(Assets::balance(id, politipool), 4500 - 450);
 	});
 }
 
@@ -208,15 +207,13 @@ fn sets_locks_durations_on_genesis() {
 fn check_pooled_llm_works() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
-		let origin2 = RuntimeOrigin::signed(2);
+		assert_eq!(LLM::check_pooled_llm(&1), false);
+		assert_ok!(LLM::politics_lock(origin.clone(), 4999));
 		assert_eq!(LLM::check_pooled_llm(&1), false);
 		assert_ok!(LLM::politics_lock(origin.clone(), 1));
 		assert_eq!(LLM::check_pooled_llm(&1), true);
-		assert_ok!(LLM::politics_lock(origin.clone(), 5));
-		assert_eq!(LLM::check_pooled_llm(&1), true);
-		assert_eq!(LLM::check_pooled_llm(&2), false);
-		assert_ok!(LLM::politics_lock(origin2, 5));
-		assert_eq!(LLM::check_pooled_llm(&2), true);
+		assert_ok!(LLM::politics_unlock(origin.clone()));
+		assert_eq!(LLM::check_pooled_llm(&1), false);
 	});
 }
 
@@ -291,67 +288,41 @@ fn get_llm_politics_works() {
 }
 
 #[test]
-fn ensure_democracy_allowed_fails_for_noncitizen() {
+fn ensure_politics_allowed_fails_for_noncitizen() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(LLM::ensure_democracy_allowed(&10), Error::<Test>::NonCitizen);
+		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 	});
 }
 
 #[test]
-fn ensure_democracy_allowed_fails_for_locked_election_rights() {
+fn ensure_politics_allowed_fails_for_locked_election_rights() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
-		assert_ok!(LLM::politics_lock(origin.clone(), 10));
+		assert_ok!(LLM::politics_lock(origin.clone(), 6000));
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_noop!(LLM::ensure_democracy_allowed(&1), Error::<Test>::Locked);
+		assert_noop!(LLM::ensure_politics_allowed(&1), Error::<Test>::Locked);
 		System::set_block_number(Electionlock::<Test>::get(1));
-		assert_noop!(LLM::ensure_democracy_allowed(&1), Error::<Test>::Locked);
+		assert_noop!(LLM::ensure_politics_allowed(&1), Error::<Test>::Locked);
 		System::set_block_number(Electionlock::<Test>::get(1) + 1);
-		assert_ok!(LLM::ensure_democracy_allowed(&1));
+		assert_ok!(LLM::ensure_politics_allowed(&1));
 	});
 }
 
 #[test]
-fn ensure_democracy_allowed_fails_for_no_pooled_llm() {
-	new_test_ext().execute_with(|| {
-		assert_noop!(LLM::ensure_democracy_allowed(&1), Error::<Test>::NoPolLLM);
-	});
-}
-
-#[test]
-fn ensure_democracy_allowed_succeeds_for_valid_citizen() {
+fn ensure_politics_allowed_fails_for_no_pooled_llm() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
-		assert_ok!(LLM::politics_lock(origin.clone(), 10));
-		assert_ok!(LLM::ensure_democracy_allowed(&1));
+		assert_ok!(LLM::politics_lock(origin.clone(), 4999));
+		assert_noop!(LLM::ensure_politics_allowed(&1), Error::<Test>::NoPolLLM);
 	});
 }
 
 #[test]
-fn ensure_elections_allowed_fails_for_noncitizen() {
-	new_test_ext().execute_with(|| {
-		assert_noop!(LLM::ensure_elections_allowed(&10), Error::<Test>::NonCitizen);
-	});
-}
-
-#[test]
-fn ensure_elections_allowed_fails_for_locked_election_rights() {
+fn ensure_politics_allowed_succeeds_for_valid_citizen() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
-		assert_ok!(LLM::politics_lock(origin.clone(), 10));
-		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_noop!(LLM::ensure_elections_allowed(&1), Error::<Test>::Locked);
-		System::set_block_number(Electionlock::<Test>::get(1));
-		assert_noop!(LLM::ensure_elections_allowed(&1), Error::<Test>::Locked);
-		System::set_block_number(Electionlock::<Test>::get(1) + 1);
-		assert_ok!(LLM::ensure_elections_allowed(&1));
-	});
-}
-
-#[test]
-fn ensure_elections_allowed_succeeds_for_valid_citizen() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(LLM::ensure_elections_allowed(&1));
+		assert_ok!(LLM::politics_lock(origin.clone(), 5000));
+		assert_ok!(LLM::ensure_politics_allowed(&1));
 	});
 }
 
@@ -363,8 +334,8 @@ fn releases_correct_amounts() {
 		let vault = LLM::get_llm_vault_account();
 
 		// undo fake sends
-		Assets::transfer(RuntimeOrigin::signed(1), 1, vault, 10).unwrap();
-		Assets::transfer(RuntimeOrigin::signed(2), 1, vault, 20).unwrap();
+		Assets::transfer(RuntimeOrigin::signed(1), 1, vault, 6000).unwrap();
+		Assets::transfer(RuntimeOrigin::signed(2), 1, vault, 6000).unwrap();
 
 		assert_eq!(Assets::balance(id, treasury), 7_000_000);
 		assert_eq!(Assets::balance(id, vault), 63_000_000);

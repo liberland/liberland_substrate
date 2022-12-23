@@ -28,7 +28,7 @@ fn overvoting_should_fail() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
 		assert_noop!(
-			Democracy::vote(RuntimeOrigin::signed(1), r, aye(2)),
+			Democracy::vote(RuntimeOrigin::signed(1), r, vote_aye(5001)),
 			Error::<Test>::InsufficientLLM
 		);
 	});
@@ -38,15 +38,15 @@ fn overvoting_should_fail() {
 fn split_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
-		let v = AccountVote::Split { aye: 40, nay: 20 };
+		let v = AccountVote::Split { aye: 4000, nay: 1001 };
 		assert_noop!(
 			Democracy::vote(RuntimeOrigin::signed(5), r, v),
 			Error::<Test>::InsufficientLLM
 		);
-		let v = AccountVote::Split { aye: 30, nay: 20 };
+		let v = AccountVote::Split { aye: 4000, nay: 1000 };
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, v));
 
-		assert_eq!(tally(r), Tally { ayes: 3, nays: 2, turnout: 50 });
+		assert_eq!(tally(r), Tally { ayes: 400, nays: 100, turnout: 5000 });
 	});
 }
 
@@ -115,14 +115,14 @@ fn controversial_voting_should_work() {
 			0,
 		);
 
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, big_aye(1)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, big_nay(2)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, big_nay(3)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, big_aye(4)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, big_nay(5)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, big_aye(6)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, vote_aye(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, vote_nay(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, vote_nay(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, vote_aye(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, vote_nay(4000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, vote_aye(5000)));
 
-		assert_eq!(tally(r), Tally { ayes: 110, nays: 100, turnout: 210 });
+		assert_eq!(tally(r), Tally { ayes: 1500, nays: 1400, turnout: 29000 });
 
 		next_block();
 		next_block();
@@ -164,10 +164,10 @@ fn passing_low_turnout_voting_should_work() {
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, big_aye(4)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, big_nay(5)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, big_aye(6)));
-		assert_eq!(tally(r), Tally { ayes: 100, nays: 50, turnout: 150 });
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, vote_aye(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, vote_nay(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, vote_aye(5000)));
+		assert_eq!(tally(r), Tally { ayes: 1000, nays: 500, turnout: 15000 });
 
 		next_block();
 		next_block();

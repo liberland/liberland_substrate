@@ -45,7 +45,7 @@ fn endowed_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	T::Currency::issue(amount);
 
 	// Liberland specific - make sure it's a citizen with politipooled LLM
-	T::LLInitializer::make_citizen(&account, amount);
+	T::LLInitializer::make_citizen(&account, 5000u32.into());
 
 	account
 }

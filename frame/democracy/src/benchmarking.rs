@@ -43,7 +43,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	T::Currency::make_free_balance_be(&caller, balance);
 
 	// Liberland specific - make sure it's a citizen with politipooled LLM
-	T::LLInitializer::make_citizen(&caller, 1000u32.into());
+	T::LLInitializer::make_citizen(&caller, 5000u32.into());
 
 	caller
 }

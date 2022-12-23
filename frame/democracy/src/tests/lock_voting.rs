@@ -47,12 +47,12 @@ fn lock_voting_should_work() {
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 10)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 20)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 30)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 40)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 50)));
-		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 1000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 2000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 4000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
+		assert_eq!(tally(r), Tally { ayes: 25000, nays: 10000, turnout: 15000 });
 
 		// Liberland specific - voting shouldn't lock balances
 		for i in 1..=5 {
@@ -150,13 +150,13 @@ fn lock_voting_should_work_with_delegation() {
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 10)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 20)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 30)));
-		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 40));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 50)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 1000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 2000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
+		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 4000));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
 
-		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
+		assert_eq!(tally(r), Tally { ayes: 25000, nays: 10000, turnout: 15000 });
 
 		next_block();
 		next_block();
