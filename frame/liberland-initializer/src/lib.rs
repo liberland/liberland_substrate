@@ -123,15 +123,15 @@ pub mod pallet {
 		fn get_citizen_identity_info() -> IdentityInfo<T::MaxAdditionalFields> {
 			let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 			IdentityInfo {
-				citizen: data.clone(),
+				citizen: data,
 				additional: vec![].try_into().unwrap(),
-				display: data.clone(),
-				legal: data.clone(),
-				web: data.clone(),
-				riot: data.clone(),
-				email: data.clone(),
-				pgp_fingerprint: Some([0; 20]),
-				image: data,
+				display: Data::None,
+				legal: Data::None,
+				web: Data::None,
+				riot: Data::None,
+				email: Data::None,
+				pgp_fingerprint: None,
+				image: Data::None,
 			}
 		}
 
