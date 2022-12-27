@@ -84,7 +84,6 @@
 //! * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 //! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
 //!   period. Affects political rights for an ElectionLock period.
-//! * `createllm`: Creates LLM asset in `pallet-assets`.
 //! * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
 //!
 //! #### Restricted
@@ -310,8 +309,7 @@ pub mod pallet {
 			amount: T::Balance,
 		) -> DispatchResult {
 			ensure_signed(origin)?;
-			let balance = amount.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
-			Self::transfer_from_vault(to_account, balance)
+			Self::transfer_from_vault(to_account, amount)
 		}
 
 		/// Wrapper over `pallet-assets` `transfer`. Transfers LLM from sender
@@ -345,8 +343,7 @@ pub mod pallet {
 			Self::transfer_to_politipool(sender.clone(), amount)?;
 			LLMPolitics::<T>::mutate(sender.clone(), |b| *b += amount);
 
-			let amount_u64 = amount.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
-			Self::deposit_event(Event::<T>::LLMPoliticsLocked(sender, amount_u64));
+			Self::deposit_event(Event::<T>::LLMPoliticsLocked(sender, amount));
 			Ok(())
 		}
 
@@ -385,8 +382,7 @@ pub mod pallet {
 			Withdrawlock::<T>::insert(&sender, withdraw_lock_end);
 			Electionlock::<T>::insert(&sender, election_lock_end);
 
-			let amount = ten_percent.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
-			Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(sender, amount));
+			Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(sender, ten_percent));
 			Ok(())
 		}
 
@@ -416,15 +412,6 @@ pub mod pallet {
 			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account, amount)
-		}
-
-		/// Create LLM manually plus mint it to the treasury
-		#[pallet::weight(10_000)] // change me
-		pub fn createllm(origin: OriginFor<T>) -> DispatchResult {
-			ensure_signed(origin.clone())?;
-			Self::create_llm(origin)?;
-
-			Ok(())
 		}
 
 		/// Allow the senate to approve transfers

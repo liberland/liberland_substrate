@@ -76,7 +76,6 @@ These calls can be made from any _Signed_ origin.
 * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
 * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock period. Affects political rights for an ElectionLock period.
-* `createllm`: Creates LLM asset in `pallet-assets`.
 * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
 
 #### Restricted
