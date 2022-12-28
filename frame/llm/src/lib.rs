@@ -17,9 +17,9 @@
 //!
 //! * LLM is created in `pallet-assets`
 //! * configured `TotalSupply` amount of LLM is created and transferred to **Vault**
-//! * configured `PreMintedAmount` is transferred from **Vault** to **Treasury**
+//! * configured `PreReleasedAmount` is transferred from **Vault** to **Treasury**
 //!
-//! On yearly basis (see `fn try_mint`):
+//! On yearly basis (see `fn try_release`):
 //!
 //! * 90% of **Vault** balance is transferred to **Treasury**
 //!
@@ -34,12 +34,13 @@
 //! ### Special accounts:
 //!
 //! * **Treasury**:
-//!     * gets preminted and inflation LLM
+//!     * gets `PreReleasedAmount` LLM on genesis and 10% of **Vault** balance periodically (_LLM
+//!       Release Event_)
 //!     * derived from PalletID `py/trsry`: `5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z`
 //!
 //! * **Vault**:
 //!     * gets initial supply of LLM on genesis
-//!     * releases 90% of it's balance to **Trasury** on inflation event (yearly)
+//!     * releases 10% of it's balance to **Trasury** on LLM Release Event (yearly)
 //!     * derived from PalletID `llm/safe`: `5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk`
 //!
 //! * **Politipool**,
@@ -49,7 +50,7 @@
 //!
 //! ## Internal Storage:
 //!
-//! * `NextMint`: block number for next LLM inflation mint (transfer of 90% from **Vault** to
+//! * `NextRelease`: block number for next LLM Release Event (transfer of 10% from **Vault** to
 //!   **Treasury**)
 //! * `LLMPolitics`: amount of LLM each account has allocated into politics
 //! * `Withdrawlock`: block number until which account can't do another `politics_unlock`
@@ -61,8 +62,8 @@
 //! * `AssetId`: Type of AssetId.
 //! * `TotalSupply`: Total amount of LLM to be created on genesis. That's all LLM that will ever
 //!   exit. It will be stored in **Vault**.
-//! * `PreMintedAmount`: Amount of LLM that should be minted (a.k.a. transferred from **Vault** to
-//!   **Treasury**) on genesis.
+//! * `PreReleasedAmount`: Amount of LLM that should be released (a.k.a. transferred from **Vault**
+//!   to **Treasury**) on genesis.
 //!
 //! ## Genesis Config
 //!
@@ -79,7 +80,8 @@
 //!
 //! These calls can be made from any _Signed_ origin.
 //!
-//! * `fake_send`: Mint LLM to account. Development only, to be removed/restricted.
+//! * `fake_send`: Release LLM from **Vault** to specific account. Development only, to be
+//!   removed/restricted.
 //! * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
 //! * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 //! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
@@ -121,9 +123,6 @@ pub mod traits;
 
 /// Liberland Merit Pallet
 /*
-decrease the total supply with 0.9 % per year
-mint 0.9% per year to the treasury with pallet assets
-
 Author: <filip@rustsyndi.cat>
 Copyright © 2022 Liberland
 
@@ -157,10 +156,10 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId,
 	>>::Balance;
 
-	/// block number for next LLM inflation mint (transfer of 90% from **Vault** to **Treasury**)
+	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
-	#[pallet::getter(fn next_mint)]
-	pub(super) type NextMint<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0
+	#[pallet::getter(fn next_release)]
+	pub(super) type NextRelease<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0
 
 	/// amount of LLM each account has allocated into politics
 	#[pallet::storage]
@@ -241,11 +240,11 @@ pub mod pallet {
 
 		/// Total amount of LLM to be created on genesis. That's all LLM that
 		/// will ever exit. It will be stored in **Vault**.
-		type TotalSupply: Get<u64>;
+		type TotalSupply: Get<u128>;
 
-		/// Amount of LLM that should be minted (a.k.a. transferred from
+		/// Amount of LLM that should be released (a.k.a. transferred from
 		/// **Vault** to **Treasury**) on genesis.
-		type PreMintedAmount: Get<u64>; // Pre defined the total supply in runtime
+		type PreReleasedAmount: Get<u128>; // Pre defined the total supply in runtime
 
 		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
 			+ Parameter
@@ -284,7 +283,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(b: T::BlockNumber) -> Weight {
 			let blocknumber = b.saturated_into::<u64>();
-			let _didmint = Self::try_mint(blocknumber);
+			Self::maybe_release(blocknumber);
 			Weight::zero()
 		}
 
@@ -295,11 +294,11 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Mint LLM to account by transferring LLM from **Vault**. Development
-		/// only, to be removed/restricted.  DO NOT USE IN PROD.
+		/// Release LLM to account by transferring LLM from **Vault**.
+		/// Development only, to be removed/restricted.  DO NOT USE IN PROD.
 		///
-		/// - `to_account`: Account to mint LLM to
-		/// - `amount`: Amount of LLM to mint
+		/// - `to_account`: Account to release LLM to
+		/// - `amount`: Amount of LLM to release
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::weight(10_000)]
@@ -430,8 +429,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// New llm has been minted
-		MintedLLM(T::AccountId, T::Balance),
+		/// New LLM has been released
+		ReleasedLLM(T::AccountId, T::Balance),
 		/// New LLM has been created
 		LLMCreated(T::AccountId, T::Balance), // acountid, amount
 		/// X amount of LLM has been unlocked
@@ -512,7 +511,7 @@ pub mod pallet {
 			let min_balance: T::Balance = 1u8.into();
 			let name: Vec<u8> = "Liberland Merit".into();
 			let symbol: Vec<u8> = "LLM".into();
-			let decimals: u8 = 0u8;
+			let decimals: u8 = 12u8;
 			Assets::<T>::force_create(
 				origin.clone(),
 				assetid.into(),
@@ -536,12 +535,12 @@ pub mod pallet {
 			Assets::<T>::mint_into(assetid, &vaultac, supply)?;
 
 			let nextblock = Self::get_future_block();
-			NextMint::<T>::put(nextblock);
+			NextRelease::<T>::put(nextblock);
 
-			// Mint a.k.a. transfer to treasury
-			let preminted =
-				T::PreMintedAmount::get().try_into().map_err(|_| Error::<T>::InvalidAmount)?;
-			Self::mint_tokens(assetid.into(), preminted)
+			// Release a.k.a. transfer to treasury
+			let prereleased =
+				T::PreReleasedAmount::get().try_into().map_err(|_| Error::<T>::InvalidAmount)?;
+			Self::release_tokens_from_vault(prereleased)
 		}
 
 		fn llm_id() -> AssetId<T> {
@@ -579,34 +578,34 @@ pub mod pallet {
 			block
 		}
 
-		// each time we mint (should be each year), release 10% from vault
-		fn get_allowed_spending() -> T::Balance {
+		// each time we release (should be each year), release 10% from vault
+		fn get_release_amount() -> T::Balance {
 			let asset_id = Self::llm_id().into();
 			let vault_account = Self::get_llm_vault_account();
-			let unminted_amount = Assets::<T>::balance(asset_id, vault_account);
-			let release_amount = unminted_amount / 10u8.into();
+			let unreleased_amount = Assets::<T>::balance(asset_id, vault_account);
+			let release_amount = unreleased_amount / 10u8.into();
 			release_amount
 		}
 
-		fn try_mint(block: u64) -> bool {
-			if block < NextMint::<T>::get() {
+		fn maybe_release(block: u64) -> bool {
+			if block < NextRelease::<T>::get() {
 				return false
 			}
-			NextMint::<T>::put(Self::get_future_block());
+			NextRelease::<T>::put(Self::get_future_block());
 
-			let mint_amount = Self::get_allowed_spending();
-			Self::mint_tokens(0.into(), mint_amount).unwrap();
+			let release_amount = Self::get_release_amount();
+			Self::release_tokens_from_vault(release_amount).unwrap();
 
-			log::info!("try_mint ran all the way");
+			log::info!("maybe_release ran all the way");
 			true
 		}
 
-		/// Mint tokens to the treasury account. Sends tokens from the llm/vault to the treasury
-		fn mint_tokens(_assetid: AssetId<T>, amount: T::Balance) -> DispatchResult {
+		/// Release tokens to the treasury account. Sends tokens from the llm/vault to the treasury
+		fn release_tokens_from_vault(amount: T::Balance) -> DispatchResult {
 			let treasury = Self::get_llm_treasury_account();
 
 			Self::transfer_from_vault(treasury.clone(), amount)?;
-			Self::deposit_event(Event::<T>::MintedLLM(treasury, amount));
+			Self::deposit_event(Event::<T>::ReleasedLLM(treasury, amount));
 
 			Ok(())
 		}
@@ -614,7 +613,7 @@ pub mod pallet {
 
 	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
-			LLMPolitics::<T>::get(account) > 0u8.into()
+			Self::has_llm_politics(account.clone())
 		}
 
 		fn is_election_unlocked(account: &T::AccountId) -> bool {

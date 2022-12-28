@@ -98,7 +98,7 @@ use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop};
 
 /// Constant values used within the runtime.
 pub mod constants;
-use constants::{currency::*, time::*};
+use constants::{currency::*, time::*, llm::*};
 use sp_runtime::generic::Era;
 
 /// Generated voter bag information.
@@ -1400,9 +1400,8 @@ parameter_types! {
 }
 
 parameter_types! {
-	pub const TOTALLLM: u64 = 70000000u64;
-	pub const PREMINTLLM: u64 = 7000000u64;
-	pub const ASSETID: u32 = 0u32; // asset id 0 for llm
+	pub const TOTALLLM: Balance      = 70_000_000u128 * GRAINS_IN_LLM;
+	pub const PRERELEASELLM: Balance =  7_000_000u128 * GRAINS_IN_LLM;
 }
 
 pub(crate) type AssetId = u32; // u32 is better supported by the runtime
@@ -1412,7 +1411,7 @@ impl pallet_liberland_initializer::Config for Runtime {}
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM; //70 million in hardcap
-	type PreMintedAmount = PREMINTLLM; // Premint 7 million
+	type PreReleasedAmount = PRERELEASELLM; // PreRelease 7 million
 	type AssetId = AssetId; //pallet_assets::Config::AssetId;
 						//	type AccountId = AccountId;
 }
