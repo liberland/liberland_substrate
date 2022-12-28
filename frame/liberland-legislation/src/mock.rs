@@ -119,14 +119,14 @@ impl pallet_liberland_initializer::Config for Test {}
 
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
-	pub const PREMINTLLM: u64 = 7000000u64;
+	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const ASSETID: u32 = 0u32;
 }
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
-	type PreMintedAmount = PREMINTLLM;
+	type PreReleasedAmount = PRERELEASELLM;
 	type AssetId = u32;
 }
 
