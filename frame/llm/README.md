@@ -17,9 +17,9 @@ On Genesis (see `fn create_llm`):
 
 * LLM is created in `pallet-assets`
 * configured `TotalSupply` amount of LLM is created and transferred to **Vault**
-* configured `PreMintedAmount` is transferred from **Vault** to **Treasury**
+* configured `PreReleasedAmount` is transferred from **Vault** to **Treasury**
 
-On yearly basis (see `fn try_mint`):
+On yearly basis (see `fn try_release`):
 
 * 90% of **Vault** balance is transferred to **Treasury**
 
@@ -32,12 +32,12 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 ### Special accounts:
 
 * **Treasury**:
-    * gets preminted and inflation LLM
+    * gets `PreReleasedAmount` LLM on genesis and 10% of **Vault** balance periodically (_LLM Release Event_)
     * derived from PalletID `py/trsry`: `5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z`
 
 * **Vault**:
     * gets initial supply of LLM on genesis
-    * releases 90% of it's balance to **Trasury** on inflation event (yearly)
+    * releases 10% of it's balance to **Trasury** on LLM Release Event (yearly)
     * derived from PalletID `llm/safe`: `5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk`
 
 * **Politipool**,
@@ -47,7 +47,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 ## Internal Storage:
 
-* `NextMint`: block number for next LLM inflation mint (transfer of 90% from **Vault** to **Treasury**)
+* `NextRelease`: block number for next LLM Release Event (transfer of 10% from **Vault** to **Treasury**)
 * `LLMPolitics`: amount of LLM each account has allocated into politics
 * `Withdrawlock`: block number until which account can't do another `politics_unlock`
 * `Electionlock`: block number until which account can't participate in politics directly
@@ -57,7 +57,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 * `RuntimeEvent`: Event type to use.
 * `AssetId`: Type of AssetId.
 * `TotalSupply`: Total amount of LLM to be created on genesis. That's all LLM that will ever exit. It will be stored in **Vault**.
-* `PreMintedAmount`: Amount of LLM that should be minted (a.k.a. transferred from **Vault** to **Treasury**) on genesis.
+* `PreReleasedAmount`: Amount of LLM that should be released (a.k.a. transferred from **Vault** to **Treasury**) on genesis.
 
 ## Genesis Config
 
@@ -72,7 +72,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 These calls can be made from any _Signed_ origin.
 
-* `fake_send`: Mint LLM to account. Development only, to be removed/restricted.
+* `fake_send`: Release LLM from **Vault** to specific account. Development only, to be removed/restricted.
 * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
 * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock period. Affects political rights for an ElectionLock period.

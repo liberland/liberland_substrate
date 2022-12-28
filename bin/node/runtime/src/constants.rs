@@ -34,6 +34,11 @@ pub mod currency {
 	}
 }
 
+pub mod llm {
+	use node_primitives::Balance;
+	pub const GRAINS_IN_LLM: Balance = 1_000_000_000_000; // 12 decimals
+}
+
 /// Time.
 pub mod time {
 	use node_primitives::{BlockNumber, Moment};
