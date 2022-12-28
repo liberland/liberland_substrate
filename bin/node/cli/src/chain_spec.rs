@@ -24,7 +24,7 @@
 
 use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
-	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
+	constants::currency::*, constants::llm::*, wasm_binary_unwrap, AuthorityDiscoveryConfig,BabeConfig,
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
 	ImOnlineConfig, IndicesConfig, MaxNominations, SessionConfig,
 	SessionKeys, SocietyConfig, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
@@ -386,6 +386,8 @@ pub fn testnet_genesis(
 
 fn development_config_genesis() -> GenesisConfig {
 	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
+	let total_llm = 6000 * GRAINS_IN_LLM;
+	let locked_llm = 5000 * GRAINS_IN_LLM;
 	testnet_genesis(
 		vec![authority_keys_from_seed("Alice")],
 		vec![],
@@ -394,15 +396,15 @@ fn development_config_genesis() -> GenesisConfig {
 		None,
 		Some(alice.clone()),
 		vec![
-			(alice, 6000, 5000),
-			(get_account_id_from_seed::<sr25519::Public>("Bob"), 6000, 5000),
-			(get_account_id_from_seed::<sr25519::Public>("Charlie"), 6000, 5000),
-			(AccountId::from_ss58check("5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR").unwrap(), 6000, 5000), // Citizen1
-			(AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(), 6000, 5000), // Dorian
-			(AccountId::from_ss58check("5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL").unwrap(), 6000, 5000), // Laissez sudo
-			(AccountId::from_ss58check("5GjYePC6HKJGGnEzEZzSvimy6uctuMat4Kr2tjACtKyY9nhT").unwrap(), 6000, 5000), // Web3_Test1
-			(AccountId::from_ss58check("5EqhBxsfDdbddFxcdRPhDBx8V3N2QyQspV5FNfQeT8nFQtj8").unwrap(), 6000, 5000), // Web3_Test2
-			(AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap(), 6000, 5000), // Web3_Test3
+			(alice, total_llm, locked_llm),
+			(get_account_id_from_seed::<sr25519::Public>("Bob"), total_llm, locked_llm),
+			(get_account_id_from_seed::<sr25519::Public>("Charlie"), total_llm, locked_llm),
+			(AccountId::from_ss58check("5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR").unwrap(), total_llm, locked_llm), // Citizen1
+			(AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(), total_llm, locked_llm), // Dorian
+			(AccountId::from_ss58check("5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL").unwrap(), total_llm, locked_llm), // Laissez sudo
+			(AccountId::from_ss58check("5GjYePC6HKJGGnEzEZzSvimy6uctuMat4Kr2tjACtKyY9nhT").unwrap(), total_llm, locked_llm), // Web3_Test1
+			(AccountId::from_ss58check("5EqhBxsfDdbddFxcdRPhDBx8V3N2QyQspV5FNfQeT8nFQtj8").unwrap(), total_llm, locked_llm), // Web3_Test2
+			(AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap(), total_llm, locked_llm), // Web3_Test3
 		],
 	)
 }
