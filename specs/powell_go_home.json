@@ -1,6 +1,6 @@
 {
-  "name": "Staging Testnet",
-  "id": "staging_testnet",
+  "name": "PowellGoHome",
+  "id": "powell_go_home",
   "chainType": "Live",
   "bootNodes": [],
   "telemetryEndpoints": [
@@ -11,7 +11,7 @@
   ],
   "protocolId": null,
   "properties": {
-    "displayName": "Liberland Hazlitt",
+    "displayName": "Liberland PowellGoHome",
     "network": "liberland",
     "prefix": 56,
     "ss58Format": 56,
@@ -99,6 +99,10 @@
           [
             "5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv",
             1000000000000000000000
+          ],
+          [
+            "5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8",
+            1000000000000000000000
           ]
         ]
       },
@@ -106,11 +110,12 @@
         "multiplier": "1000000000000000000"
       },
       "staking": {
-        "validatorCount": 2,
-        "minimumValidatorCount": 2,
+        "validatorCount": 3,
+        "minimumValidatorCount": 3,
         "invulnerables": [
           "5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ",
-          "5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv"
+          "5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv",
+          "5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8"
         ],
         "forceEra": "NotForcing",
         "slashRewardFraction": 100000000,
@@ -127,6 +132,12 @@
             "5EZP5Hd2beWc1C4dJ4iWYAifWsiJ2qeupNHCaBRaCbXRK6VB",
             1000000000000000000,
             "Validator"
+          ],
+          [
+            "5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8",
+            "5DAvZ3ynu3wQbEJBbxWy8MDa7T8LuUjpRmf5ooCJWFeLrbhw",
+            1000000000000000000,
+            "Validator"
           ]
         ],
         "minNominatorBond": 0,
@@ -140,20 +151,30 @@
             "5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ",
             "5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ",
             {
-              "grandpa": "5FB4Mqt26dYN4vHDFwZfKEZhGsrqJNTBop6cTCR87ys1vmn7",
-              "babe": "5FCkVeUbr34jiwQXZtrJhzJpmKJKS4iMKyRUkhPdiGJyqfSu",
-              "im_online": "5G3kiRAZLJ5gwDpo5oR6NySSnuuxzyEuiLtfzYpjmNpM2qCJ",
-              "authority_discovery": "5DyvCLAVWuat381u3DHgo9aq8cwSjzEtRXxx72PZiZ9sdiMh"
+              "grandpa": "5CyYw4Fi7owzt2pzQhu8mAycgdt8tkXaLbxUvb5MhRe54bvm",
+              "babe": "5DLSpqmutex12nJ7cL3QAnaTbWZ4RNQGtw7b3tJ2hYpzau3H",
+              "im_online": "5GNTB6me8qxs5wi72pedsZBRsNNEQa65Q8BMXUnqvZyN6Q6u",
+              "authority_discovery": "5E2NaTSgYahsvZgSmCPBNTJWL1fvHJr3Fs8VBn2J3GbuJHbF"
             }
           ],
           [
             "5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv",
             "5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv",
             {
-              "grandpa": "5HAnjVEhxzMfHS6WKH9iX4mzn8A3HxMbXJCmLXU3JaV9AQhA",
-              "babe": "5DyVvqYH5kETsw9CYicR8ujbHw4wYjvcJHMtwRK7QtC5kPj8",
-              "im_online": "5GpC3UWCLD38gfDh1uDRDXtMz26UCspbUmoeKnBktJ13ZFSn",
-              "authority_discovery": "5D57EqeRzTyeoMpFZViVRGC6wzC8rFg2joxBTK2fciZb9maj"
+              "grandpa": "5HN2V7XaHknSR1F7MmiRCJ49mJkL7YqqyCsjGz5xJGyex5Dd",
+              "babe": "5H4R6LdiJUNKsrfDS7McUF2ZnuXDKeV3C1FJd95MiMycqEca",
+              "im_online": "5Dd1LhgkFCYjKCNJ7FSKhGji7JqTAuorbn7NkmEiiuHxq8vS",
+              "authority_discovery": "5GeGcDce9xvuSu7gkjiEFeh3KTADtK1JiRpbPbKw7RqeT7B6"
+            }
+          ],
+          [
+            "5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8",
+            "5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8",
+            {
+              "grandpa": "5GsV1xxVgaDkrghTXYqvNx6U5YHq2ihU9kpW7pt9qT2jY2o8",
+              "babe": "5FuytwMaPBJkcDriEu1S3zbCuZmddwZ9eqcsjKbxp2dVHu2S",
+              "im_online": "5EP2g38Y3FbKSmpjTUaJnVrNX4y4tYLi81AYdxP5UGVg2x7p",
+              "authority_discovery": "5GdiSQ97KNDBqVoQr3xLnr5JaRLYovaMZEAvrNeTjaxkauUt"
             }
           ]
         ]
@@ -202,7 +223,8 @@
           "5DwWxf1NzMpp4D3jv1KY176DwYRRkKDguprmMw4BjieCX2ZK",
           "5GEUDCyZrzPy1A6Kn288pHZFDtVhfYWvYmU1iTUPMg6YSVTE",
           "5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo",
-          "5HgUQWZ4HHmivA2kqcXb8TTQVjH11FRphsRj4BBEhBzwUbS8"
+          "5HgUQWZ4HHmivA2kqcXb8TTQVjH11FRphsRj4BBEhBzwUbS8",
+          "5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR"
         ],
         "maxMembers": 999
       },
