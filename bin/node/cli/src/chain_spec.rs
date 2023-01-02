@@ -92,60 +92,84 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 	// for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
 
 	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![
-		// F
 		(
-		// 5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ
-			array_bytes::hex_n_into_unchecked("3c1305e6cfd61af1ca30dd3532705c614ebcc4ee8431bbae97fbadf778fdaa7e"),
-			// 5EvVVsUhTfaSocMkp2S2MTiBa8JBem8d7nhdJkeNVv1kYf95
-			array_bytes::hex_n_into_unchecked("7e71226a60ac69915ad04bc7fad2235452533ceb714396196b9aac939ad65c74"),
-			// grandpa:5FB4Mqt26dYN4vHDFwZfKEZhGsrqJNTBop6cTCR87ys1vmn7
-			array_bytes::hex2array_unchecked("898d312c59c405816d2435f2fe8141f051be1ee7285418ac738d3886911f0332").unchecked_into(),
-			// babe:  5FCkVeUbr34jiwQXZtrJhzJpmKJKS4iMKyRUkhPdiGJyqfSu
-			array_bytes::hex2array_unchecked("8ad78ada77b349e5d4dcb5989bfbf430de021256a314239aaea1fc9e201f0746").unchecked_into(),
-			// imol:  5G3kiRAZLJ5gwDpo5oR6NySSnuuxzyEuiLtfzYpjmNpM2qCJ
-			array_bytes::hex2array_unchecked("b0374ef3a33e8b9efb6eb531ca0956d984f9e8c1d50d5ddd39a133fb46e6de34").unchecked_into(),
-			// audi:  5DyvCLAVWuat381u3DHgo9aq8cwSjzEtRXxx72PZiZ9sdiMh
-			array_bytes::hex2array_unchecked("54d1c6d509ed9abea92323cc243528dff84accfb6a8aaed6652c2553e29f0e30").unchecked_into(),
+			AccountId::from_ss58check("5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ").unwrap(),
+			AccountId::from_ss58check("5EvVVsUhTfaSocMkp2S2MTiBa8JBem8d7nhdJkeNVv1kYf95").unwrap(),
+			// echo 'permit chaos head empty spice poem license wave settle plastic lend actor' | scripts/get_session_keys_from_seed.sh
+			array_bytes::hex2array_unchecked("284df6e4172253e78886a3cd93ed11c28fa70dcd2dd92ff8e99882ee31bc50d5").unchecked_into(),
+			array_bytes::hex2array_unchecked("383d8f33be68935d72faa793f617a8b518fdf5350f826bb9de1fc8e3f0788b1a").unchecked_into(),
+			array_bytes::hex2array_unchecked("be79ed25404e0941ecebd4530b17f4ecccdc122bd7684acfdb4f9120977fd233").unchecked_into(),
+			array_bytes::hex2array_unchecked("56b113510c6c4d1736ddef9955c6e3491c78dea03d0446a7b7d4c92cc8112f0e").unchecked_into(),
 		),
 		(
-			// 5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv
-			array_bytes::hex_n_into_unchecked("da30a3a0b2ae75542a2cb84ecd230417ab68fc9df607f5b1e22c10cb5ae57637"),
-			// 5EZP5Hd2beWc1C4dJ4iWYAifWsiJ2qeupNHCaBRaCbXRK6VB
-			array_bytes::hex_n_into_unchecked("6e575b3749789938e140bbb0b933def97c99a25cdf4968cf85b6ae09b3296b5b"),
-			// grandpa:5HAnjVEhxzMfHS6WKH9iX4mzn8A3HxMbXJCmLXU3JaV9AQhA
-			array_bytes::hex2array_unchecked("e1d10ded56af2b86e8e3651d928c22506d34843d63c9686d76aab55a548c4ce0").unchecked_into(),
-			// babe:  5DyVvqYH5kETsw9CYicR8ujbHw4wYjvcJHMtwRK7QtC5kPj8
-			array_bytes::hex2array_unchecked("5480161452b1b86f588c98e1019c80d57a28beb867d116a8713dc3301a582802").unchecked_into(),
-			// imol:  5GpC3UWCLD38gfDh1uDRDXtMz26UCspbUmoeKnBktJ13ZFSn
-			array_bytes::hex2array_unchecked("d21b5eaac541cf7b51a0be6b0164572ad7f2d5dc599ea3151f3830465dd37148").unchecked_into(),
-			// audi:  5D57EqeRzTyeoMpFZViVRGC6wzC8rFg2joxBTK2fciZb9maj
-			array_bytes::hex2array_unchecked("2c8af1f4a2043a08170164ad6eb0d45c15005204074c7cb99a0d36190d7f1a7a").unchecked_into(),
+			AccountId::from_ss58check("5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv").unwrap(),
+			AccountId::from_ss58check("5EZP5Hd2beWc1C4dJ4iWYAifWsiJ2qeupNHCaBRaCbXRK6VB").unwrap(),
+			// echo 'return avocado loan stock novel kangaroo rich three word limb agent human' | scripts/get_session_keys_from_seed.sh
+			array_bytes::hex2array_unchecked("ea630c3ad2b63937c7b52c110f6a324c16efb6846a82b1d94a243a7c4e4810f0").unchecked_into(),
+			array_bytes::hex2array_unchecked("dcf4bbcd1c28691a7277c6c5494717b809ba8fe9042b898e5f1e824f6904a526").unchecked_into(),
+			array_bytes::hex2array_unchecked("44def0c7ec3f3e9a840e4db2391767c88a5b430f62dcc4847d7ddd1dbcd4f102").unchecked_into(),
+			array_bytes::hex2array_unchecked("ca8a48072dd535e754d84419faf371fa9ea47228d0be72f2088e2abdd2bb2556").unchecked_into(),
 		),
-//		(
-//			// 5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8
-//			array_bytes::hex_n_into_unchecked("22c695a1919847596698b7fc8f8efc23bf96f4156d14472f42736d6475c3280b"),
-//			// 5DAvZ3ynu3wQbEJBbxWy8MDa7T8LuUjpRmf5ooCJWFeLrbhw
-//			array_bytes::hex_n_into_unchecked("30fa7200854b9d8db626e8dc0721b49286a2e9eec4323547b5ea64a5d07caf33"),
-//			// grandpa:5EnR7f7T1ZxKHPjs6FKm9xGzzvT3bMPCtMVHg8PNN5Jnai2U
-//			array_bytes::hex2array_unchecked("78486ab057148ea8082d40703ce950b7611e74582100d4b3febfee20b0ba9de8").unchecked_into(),
-//			// babe:  5CccJe3SYWD4Syw93BruVn3AMN3GV14cRDZ5PdFv2cTpE7Uv
-//			array_bytes::hex2array_unchecked("18552997b0f38c215d599420bd0e3c464dc28dcb95af1f5e5c95a95cb1ae5e3c").unchecked_into(),
-//			// imol:  5Cqt26giAT8pKkdmsPpF9Lrjhzg7fH9RSeBG2dX49YmzESFV
-//			array_bytes::hex2array_unchecked("227440e662ccff1316b02ac03a1a70e7e33f5a4e6ed2f10c983c7ba7bce46f78").unchecked_into(),
-//			// audi:  5HR2VDzZutnsGyys4bE3hSSspdYjNmpRXysTcP1fnLVPaW1Y
-//			array_bytes::hex2array_unchecked("ecacca5b4a5408b3d191bf6d22ad78a04fd27af249ffaa07441dcc5b2a5fff69").unchecked_into(),
-//		),
+		(
+			AccountId::from_ss58check("5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8").unwrap(),
+			AccountId::from_ss58check("5DAvZ3ynu3wQbEJBbxWy8MDa7T8LuUjpRmf5ooCJWFeLrbhw").unwrap(),
+			// echo 'solar family liquid unlock shoe glow glimpse mask vivid cute unable that' | scripts/get_session_keys_from_seed.sh
+			array_bytes::hex2array_unchecked("d49e3ed92a8050c5d738030f14abeec18f4ac49fd52784254ed036caffbfb6cc").unchecked_into(),
+			array_bytes::hex2array_unchecked("aa49b7b9c51751d4d05db28413768d1beda16c49b13dd3b0b297e2e86f8ae86b").unchecked_into(),
+			array_bytes::hex2array_unchecked("66723a131a54a60c7f49a8838e3fd73b90ce56d31dcf51f3f54d0c24b2985b01").unchecked_into(),
+			array_bytes::hex2array_unchecked("ca1dfd69a218365e3bd84b511b5b0c393ac3a34d9b9b3db5a32e8938d4709e7a").unchecked_into(),
+		)
 	];
 
-	let root_key: AccountId = array_bytes::hex_n_into_unchecked(
-		// F new
-		//5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL
-		"c6eb294494e9afe9cc64eac8f24e70b775cfc6d3e34b0bedec9273325603bd3d"
-	);
 
-	let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
+	let citizens = vec![
+		// F
+		AccountId::from_ss58check("5CCi1rPi7cphC6iE9mWkYvbLf57b9N233nFG8hM5zjvYZpLi").unwrap(),
+		// V
+		AccountId::from_ss58check("5DwWxf1NzMpp4D3jv1KY176DwYRRkKDguprmMw4BjieCX2ZK").unwrap(),
+		// N
+		AccountId::from_ss58check("5GEUDCyZrzPy1A6Kn288pHZFDtVhfYWvYmU1iTUPMg6YSVTE").unwrap(),
+		// Dorian
+		AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(),
+		// M
+		AccountId::from_ss58check("5HgUQWZ4HHmivA2kqcXb8TTQVjH11FRphsRj4BBEhBzwUbS8").unwrap(),
+		// Citizen 1
+		AccountId::from_ss58check("5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR").unwrap(),
+		// Web3_Test1
+		AccountId::from_ss58check("5GjYePC6HKJGGnEzEZzSvimy6uctuMat4Kr2tjACtKyY9nhT").unwrap(),
+		// Web3_Test2
+		AccountId::from_ss58check("5EqhBxsfDdbddFxcdRPhDBx8V3N2QyQspV5FNfQeT8nFQtj8").unwrap(),
+		// Web3_Test3
+		AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap(),
+		// Kacper
+		AccountId::from_ss58check("5CDpDTBeDdg2KtpgG9WGS92fN4HxpMrSpwtbS6xXke8qU8Xr").unwrap(),
+	];
 
-	testnet_genesis(initial_authorities, vec![], root_key, Some(endowed_accounts), Some(vec![]), None, vec![])
+	let registrar_key = AccountId::from_ss58check("5G96noBmnpNgpsaVXMsEs7961NU1zUNqQractuCp5R1hKejm").unwrap();
+	let root_key: AccountId = AccountId::from_ss58check("5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL").unwrap();
+
+	let mut endowed_accounts: Vec<AccountId> = vec![root_key.clone(), registrar_key.clone(),];
+	endowed_accounts.append(&mut citizens.clone());
+
+	let technical_committee = vec![
+		// F
+		AccountId::from_ss58check("5CCi1rPi7cphC6iE9mWkYvbLf57b9N233nFG8hM5zjvYZpLi").unwrap(),
+		// Dorian
+		AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(),
+		// Kacper
+		AccountId::from_ss58check("5CDpDTBeDdg2KtpgG9WGS92fN4HxpMrSpwtbS6xXke8qU8Xr").unwrap(),
+	];
+
+	testnet_genesis(
+		initial_authorities,
+		vec![],
+		root_key,
+		Some(endowed_accounts),
+		Some(vec![]),
+		registrar_key.into(),
+		citizens.into_iter().map(|id| (id, 0, 0)).collect(),
+		Some(technical_committee),
+	)
 }
 
 fn properties() -> sc_chain_spec::Properties {
@@ -225,6 +249,7 @@ pub fn testnet_genesis(
 	council_group: Option<Vec<AccountId>>,
 	citizenship_registrar: Option<AccountId>,
 	initial_citizens: Vec<(AccountId, Balance, Balance)>,
+	technical_committee: Option<Vec<AccountId>>,
 ) -> GenesisConfig {
 	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
@@ -287,16 +312,18 @@ pub fn testnet_genesis(
 
 	// Add Prefunded accounts
 	let f_ac: Vec<AccountId> = vec![
-		array_bytes::hex_n_into_unchecked("061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"), //F
+		array_bytes::hex_n_into_unchecked("061a7f0a43e35d16f330e64c1a4e5000db4ba064fc3630cc4a9e2027899a5a6f"), // F
 		array_bytes::hex_n_into_unchecked("b86373a2dff0a7b5741fd7e1857de41353fca3b924f14eae5f4c70d69e949150"), // N
 		array_bytes::hex_n_into_unchecked("ba14fb5a00f052330c9c09e0467bce1d7896edefe92851b893e777aade53f921"), // D
 		array_bytes::hex_n_into_unchecked("f874b8c112a9bb565e0798d9b5dcfee0fdbd54dd0fcc865c1251a75bd3faee45"), // M
-		array_bytes::hex_n_into_unchecked("52fd11392742ccf58bcff90c33ca15bdf4bd3416aabcd5d51a654c1f387b6d18"),
+		array_bytes::hex_n_into_unchecked("52fd11392742ccf58bcff90c33ca15bdf4bd3416aabcd5d51a654c1f387b6d18"), // V
 	];
 
 	// rewrite, not to use for loop
 	for ac in f_ac.iter() {
-		endowed_accounts.push(ac.clone());
+		if !endowed_accounts.contains(ac) {
+			endowed_accounts.push(ac.clone());
+		}
 	}
 
 	// endow all citizens.
@@ -307,6 +334,12 @@ pub fn testnet_genesis(
 			}
 		});
 
+	let technical_committee = technical_committee.unwrap_or(
+		endowed_accounts
+				.iter()
+				.take((num_endowed_accounts + 1) / 2)
+				.cloned()
+				.collect());
 
 
 	GenesisConfig {
@@ -346,11 +379,7 @@ pub fn testnet_genesis(
 		},
 		council: CouncilConfig::default(),
 		technical_committee: TechnicalCommitteeConfig {
-			members: endowed_accounts
-				.iter()
-				.take((num_endowed_accounts + 1) / 2)
-				.cloned()
-				.collect(),
+			members: technical_committee,
 			phantom: Default::default(),
 		},
 		sudo: SudoConfig { key: Some(root_key) },
@@ -406,6 +435,7 @@ fn development_config_genesis() -> GenesisConfig {
 			(AccountId::from_ss58check("5EqhBxsfDdbddFxcdRPhDBx8V3N2QyQspV5FNfQeT8nFQtj8").unwrap(), total_llm, locked_llm), // Web3_Test2
 			(AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap(), total_llm, locked_llm), // Web3_Test3
 		],
+		None,
 	)
 }
 
@@ -434,6 +464,7 @@ fn local_testnet_genesis() -> GenesisConfig {
 		None,
 		None,
 		vec![],
+		None,
 	)
 }
 
@@ -469,6 +500,7 @@ pub(crate) mod tests {
 			None,
 			None,
 			vec![],
+			None,
 		)
 	}
 
