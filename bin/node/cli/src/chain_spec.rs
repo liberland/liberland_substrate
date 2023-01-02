@@ -83,42 +83,34 @@ fn session_keys(
 
 fn staging_testnet_config_genesis() -> GenesisConfig {
 	#[rustfmt::skip]
-	// stash, controller, session-key
-	// generated with secret:
-	// for i in 1 2 3 4 ; do for j in stash controller; do subkey inspect "$secret"/fir/$j/$i; done; done
-	//
-	// and
-	//
-	// for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
-
 	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![
+		// Liberland Node 1
 		(
-			AccountId::from_ss58check("5DRUP4qyVHqPJoybR6XUE2HZ5GDuyBJ67VK5cP5ULgCF3RTJ").unwrap(),
-			AccountId::from_ss58check("5EvVVsUhTfaSocMkp2S2MTiBa8JBem8d7nhdJkeNVv1kYf95").unwrap(),
-			// echo 'permit chaos head empty spice poem license wave settle plastic lend actor' | scripts/get_session_keys_from_seed.sh
-			array_bytes::hex2array_unchecked("284df6e4172253e78886a3cd93ed11c28fa70dcd2dd92ff8e99882ee31bc50d5").unchecked_into(),
-			array_bytes::hex2array_unchecked("383d8f33be68935d72faa793f617a8b518fdf5350f826bb9de1fc8e3f0788b1a").unchecked_into(),
-			array_bytes::hex2array_unchecked("be79ed25404e0941ecebd4530b17f4ecccdc122bd7684acfdb4f9120977fd233").unchecked_into(),
-			array_bytes::hex2array_unchecked("56b113510c6c4d1736ddef9955c6e3491c78dea03d0446a7b7d4c92cc8112f0e").unchecked_into(),
+			AccountId::from_ss58check("5FxyS2TCjXUNEP1FMJZMgMvGeUSNZnm5QjGLZ1o2ti1xvmib").unwrap(),
+			AccountId::from_ss58check("5GqJ6qrVubs5kzyBdv2sYvHXwy85S7wLA2yghYqu3EaNvYj3").unwrap(),
+			array_bytes::hex2array_unchecked("8e63d55a14700c735baa7c18bf1f6fb4cbe454387374ed662a739cdf4c15ad73").unchecked_into(),
+			array_bytes::hex2array_unchecked("55185a442c58e9d91a880fe45af3413631815b18effd845169faf0a4b1c12497").unchecked_into(),
+			array_bytes::hex2array_unchecked("d7275a3d0df56b87b4f230f1cc6bf430aca2ad4953fff701fb37dd5556664dbe").unchecked_into(),
+			array_bytes::hex2array_unchecked("2eb75e355660c82e30c8e3429b9469c067abcd83b7ab637d46ca34ab25041f6b").unchecked_into(),
 		),
+		// Liberland Node 2
 		(
-			AccountId::from_ss58check("5GznkA2FEC2c9rJqbX5zA4Fyrwrb24KYtHDHBAoY7KpgNdwv").unwrap(),
-			AccountId::from_ss58check("5EZP5Hd2beWc1C4dJ4iWYAifWsiJ2qeupNHCaBRaCbXRK6VB").unwrap(),
-			// echo 'return avocado loan stock novel kangaroo rich three word limb agent human' | scripts/get_session_keys_from_seed.sh
-			array_bytes::hex2array_unchecked("ea630c3ad2b63937c7b52c110f6a324c16efb6846a82b1d94a243a7c4e4810f0").unchecked_into(),
-			array_bytes::hex2array_unchecked("dcf4bbcd1c28691a7277c6c5494717b809ba8fe9042b898e5f1e824f6904a526").unchecked_into(),
-			array_bytes::hex2array_unchecked("44def0c7ec3f3e9a840e4db2391767c88a5b430f62dcc4847d7ddd1dbcd4f102").unchecked_into(),
-			array_bytes::hex2array_unchecked("ca8a48072dd535e754d84419faf371fa9ea47228d0be72f2088e2abdd2bb2556").unchecked_into(),
+			AccountId::from_ss58check("5HaWo4ZFPsq8hKQrZKCb1C7izD3V2ZHCjaj9nLMrGNZzrkVy").unwrap(),
+			AccountId::from_ss58check("5D7xXnKkqWZ6vJZQBsVdDaoUcDvnV15M4Vhg8U6keupjNoYc").unwrap(),
+			array_bytes::hex2array_unchecked("e365887ead354db2e19807e7a8ffbb5b68321cfd7654df82186ea1f817ed2904").unchecked_into(),
+			array_bytes::hex2array_unchecked("699c1c18aa7f444f3e81b58c4b218e3e440f0b77e27c90b4e764af665bca1f23").unchecked_into(),
+			array_bytes::hex2array_unchecked("5ad7f1e8ce3bf11a2dde58a05903168c361e3fa2538fccd50b524bac116bb747").unchecked_into(),
+			array_bytes::hex2array_unchecked("a3667217050f77a2810a7ef1166a8ecea8552c235b4be28cf998be738350040f").unchecked_into(),
 		),
+		// Liberland Node 3
 		(
-			AccountId::from_ss58check("5CrJUdQtoVLDwQHf9P9GjXh21mn5cpWisBtyBVkGgzi3aNd8").unwrap(),
-			AccountId::from_ss58check("5DAvZ3ynu3wQbEJBbxWy8MDa7T8LuUjpRmf5ooCJWFeLrbhw").unwrap(),
-			// echo 'solar family liquid unlock shoe glow glimpse mask vivid cute unable that' | scripts/get_session_keys_from_seed.sh
-			array_bytes::hex2array_unchecked("d49e3ed92a8050c5d738030f14abeec18f4ac49fd52784254ed036caffbfb6cc").unchecked_into(),
-			array_bytes::hex2array_unchecked("aa49b7b9c51751d4d05db28413768d1beda16c49b13dd3b0b297e2e86f8ae86b").unchecked_into(),
-			array_bytes::hex2array_unchecked("66723a131a54a60c7f49a8838e3fd73b90ce56d31dcf51f3f54d0c24b2985b01").unchecked_into(),
-			array_bytes::hex2array_unchecked("ca1dfd69a218365e3bd84b511b5b0c393ac3a34d9b9b3db5a32e8938d4709e7a").unchecked_into(),
-		)
+			AccountId::from_ss58check("5EKjSVVbUtJRF2p6X6X48TgewWsBkK8BeCfAdh4vrM1dSZ97").unwrap(),
+			AccountId::from_ss58check("5E2AuKNFwMPKfJnm8kJhjfDRqs3gTFjuCih4vjxcXtopsEM1").unwrap(),
+			array_bytes::hex2array_unchecked("bdda118513e66d74ed49c809261cb043c220093115a2b808cc89cec2f76f603d").unchecked_into(),
+			array_bytes::hex2array_unchecked("dc5f32a7c37160ae457080060d6642cb134673a47d50b614a1d365b3e5ac7c0c").unchecked_into(),
+			array_bytes::hex2array_unchecked("62ec31fc4e453371432bc0abd320eb6de2a326e0fc7839723d4ea67a2a43a46c").unchecked_into(),
+			array_bytes::hex2array_unchecked("142a51556ba55259d45e66aed6424a5d3e965b3d4141779be971ab6b9fa094df").unchecked_into(),
+		),
 	];
 
 
