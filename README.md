@@ -17,7 +17,6 @@ This repository contains the substrate-based implementation of Liberland blockch
 ## Documentation:
 * [Learn more about Liberland](https://liberland-1.gitbook.io/wiki/)
 * [Learn more about Liberland Blockchain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain)
-* [Technical docs](https://github.com/liberland/liberland.github.io/)
 
 ## Interact with live testnets:
 * [Hazlitt](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fl2.laissez-faire.trade#/explorer)
@@ -60,9 +59,9 @@ accounts (Alice, Bob, etc.) are endowed with assets. To interact with it, visit
 [Polkadot.js Apps](https://polkadot.js.org/apps/?rpc=ws://localhost:9944).
 
 ### Further reading
-* [Run a validator on Hazlitt chain](https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md)
-* [Run a validator on StarLight Chain](https://github.com/liberland/liberland.github.io/blob/main/docs/run_a_validator_on_starlight.md)
-* [Run with Docker](https://github.com/liberland/liberland.github.io/blob/main/docs/docker.md)
+* [Run a validator on Hazlitt chain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator_on_hazlitt)
+* [Run a validator on StarLight Chain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator_on_starlight)
+* [Run with Docker](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-developers-and-testers/docker)
 
 
 ## Licensing
