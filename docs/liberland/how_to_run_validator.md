@@ -1,4 +1,4 @@
-# DEPRICATED GUIDE USE THE LATEST ONE HERE: https://github.com/liberland/liberland.github.io/blob/main/docs/run_validator.md
+# DEPRECATED GUIDE USE THE LATEST ONE HERE: https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator_on_hazlitt
 
 
 ## How to run a Validator on Liberland's Menger Testnet
