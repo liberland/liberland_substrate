@@ -3,7 +3,7 @@
 set -euo pipefail
 
 bin='cargo run -q --release --'
-sr25519="babe imol audi"
+sr25519="babe imon audi"
 ed25519="gran"
 
 SAMPLE_SEED=$($bin key generate | grep 'Secret phrase' | tr -s ' ' | cut -d' ' -f 3-)
