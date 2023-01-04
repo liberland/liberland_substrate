@@ -36,6 +36,7 @@ This repository contains the substrate-based implementation of Liberland blockch
 sudo apt install build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup default nightly
+rustup target add wasm32-unknown-unknown
 ```
 
 ### Clone `liberland_substrate` repository
@@ -59,8 +60,7 @@ accounts (Alice, Bob, etc.) are endowed with assets. To interact with it, visit
 [Polkadot.js Apps](https://polkadot.js.org/apps/?rpc=ws://localhost:9944).
 
 ### Further reading
-* [Run a validator on Hazlitt chain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator_on_hazlitt)
-* [Run a validator on StarLight Chain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator_on_starlight)
+* [Run a validator on PowellGoHome chain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator_on_powell_go_home)
 * [Run with Docker](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-developers-and-testers/docker)
 
 

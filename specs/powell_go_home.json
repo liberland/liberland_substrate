@@ -2,13 +2,12 @@
   "name": "PowellGoHome",
   "id": "powell_go_home",
   "chainType": "Live",
-  "bootNodes": [],
-  "telemetryEndpoints": [
-    [
-      "/dns/telemetry.polkadot.io/tcp/443/x-parity-wss/%2Fsubmit%2F",
-      0
-    ]
+  "bootNodes": [
+    "/ip4/164.92.254.132/tcp/30333/p2p/12D3KooWFzt9D5Pbza9ahfVjfXfRHsbsQRXmkf64FgY3LrLCSV8N",
+    "/ip4/167.99.253.67/tcp/30333/p2p/12D3KooWJ8CLhrEgHqsD23mW1zgb8G5ydeTEvxemKF9gqUPHngq1",
+    "/ip4/207.154.237.18/tcp/30333/p2p/12D3KooWBVTvE4yx6WnGCAkBEMxLMDiHbgyh3WKFcBeyhrvJMT3k"
   ],
+  "telemetryEndpoints": [],
   "protocolId": null,
   "properties": {
     "displayName": "Liberland PowellGoHome",
