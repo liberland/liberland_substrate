@@ -5,3 +5,4 @@ Dockerfile
 .dockerignore
 .local
 .env*
+.git
