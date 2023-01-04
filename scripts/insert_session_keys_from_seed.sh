@@ -13,9 +13,11 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
+cargo build --release
 bin='cargo run -q --release --'
 sr25519="babe imon audi"
 ed25519="gran"
+
 
 SAMPLE_SEED=$($bin key generate | grep 'Secret phrase' | tr -s ' ' | cut -d' ' -f 3-)
 echo "Provide your seed. If you don't have one, feel free to copy this freshly generated one:" >&2
