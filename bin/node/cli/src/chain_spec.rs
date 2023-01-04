@@ -86,30 +86,30 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![
 		// Liberland Node 1
 		(
-			AccountId::from_ss58check("5FxyS2TCjXUNEP1FMJZMgMvGeUSNZnm5QjGLZ1o2ti1xvmib").unwrap(),
-			AccountId::from_ss58check("5GqJ6qrVubs5kzyBdv2sYvHXwy85S7wLA2yghYqu3EaNvYj3").unwrap(),
-			array_bytes::hex2array_unchecked("8e63d55a14700c735baa7c18bf1f6fb4cbe454387374ed662a739cdf4c15ad73").unchecked_into(),
-			array_bytes::hex2array_unchecked("55185a442c58e9d91a880fe45af3413631815b18effd845169faf0a4b1c12497").unchecked_into(),
-			array_bytes::hex2array_unchecked("d7275a3d0df56b87b4f230f1cc6bf430aca2ad4953fff701fb37dd5556664dbe").unchecked_into(),
-			array_bytes::hex2array_unchecked("2eb75e355660c82e30c8e3429b9469c067abcd83b7ab637d46ca34ab25041f6b").unchecked_into(),
+			AccountId::from_ss58check("5DLfiq37tePrZoaVNJDPFyDkRa2Lbr7faPMre2omsoNytoq4").unwrap(),
+			AccountId::from_ss58check("5FyJBpWan9YzAyjwEzKcns4SJYrcJcAb3PKRB7rb8cymgryX").unwrap(),
+			array_bytes::hex2array_unchecked("04fd9f3ff2040a822c4ce0275431f9ee5f4c9e5e781742116fa8546c1e0bdb7b").unchecked_into(),
+			array_bytes::hex2array_unchecked("d0b72f9ee9b0eeb67450e0a8d71d00e3234ee3b195904e767b60e7a6f589dd55").unchecked_into(),
+			array_bytes::hex2array_unchecked("1a6296323683419f4178e64b68476510f2b212261d5c78e28f00ee5e56a42130").unchecked_into(),
+			array_bytes::hex2array_unchecked("2062cfe4b566703a1aca8777a40debae985eb0f2dc91dd9a4973c72509f09113").unchecked_into(),
 		),
 		// Liberland Node 2
 		(
-			AccountId::from_ss58check("5HaWo4ZFPsq8hKQrZKCb1C7izD3V2ZHCjaj9nLMrGNZzrkVy").unwrap(),
-			AccountId::from_ss58check("5D7xXnKkqWZ6vJZQBsVdDaoUcDvnV15M4Vhg8U6keupjNoYc").unwrap(),
-			array_bytes::hex2array_unchecked("e365887ead354db2e19807e7a8ffbb5b68321cfd7654df82186ea1f817ed2904").unchecked_into(),
-			array_bytes::hex2array_unchecked("699c1c18aa7f444f3e81b58c4b218e3e440f0b77e27c90b4e764af665bca1f23").unchecked_into(),
-			array_bytes::hex2array_unchecked("5ad7f1e8ce3bf11a2dde58a05903168c361e3fa2538fccd50b524bac116bb747").unchecked_into(),
-			array_bytes::hex2array_unchecked("a3667217050f77a2810a7ef1166a8ecea8552c235b4be28cf998be738350040f").unchecked_into(),
+			AccountId::from_ss58check("5CiYBzVkYAJKZ9oa38hnpFuLSiiLxeYyfTb6dzReS1YNaoMy").unwrap(),
+			AccountId::from_ss58check("5Df7LyLkNq8BymLP22G7Z696kxao1bMqYLMnGKmPZKqZhrbh").unwrap(),
+			array_bytes::hex2array_unchecked("ab73ab7de09146f1af36151e2124076eee1ba327aafac0a995c0bc87d14d1407").unchecked_into(),
+			array_bytes::hex2array_unchecked("a8bc8e6b4751db3f3555e2a5e18fdcf71444123460726f1c407645c3ebd0ab4c").unchecked_into(),
+			array_bytes::hex2array_unchecked("cccd35bc9fbd981e82ab6217d13fdc361e01be17c7fa6747b479e293aad1d661").unchecked_into(),
+			array_bytes::hex2array_unchecked("9af294f1fff0fffa37a0b972edb027a4115ae7567ceeb1da2174bb900a41fc15").unchecked_into(),
 		),
 		// Liberland Node 3
 		(
-			AccountId::from_ss58check("5EKjSVVbUtJRF2p6X6X48TgewWsBkK8BeCfAdh4vrM1dSZ97").unwrap(),
-			AccountId::from_ss58check("5E2AuKNFwMPKfJnm8kJhjfDRqs3gTFjuCih4vjxcXtopsEM1").unwrap(),
-			array_bytes::hex2array_unchecked("bdda118513e66d74ed49c809261cb043c220093115a2b808cc89cec2f76f603d").unchecked_into(),
-			array_bytes::hex2array_unchecked("dc5f32a7c37160ae457080060d6642cb134673a47d50b614a1d365b3e5ac7c0c").unchecked_into(),
-			array_bytes::hex2array_unchecked("62ec31fc4e453371432bc0abd320eb6de2a326e0fc7839723d4ea67a2a43a46c").unchecked_into(),
-			array_bytes::hex2array_unchecked("142a51556ba55259d45e66aed6424a5d3e965b3d4141779be971ab6b9fa094df").unchecked_into(),
+			AccountId::from_ss58check("5FnpJZSHMrCCTwukFsbEHVHsVYo5vXGSHnYvhahhtew2jDJL").unwrap(),
+			AccountId::from_ss58check("5CLUTtAS3w6zLsj7ffZSb7stKKczVUJXHztstmRq1aUSMzHT").unwrap(),
+			array_bytes::hex2array_unchecked("054252cb5db71765eac20eed2f40797af88996e88f9168fe136cf78a782af651").unchecked_into(),
+			array_bytes::hex2array_unchecked("d08f9c727fe6d7e3fc8132fd021cd673e350a82ef4eda9843bf1d19e038a3d53").unchecked_into(),
+			array_bytes::hex2array_unchecked("0ef088bf4da2148f2d119376f31a36f7f60958cecf46f67e8763a57c7f8a3f3b").unchecked_into(),
+			array_bytes::hex2array_unchecked("d0f97065a403e04429f9bdefed008b201c171b548f3a166e9aad9f139205076b").unchecked_into(),
 		),
 	];
 
@@ -168,7 +168,7 @@ fn properties() -> sc_chain_spec::Properties {
 	let mut p = Properties::new();
 	p.insert("prefix".into(), 56.into());
 	p.insert("network".into(), "liberland".into());
-	p.insert("displayName".into(), "Liberland Hazlitt".into());
+	p.insert("displayName".into(), "Liberland PowellGoHome".into());
 	p.insert("tokenSymbol".into(), "LLD".into());
 	p.insert("tokenDecimals".into(), 12.into());
 	p.insert("standardAccount".into(), "*25519".into());
@@ -180,8 +180,8 @@ fn properties() -> sc_chain_spec::Properties {
 pub fn staging_testnet_config() -> ChainSpec {
 	let boot_nodes = vec![];
 	ChainSpec::from_genesis(
-		"Staging Testnet",
-		"staging_testnet",
+		"PowellGoHome",
+		"powell_go_home",
 		ChainType::Live,
 		staging_testnet_config_genesis,
 		boot_nodes,

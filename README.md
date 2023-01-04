@@ -33,7 +33,7 @@ This repository contains the substrate-based implementation of Liberland blockch
 
 ### Install deps
 ```
-sudo apt install build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler
+sudo apt install build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup default nightly
 ```
