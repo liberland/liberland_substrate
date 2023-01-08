@@ -27,3 +27,4 @@ rls*.log
 *.iml
 .maintain/node-template-release/Cargo.lock
 scripts/session_keys/*4
+scripts/ci/node-template-release/Cargo.lock
