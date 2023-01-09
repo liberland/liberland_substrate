@@ -19,8 +19,7 @@ This repository contains the substrate-based implementation of Liberland blockch
 * [Learn more about Liberland Blockchain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain)
 
 ## Interact with live testnets:
-* [Hazlitt](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fl2.laissez-faire.trade#/explorer)
-* [Starlight](https://polkadot.js.org/apps/?rpc=wss%253A%252F%252Ftestchain.liberland.org)
+* [PowellGoHome](https://polkadot.js.org/apps/?rpc=wss%253A%252F%252Ftestchain.liberland.org)
 
 ## Contact:
 * [Liberland's website](https://liberland.org/)
