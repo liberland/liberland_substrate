@@ -1401,6 +1401,7 @@ parameter_types! {
 parameter_types! {
 	pub const TOTALLLM: Balance      = 70_000_000u128 * GRAINS_IN_LLM;
 	pub const PRERELEASELLM: Balance =  7_000_000u128 * GRAINS_IN_LLM;
+	pub const CitizenshipMinimum: Balance = 5_000_000u128 * GRAINS_IN_LLM;
 }
 
 pub(crate) type AssetId = u32; // u32 is better supported by the runtime
@@ -1413,6 +1414,7 @@ impl pallet_llm::Config for Runtime {
 	type PreReleasedAmount = PRERELEASELLM; // PreRelease 7 million
 	type AssetId = AssetId; //pallet_assets::Config::AssetId;
 						//	type AccountId = AccountId;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 }
 
 impl pallet_gilt::Config for Runtime {

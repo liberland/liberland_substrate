@@ -4,8 +4,12 @@ use crate::{
 	Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease, Withdrawlock,
 	WithdrawlockDuration,
 };
+use pallet_identity::{Data, IdentityInfo};
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use hex_literal::hex;
+use sp_runtime::{
+	traits::{BlakeTwo256, Hash},
+};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -287,10 +291,60 @@ fn get_llm_politics_works() {
 	});
 }
 
+
+fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<u8>) {
+	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
+	let additional = match eligible_on {
+		Some(n) => vec![(
+		Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
+		Data::Raw(vec![n].try_into().unwrap()),
+	)],
+		None => vec![],
+	};
+
+	let citizen = if citizen { data.clone() } else { Data::None };
+	let info = IdentityInfo {
+		citizen,
+		additional: additional.try_into().unwrap(),
+		display: data.clone(),
+		legal: data.clone(),
+		web: data.clone(),
+		riot: data.clone(),
+		email: data.clone(),
+		pgp_fingerprint: Some([0; 20]),
+		image: data,
+	};
+
+	let o = RuntimeOrigin::signed(id);
+	Identity::set_identity(o, Box::new(info.clone())).unwrap();
+	Identity::provide_judgement(
+		RuntimeOrigin::signed(0),
+		0,
+		id,
+		pallet_identity::Judgement::KnownGood,
+		BlakeTwo256::hash_of(&info),
+	)
+	.unwrap();
+}
+
 #[test]
 fn ensure_politics_allowed_fails_for_noncitizen() {
 	new_test_ext().execute_with(|| {
+		// no judgement at all
 		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
+
+		// judgment OK, eligible_on ok, but missing citizen field
+		setup_broken_citizen(11, false, Some(0));
+		assert_noop!(LLM::ensure_politics_allowed(&11), Error::<Test>::NonCitizen);
+
+		// judgment OK, citizen ok, but missing eligible_on
+		setup_broken_citizen(12, true, None);
+		assert_noop!(LLM::ensure_politics_allowed(&12), Error::<Test>::NonCitizen);
+
+		// judgment OK, citizen ok eligible_on set but in the future
+		setup_broken_citizen(13, true, Some(100));
+		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
+
 	});
 }
 
