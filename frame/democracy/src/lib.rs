@@ -161,10 +161,14 @@ use frame_support::{
 	ensure,
 	traits::{
 		defensive_prelude::*,
+		EnsureOrigin,
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
 		Bounded, Currency, Get, LockIdentifier, LockableCurrency, QueryPreimage,
 		ReservableCurrency, StorePreimage,
 	},
+	pallet_prelude::{MaxEncodedLen, TypeInfo},
+	BoundedVec,
+	RuntimeDebug,
 	weights::Weight,
 };
 use pallet_llm::traits::{CitizenshipChecker, LLM};
@@ -182,7 +186,7 @@ mod vote_threshold;
 pub mod weights;
 pub use conviction::Conviction;
 pub use pallet::*;
-pub use types::{Delegations, ReferendumInfo, ReferendumStatus, Tally, UnvoteScope};
+pub use types::{Delegations, ReferendumInfo, ReferendumStatus, DispatchOrigin, Tally, UnvoteScope};
 pub use vote::{AccountVote, Vote, Voting};
 pub use vote_threshold::{Approved, VoteThreshold};
 pub use weights::WeightInfo;
@@ -209,10 +213,16 @@ pub type CallOf<T> = <T as frame_system::Config>::RuntimeCall;
 pub type BoundedCallOf<T> = Bounded<CallOf<T>>;
 type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
 
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub enum RawOrigin<Balance> {
+	// Tally of passed referendum, total electorate
+	Referendum(Tally<Balance>, Balance),
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::{DispatchResult, *};
-	use frame_support::pallet_prelude::*;
+	use frame_support::{BoundedVec};use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_core::H256;
 
@@ -340,7 +350,7 @@ pub mod pallet {
 		type VetoOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		/// Overarching type of all pallets origins.
-		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
+		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>> + From<RawOrigin<BalanceOf<Self>>>;
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
@@ -357,7 +367,7 @@ pub mod pallet {
 	#[pallet::getter(fn public_props)]
 	pub type PublicProps<T: Config> = StorageValue<
 		_,
-		BoundedVec<(PropIndex, BoundedCallOf<T>, T::AccountId), T::MaxProposals>,
+		BoundedVec<(PropIndex, BoundedCallOf<T>, T::AccountId, DispatchOrigin), T::MaxProposals>,
 		ValueQuery,
 	>;
 
@@ -455,6 +465,9 @@ pub mod pallet {
 			LowestUnbaked::<T>::put(0 as ReferendumIndex);
 		}
 	}
+
+	#[pallet::origin]
+	pub type Origin<T> = RawOrigin<BalanceOf<T>>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -567,36 +580,18 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_politics_allowed(&who)?;
+			Self::do_propose(who, proposal, value, DispatchOrigin::Root)
+		}
 
-			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
-
-			let index = Self::public_prop_count();
-			let real_prop_count = PublicProps::<T>::decode_len().unwrap_or(0) as u32;
-			let max_proposals = T::MaxProposals::get();
-			ensure!(real_prop_count < max_proposals, Error::<T>::TooMany);
-			let proposal_hash = proposal.hash();
-
-			if let Some((until, _)) = <Blacklist<T>>::get(proposal_hash) {
-				ensure!(
-					<frame_system::Pallet<T>>::block_number() >= until,
-					Error::<T>::ProposalBlacklisted,
-				);
-			}
-
-			let ubalance = value.clone();
-			ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
-
-			let depositors = BoundedVec::<_, T::MaxDeposits>::truncate_from(vec![who.clone()]);
-			DepositOf::<T>::insert(index, (depositors, value));
-
-			PublicPropCount::<T>::put(index + 1);
-
-			PublicProps::<T>::try_append((index, proposal, who))
-				.map_err(|_| Error::<T>::TooMany)?;
-
-			Self::deposit_event(Event::<T>::Proposed { proposal_index: index, deposit: value });
-			Ok(())
+		/// FIXME docs
+		#[pallet::weight(T::WeightInfo::propose())]
+		pub fn propose_rich_origin(
+			origin: OriginFor<T>,
+			proposal: BoundedCallOf<T>,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			Self::do_propose(who, proposal, value, DispatchOrigin::Rich)
 		}
 
 		/// Signals agreement with a particular proposal.
@@ -786,6 +781,7 @@ pub mod pallet {
 			Self::inject_referendum(
 				now.saturating_add(voting_period),
 				ext_proposal,
+				DispatchOrigin::Root,
 				threshold,
 				delay,
 			);
@@ -1110,6 +1106,39 @@ impl<T: Config> Pallet<T> {
 		Self::maturing_referenda_at_inner(n, next..last)
 	}
 
+	fn do_propose(who: T::AccountId, proposal: BoundedCallOf<T>, value: BalanceOf<T>, dispatch_origin: DispatchOrigin) -> DispatchResult {
+		T::Citizenship::ensure_politics_allowed(&who)?;
+
+		ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
+
+		let index = Self::public_prop_count();
+		let real_prop_count = PublicProps::<T>::decode_len().unwrap_or(0) as u32;
+		let max_proposals = T::MaxProposals::get();
+		ensure!(real_prop_count < max_proposals, Error::<T>::TooMany);
+		let proposal_hash = proposal.hash();
+
+		if let Some((until, _)) = <Blacklist<T>>::get(proposal_hash) {
+			ensure!(
+				<frame_system::Pallet<T>>::block_number() >= until,
+				Error::<T>::ProposalBlacklisted,
+			);
+		}
+
+		let ubalance = value.clone();
+		ensure!(T::LLM::get_llm_politics(&who) >= ubalance, Error::<T>::InsufficientLLM);
+
+		let depositors = BoundedVec::<_, T::MaxDeposits>::truncate_from(vec![who.clone()]);
+		DepositOf::<T>::insert(index, (depositors, value));
+
+		PublicPropCount::<T>::put(index + 1);
+
+		PublicProps::<T>::try_append((index, proposal, who, dispatch_origin))
+			.map_err(|_| Error::<T>::TooMany)?;
+
+		Self::deposit_event(Event::<T>::Proposed { proposal_index: index, deposit: value });
+		Ok(())
+	}
+
 	fn maturing_referenda_at_inner(
 		n: T::BlockNumber,
 		range: core::ops::Range<PropIndex>,
@@ -1136,6 +1165,7 @@ impl<T: Config> Pallet<T> {
 		<Pallet<T>>::inject_referendum(
 			<frame_system::Pallet<T>>::block_number().saturating_add(T::VotingPeriod::get()),
 			proposal,
+			DispatchOrigin::Root,
 			threshold,
 			delay,
 		)
@@ -1396,13 +1426,14 @@ impl<T: Config> Pallet<T> {
 	fn inject_referendum(
 		end: T::BlockNumber,
 		proposal: BoundedCallOf<T>,
+		dispatch_origin: DispatchOrigin,
 		threshold: VoteThreshold,
 		delay: T::BlockNumber,
 	) -> ReferendumIndex {
 		let ref_index = Self::referendum_count();
 		ReferendumCount::<T>::put(ref_index + 1);
 		let status =
-			ReferendumStatus { end, proposal, threshold, delay, tally: Default::default() };
+			ReferendumStatus { end, proposal, dispatch_origin, threshold, delay, tally: Default::default() };
 		let item = ReferendumInfo::Ongoing(status);
 		<ReferendumInfoOf<T>>::insert(ref_index, item);
 		Self::deposit_event(Event::<T>::Started { ref_index, threshold });
@@ -1427,6 +1458,7 @@ impl<T: Config> Pallet<T> {
 			Self::inject_referendum(
 				now.saturating_add(T::VotingPeriod::get()),
 				proposal,
+				DispatchOrigin::Root,
 				threshold,
 				T::EnactmentPeriod::get(),
 			);
@@ -1443,7 +1475,7 @@ impl<T: Config> Pallet<T> {
 			// defensive only: All current public proposals have an amount locked
 			|x| Self::backing_for((x.1).0).defensive_unwrap_or_else(Zero::zero),
 		) {
-			let (prop_index, proposal, _) = public_props.swap_remove(winner_index);
+			let (prop_index, proposal, _, dispatch_origin) = public_props.swap_remove(winner_index);
 			<PublicProps<T>>::put(public_props);
 
 			if let Some((_depositors, deposit)) = <DepositOf<T>>::take(prop_index) {
@@ -1451,6 +1483,7 @@ impl<T: Config> Pallet<T> {
 				Self::inject_referendum(
 					now.saturating_add(T::VotingPeriod::get()),
 					proposal,
+					dispatch_origin,
 					VoteThreshold::SuperMajorityApprove,
 					T::EnactmentPeriod::get(),
 				);
@@ -1469,7 +1502,7 @@ impl<T: Config> Pallet<T> {
 		let politi_pooled = T::LLM::get_politi_pooled_amount();
 		let approved = status
 			.threshold
-			.approved(status.tally, politi_pooled);
+			.approved(status.tally.clone(), politi_pooled);
 
 		if approved {
 			Self::deposit_event(Event::<T>::Passed { ref_index: index });
@@ -1479,6 +1512,11 @@ impl<T: Config> Pallet<T> {
 			// a `hold` on it.
 			T::Preimages::hold(&status.proposal);
 
+			let origin = match &status.dispatch_origin {
+				DispatchOrigin::Root => frame_system::RawOrigin::Root.into(),
+				DispatchOrigin::Rich => RawOrigin::Referendum(status.tally, politi_pooled).into(),
+			};
+
 			// Earliest it can be scheduled for is next block.
 			let when = now.saturating_add(status.delay.max(One::one()));
 			if T::Scheduler::schedule_named(
@@ -1486,7 +1524,7 @@ impl<T: Config> Pallet<T> {
 				DispatchTime::At(when),
 				None,
 				63,
-				frame_system::RawOrigin::Root.into(),
+				origin,
 				status.proposal,
 			)
 			.is_err()
@@ -1584,5 +1622,27 @@ fn decode_compact_u32_at(key: &[u8]) -> Option<u32> {
 			sp_runtime::print(key);
 			None
 		},
+	}
+}
+
+pub struct EnsureReferendumProportionAtLeast<T: Config, const N: u32, const D: u32> {
+		_phantom: sp_std::marker::PhantomData<T>,
+}
+
+impl<
+		T: Config,
+		O: Into<Result<Origin<T>, O>> + From<Origin<T>>,
+		const N: u32,
+		const D: u32,
+	> EnsureOrigin<O> for EnsureReferendumProportionAtLeast<T, N, D>
+{
+	type Success = ();
+	fn try_origin(o: O) -> Result<Self::Success, O> {
+		let n: BalanceOf<T> = N.into();
+		let d: BalanceOf<T> = D.into();
+		o.into().and_then(|o| match o {
+			RawOrigin::Referendum(t, _electorate) if t.ayes * d >= n * (t.ayes + t.nays) => Ok(()),
+			r => Err(O::from(r)),
+		})
 	}
 }

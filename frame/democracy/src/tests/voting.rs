@@ -81,6 +81,7 @@ fn single_proposal_should_work() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
 				tally: Tally { ayes: 1, nays: 0, turnout: 10 },
@@ -111,6 +112,7 @@ fn controversial_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -137,6 +139,7 @@ fn controversial_low_turnout_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -161,6 +164,7 @@ fn passing_low_turnout_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);

@@ -51,6 +51,8 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use pallet_llm::traits::CitizenshipChecker;
 
+	type Citizenship<T> = <T as Config>::Citizenship;
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
@@ -64,6 +66,8 @@ pub mod pallet {
 		/// Citizenship provider used to check for citizenship and number of citizens (for headcount
 		/// veto).
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
+
+		type ConstitutionOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	#[pallet::event]
@@ -182,9 +186,15 @@ pub mod pallet {
 			index: u32,
 			law_content: BoundedVec<u8, ConstU32<65536>>,
 		) -> DispatchResult {
-			ensure_root(origin)?;
-
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
+
+			if tier == Constitution as u32 {
+				println!("Checking constitution origin!");
+				T::ConstitutionOrigin::ensure_origin(origin)?;
+			} else {
+				ensure_root(origin)?;
+			}
+
 			ensure!(!Laws::<T>::contains_key(&tier, &index), Error::<T>::LawAlreadyExists);
 
 			Laws::<T>::insert(&tier, &index, &law_content);
@@ -206,8 +216,13 @@ pub mod pallet {
 		/// Emits `LawRepealed`.
 		#[pallet::weight(10_000)]
 		pub fn repeal_law(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
-			ensure_root(origin)?;
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
+
+			if tier == Constitution as u32 {
+				T::ConstitutionOrigin::ensure_origin(origin)?;
+			} else {
+				ensure_root(origin)?;
+			}
 
 			Laws::<T>::remove(&tier, &index);
 
@@ -232,7 +247,7 @@ pub mod pallet {
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
 			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
-			ensure!(T::Citizenship::is_citizen(&account), Error::<T>::NonCitizen);
+			ensure!(Citizenship::<T>::is_citizen(&account), Error::<T>::NonCitizen);
 			let key = (tier, index, &account);
 			if !Vetos::<T>::contains_key(key) {
 				VetosCount::<T>::mutate(tier, index, |x| *x = *x + 1);
@@ -286,7 +301,7 @@ pub mod pallet {
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
 			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 
-			let citizens = T::Citizenship::citizens_count();
+			let citizens = Citizenship::<T>::citizens_count();
 			let required = match tier.into() {
 				Tier2 => citizens / 2 + 1,
 				Tier3 => citizens / 2 + 1,
@@ -303,7 +318,7 @@ pub mod pallet {
 			// counting them, but that would result in a more confusing code.
 			// Let's postpone this optimization until it's confirmed it's needed.
 			let valid_vetos = Vetos::<T>::iter_key_prefix((tier, index))
-				.filter(|sender| T::Citizenship::is_citizen(sender))
+				.filter(|sender| Citizenship::<T>::is_citizen(sender))
 				.count();
 
 			ensure!(valid_vetos >= required, Error::<T>::InsufficientVetoCount);

@@ -56,6 +56,36 @@ mod v0 {
 pub mod v1 {
 	use super::*;
 
+	#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+	pub struct ReferendumStatus<BlockNumber, Proposal, Balance> {
+		pub end: BlockNumber,
+		pub proposal: Proposal,
+		pub threshold: VoteThreshold,
+		pub delay: BlockNumber,
+		pub tally: Tally<Balance>,
+	}
+
+	#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+	pub enum ReferendumInfo<BlockNumber, Proposal, Balance> {
+		Ongoing(ReferendumStatus<BlockNumber, Proposal, Balance>),
+		Finished { approved: bool, end: BlockNumber },
+	}
+
+	#[storage_alias]
+	pub type PublicProps<T: Config> = StorageValue<
+		Pallet<T>,
+		BoundedVec<(PropIndex, BoundedCallOf<T>, <T as frame_system::Config>::AccountId), <T as pallet::Config>::MaxProposals>,
+		ValueQuery,
+	>;
+
+	#[storage_alias]
+	pub type ReferendumInfoOf<T: Config> = StorageMap<
+		Pallet<T>,
+		Twox64Concat,
+		ReferendumIndex,
+		ReferendumInfo<<T as frame_system::Config>::BlockNumber, BoundedCallOf<T>, BalanceOf<T>>,
+	>;
+
 	/// Migration for translating bare `Hash`es into `Bounded<Call>`s.
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
@@ -92,7 +122,7 @@ pub mod v1 {
 					log::info!(target: TARGET, "migrating referendum #{:?}", &index);
 					Some(match old {
 						ReferendumInfo::Ongoing(status) =>
-							ReferendumInfo::Ongoing(ReferendumStatus {
+							ReferendumInfo::Ongoing(v1::ReferendumStatus {
 								end: status.end,
 								proposal: Bounded::from_legacy_hash(status.proposal),
 								threshold: status.threshold,
@@ -110,7 +140,7 @@ pub mod v1 {
 				.map(|(i, hash, a)| (i, Bounded::from_legacy_hash(hash), a))
 				.collect::<Vec<_>>();
 			let bounded = BoundedVec::<_, T::MaxProposals>::truncate_from(props.clone());
-			PublicProps::<T>::put(bounded);
+			v1::PublicProps::<T>::put(bounded);
 			weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
 
 			if props.len() as u32 > T::MaxProposals::get() {
@@ -138,9 +168,9 @@ pub mod v1 {
 
 			let (old_props_count, old_ref_count): (u32, u32) =
 				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state; qed");
-			let new_props_count = crate::PublicProps::<T>::get().len() as u32;
+			let new_props_count = v1::PublicProps::<T>::get().len() as u32;
 			assert_eq!(new_props_count, old_props_count, "must migrate all public proposals");
-			let new_ref_count = crate::ReferendumInfoOf::<T>::iter().count() as u32;
+			let new_ref_count = v1::ReferendumInfoOf::<T>::iter().count() as u32;
 			assert_eq!(new_ref_count, old_ref_count, "must migrate all referenda");
 
 			log::info!(
