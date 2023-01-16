@@ -25,6 +25,7 @@ fn simple_passing_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -44,6 +45,7 @@ fn simple_failing_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -63,12 +65,14 @@ fn ooo_inject_referendums_should_work() {
 		let r1 = Democracy::inject_referendum(
 			3,
 			set_balance_proposal(3),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		let r2 = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -95,6 +99,7 @@ fn delayed_enactment_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			1,
 		);
@@ -121,18 +126,21 @@ fn lowest_unbaked_should_be_sensible() {
 		let r1 = Democracy::inject_referendum(
 			3,
 			set_balance_proposal(1),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		let r2 = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		let r3 = Democracy::inject_referendum(
 			10,
 			set_balance_proposal(3),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);

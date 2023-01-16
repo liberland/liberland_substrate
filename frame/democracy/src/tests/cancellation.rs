@@ -25,6 +25,7 @@ fn cancel_referendum_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -49,6 +50,7 @@ fn emergency_cancel_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			2,
 		);
@@ -63,6 +65,7 @@ fn emergency_cancel_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			2,
 		);

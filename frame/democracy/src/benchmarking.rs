@@ -69,6 +69,7 @@ fn add_referendum<T: Config>(n: u32) -> (ReferendumIndex, H256) {
 		Democracy::<T>::inject_referendum(
 			T::LaunchPeriod::get(),
 			proposal,
+			DispatchOrigin::Root,
 			vote_threshold,
 			0u32.into(),
 		),

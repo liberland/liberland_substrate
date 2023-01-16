@@ -25,6 +25,13 @@ use sp_runtime::{
 	RuntimeDebug,
 };
 
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub enum DispatchOrigin {
+	Root, // Dispatches as pallet_system::RawOrigin::Root
+	Rich, // Dispatches as crate::RawOrigin::Referendum(tally, electorate)
+}
+
+
 /// Info regarding an ongoing referendum.
 #[derive(Encode, MaxEncodedLen, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Tally<Balance> {
@@ -168,6 +175,8 @@ pub struct ReferendumStatus<BlockNumber, Proposal, Balance> {
 	pub end: BlockNumber,
 	/// The proposal being voted on.
 	pub proposal: Proposal,
+	/// The origin to be used for dispatch
+	pub dispatch_origin: DispatchOrigin,
 	/// The thresholding mechanism to determine whether it passed.
 	pub threshold: VoteThreshold,
 	/// The delay (in blocks) to wait after a successful referendum before deploying.
@@ -190,10 +199,11 @@ impl<BlockNumber, Proposal, Balance: Default> ReferendumInfo<BlockNumber, Propos
 	pub fn new(
 		end: BlockNumber,
 		proposal: Proposal,
+		dispatch_origin: DispatchOrigin,
 		threshold: VoteThreshold,
 		delay: BlockNumber,
 	) -> Self {
-		let s = ReferendumStatus { end, proposal, threshold, delay, tally: Tally::default() };
+		let s = ReferendumStatus { end, proposal, dispatch_origin, threshold, delay, tally: Tally::default() };
 		ReferendumInfo::Ongoing(s)
 	}
 }
