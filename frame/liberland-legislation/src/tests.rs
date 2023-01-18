@@ -3,8 +3,8 @@ use frame_support::{assert_noop, assert_ok, error::BadOrigin, BoundedVec};
 use pallet_democracy::Tally;
 use sp_core::ConstU32;
 
-fn constitution_origin(ayes: u64, nays: u64) -> RuntimeOrigin {
-	pallet_democracy::Origin::<Test>::Referendum(Tally { ayes, nays, turnout: ayes + nays }, 1000)
+fn constitution_origin(ayes: u64, nays: u64, aye_voters: u64, nay_voters: u64) -> RuntimeOrigin {
+	pallet_democracy::Origin::<Test>::Referendum(Tally { ayes, nays, aye_voters, nay_voters, turnout: ayes + nays }, 1000)
 		.try_into()
 		.unwrap()
 }
@@ -31,7 +31,25 @@ fn add_law_requires_referendum_origin_for_constitution() {
 		);
 		assert_noop!(
 			LiberlandLegislation::add_law(
-				constitution_origin(74, 26),
+				constitution_origin(74, 26, 3, 2), // not enough votes and not enough voters
+				Constitution as u32,
+				0,
+				Default::default()
+			),
+			BadOrigin
+		);
+		assert_noop!(
+			LiberlandLegislation::add_law(
+				constitution_origin(74, 26, 3, 1), // enough voters but not enough votes
+				Constitution as u32,
+				0,
+				Default::default()
+			),
+			BadOrigin
+		);
+		assert_noop!(
+			LiberlandLegislation::add_law(
+				constitution_origin(75, 25, 3, 2), // enough votes but not enough voters
 				Constitution as u32,
 				0,
 				Default::default()
@@ -39,7 +57,7 @@ fn add_law_requires_referendum_origin_for_constitution() {
 			BadOrigin
 		);
 		assert_ok!(LiberlandLegislation::add_law(
-			constitution_origin(75, 25),
+			constitution_origin(75, 25, 3, 1),
 			Constitution as u32,
 			0,
 			Default::default()
@@ -87,7 +105,7 @@ fn add_law_tier_must_be_valid() {
 			Default::default()
 		));
 		assert_ok!(LiberlandLegislation::add_law(
-			constitution_origin(100, 0),
+			constitution_origin(100, 0, 1, 0),
 			Constitution as u32,
 			1,
 			Default::default()
