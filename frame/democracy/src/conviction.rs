@@ -117,7 +117,7 @@ impl Conviction {
 			Conviction::None => capital.checked_div(&10u8.into()).unwrap_or_else(Zero::zero),
 			x => capital.checked_mul(&u8::from(x).into()).unwrap_or_else(B::max_value),
 		};
-		Delegations { votes, capital }
+		Delegations { votes, voters: 1, capital }
 	}
 }
 

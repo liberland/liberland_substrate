@@ -42,7 +42,7 @@ fn fast_track_referendum_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SimpleMajority,
 				delay: 0,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
 			})
 		);
 	});
@@ -81,7 +81,7 @@ fn instant_referendum_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SimpleMajority,
 				delay: 0,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
 			})
 		);
 	});
@@ -125,7 +125,7 @@ fn instant_next_block_referendum_backed() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SimpleMajority,
 				delay,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
 			})
 		);
 
