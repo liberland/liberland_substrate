@@ -27,10 +27,10 @@ sp-std = { version = "4.0.0", default-features = false, branch = "polkadot-v0.9.
 sp-io = { version = "6.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 sp-runtime = { version = "6.0.0", default-features = false, branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-llm = { default-features = false, path = "../llm" }
-pallet-democracy = { default-features = false, path = "../democracy" }
 
 [dev-dependencies]
 pallet-balances = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
+pallet-democracy = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-identity = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-assets = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }
 pallet-scheduler = { branch = "polkadot-v0.9.33", git = "https://github.com/paritytech/substrate" }

@@ -96,6 +96,8 @@ pub mod pallet {
 		/// Number of vetos collected didn't meet the requirements for given
 		/// tier.
 		InsufficientVetoCount,
+		/// Given action cannot be done on given (tier, index).
+		ProtectedLegislation,
 	}
 
 	#[derive(Clone, Copy)]
@@ -219,6 +221,9 @@ pub mod pallet {
 
 			if tier == Constitution as u32 {
 				T::ConstitutionOrigin::ensure_origin(origin)?;
+				if index == 0 {
+					return Err(Error::<T>::ProtectedLegislation.into());
+				}
 			} else {
 				ensure_root(origin)?;
 			}
