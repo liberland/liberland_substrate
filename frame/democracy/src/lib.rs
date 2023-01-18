@@ -1640,8 +1640,15 @@ impl<
 	fn try_origin(o: O) -> Result<Self::Success, O> {
 		let n: BalanceOf<T> = N.into();
 		let d: BalanceOf<T> = D.into();
+		let votes_passing = |t: &Tally<BalanceOf<T>>| {
+			t.ayes * d >= n * (t.ayes + t.nays)
+		};
+		let voters_passing = |t: &Tally<BalanceOf<T>>| {
+			t.aye_voters * D as u64 >= N as u64 * (t.aye_voters + t.nay_voters)
+		};
 		o.into().and_then(|o| match o {
-			RawOrigin::Referendum(t, _electorate) if t.ayes * d >= n * (t.ayes + t.nays) => Ok(()),
+			RawOrigin::Referendum(t, _electorate) if votes_passing(&t) && voters_passing(&t) =>
+				Ok(()),
 			r => Err(O::from(r)),
 		})
 	}

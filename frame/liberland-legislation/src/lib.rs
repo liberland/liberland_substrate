@@ -189,7 +189,6 @@ pub mod pallet {
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 
 			if tier == Constitution as u32 {
-				println!("Checking constitution origin!");
 				T::ConstitutionOrigin::ensure_origin(origin)?;
 			} else {
 				ensure_root(origin)?;
