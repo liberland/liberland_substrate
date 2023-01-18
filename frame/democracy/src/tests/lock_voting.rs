@@ -53,7 +53,7 @@ fn lock_voting_should_work() {
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 4000)));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
-		assert_eq!(tally(r), Tally { ayes: 25000, nays: 10000, turnout: 15000 });
+		assert_eq!(tally(r), Tally { ayes: 25000, nays: 10000, turnout: 15000, aye_voters: 3, nay_voters: 2 });
 
 		// Liberland specific - voting shouldn't lock balances
 		for i in 1..=5 {
@@ -159,7 +159,7 @@ fn lock_voting_should_work_with_delegation() {
 		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 4000));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
 
-		assert_eq!(tally(r), Tally { ayes: 25000, nays: 10000, turnout: 15000 });
+		assert_eq!(tally(r), Tally { ayes: 25000, nays: 10000, turnout: 15000, aye_voters: 3, nay_voters: 2 });
 
 		next_block();
 		next_block();
