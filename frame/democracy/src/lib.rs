@@ -161,7 +161,7 @@ use frame_support::{
 	ensure,
 	traits::{
 		defensive_prelude::*,
-		EnsureOrigin,
+		EnsureOrigin, OnRuntimeUpgrade,
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
 		Bounded, Currency, Get, LockIdentifier, LockableCurrency, QueryPreimage,
 		ReservableCurrency, StorePreimage,
@@ -227,7 +227,7 @@ pub mod pallet {
 	use sp_core::H256;
 
 	/// The current storage version.
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -559,6 +559,20 @@ pub mod pallet {
 		/// Weight: see `begin_block`
 		fn on_initialize(n: T::BlockNumber) -> Weight {
 			Self::begin_block(n)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+			migrations::v2::Migration::<T>::pre_upgrade()
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			migrations::v2::Migration::<T>::on_runtime_upgrade()
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+			migrations::v2::Migration::<T>::post_upgrade(state)
 		}
 	}
 
