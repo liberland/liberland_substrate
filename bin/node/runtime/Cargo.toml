@@ -192,6 +192,8 @@ std = [
 	"frame-try-runtime?/std",
 	"sp-io/std",
 	"pallet-child-bounties/std",
+	"pallet-llm/std",
+	"pallet-liberland-legislation/std",
 	"pallet-liberland-initializer/std",
 ]
 runtime-benchmarks = [
@@ -291,6 +293,9 @@ try-runtime = [
 	"pallet-uniques/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
+	"pallet-llm/try-runtime",
+	"pallet-liberland-legislation/try-runtime",
+	"pallet-liberland-initializer/try-runtime",
 ]
 # Make contract callable functions marked as __unstable__ available. Do not enable
 # on live chains as those are subject to change.
