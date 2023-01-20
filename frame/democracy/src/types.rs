@@ -21,7 +21,7 @@ use crate::{AccountVote, Conviction, Vote, VoteThreshold};
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, Zero},
+	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, Zero, AtLeast32BitUnsigned},
 	RuntimeDebug,
 };
 
@@ -39,9 +39,9 @@ pub struct Tally<Balance> {
 	pub ayes: Balance,
 	/// The number of nay votes, expressed in terms of post-conviction lock-vote.
 	pub nays: Balance,
-	/// The number of aye voters
+	/// The number of aye voters - stored x10000 to support split votes and partial voters
 	pub aye_voters: u64,
-	/// The number of nay voters
+	/// The number of nay voters - stored x10000 to support split votes and partial voters
 	pub nay_voters: u64,
 	/// The amount of funds currently expressing its opinion. Pre-conviction.
 	pub turnout: Balance,
@@ -87,6 +87,7 @@ impl<Balance: Saturating> Saturating for Delegations<Balance> {
 
 impl<
 		Balance: From<u8>
+			+ AtLeast32BitUnsigned
 			+ Zero
 			+ Copy
 			+ CheckedAdd
@@ -103,8 +104,8 @@ impl<
 		Self {
 			ayes: if vote.aye { votes } else { Zero::zero() },
 			nays: if vote.aye { Zero::zero() } else { votes },
-			aye_voters: if vote.aye { voters } else { 0 },
-			nay_voters: if vote.aye { 0 } else { voters },
+			aye_voters: if vote.aye { voters*10000 } else { 0 },
+			nay_voters: if vote.aye { 0 } else { voters*10000 },
 			turnout: capital,
 		}
 	}
@@ -118,11 +119,11 @@ impl<
 				match vote.aye {
 					true => {
 						self.ayes = self.ayes.checked_add(&votes)?;
-						self.aye_voters = self.aye_voters.checked_add(voters)?;
+						self.aye_voters = self.aye_voters.checked_add(voters*10000)?;
 					},
 					false => {
 						self.nays = self.nays.checked_add(&votes)?;
-						self.nay_voters = self.nay_voters.checked_add(voters)?;
+						self.nay_voters = self.nay_voters.checked_add(voters*10000)?;
 					}
 				}
 			},
@@ -132,7 +133,16 @@ impl<
 				self.turnout = self.turnout.checked_add(&aye.capital)?.checked_add(&nay.capital)?;
 				self.ayes = self.ayes.checked_add(&aye.votes)?;
 				self.nays = self.nays.checked_add(&nay.votes)?;
-				// FIXME voters?
+				let multiplier: Balance = 10000u32.into();
+				let sum: Balance = aye.votes.checked_add(&nay.votes)?;
+				self.aye_voters = self.aye_voters.checked_add(
+					<Balance as TryInto<u64>>::try_into(
+						multiplier.checked_mul(&aye.votes)?
+							.checked_div(&sum)?).ok()?)?;
+				self.nay_voters = self.nay_voters.checked_add(
+					<Balance as TryInto<u64>>::try_into(
+						multiplier.checked_mul(&nay.votes)?
+							.checked_div(&sum)?).ok()?)?;
 			},
 		}
 		Some(())
@@ -147,11 +157,11 @@ impl<
 				match vote.aye {
 					true => {
 						self.ayes = self.ayes.checked_sub(&votes)?;
-						self.aye_voters = self.aye_voters.checked_sub(voters)?;
+						self.aye_voters = self.aye_voters.checked_sub(voters*10000)?;
 					},
 					false => {
 						self.nays = self.nays.checked_sub(&votes)?;
-						self.nay_voters = self.nay_voters.checked_sub(voters)?;
+						self.nay_voters = self.nay_voters.checked_sub(voters*10000)?;
 					}
 				}
 			},
@@ -161,7 +171,15 @@ impl<
 				self.turnout = self.turnout.checked_sub(&aye.capital)?.checked_sub(&nay.capital)?;
 				self.ayes = self.ayes.checked_sub(&aye.votes)?;
 				self.nays = self.nays.checked_sub(&nay.votes)?;
-				// FIXME voters
+				let multiplier: Balance = 10000u32.into();
+				self.aye_voters = self.aye_voters.checked_sub(
+					<Balance as TryInto<u64>>::try_into(
+						multiplier.checked_mul(&aye.votes)?
+							.checked_div(&aye.votes.checked_add(&nay.votes)?)?).ok()?)?;
+				self.nay_voters = self.nay_voters.checked_sub(
+					<Balance as TryInto<u64>>::try_into(
+						multiplier.checked_mul(&nay.votes)?
+							.checked_div(&aye.votes.checked_add(&nay.votes)?)?).ok()?)?;
 			},
 		}
 		Some(())
@@ -173,11 +191,11 @@ impl<
 		match approve {
 			true => {
 				self.ayes = self.ayes.saturating_add(delegations.votes);
-				self.aye_voters = self.aye_voters.saturating_add(delegations.voters);
+				self.aye_voters = self.aye_voters.saturating_add(delegations.voters*10000);
 			},
 			false => {
 				self.nays = self.nays.saturating_add(delegations.votes);
-				self.nay_voters = self.nay_voters.saturating_add(delegations.voters);
+				self.nay_voters = self.nay_voters.saturating_add(delegations.voters*10000);
 			},
 		}
 		Some(())
@@ -189,11 +207,11 @@ impl<
 		match approve {
 			true => {
 				self.ayes = self.ayes.saturating_sub(delegations.votes);
-				self.aye_voters = self.aye_voters.saturating_sub(delegations.voters);
+				self.aye_voters = self.aye_voters.saturating_sub(delegations.voters*10000);
 			},
 			false => {
 				self.nays = self.nays.saturating_sub(delegations.votes);
-				self.nay_voters = self.nay_voters.saturating_sub(delegations.voters);
+				self.nay_voters = self.nay_voters.saturating_sub(delegations.voters*10000);
 			},
 		}
 		Some(())
