@@ -112,7 +112,7 @@ fn external_referendum_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
@@ -139,7 +139,7 @@ fn external_majority_referendum_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SimpleMajority,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
@@ -166,7 +166,7 @@ fn external_default_referendum_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityAgainst,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
@@ -190,7 +190,7 @@ fn external_and_public_interleaving_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish external
@@ -207,7 +207,7 @@ fn external_and_public_interleaving_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// don't replenish public
@@ -223,7 +223,7 @@ fn external_and_public_interleaving_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish external
@@ -240,7 +240,7 @@ fn external_and_public_interleaving_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish both
@@ -258,7 +258,7 @@ fn external_and_public_interleaving_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish public again
@@ -278,7 +278,7 @@ fn external_and_public_interleaving_works() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 0, nay_voters: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
