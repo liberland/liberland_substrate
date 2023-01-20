@@ -194,6 +194,7 @@ impl pallet_liberland_legislation::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
+	type InternationalTreatyOrigin = EnsureSignedBy<One, u64>;
 }
 
 // Build genesis storage according to the mock runtime.

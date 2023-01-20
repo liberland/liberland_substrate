@@ -8,6 +8,37 @@ fn constitution_origin(ayes: u64, nays: u64, aye_voters: u64, nay_voters: u64) -
 		.try_into()
 		.unwrap()
 }
+
+#[test]
+fn add_law_requires_special_origin_for_treaty() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			LiberlandLegislation::add_law(
+				RuntimeOrigin::signed(5),
+				InternationalTreaty as u32,
+				0,
+				Default::default()
+			),
+			BadOrigin
+		);
+		assert_noop!(
+			LiberlandLegislation::add_law(
+				RuntimeOrigin::root(),
+				InternationalTreaty as u32,
+				0,
+				Default::default()
+			),
+			BadOrigin
+		);
+		assert_ok!(LiberlandLegislation::add_law(
+			RuntimeOrigin::signed(1),
+			InternationalTreaty as u32,
+			0,
+			Default::default()
+		));
+	});
+}
+
 #[test]
 fn add_law_requires_referendum_origin_for_constitution() {
 	new_test_ext().execute_with(|| {
@@ -71,7 +102,7 @@ fn add_law_requires_root() {
 		assert_noop!(
 			LiberlandLegislation::add_law(
 				RuntimeOrigin::signed(5),
-				InternationalTreaty as u32,
+				Decision as u32,
 				0,
 				Default::default()
 			),
@@ -79,7 +110,7 @@ fn add_law_requires_root() {
 		);
 		assert_ok!(LiberlandLegislation::add_law(
 			RuntimeOrigin::root(),
-			InternationalTreaty as u32,
+			Decision as u32,
 			0,
 			Default::default()
 		));
@@ -116,9 +147,9 @@ fn add_law_tier_must_be_valid() {
 #[test]
 fn cannot_overwrite_law() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 1, 0, Default::default()));
+		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 2, 0, Default::default()));
 		assert_noop!(
-			LiberlandLegislation::add_law(RuntimeOrigin::root(), 1, 0, Default::default()),
+			LiberlandLegislation::add_law(RuntimeOrigin::root(), 2, 0, Default::default()),
 			Error::<Test>::LawAlreadyExists
 		);
 	});
@@ -127,8 +158,8 @@ fn cannot_overwrite_law() {
 #[test]
 fn add_law_deposits_event() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 1, 0, Default::default()));
-		System::assert_last_event(super::Event::LawAdded { tier: 1, index: 0 }.into());
+		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 2, 0, Default::default()));
+		System::assert_last_event(super::Event::LawAdded { tier: 2, index: 0 }.into());
 	});
 }
 
@@ -136,16 +167,16 @@ fn add_law_deposits_event() {
 fn add_law_stores_correct_data() {
 	new_test_ext().execute_with(|| {
 		let content: BoundedVec<u8, ConstU32<65536>> = vec![1, 2, 3].try_into().unwrap();
-		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 1, 0, content.clone()));
-		assert_eq!(content, Laws::<Test>::get(1, 0));
+		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 2, 0, content.clone()));
+		assert_eq!(content, Laws::<Test>::get(2, 0));
 	});
 }
 
 #[test]
 fn repeal_law_requires_root() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(LiberlandLegislation::repeal_law(RuntimeOrigin::signed(5), 1, 0), BadOrigin);
-		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 1, 0));
+		assert_noop!(LiberlandLegislation::repeal_law(RuntimeOrigin::signed(5), 2, 0), BadOrigin);
+		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 2, 0));
 	});
 }
 
@@ -154,9 +185,9 @@ fn data_disappears_after_repeal() {
 	new_test_ext().execute_with(|| {
 		let content: BoundedVec<u8, ConstU32<65536>> = vec![1, 2, 3].try_into().unwrap();
 		let empty: BoundedVec<u8, ConstU32<65536>> = Default::default();
-		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 1, 0, content.clone()));
-		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 1, 0));
-		assert_eq!(empty, Laws::<Test>::get(0, 0));
+		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 2, 0, content.clone()));
+		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 2, 0));
+		assert_eq!(empty, Laws::<Test>::get(2, 0));
 	});
 }
 
@@ -164,9 +195,9 @@ fn data_disappears_after_repeal() {
 fn allows_repeal_of_unexisting_law() {
 	new_test_ext().execute_with(|| {
 		let empty: BoundedVec<u8, ConstU32<65536>> = Default::default();
-		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 1, 0));
-		assert_eq!(empty, Laws::<Test>::get(1, 0));
-		System::assert_last_event(super::Event::LawRepealed { tier: 1, index: 0 }.into());
+		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 2, 0));
+		assert_eq!(empty, Laws::<Test>::get(2, 0));
+		System::assert_last_event(super::Event::LawRepealed { tier: 2, index: 0 }.into());
 	});
 }
 
@@ -174,9 +205,9 @@ fn allows_repeal_of_unexisting_law() {
 fn repeal_deposits_event() {
 	new_test_ext().execute_with(|| {
 		let content: BoundedVec<u8, ConstU32<65536>> = vec![1, 2, 3].try_into().unwrap();
-		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 1, 0, content.clone()));
-		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 1, 0));
-		System::assert_last_event(super::Event::LawRepealed { tier: 1, index: 0 }.into());
+		assert_ok!(LiberlandLegislation::add_law(RuntimeOrigin::root(), 2, 0, content.clone()));
+		assert_ok!(LiberlandLegislation::repeal_law(RuntimeOrigin::root(), 2, 0));
+		System::assert_last_event(super::Event::LawRepealed { tier: 2, index: 0 }.into());
 	});
 }
 
@@ -185,14 +216,6 @@ fn cant_headcount_veto_low_tiers() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			LiberlandLegislation::submit_veto(RuntimeOrigin::signed(0), Constitution as u32, 0),
-			Error::<Test>::InvalidTier
-		);
-		assert_noop!(
-			LiberlandLegislation::submit_veto(
-				RuntimeOrigin::signed(0),
-				InternationalTreaty as u32,
-				0
-			),
 			Error::<Test>::InvalidTier
 		);
 	});
