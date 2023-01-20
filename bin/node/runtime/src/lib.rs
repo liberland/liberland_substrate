@@ -1494,6 +1494,7 @@ impl pallet_liberland_legislation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
+	type InternationalTreatyOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>; // FIXME what ratio?
 }
 
 impl pallet_state_trie_migration::Config for Runtime {

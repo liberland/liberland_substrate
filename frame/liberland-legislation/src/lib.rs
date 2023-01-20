@@ -68,6 +68,7 @@ pub mod pallet {
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 
 		type ConstitutionOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		type InternationalTreatyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	#[pallet::event]
@@ -190,10 +191,10 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 
-			if tier == Constitution as u32 {
-				T::ConstitutionOrigin::ensure_origin(origin)?;
-			} else {
-				ensure_root(origin)?;
+			match tier.into() {
+				Constitution => { T::ConstitutionOrigin::ensure_origin(origin)?; },
+				InternationalTreaty => { T::InternationalTreatyOrigin::ensure_origin(origin)?; },
+				_ => { ensure_root(origin)?; },
 			}
 
 			ensure!(!Laws::<T>::contains_key(&tier, &index), Error::<T>::LawAlreadyExists);
@@ -219,13 +220,15 @@ pub mod pallet {
 		pub fn repeal_law(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 
-			if tier == Constitution as u32 {
-				T::ConstitutionOrigin::ensure_origin(origin)?;
-				if index == 0 {
-					return Err(Error::<T>::ProtectedLegislation.into());
-				}
-			} else {
-				ensure_root(origin)?;
+			match tier.into() {
+				Constitution => {
+					T::ConstitutionOrigin::ensure_origin(origin)?;
+					if index == 0 {
+						return Err(Error::<T>::ProtectedLegislation.into());
+					}
+				},
+				InternationalTreaty => { T::InternationalTreatyOrigin::ensure_origin(origin)?; },
+				_ => { ensure_root(origin)?; },
 			}
 
 			Laws::<T>::remove(&tier, &index);
@@ -249,7 +252,6 @@ pub mod pallet {
 		pub fn submit_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
-			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 			ensure!(Citizenship::<T>::is_citizen(&account), Error::<T>::NonCitizen);
 			let key = (tier, index, &account);
@@ -303,10 +305,10 @@ pub mod pallet {
 			ensure_signed(origin)?;
 
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
-			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 
 			let citizens = Citizenship::<T>::citizens_count();
 			let required = match tier.into() {
+				InternationalTreaty => citizens / 2 + 1,
 				Tier2 => citizens / 2 + 1,
 				Tier3 => citizens / 2 + 1,
 				Tier4 => citizens / 2 + 1,
