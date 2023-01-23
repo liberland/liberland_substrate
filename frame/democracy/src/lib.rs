@@ -597,7 +597,17 @@ pub mod pallet {
 			Self::do_propose(who, proposal, value, DispatchOrigin::Root)
 		}
 
-		/// FIXME docs
+		/// Propose a sensitive action to be taken.
+		///
+		/// The dispatch origin of this call must be _Signed_ and the sender must
+		/// have funds to cover the deposit.
+		///
+		/// - `proposal_hash`: The hash of the proposal preimage.
+		/// - `value`: The amount of deposit (must be at least `MinimumDeposit`).
+		///
+		/// Action will be dispatched with pallet_democracy::RawOrigin::Referendum origin.
+		/// 
+		/// Emits `Proposed`.
 		#[pallet::weight(T::WeightInfo::propose())]
 		pub fn propose_rich_origin(
 			origin: OriginFor<T>,

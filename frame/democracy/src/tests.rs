@@ -193,6 +193,7 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const ASSETID: u32 = 0u32;
+	pub const CitizenshipMinimum: u64 = 5000u64;
 }
 
 impl pallet_liberland_initializer::Config for Test {}
@@ -201,6 +202,7 @@ impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 	type AssetId = u32;
 }
 
