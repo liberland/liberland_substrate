@@ -46,7 +46,7 @@ fn split_voting_should_work() {
 		let v = AccountVote::Split { aye: 4000, nay: 1000 };
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, v));
 
-		assert_eq!(tally(r), Tally { ayes: 400, nays: 100, turnout: 5000, aye_voters: 6000, nay_voters: 4000 });
+		assert_eq!(tally(r), Tally { ayes: 400, nays: 100, turnout: 5000, aye_voters: 8000, nay_voters: 2000 });
 	});
 }
 

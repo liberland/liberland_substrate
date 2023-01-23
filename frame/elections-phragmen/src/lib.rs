@@ -1244,7 +1244,7 @@ mod tests {
 	parameter_types! {
 		pub const TOTALLLM: u64 = 70000000u64;
 		pub const PRERELEASELLM: u64 = 7000000u64;
-		pub const ASSETID: u32 = 0u32;
+		pub const CitizenshipMinimum: u64 = 5000u64;
 	}
 
 	impl pallet_liberland_initializer::Config for Test {}
@@ -1254,6 +1254,7 @@ mod tests {
 		type TotalSupply = TOTALLLM;
 		type PreReleasedAmount = PRERELEASELLM;
 		type AssetId = u32;
+		type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 	}
 	pub struct TestChangeMembers;
 	impl ChangeMembers<u64> for TestChangeMembers {
@@ -1650,7 +1651,7 @@ mod tests {
 	fn genesis_members_cannot_over_stake_0() {
 		// 10 cannot lock 20 as their stake and extra genesis will panic.
 		ExtBuilder::default()
-			.genesis_members(vec![(1, 20), (2, 20)])
+			.genesis_members(vec![(1, 7000), (2, 20)])
 			.build_and_execute(|| {});
 	}
 

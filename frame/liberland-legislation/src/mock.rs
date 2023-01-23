@@ -103,7 +103,6 @@ impl pallet_democracy::Config for Test {
 	type CancelProposalOrigin = EnsureRoot<u64>;
 	type VetoOrigin = EnsureSignedBy<Two, u64>;
 	type CooloffPeriod = ConstU64<2>;
-	type Slash = ();
 	type InstantOrigin = EnsureSignedBy<Two, u64>;
 	type InstantAllowed = ();
 	type Scheduler = Scheduler;
@@ -180,7 +179,7 @@ impl pallet_liberland_initializer::Config for Test {}
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
-	pub const ASSETID: u32 = 0u32;
+	pub const CitizenshipMinimum: u64 = 5000u64;
 }
 
 impl pallet_llm::Config for Test {
@@ -188,6 +187,7 @@ impl pallet_llm::Config for Test {
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type AssetId = u32;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 }
 
 impl pallet_liberland_legislation::Config for Test {
