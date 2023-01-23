@@ -31,6 +31,7 @@ impl pallet_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = u64;
 	type AssetId = u32;
+	type AssetIdParameter = codec::Compact<u32>;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<u64>;
 	type AssetDeposit = ConstU64<1>;
@@ -43,6 +44,9 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 	type Extra = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type RemoveItemsLimit = ConstU32<1000>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 parameter_types! {

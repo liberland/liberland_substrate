@@ -4,6 +4,7 @@ use crate::{
 	Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease, Withdrawlock,
 	WithdrawlockDuration,
 };
+use codec::Compact;
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use hex_literal::hex;
 
@@ -363,8 +364,8 @@ fn releases_correct_amounts() {
 		let vault = LLM::get_llm_vault_account();
 
 		// undo fake sends
-		Assets::transfer(RuntimeOrigin::signed(1), 1, vault, 10).unwrap();
-		Assets::transfer(RuntimeOrigin::signed(2), 1, vault, 20).unwrap();
+		Assets::transfer(RuntimeOrigin::signed(1), Compact(1), vault, 10).unwrap();
+		Assets::transfer(RuntimeOrigin::signed(2), Compact(1), vault, 20).unwrap();
 
 		assert_eq!(Assets::balance(id, treasury), 7_000_000);
 		assert_eq!(Assets::balance(id, vault), 63_000_000);
