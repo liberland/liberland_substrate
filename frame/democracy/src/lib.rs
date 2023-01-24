@@ -162,7 +162,7 @@ use frame_support::{
 	traits::{
 		defensive_prelude::*,
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
-		Bounded, Currency, Get, LockIdentifier, LockableCurrency, OnUnbalanced, QueryPreimage,
+		Bounded, Currency, Get, LockIdentifier, LockableCurrency, QueryPreimage,
 		ReservableCurrency, StorePreimage,
 	},
 	weights::Weight,
@@ -205,9 +205,6 @@ pub type ReferendumIndex = u32;
 
 type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
-	<T as frame_system::Config>::AccountId,
->>::NegativeImbalance;
 pub type CallOf<T> = <T as frame_system::Config>::RuntimeCall;
 pub type BoundedCallOf<T> = Bounded<CallOf<T>>;
 type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
@@ -344,9 +341,6 @@ pub mod pallet {
 
 		/// Overarching type of all pallets origins.
 		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
-
-		/// Handler for the unbalanced reduction when slashing a preimage deposit.
-		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
@@ -1032,11 +1026,7 @@ pub mod pallet {
 			PublicProps::<T>::mutate(|props| {
 				if let Some(index) = props.iter().position(|p| p.1.hash() == proposal_hash) {
 					let (prop_index, ..) = props.remove(index);
-					if let Some((whos, amount)) = DepositOf::<T>::take(prop_index) {
-						for who in whos.into_iter() {
-							T::Slash::on_unbalanced(T::Currency::slash_reserved(&who, amount).0);
-						}
-					}
+					DepositOf::<T>::take(prop_index);
 				}
 			});
 
@@ -1073,11 +1063,7 @@ pub mod pallet {
 			T::CancelProposalOrigin::ensure_origin(origin)?;
 
 			PublicProps::<T>::mutate(|props| props.retain(|p| p.0 != prop_index));
-			if let Some((whos, amount)) = DepositOf::<T>::take(prop_index) {
-				for who in whos.into_iter() {
-					T::Slash::on_unbalanced(T::Currency::slash_reserved(&who, amount).0);
-				}
-			}
+			DepositOf::<T>::take(prop_index);
 
 			Self::deposit_event(Event::<T>::ProposalCanceled { prop_index });
 			Ok(())
@@ -1400,13 +1386,10 @@ impl<T: Config> Pallet<T> {
 	/// Rejig the lock on an account. It will never get more stringent (since that would indicate
 	/// a security hole) but may be reduced from what they are currently.
 	fn update_lock(who: &T::AccountId) {
-		let lock_needed = VotingOf::<T>::mutate(who, |voting| {
+		VotingOf::<T>::mutate(who, |voting| {
 			voting.rejig(frame_system::Pallet::<T>::block_number());
 			voting.locked_balance()
 		});
-		if lock_needed.is_zero() {
-			T::Currency::remove_lock(DEMOCRACY_ID, who);
-		}
 	}
 
 	/// Start a referendum

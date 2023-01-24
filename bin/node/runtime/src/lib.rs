@@ -886,7 +886,6 @@ impl pallet_democracy::Config for Runtime {
 	// only do it once and it lasts only for the cool-off period.
 	type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
 	type CooloffPeriod = CooloffPeriod;
-	type Slash = Treasury;
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
 	type MaxVotes = ConstU32<100>;
@@ -1532,7 +1531,6 @@ construct_runtime!(
 		Democracy: pallet_democracy,
 		Council: pallet_collective::<Instance1>,
 		TechnicalCommittee: pallet_collective::<Instance2>,
-		Elections: pallet_elections_phragmen,
 		TechnicalMembership: pallet_membership::<Instance1>,
 		Grandpa: pallet_grandpa,
 		Treasury: pallet_treasury,
@@ -1568,6 +1566,7 @@ construct_runtime!(
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
 		LiberlandLegislation: pallet_liberland_legislation,
 		LiberlandInitializer: pallet_liberland_initializer,
+		Elections: pallet_elections_phragmen,
 	}
 );
 

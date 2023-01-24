@@ -300,6 +300,7 @@ pub fn testnet_genesis(
 
 	const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
 	const STASH: Balance = ENDOWMENT / 1000;
+	const INITIAL_STAKE: Balance = 5000 * GRAINS_IN_LLM;
 
 
 	// Add Prefunded accounts
@@ -366,7 +367,7 @@ pub fn testnet_genesis(
 				.iter()
 				.take((num_endowed_accounts + 1) / 2)
 				.cloned()
-				.map(|member| (member, STASH))
+				.map(|member| (member, INITIAL_STAKE))
 				.collect(),
 		},
 		council: CouncilConfig::default(),
@@ -448,14 +449,21 @@ pub fn development_config() -> ChainSpec {
 }
 
 fn local_testnet_genesis() -> GenesisConfig {
+	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
+	let total_llm = 6000 * GRAINS_IN_LLM;
+	let locked_llm = 5000 * GRAINS_IN_LLM;
 	testnet_genesis(
 		vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob"), authority_keys_from_seed("Charlie")],
 		vec![],
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,
 		None,
-		None,
-		vec![],
+		Some(alice.clone()),
+		vec![
+			(alice, total_llm, locked_llm),
+			(get_account_id_from_seed::<sr25519::Public>("Bob"), total_llm, locked_llm),
+			(get_account_id_from_seed::<sr25519::Public>("Charlie"), total_llm, locked_llm),
+		],
 		None,
 	)
 }

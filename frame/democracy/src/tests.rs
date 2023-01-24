@@ -246,7 +246,6 @@ impl Config for Test {
 	type CancelProposalOrigin = EnsureRoot<u64>;
 	type VetoOrigin = EnsureSignedBy<OneToFive, u64>;
 	type CooloffPeriod = ConstU64<2>;
-	type Slash = ();
 	type InstantOrigin = EnsureSignedBy<Six, u64>;
 	type InstantAllowed = InstantAllowed;
 	type Scheduler = Scheduler;
