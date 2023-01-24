@@ -573,7 +573,7 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 
 			ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
 
@@ -617,7 +617,7 @@ pub mod pallet {
 			#[pallet::compact] proposal: PropIndex,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 
 			let seconds = Self::len_of_deposit_of(proposal).ok_or(Error::<T>::ProposalMissing)?;
 			ensure!(seconds < T::MaxDeposits::get(), Error::<T>::TooMany);
@@ -645,7 +645,7 @@ pub mod pallet {
 			vote: AccountVote<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 			Self::try_vote(&who, ref_index, vote)
 		}
 
@@ -811,7 +811,7 @@ pub mod pallet {
 		pub fn veto_external(origin: OriginFor<T>, proposal_hash: H256) -> DispatchResult {
 			T::VetoOrigin::ensure_origin(origin.clone())?;
 			let who = ensure_signed(origin)?; // FIXME probably should either check for signed or for VetoOrigin, not both?
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 			if let Some((ext_proposal, _)) = NextExternal::<T>::get() {
 				ensure!(proposal_hash == ext_proposal.hash(), Error::<T>::ProposalMissing);
 			} else {
@@ -882,7 +882,7 @@ pub mod pallet {
 			balance: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 			let to = T::Lookup::lookup(to)?;
 			let votes = Self::try_delegate(who, to, conviction, balance)?;
 
@@ -932,7 +932,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::unlock_set(T::MaxVotes::get()).max(T::WeightInfo::unlock_remove(T::MaxVotes::get())))]
 		pub fn unlock(origin: OriginFor<T>, target: AccountIdLookupOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 			let target = T::Lookup::lookup(target)?;
 			Self::update_lock(&target);
 			Ok(())
@@ -968,7 +968,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::remove_vote(T::MaxVotes::get()))]
 		pub fn remove_vote(origin: OriginFor<T>, index: ReferendumIndex) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 			Self::try_remove_vote(&who, index, UnvoteScope::Any)
 		}
 
@@ -995,7 +995,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let target = T::Lookup::lookup(target)?;
-			T::Citizenship::ensure_democracy_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 			let scope = if target == who { UnvoteScope::Any } else { UnvoteScope::OnlyExpired };
 			Self::try_remove_vote(&target, index, scope)?;
 			Ok(())

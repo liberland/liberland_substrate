@@ -119,11 +119,9 @@
 //! LLM pallet implements CitizenshipChecker trait with following functions available for other
 //! pallets:
 //!
-//! * `ensure_democracy_allowed`: Checks if given account can participate in democracy actions. It
-//!   verifies that it's a valid citizen, doesn't have election rights locked and has some LLM
-//!   locked in politics.
-//! * `ensure_elections_allowed`: Checks if given account can participate in election actions. It
-//!   verifies that it's a valid citizen, doesn't have election rights locked.
+//! * `ensure_politics_allowed`: Checks if given account can participate in
+//! politics actions. It verifies that it's a valid citizen, doesn't have
+//! election rights locked and has 5000 LLM locked in politics.
 //!
 //! License: MIT
 
@@ -634,7 +632,11 @@ pub mod pallet {
 
 	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
-			Self::get_llm_politics(account) > 0u8.into()
+			let minimum = match 5_000_000_000_000_000u64.try_into() {
+				Ok(m) => m,
+				_ => panic!("Configured Balance type for pallet_assets can't fit u64 values required by pallet_llm!")
+			};
+			LLMPolitics::<T>::get(account) >= minimum
 		}
 
 		fn is_election_unlocked(account: &T::AccountId) -> bool {
@@ -678,16 +680,10 @@ pub mod pallet {
 	}
 
 	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
-		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+		fn ensure_politics_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
-			Ok(())
-		}
-
-		fn ensure_elections_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
-			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
-			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			Ok(())
 		}
 

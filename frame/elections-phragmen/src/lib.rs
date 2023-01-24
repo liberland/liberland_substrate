@@ -338,7 +338,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			log::info!("vote called");
-			T::Citizenship::ensure_elections_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 
 			// votes should not be empty and more than `MAXIMUM_VOTE` in any case.
 			ensure!(votes.len() <= MAXIMUM_VOTE, Error::<T>::MaximumVotesExceeded);
@@ -422,7 +422,7 @@ pub mod pallet {
 			#[pallet::compact] candidate_count: u32,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_elections_allowed(&who)?;
+			T::Citizenship::ensure_politics_allowed(&who)?;
 
 			let actual_count = <Candidates<T>>::decode_len().unwrap_or(0) as u32;
 			ensure!(actual_count <= candidate_count, Error::<T>::InvalidWitnessData);
@@ -1466,7 +1466,7 @@ mod tests {
 				(6, 60 * self.balance_factor),
 				(7, 1),
 			];
-			let llm_balances = balances.iter().map(|(id, b)| (*id, *b, *b)).collect();
+			let llm_balances = balances.iter().map(|(id, _)| (*id, 6000, 5000)).collect();
 
 			let mut ext: sp_io::TestExternalities = GenesisConfig {
 				balances: pallet_balances::GenesisConfig::<Test> { balances: balances.clone() },
