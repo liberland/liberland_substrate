@@ -148,6 +148,19 @@ pub mod pallet {
 		bool,
 	>;
 
+	/// VetosCount
+	#[pallet::storage]
+	#[pallet::getter(fn vetos_count)]
+	pub(super) type VetosCount<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		u32,
+		Blake2_128Concat,
+		u32,
+		u64,
+		ValueQuery,
+	>;
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Add a new legislation.
@@ -220,8 +233,12 @@ pub mod pallet {
 			ensure!(tier != InternationalTreaty as u32, Error::<T>::InvalidTier);
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 			ensure!(T::Citizenship::is_citizen(&account), Error::<T>::NonCitizen);
-			Vetos::<T>::insert((tier, index, &account), true);
-			Self::deposit_event(Event::<T>::VetoSubmitted { tier, index, account });
+			let key = (tier, index, &account);
+			if !Vetos::<T>::contains_key(key) {
+				VetosCount::<T>::mutate(tier, index, |x| *x = *x + 1);
+				Vetos::<T>::insert(key, true);
+				Self::deposit_event(Event::<T>::VetoSubmitted { tier, index, account });
+			}
 			Ok(())
 		}
 
@@ -236,8 +253,12 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn revert_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
-			Vetos::<T>::remove((&tier, &index, &account));
-			Self::deposit_event(Event::<T>::VetoReverted { tier, index, account });
+			let key = (&tier, &index, &account);
+			if Vetos::<T>::contains_key(key) {
+				VetosCount::<T>::mutate(tier, index, |x| *x = *x - 1);
+				Vetos::<T>::remove(key);
+				Self::deposit_event(Event::<T>::VetoReverted { tier, index, account });
+			}
 			Ok(())
 		}
 
@@ -297,6 +318,7 @@ pub mod pallet {
 			while let Some(cursor) = res.maybe_cursor {
 				res = Vetos::<T>::clear_prefix((tier, index), u32::MAX, Some(&cursor));
 			}
+			VetosCount::<T>::remove(tier, index);
 
 			Ok(())
 		}

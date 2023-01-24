@@ -1,4 +1,4 @@
-use crate::{mock::*, Error, Laws, LegislationTier::*};
+use crate::{mock::*, Error, Laws, VetosCount, LegislationTier::*};
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, BoundedVec};
 use sp_core::ConstU32;
 
@@ -142,6 +142,29 @@ fn cant_headcount_veto_as_noncitizen() {
 			LiberlandLegislation::submit_veto(RuntimeOrigin::signed(10), Decision as u32, 0),
 			Error::<Test>::NonCitizen
 		);
+	});
+}
+
+#[test]
+fn correctly_tracks_veto_count() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 0);
+		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 1);
+		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 1);
+		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 2);
+		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 1);
+		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 2);
+		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(1), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 1);
+		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 0);
+		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision as u32, 0));
+		assert_eq!(VetosCount::<Test>::get(Decision as u32, 0), 0);
 	});
 }
 
