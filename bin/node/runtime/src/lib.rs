@@ -1413,7 +1413,7 @@ parameter_types! {
 parameter_types! {
 	pub const TOTALLLM: Balance      = 70_000_000u128 * GRAINS_IN_LLM;
 	pub const PRERELEASELLM: Balance =  7_000_000u128 * GRAINS_IN_LLM;
-	pub const CitizenshipMinimum: Balance = 5_000_000u128 * GRAINS_IN_LLM;
+	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
