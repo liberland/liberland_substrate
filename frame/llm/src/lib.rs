@@ -480,7 +480,7 @@ pub mod pallet {
 			let origin = frame_system::RawOrigin::Signed(from_account.clone()).into();
 			Assets::<T>::transfer(
 				origin,
-				Self::llm_id().into(),
+				Self::llm_id().into().into(),
 				T::Lookup::unlookup(to_account.clone()),
 				amount.clone(),
 			)
