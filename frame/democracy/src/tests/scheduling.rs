@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! The tests for functionality concerning normal starting, ending and enacting of referenda.
 
 use super::*;
@@ -25,11 +29,12 @@ fn simple_passing_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, aye(1)));
-		assert_eq!(tally(r), Tally { ayes: 1, nays: 0, turnout: 10 });
+		assert_eq!(tally(r), Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  });
 		assert_eq!(Democracy::lowest_unbaked(), 0);
 		next_block();
 		next_block();
@@ -44,11 +49,12 @@ fn simple_failing_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(1)));
-		assert_eq!(tally(r), Tally { ayes: 0, nays: 1, turnout: 10 });
+		assert_eq!(tally(r), Tally { ayes: 0, nays: 10, turnout: 10, aye_voters: 00000, nay_voters: 10000  });
 
 		next_block();
 		next_block();
@@ -63,23 +69,25 @@ fn ooo_inject_referendums_should_work() {
 		let r1 = Democracy::inject_referendum(
 			3,
 			set_balance_proposal(3),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		let r2 = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r2, aye(1)));
-		assert_eq!(tally(r2), Tally { ayes: 1, nays: 0, turnout: 10 });
+		assert_eq!(tally(r2), Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  });
 
 		next_block();
 
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r1, aye(1)));
-		assert_eq!(tally(r1), Tally { ayes: 1, nays: 0, turnout: 10 });
+		assert_eq!(tally(r1), Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  });
 
 		next_block();
 		assert_eq!(Balances::free_balance(42), 2);
@@ -95,6 +103,7 @@ fn delayed_enactment_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			1,
 		);
@@ -105,7 +114,7 @@ fn delayed_enactment_should_work() {
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, aye(5)));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, aye(6)));
 
-		assert_eq!(tally(r), Tally { ayes: 21, nays: 0, turnout: 210 });
+		assert_eq!(tally(r), Tally { ayes: 210, nays: 0, turnout: 210, aye_voters: 60000, nay_voters: 0  });
 
 		next_block();
 		assert_eq!(Balances::free_balance(42), 0);
@@ -121,18 +130,21 @@ fn lowest_unbaked_should_be_sensible() {
 		let r1 = Democracy::inject_referendum(
 			3,
 			set_balance_proposal(1),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		let r2 = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		let r3 = Democracy::inject_referendum(
 			10,
 			set_balance_proposal(3),
+			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);

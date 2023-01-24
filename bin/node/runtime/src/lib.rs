@@ -130,7 +130,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 4,
+	spec_version: 5,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -888,7 +888,6 @@ impl pallet_democracy::Config for Runtime {
 	// only do it once and it lasts only for the cool-off period.
 	type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
 	type CooloffPeriod = CooloffPeriod;
-	type Slash = Treasury;
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
 	type MaxVotes = ConstU32<100>;
@@ -1414,6 +1413,7 @@ parameter_types! {
 parameter_types! {
 	pub const TOTALLLM: Balance      = 70_000_000u128 * GRAINS_IN_LLM;
 	pub const PRERELEASELLM: Balance =  7_000_000u128 * GRAINS_IN_LLM;
+	pub const CitizenshipMinimum: Balance = 5_000_000u128 * GRAINS_IN_LLM;
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1423,6 +1423,7 @@ impl pallet_llm::Config for Runtime {
 	type TotalSupply = TOTALLLM; //70 million in hardcap
 	type PreReleasedAmount = PRERELEASELLM; // PreRelease 7 million
 	type AssetId = u32;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 }
 
 impl pallet_nis::Config for Runtime {
@@ -1506,6 +1507,8 @@ parameter_types! {
 impl pallet_liberland_legislation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
+	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
+	type InternationalTreatyOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>; // FIXME what ratio?
 }
 
 impl pallet_state_trie_migration::Config for Runtime {
@@ -1546,7 +1549,6 @@ construct_runtime!(
 		Democracy: pallet_democracy,
 		Council: pallet_collective::<Instance1>,
 		TechnicalCommittee: pallet_collective::<Instance2>,
-		Elections: pallet_elections_phragmen,
 		TechnicalMembership: pallet_membership::<Instance1>,
 		Grandpa: pallet_grandpa,
 		Treasury: pallet_treasury,
@@ -1582,6 +1584,7 @@ construct_runtime!(
 		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
 		LiberlandLegislation: pallet_liberland_legislation,
 		LiberlandInitializer: pallet_liberland_initializer,
+		Elections: pallet_elections_phragmen,
 	}
 );
 

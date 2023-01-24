@@ -122,9 +122,14 @@ pub mod pallet {
 		/// set.
 		fn get_citizen_identity_info() -> IdentityInfo<T::MaxAdditionalFields> {
 			let data = Data::Raw(b"1".to_vec().try_into().unwrap());
+			let eligible_on = (
+				Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
+			    Data::Raw(vec![0].try_into().unwrap()),
+			);
+
 			IdentityInfo {
 				citizen: data,
-				additional: vec![].try_into().unwrap(),
+				additional: vec![(eligible_on)].try_into().unwrap(),
 				display: Data::None,
 				legal: Data::None,
 				web: Data::None,

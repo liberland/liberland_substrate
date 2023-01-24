@@ -190,6 +190,8 @@ std = [
 	"frame-try-runtime?/std",
 	"sp-io/std",
 	"pallet-child-bounties/std",
+	"pallet-llm/std",
+	"pallet-liberland-legislation/std",
 	"pallet-liberland-initializer/std",
 ]
 runtime-benchmarks = [
@@ -289,6 +291,9 @@ try-runtime = [
 	"pallet-uniques/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
+	"pallet-llm/try-runtime",
+	"pallet-liberland-legislation/try-runtime",
+	"pallet-liberland-initializer/try-runtime",
 ]
 # Force `sp-sandbox` to call into the host resident executor. One still need to make sure
 # that `sc-executor` gets the `wasmer-sandbox` feature which happens automatically when

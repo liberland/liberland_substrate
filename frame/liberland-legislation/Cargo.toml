@@ -30,8 +30,10 @@ pallet-llm = { default-features = false, path = "../llm" }
 
 [dev-dependencies]
 pallet-balances = { branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
+pallet-democracy = { branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
 pallet-identity = { branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
 pallet-assets = { branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
+pallet-scheduler = { branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
 pallet-liberland-initializer = { path = "../liberland-initializer" }
 
 [features]
@@ -43,6 +45,7 @@ std = [
 	"frame-system/std",
 	"frame-benchmarking/std",
 	"pallet-llm/std",
+	"pallet-democracy/std",
 	"log/std",
 	"sp-io/std",
 	"sp-runtime/std",

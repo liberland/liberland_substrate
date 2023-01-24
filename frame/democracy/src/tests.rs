@@ -15,7 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under
+// the MIT license.
 
 // You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
 
@@ -26,19 +27,18 @@ use crate as pallet_democracy;
 use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
 	traits::{
-		ConstU32, ConstU64, Contains, EqualPrivilegeOnly, GenesisBuild, OnInitialize,
-		SortedMembers, StorePreimage,
+		AsEnsureOriginWithArg, ConstU32, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+		GenesisBuild, OnInitialize, SortedMembers, StorePreimage,
 	},
 	weights::Weight,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy, EnsureSigned};
+use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BadOrigin, BlakeTwo256, IdentityLookup},
 	Perbill,
 };
-use frame_support::traits::{AsEnsureOriginWithArg, EitherOfDiverse};
 
 mod cancellation;
 mod decoders;
@@ -68,7 +68,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Preimage: pallet_preimage,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Democracy: pallet_democracy::{Pallet, Call, Origin<T>, Storage, Config<T>, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 		LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -197,6 +197,7 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const ASSETID: u32 = 0u32;
+	pub const CitizenshipMinimum: u64 = 5000u64;
 }
 
 impl pallet_liberland_initializer::Config for Test {}
@@ -205,6 +206,7 @@ impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 	type AssetId = u32;
 }
 
@@ -250,7 +252,6 @@ impl Config for Test {
 	type CancelProposalOrigin = EnsureRoot<u64>;
 	type VetoOrigin = EnsureSignedBy<OneToFive, u64>;
 	type CooloffPeriod = ConstU64<2>;
-	type Slash = ();
 	type InstantOrigin = EnsureSignedBy<Six, u64>;
 	type InstantAllowed = InstantAllowed;
 	type Scheduler = Scheduler;
@@ -269,7 +270,8 @@ impl Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
-	let llm_balances = balances.iter().map(|(id, b)| (*id, *b, *b)).collect();
+	let mut llm_balances: Vec<(u64, u64, u64)> = balances.iter().map(|(id, _)| (*id, 6000, 5000)).collect();
+	llm_balances.push((7, 1000, 1000));
 
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
@@ -277,13 +279,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_democracy::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut t)
 		.unwrap();
-	pallet_llm::GenesisConfig::<Test>::default()
-		.assimilate_storage(&mut t)
-		.unwrap();
+	pallet_llm::GenesisConfig::<Test>::default().assimilate_storage(&mut t).unwrap();
 	pallet_liberland_initializer::GenesisConfig::<Test> {
 		citizenship_registrar: Some(0),
 		initial_citizens: llm_balances,
-	}.assimilate_storage(&mut t).unwrap();
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext
@@ -349,6 +351,18 @@ fn big_aye(who: u64) -> AccountVote<u64> {
 
 fn big_nay(who: u64) -> AccountVote<u64> {
 	AccountVote::Standard { vote: BIG_NAY, balance: Balances::free_balance(&who) }
+}
+
+fn vote(aye: bool, balance: u64) -> AccountVote<u64> {
+	AccountVote::Standard { vote: Vote { aye, conviction: Conviction::None }, balance }
+}
+
+fn vote_aye(balance: u64) -> AccountVote<u64> {
+	vote(true, balance)
+}
+
+fn vote_nay(balance: u64) -> AccountVote<u64> {
+	vote(false, balance)
 }
 
 fn tally(r: ReferendumIndex) -> Tally<u64> {

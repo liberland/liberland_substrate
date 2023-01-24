@@ -76,7 +76,7 @@ fn proposal_with_deposit_below_minimum_should_not_work() {
 #[test]
 fn poor_proposer_should_not_work() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(propose_set_balance(1, 2, 11), Error::<Test>::InsufficientLLM);
+		assert_noop!(propose_set_balance(7, 2, 11), pallet_llm::Error::<Test>::NoPolLLM);
 	});
 }
 
@@ -85,8 +85,8 @@ fn poor_seconder_should_not_work() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(propose_set_balance(2, 2, 11));
 		assert_noop!(
-			Democracy::second(RuntimeOrigin::signed(1), 0),
-			Error::<Test>::InsufficientLLM
+			Democracy::second(RuntimeOrigin::signed(7), 0),
+			pallet_llm::Error::<Test>::NoPolLLM
 		);
 	});
 }
