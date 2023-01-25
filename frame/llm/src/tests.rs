@@ -5,12 +5,10 @@ use crate::{
 	WithdrawlockDuration,
 };
 use codec::Compact;
-use pallet_identity::{Data, IdentityInfo};
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use hex_literal::hex;
-use sp_runtime::{
-	traits::{BlakeTwo256, Hash},
-};
+use pallet_identity::{Data, IdentityInfo};
+use sp_runtime::traits::{BlakeTwo256, Hash};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -65,6 +63,24 @@ fn send_llm_calls_assets() {
 		System::assert_has_event(
 			pallet_assets::Event::Transferred { asset_id: 1, from: 1, to: 2, amount: 9 }.into(),
 		);
+	});
+}
+
+#[test]
+fn send_llm_to_politipool_locks_llm() {
+	new_test_ext().execute_with(|| {
+		let origin = RuntimeOrigin::signed(1);
+		let id = LLM::llm_id();
+		let politipool = LLM::get_llm_politipool_account();
+		assert_ok!(LLM::send_llm_to_politipool(origin, 2, 10));
+		System::assert_has_event(
+			pallet_assets::Event::Transferred { asset_id: id, from: 1, to: 2, amount: 10 }.into(),
+		);
+		System::assert_has_event(
+			pallet_assets::Event::Transferred { asset_id: id, from: 2, to: politipool, amount: 10 }
+				.into(),
+		);
+		System::assert_last_event(Event::LLMPoliticsLocked(2, 10).into());
 	});
 }
 
@@ -201,6 +217,44 @@ fn treasury_llm_transfer_calls_assets() {
 }
 
 #[test]
+fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
+	new_test_ext().execute_with(|| {
+		let unapproved = RuntimeOrigin::signed(1);
+		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
+			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
+		));
+
+		assert_noop!(
+			LLM::treasury_llm_transfer_to_politipool(unapproved, 1, 1),
+			Error::<Test>::InvalidAccount
+		);
+		assert_ok!(LLM::treasury_llm_transfer_to_politipool(approved, 1, 1));
+	});
+}
+
+#[test]
+fn treasury_llm_transfer_to_politipool_locks_funds() {
+	new_test_ext().execute_with(|| {
+		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
+			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
+		));
+		let id = LLM::llm_id();
+		let treasury = LLM::get_llm_treasury_account();
+		let politipool = LLM::get_llm_politipool_account();
+		assert_ok!(LLM::treasury_llm_transfer_to_politipool(approved.clone(), 1, 10));
+		System::assert_has_event(
+			pallet_assets::Event::Transferred { asset_id: id, from: treasury, to: 1, amount: 10 }
+				.into(),
+		);
+		System::assert_has_event(
+			pallet_assets::Event::Transferred { asset_id: id, from: 1, to: politipool, amount: 10 }
+				.into(),
+		);
+		System::assert_last_event(Event::LLMPoliticsLocked(1, 10).into());
+	});
+}
+
+#[test]
 fn sets_locks_durations_on_genesis() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(WithdrawlockDuration::<Test>::get(), 180);
@@ -292,14 +346,13 @@ fn get_llm_politics_works() {
 	});
 }
 
-
 fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<u8>) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 	let additional = match eligible_on {
 		Some(n) => vec![(
-		Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
-		Data::Raw(vec![n].try_into().unwrap()),
-	)],
+			Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
+			Data::Raw(vec![n].try_into().unwrap()),
+		)],
 		None => vec![],
 	};
 
@@ -345,7 +398,6 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		// judgment OK, citizen ok eligible_on set but in the future
 		setup_broken_citizen(13, true, Some(100));
 		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
-
 	});
 }
 
