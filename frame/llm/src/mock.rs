@@ -31,6 +31,7 @@ impl pallet_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = u64;
 	type AssetId = u32;
+	type AssetIdParameter = codec::Compact<u32>;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<u64>;
 	type AssetDeposit = ConstU64<1>;
@@ -43,6 +44,9 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 	type Extra = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type RemoveItemsLimit = ConstU32<1000>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -91,6 +95,7 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
+	pub const CitizenshipMinimum: u64 = 5000u64;
 }
 
 impl pallet_llm::Config for Test {
@@ -98,6 +103,7 @@ impl pallet_llm::Config for Test {
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type AssetId = u32;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 }
 
 parameter_types! {
@@ -128,9 +134,13 @@ impl pallet_identity::Config for Test {
 
 pub fn setup_citizenships(accounts: Vec<u64>) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
+	let eligible_on = (
+		Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
+		Data::Raw(vec![0].try_into().unwrap()),
+	);
 	let info = IdentityInfo {
 		citizen: data.clone(),
-		additional: vec![].try_into().unwrap(),
+		additional: vec![eligible_on].try_into().unwrap(),
 		display: data.clone(),
 		legal: data.clone(),
 		web: data.clone(),
@@ -172,8 +182,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext.execute_with(|| {
 		System::set_block_number(1);
 		setup_citizenships(balances.into_iter().map(|(acc, _)| acc).collect());
-		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 1, 10));
-		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 2, 20));
+		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 1, 6000));
+		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 2, 6000));
 	});
 	ext
 }

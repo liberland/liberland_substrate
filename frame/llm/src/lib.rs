@@ -119,11 +119,9 @@
 //! LLM pallet implements CitizenshipChecker trait with following functions available for other
 //! pallets:
 //!
-//! * `ensure_democracy_allowed`: Checks if given account can participate in democracy actions. It
-//!   verifies that it's a valid citizen, doesn't have election rights locked and has some LLM
-//!   locked in politics.
-//! * `ensure_elections_allowed`: Checks if given account can participate in election actions. It
-//!   verifies that it's a valid citizen, doesn't have election rights locked.
+//! * `ensure_politics_allowed`: Checks if given account can participate in
+//! politics actions. It verifies that it's a valid citizen, doesn't have
+//! election rights locked and has 5000 LLM locked in politics.
 //!
 //! License: MIT
 
@@ -262,6 +260,9 @@ pub mod pallet {
 		/// **Vault** to **Treasury**) on genesis.
 		type PreReleasedAmount: Get<u128>; // Pre defined the total supply in runtime
 
+		/// Minimum amount of LLM Accounts needs politipooled to have citizenship rights
+		type CitizenshipMinimumPooledLLM: Get<u128>; // Pre defined the total supply in runtime
+
 		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
 			+ Parameter
 			+ From<u32>
@@ -355,10 +356,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
-			Self::transfer_to_politipool(sender.clone(), amount)?;
-			LLMPolitics::<T>::mutate(sender.clone(), |b| *b += amount);
-
-			Self::deposit_event(Event::<T>::LLMPoliticsLocked(sender, amount));
+			Self::do_politics_lock(sender, amount)?;
 			Ok(())
 		}
 
@@ -429,6 +427,53 @@ pub mod pallet {
 			Self::transfer_from_treasury(to_account, amount)
 		}
 
+		/// Transfer LLM from treasury to specified account's politipool. Can
+		/// only be called by selected accounts and Senate.
+		///
+		/// - `to_account`: Account to transfer to.
+		/// - `amount`: Amount to transfer.
+		///
+		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::weight(10_000)]
+		pub fn treasury_llm_transfer_to_politipool(
+			origin: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
+			let account_map: Vec<T::AccountId> = vec![
+				Self::account_id32_to_accountid(
+					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
+				),
+				Self::account_id32_to_accountid(
+					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
+				), // V + DEVKEY + N + M
+			];
+			let sender: T::AccountId = ensure_signed(origin)?;
+
+			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
+
+			Self::transfer_from_treasury(to_account.clone(), amount)?;
+			Self::do_politics_lock(to_account, amount)
+		}
+
+		/// Transfer LLM from sender to specified account's politipool.
+		///
+		/// - `to_account`: Account to transfer to.
+		/// - `amount`: Amount to transfer.
+		///
+		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::weight(10_000)]
+		pub fn send_llm_to_politipool(
+			origin: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
+			let sender: T::AccountId = ensure_signed(origin)?;
+
+			Self::transfer(sender, to_account.clone(), amount)?;
+			Self::do_politics_lock(to_account, amount)
+		}
+
 		/// Allow the senate to approve transfers
 		#[pallet::weight(10_000)]
 		pub fn approve_transfer(
@@ -456,6 +501,13 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn do_politics_lock(account: T::AccountId, amount: T::Balance) -> DispatchResult {
+			Self::do_transfer_to_politipool(account.clone(), amount)?;
+			LLMPolitics::<T>::mutate(account.clone(), |b| *b += amount);
+			Self::deposit_event(Event::<T>::LLMPoliticsLocked(account, amount));
+			Ok(())
+		}
+
 		pub fn account_id32_to_accountid(accountid32: AccountId32) -> T::AccountId {
 			let mut init_account32 = AccountId32::as_ref(&accountid32);
 			let init_account: T::AccountId = T::AccountId::decode(&mut init_account32).unwrap();
@@ -479,13 +531,13 @@ pub mod pallet {
 			let origin = frame_system::RawOrigin::Signed(from_account.clone()).into();
 			Assets::<T>::transfer(
 				origin,
-				Self::llm_id().into(),
+				Self::llm_id().into().into(),
 				T::Lookup::unlookup(to_account.clone()),
 				amount.clone(),
 			)
 		}
 
-		fn transfer_to_politipool(
+		fn do_transfer_to_politipool(
 			from_account: T::AccountId,
 			amount_balance: T::Balance,
 		) -> DispatchResult {
@@ -634,7 +686,11 @@ pub mod pallet {
 
 	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
-			Self::get_llm_politics(account) > 0u8.into()
+			let minimum = match T::CitizenshipMinimumPooledLLM::get().try_into() {
+				Ok(m) => m,
+				_ => panic!("Configured Balance type for pallet_assets can't fit u64 values required by pallet_llm!")
+			};
+			LLMPolitics::<T>::get(account) >= minimum
 		}
 
 		fn is_election_unlocked(account: &T::AccountId) -> bool {
@@ -665,8 +721,22 @@ pub mod pallet {
 				T::MaxAdditionalFields,
 			>,
 		) -> bool {
-			reg.info.citizen != pallet_identity::Data::None &&
-				reg.judgements.contains(&(0u32, pallet_identity::Judgement::KnownGood))
+			use pallet_identity::{Data, Data::Raw, Judgement::KnownGood};
+			let current_block_number: u64 =
+				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let eligible_on_key = Raw(b"eligible_on".to_vec().try_into().unwrap());
+			let eligible_on = match reg.info.additional.iter().find(|v| v.0 == eligible_on_key) {
+				Some((_, Raw(x))) => x,
+				_ => return false,
+			};
+
+			// little-endian
+			// 256 = vec![0x00, 0x01];
+			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
+
+			reg.info.citizen != Data::None &&
+				eligible_on <= current_block_number &&
+				reg.judgements.contains(&(0u32, KnownGood))
 		}
 
 		fn is_known_good(account: &T::AccountId) -> bool {
@@ -678,16 +748,10 @@ pub mod pallet {
 	}
 
 	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
-		fn ensure_democracy_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+		fn ensure_politics_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
-			Ok(())
-		}
-
-		fn ensure_elections_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
-			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
-			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
 			Ok(())
 		}
 

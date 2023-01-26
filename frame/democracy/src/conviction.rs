@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! The conviction datatype.
 
 use crate::types::Delegations;
@@ -113,11 +117,8 @@ impl Conviction {
 		self,
 		capital: B,
 	) -> Delegations<B> {
-		let votes = match self {
-			Conviction::None => capital.checked_div(&10u8.into()).unwrap_or_else(Zero::zero),
-			x => capital.checked_mul(&u8::from(x).into()).unwrap_or_else(B::max_value),
-		};
-		Delegations { votes, capital }
+		let votes = capital;
+		Delegations { votes, voters: 1, capital }
 	}
 }
 

@@ -1,13 +1,15 @@
 use crate as pallet_liberland_legislation;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	pallet_prelude::Weight,
+	traits::{EqualPrivilegeOnly, AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
 };
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
+	Perbill,
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
@@ -29,6 +31,8 @@ frame_support::construct_runtime!(
 		LiberlandLegislation: pallet_liberland_legislation,
 		LLM: pallet_llm,
 		LiberlandInitializer: pallet_liberland_initializer,
+		Scheduler: pallet_scheduler,
+		Democracy: pallet_democracy,
 	}
 );
 
@@ -59,6 +63,61 @@ impl system::Config for Test {
 	type Version = ();
 }
 
+parameter_types! {
+	pub BlockWeights: frame_system::limits::BlockWeights =
+		frame_system::limits::BlockWeights::simple_max(frame_support::weights::constants::WEIGHT_PER_SECOND.set_proof_size(u64::MAX));
+}
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
+}
+impl pallet_scheduler::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
+	type PalletsOrigin = OriginCaller;
+	type RuntimeCall = RuntimeCall;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<u64>;
+	type MaxScheduledPerBlock = ConstU32<100>;
+	type WeightInfo = ();
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+	type Preimages = ();
+}
+
+impl pallet_democracy::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = pallet_balances::Pallet<Self>;
+	type EnactmentPeriod = ConstU64<2>;
+	type LaunchPeriod = ConstU64<2>;
+	type VotingPeriod = ConstU64<2>;
+	type VoteLockingPeriod = ConstU64<3>;
+	type FastTrackVotingPeriod = ConstU64<2>;
+	type MinimumDeposit = ConstU64<1>;
+	type MaxDeposits = ConstU32<1000>;
+	type MaxBlacklisted = ConstU32<5>;
+	type ExternalOrigin = EnsureSignedBy<Two, u64>;
+	type ExternalMajorityOrigin = EnsureSignedBy<Two, u64>;
+	type ExternalDefaultOrigin = EnsureSignedBy<One, u64>;
+	type FastTrackOrigin = EnsureSignedBy<Two, u64>;
+	type CancellationOrigin = EnsureSignedBy<Two, u64>;
+	type BlacklistOrigin = EnsureRoot<u64>;
+	type CancelProposalOrigin = EnsureRoot<u64>;
+	type VetoOrigin = EnsureSignedBy<Two, u64>;
+	type CooloffPeriod = ConstU64<2>;
+	type InstantOrigin = EnsureSignedBy<Two, u64>;
+	type InstantAllowed = ();
+	type Scheduler = Scheduler;
+	type MaxVotes = ConstU32<100>;
+	type PalletsOrigin = OriginCaller;
+	type WeightInfo = ();
+	type MaxProposals = ConstU32<100>;
+	type Preimages = ();
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
+	type Citizenship = LLM;
+	type LLM = LLM;
+	type LLInitializer = LiberlandInitializer;
+}
+
 impl pallet_balances::Config for Test {
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
@@ -75,6 +134,7 @@ impl pallet_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = u64;
 	type AssetId = u32;
+	type AssetIdParameter = codec::Compact<u32>;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<u64>;
 	type AssetDeposit = ConstU64<1>;
@@ -87,6 +147,9 @@ impl pallet_assets::Config for Test {
 	type WeightInfo = ();
 	type Extra = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type RemoveItemsLimit = ConstU32<1000>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -120,7 +183,7 @@ impl pallet_liberland_initializer::Config for Test {}
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
-	pub const ASSETID: u32 = 0u32;
+	pub const CitizenshipMinimum: u64 = 5000u64;
 }
 
 impl pallet_llm::Config for Test {
@@ -128,11 +191,14 @@ impl pallet_llm::Config for Test {
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type AssetId = u32;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 }
 
 impl pallet_liberland_legislation::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
+	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
+	type InternationalTreatyOrigin = EnsureSignedBy<One, u64>;
 }
 
 // Build genesis storage according to the mock runtime.

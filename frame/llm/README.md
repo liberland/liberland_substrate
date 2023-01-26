@@ -102,9 +102,7 @@ LLM pallet implements LLM trait with following functions available for other pal
 
 LLM pallet implements CitizenshipChecker trait with following functions available for other pallets:
 
-* `ensure_democracy_allowed`: Checks if given account can participate in democracy actions. It verifies that it's a valid citizen, doesn't have election rights locked and has some LLM locked in politics.
-* `ensure_elections_allowed`: Checks if given account can participate in election actions. It verifies that it's a valid citizen, doesn't have election rights locked.
-
+* `ensure_politics_allowed`: Checks if given account can participate in politics actions. It verifies that it's a valid citizen, doesn't have election rights locked and has 5000 LLM locked in politics.
 
 
 ### Approved Multisig llm transfers

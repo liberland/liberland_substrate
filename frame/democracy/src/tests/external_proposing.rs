@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! The tests for functionality concerning the "external" origin.
 
 use super::*;
@@ -109,9 +113,10 @@ fn external_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
@@ -135,9 +140,10 @@ fn external_majority_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SimpleMajority,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
@@ -161,9 +167,10 @@ fn external_default_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityAgainst,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});
@@ -184,9 +191,10 @@ fn external_and_public_interleaving_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(1),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish external
@@ -200,9 +208,10 @@ fn external_and_public_interleaving_works() {
 			Ok(ReferendumStatus {
 				end: 6,
 				proposal: set_balance_proposal(2),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// don't replenish public
@@ -215,9 +224,10 @@ fn external_and_public_interleaving_works() {
 			Ok(ReferendumStatus {
 				end: 8,
 				proposal: set_balance_proposal(3),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish external
@@ -231,9 +241,10 @@ fn external_and_public_interleaving_works() {
 			Ok(ReferendumStatus {
 				end: 10,
 				proposal: set_balance_proposal(5),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish both
@@ -248,9 +259,10 @@ fn external_and_public_interleaving_works() {
 			Ok(ReferendumStatus {
 				end: 12,
 				proposal: set_balance_proposal(4),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 		// replenish public again
@@ -267,9 +279,10 @@ fn external_and_public_interleaving_works() {
 			Ok(ReferendumStatus {
 				end: 14,
 				proposal: set_balance_proposal(6),
+				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
 			})
 		);
 	});

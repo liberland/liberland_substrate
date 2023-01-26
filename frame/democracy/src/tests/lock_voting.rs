@@ -44,15 +44,16 @@ fn lock_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 10)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 20)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 30)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 40)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 50)));
-		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 1000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 2000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 4000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
+		assert_eq!(tally(r), Tally { ayes: 9000, nays: 6000, turnout: 15000, aye_voters: 30000, nay_voters: 20000 });
 
 		// Liberland specific - voting shouldn't lock balances
 		for i in 1..=5 {
@@ -127,6 +128,7 @@ fn no_locks_without_conviction_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -147,16 +149,17 @@ fn lock_voting_should_work_with_delegation() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 10)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 20)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 30)));
-		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 40));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 50)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 1000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 2000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
+		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 4000));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
 
-		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
+		assert_eq!(tally(r), Tally { ayes: 9000, nays: 6000, turnout: 15000, aye_voters: 30000, nay_voters: 20000 });
 
 		next_block();
 		next_block();
@@ -168,15 +171,15 @@ fn lock_voting_should_work_with_delegation() {
 fn setup_three_referenda() -> (u32, u32, u32) {
 	System::set_block_number(0);
 	let r1 =
-		Democracy::inject_referendum(2, set_balance_proposal(2), VoteThreshold::SimpleMajority, 0);
+		Democracy::inject_referendum(2, set_balance_proposal(2), DispatchOrigin::Root, VoteThreshold::SimpleMajority, 0);
 	assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r1, aye(4, 10)));
 
 	let r2 =
-		Democracy::inject_referendum(2, set_balance_proposal(2), VoteThreshold::SimpleMajority, 0);
+		Democracy::inject_referendum(2, set_balance_proposal(2), DispatchOrigin::Root, VoteThreshold::SimpleMajority, 0);
 	assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r2, aye(3, 20)));
 
 	let r3 =
-		Democracy::inject_referendum(2, set_balance_proposal(2), VoteThreshold::SimpleMajority, 0);
+		Democracy::inject_referendum(2, set_balance_proposal(2), DispatchOrigin::Root, VoteThreshold::SimpleMajority, 0);
 	assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r3, aye(2, 50)));
 
 	fast_forward_to(2);
@@ -298,6 +301,7 @@ fn locks_should_persist_from_voting_to_delegation() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root, 
 			VoteThreshold::SimpleMajority,
 			0,
 		);
