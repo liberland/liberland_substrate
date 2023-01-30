@@ -346,12 +346,12 @@ fn get_llm_politics_works() {
 	});
 }
 
-fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<u8>) {
+fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 	let additional = match eligible_on {
 		Some(n) => vec![(
 			Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
-			Data::Raw(vec![n].try_into().unwrap()),
+			Data::Raw(n.try_into().unwrap()),
 		)],
 		None => vec![],
 	};
@@ -388,7 +388,7 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 
 		// judgment OK, eligible_on ok, but missing citizen field
-		setup_broken_citizen(11, false, Some(0));
+		setup_broken_citizen(11, false, Some(vec![0]));
 		assert_noop!(LLM::ensure_politics_allowed(&11), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok, but missing eligible_on
@@ -396,8 +396,16 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		assert_noop!(LLM::ensure_politics_allowed(&12), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok eligible_on set but in the future
-		setup_broken_citizen(13, true, Some(100));
+		setup_broken_citizen(13, true, Some(vec![0x40, 0x42, 0x0F]));
 		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
+
+		System::set_block_number(999_999); // still future
+		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
+
+		assert_ok!(LLM::fake_send(RuntimeOrigin::signed(13), 13, 5000));
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(13), 5000));
+		System::set_block_number(1_000_000); // and its ok
+		assert_ok!(LLM::ensure_politics_allowed(&13));
 	});
 }
 
