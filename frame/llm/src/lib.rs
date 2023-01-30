@@ -669,7 +669,6 @@ pub mod pallet {
 			let release_amount = Self::get_release_amount();
 			Self::release_tokens_from_vault(release_amount).unwrap();
 
-			log::info!("maybe_release ran all the way");
 			true
 		}
 
