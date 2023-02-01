@@ -1635,7 +1635,6 @@ pub type Executive = frame_executive::Executive<
 // `OnRuntimeUpgrade`.
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
-	pallet_assets::migration::v1::MigrateToV1<Runtime>,
 );
 
 /// MMR helper types.
