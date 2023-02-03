@@ -442,7 +442,10 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+	// LLD transfer is ~156 bytes long (exact value depends on transferred amount)
+	// We want 1 LLD transfer to cost 0.01 LLD (so that 1 LLD is OK for 100 simple txs)
+	// 0.01 LLD / 156 ~= 0.000064 LLD per byte
+	pub const TransactionByteFee: Balance = 64 * MICROCENTS;
 	pub const OperationalFeeMultiplier: u8 = 5;
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
