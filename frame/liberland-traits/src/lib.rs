@@ -4,7 +4,7 @@ use sp_runtime::DispatchError;
 
 mod impls;
 pub trait LLInitializer<AccountId, Balance> {
-	#[cfg(feature = "runtime-benchmarks")]
+	#[cfg(any(test,feature = "runtime-benchmarks"))]
 	fn make_citizen(account: &AccountId, amount: Balance);
 }
 

@@ -15,27 +15,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Test utilities
 
 use crate::{self as pallet_staking, *};
 use frame_election_provider_support::{onchain, SequentialPhragmen, VoteWeight};
+use frame_system::{EnsureRoot, EnsureSignedBy, EnsureSigned};
 use frame_support::{
-	assert_ok, ord_parameter_types, parameter_types,
+	assert_ok, parameter_types, ord_parameter_types,
 	traits::{
-		ConstU32, ConstU64, Currency, EitherOfDiverse, FindAuthor, GenesisBuild, Get, Hooks,
-		Imbalance, OnUnbalanced, OneSessionHandler,
+		AsEnsureOriginWithArg, EitherOfDiverse, ConstU32, ConstU64, ConstU128, Currency, FindAuthor, GenesisBuild, Get, Hooks, Imbalance,
+		OnUnbalanced, OneSessionHandler,
 	},
 	weights::constants::RocksDbWeight,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_io;
 use sp_runtime::{
 	curve::PiecewiseLinear,
 	testing::{Header, UintAuthorityId},
 	traits::{IdentityLookup, Zero},
+	Permill,
 };
 use sp_staking::offence::{DisableStrategy, OffenceDetails, OnOffenceHandler};
+use liberland_traits::LLInitializer;
 
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
@@ -99,6 +105,10 @@ frame_support::construct_runtime!(
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Historical: pallet_session::historical::{Pallet, Storage},
 		VoterBagsList: pallet_bags_list::<Instance1>::{Pallet, Call, Storage, Event<T>},
+		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
+		LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
+		LiberlandInitializer: pallet_liberland_initializer,
 	}
 );
 
@@ -192,6 +202,81 @@ impl pallet_timestamp::Config for Test {
 	type OnTimestampSet = ();
 	type MinimumPeriod = ConstU64<5>;
 	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const TOTALLLM: u64 = 70000000u64;
+	pub const PRERELEASELLM: u64 = 7000000u64;
+	pub const CitizenshipMinimum: u64 = 5000u64;
+	pub const UnlockFactor: Permill = Permill::from_percent(10);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
+	pub const InflationEventInterval: u64 = 1000;
+}
+
+impl pallet_liberland_initializer::Config for Test {}
+
+impl pallet_llm::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type TotalSupply = TOTALLLM;
+	type PreReleasedAmount = PRERELEASELLM;
+	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
+	type InflationEventInterval = InflationEventInterval;
+}
+
+parameter_types! {
+	pub const MaxAdditionalFields: u32 = 2;
+	pub const MaxRegistrars: u32 = 20;
+}
+
+ord_parameter_types! {
+	pub const One: u64 = 1;
+	pub const Two: u64 = 2;
+}
+type EnsureOneOrRoot = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<One, u64>>;
+type EnsureTwoOrRoot = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<Two, u64>>;
+impl pallet_identity::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Slashed = ();
+	type BasicDeposit = ConstU128<0>;
+	type FieldDeposit = ConstU128<0>;
+	type SubAccountDeposit = ConstU128<0>;
+	type MaxSubAccounts = ConstU32<2>;
+	type MaxAdditionalFields = MaxAdditionalFields;
+	type MaxRegistrars = MaxRegistrars;
+	type RegistrarOrigin = EnsureOneOrRoot;
+	type ForceOrigin = EnsureTwoOrRoot;
+	type WeightInfo = ();
+	type Citizenship = ();
+}
+
+impl pallet_assets::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = u128;
+	type AssetId = u32;
+	type AssetIdParameter = codec::Compact<u32>;
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type AssetDeposit = ConstU128<1>;
+	type AssetAccountDeposit = ConstU128<10>;
+	type MetadataDepositBase = ConstU128<1>;
+	type MetadataDepositPerByte = ConstU128<1>;
+	type ApprovalDeposit = ConstU128<1>;
+	type StringLimit = ConstU32<50>;
+	type Freezer = ();
+	type WeightInfo = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type RemoveItemsLimit = ConstU32<1000>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 pallet_staking_reward_curve::build! {
@@ -306,6 +391,8 @@ impl crate::pallet::pallet::Config for Test {
 	type OnStakerSlash = OnStakerSlashMock<Test>;
 	type BenchmarkingConfig = TestBenchmarkingConfig;
 	type WeightInfo = ();
+	type Citizenship = LLM;
+	type LLInitializer = LiberlandInitializer;
 }
 
 pub(crate) type StakingCall = crate::Call<Test>;
@@ -424,8 +511,7 @@ impl ExtBuilder {
 		sp_tracing::try_init_simple();
 		let mut storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-		let _ = pallet_balances::GenesisConfig::<Test> {
-			balances: vec![
+		let balances = vec![
 				(1, 10 * self.balance_factor),
 				(2, 20 * self.balance_factor),
 				(3, 300 * self.balance_factor),
@@ -454,9 +540,31 @@ impl ExtBuilder {
 				(81, self.balance_factor * 2000),
 				// This allows us to have a total_payout different from 0.
 				(999, 1_000_000_000_000),
-			],
+			];
+		let llm_balances = vec![
+			(1, 5000, 5000),
+			(2, 5000, 5000),
+			(3, 5000, 5000),
+			(4, 5000, 5000),
+			(5, 5000, 5000),
+			(6, 5000, 5000),
+			(7, 5000, 5000),
+			(8, 5000, 5000),
+			(10, 5000, 5000),
+			(20, 5000, 5000),
+			(30, 5000, 5000),
+			(40, 5000, 5000),
+			(50, 5000, 5000),
+		];
+		let _ = pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
+			.assimilate_storage(&mut storage);
+		pallet_llm::GenesisConfig::<Test>::default().assimilate_storage(&mut storage).unwrap();
+		pallet_liberland_initializer::GenesisConfig::<Test> {
+			citizenship_registrar: Some(0),
+			initial_citizens: llm_balances,
 		}
-		.assimilate_storage(&mut storage);
+		.assimilate_storage(&mut storage)
+		.unwrap();
 
 		let mut stakers = vec![];
 		if self.has_stakers {
@@ -507,6 +615,7 @@ impl ExtBuilder {
 			slash_reward_fraction: Perbill::from_percent(10),
 			min_nominator_bond: self.min_nominator_bond,
 			min_validator_bond: self.min_validator_bond,
+			citizenship_required: true,
 			..Default::default()
 		}
 		.assimilate_storage(&mut storage);
@@ -573,6 +682,7 @@ pub(crate) fn bond(stash: AccountId, ctrl: AccountId, val: Balance) {
 }
 
 pub(crate) fn bond_validator(stash: AccountId, ctrl: AccountId, val: Balance) {
+	LiberlandInitializer::make_citizen(&ctrl, 5000);
 	bond(stash, ctrl, val);
 	assert_ok!(Staking::validate(RuntimeOrigin::signed(ctrl), ValidatorPrefs::default()));
 	assert_ok!(Session::set_keys(
@@ -794,11 +904,6 @@ pub(crate) fn staking_events() -> Vec<crate::Event<Test>> {
 parameter_types! {
 	static StakingEventsIndex: usize = 0;
 }
-ord_parameter_types! {
-	pub const One: u64 = 1;
-}
-
-type EnsureOneOrRoot = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<One, AccountId>>;
 
 pub(crate) fn staking_events_since_last_call() -> Vec<crate::Event<Test>> {
 	let all: Vec<_> = System::events()

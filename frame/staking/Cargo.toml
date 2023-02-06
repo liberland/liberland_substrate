@@ -31,6 +31,11 @@ pallet-authorship = { version = "4.0.0-dev", default-features = false, branch = 
 sp-application-crypto = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 frame-election-provider-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 log = { version = "0.4.17", default-features = false }
+pallet-llm = { default-features = false, path = "../llm" }
+pallet-liberland-initializer = { default-features = false, path = "../liberland-initializer" }
+liberland-traits = { path = "../liberland-traits", default-features = false}
+pallet-assets = { default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+pallet-identity = { default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 
 # Optional imports for benchmarking
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate", optional = true }
@@ -67,11 +72,19 @@ std = [
 	"sp-application-crypto/std",
 	"log/std",
 	"frame-election-provider-support/std",
+	"pallet-assets/std",
+	"pallet-identity/std",
+	"pallet-llm/std",
+	"pallet-liberland-initializer/std",
+	"liberland-traits/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
 	"rand_chacha",
 	"sp-staking/runtime-benchmarks",
+	"pallet-liberland-initializer/runtime-benchmarks",
+	"liberland-traits/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime"]

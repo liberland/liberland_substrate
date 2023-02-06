@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Testing utils for staking. Provides some common functions to setup staking state, such as
 //! bonding validators, nominators, and generating different types of solutions.
 
@@ -31,6 +35,8 @@ use frame_election_provider_support::SortedListProvider;
 use frame_support::{pallet_prelude::*, traits::Currency};
 use sp_runtime::{traits::StaticLookup, Perbill};
 use sp_std::prelude::*;
+
+use liberland_traits::LLInitializer;
 
 const SEED: u32 = 0;
 
@@ -86,6 +92,7 @@ pub fn create_stash_controller<T: Config>(
 		amount,
 		destination,
 	)?;
+	T::LLInitializer::make_citizen(&controller, 5000u32.into());
 	Ok((stash, controller))
 }
 

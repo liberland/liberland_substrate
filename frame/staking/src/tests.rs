@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Tests for the module.
 
 use super::{ConfigOp, Event, *};
@@ -38,6 +42,7 @@ use sp_staking::{
 };
 use sp_std::prelude::*;
 use substrate_test_utils::assert_eq_uvec;
+use liberland_traits::LLInitializer;
 
 #[test]
 fn set_staking_configs_works() {
@@ -4779,6 +4784,7 @@ fn chill_other_works() {
 				Balances::make_free_balance_be(&b, 100_000);
 				Balances::make_free_balance_be(&c, 100_000);
 				Balances::make_free_balance_be(&d, 100_000);
+				LiberlandInitializer::make_citizen(&d, 5000);
 
 				// Nominator
 				assert_ok!(Staking::bond(

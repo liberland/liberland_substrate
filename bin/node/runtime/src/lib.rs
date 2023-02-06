@@ -591,6 +591,9 @@ impl pallet_staking::Config for Runtime {
 	type OnStakerSlash = OnStakerSlashNoop;
 	type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 	type BenchmarkingConfig = StakingBenchmarkingConfig;
+	type Citizenship = LLM;
+	#[cfg(any(test,feature = "runtime-benchmarks"))]
+	type LLInitializer = LiberlandInitializer;
 }
 
 parameter_types! {
@@ -1598,8 +1601,6 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		AssetTxPayment: pallet_asset_tx_payment,
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase,
-		Staking: pallet_staking,
-		Session: pallet_session,
 		Democracy: pallet_democracy,
 		Council: pallet_collective::<Instance1>,
 		TechnicalCommittee: pallet_collective::<Instance2>,
@@ -1640,6 +1641,8 @@ construct_runtime!(
 		LiberlandLegislation: pallet_liberland_legislation,
 		LiberlandInitializer: pallet_liberland_initializer,
 		Elections: pallet_elections_phragmen,
+		Staking: pallet_staking,
+		Session: pallet_session,
 	}
 );
 

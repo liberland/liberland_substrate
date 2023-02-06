@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Staking pallet benchmarking.
 
 use super::*;
@@ -39,6 +43,7 @@ pub use frame_benchmarking::{
 	account, benchmarks, impl_benchmark_test_suite, whitelist_account, whitelisted_caller,
 };
 use frame_system::RawOrigin;
+use liberland_traits::LLInitializer;
 
 const SEED: u32 = 0;
 const MAX_SPANS: u32 = 100;
@@ -221,6 +226,7 @@ benchmarks! {
 		let controller_lookup = T::Lookup::unlookup(controller.clone());
 		let reward_destination = RewardDestination::Staked;
 		let amount = T::Currency::minimum_balance() * 10u32.into();
+		T::LLInitializer::make_citizen(&controller, 5000u32.into());
 		whitelist_account!(stash);
 	}: _(RawOrigin::Signed(stash.clone()), controller_lookup, amount, reward_destination)
 	verify {

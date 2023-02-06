@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Staking FRAME Pallet.
 
 use frame_election_provider_support::{
@@ -38,6 +42,8 @@ use sp_runtime::{
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::prelude::*;
+use liberland_traits::CitizenshipChecker;
+
 
 mod impls;
 
@@ -271,6 +277,14 @@ pub mod pallet {
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
+
+		type Citizenship: CitizenshipChecker<Self::AccountId>;
+
+		#[cfg(any(test, feature = "runtime-benchmarks"))]
+		type LLInitializer: liberland_traits::LLInitializer<
+								Self::AccountId,
+								BalanceOf<Self>
+							>;
 	}
 
 	/// The ideal number of active validators.
@@ -579,6 +593,11 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(crate) type ChillThreshold<T: Config> = StorageValue<_, Percent, OptionQuery>;
 
+
+	/// Is citizenship required for Controller to start validating?
+	#[pallet::storage]
+	pub(crate) type CitizenshipRequired<T: Config> = StorageValue<_, bool, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub validator_count: u32,
@@ -593,6 +612,7 @@ pub mod pallet {
 		pub min_validator_bond: BalanceOf<T>,
 		pub max_validator_count: Option<u32>,
 		pub max_nominator_count: Option<u32>,
+		pub citizenship_required: bool,
 	}
 
 	#[cfg(feature = "std")]
@@ -610,6 +630,7 @@ pub mod pallet {
 				min_validator_bond: Default::default(),
 				max_validator_count: None,
 				max_nominator_count: None,
+				citizenship_required: false,
 			}
 		}
 	}
@@ -625,6 +646,7 @@ pub mod pallet {
 			SlashRewardFraction::<T>::put(self.slash_reward_fraction);
 			MinNominatorBond::<T>::put(self.min_nominator_bond);
 			MinValidatorBond::<T>::put(self.min_validator_bond);
+			CitizenshipRequired::<T>::put(self.citizenship_required);
 			if let Some(x) = self.max_validator_count {
 				MaxValidatorsCount::<T>::put(x);
 			}
@@ -1101,6 +1123,9 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::validate())]
 		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
 			let controller = ensure_signed(origin)?;
+			if CitizenshipRequired::<T>::get() {
+				T::Citizenship::ensure_politics_allowed(&controller)?;
+			}
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
 
@@ -1809,6 +1834,18 @@ pub mod pallet {
 		pub fn set_min_commission(origin: OriginFor<T>, new: Perbill) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			MinCommission::<T>::put(new);
+			Ok(())
+		}
+
+		/// Enable or disable citizenship requirement for validators. Root only
+		#[pallet::call_index(100)]
+		#[pallet::weight(10_000)] // FIXME weight
+		pub fn set_citizenship_required(
+			origin: OriginFor<T>,
+			citizenship_required: bool,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			CitizenshipRequired::<T>::put(citizenship_required);
 			Ok(())
 		}
 	}
