@@ -176,6 +176,7 @@ impl pallet_identity::Config for Test {
 	type RegistrarOrigin = EnsureOneOrRoot;
 	type ForceOrigin = EnsureTwoOrRoot;
 	type WeightInfo = ();
+	type Citizenship = LLM;
 }
 
 impl pallet_liberland_initializer::Config for Test {}

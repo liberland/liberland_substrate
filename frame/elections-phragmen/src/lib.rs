@@ -112,8 +112,7 @@ use frame_support::{
 	},
 	weights::Weight,
 };
-use pallet_llm::traits::{LLM, CitizenshipChecker};
-use pallet_liberland_initializer::traits::LLInitializer;
+use liberland_traits::{CitizenshipChecker, LLM, LLInitializer};
 use scale_info::TypeInfo;
 use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
@@ -1243,6 +1242,7 @@ mod tests {
 		type RegistrarOrigin = EnsureOneOrRoot;
 		type ForceOrigin = EnsureTwoOrRoot;
 		type WeightInfo = ();
+		type Citizenship = LLM;
 	}
 
 	parameter_types! {

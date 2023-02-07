@@ -127,13 +127,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
-pub mod traits;
 
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+
+mod migrations;
 
 /// Liberland Merit Pallet
 /*
@@ -146,15 +147,20 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 */
 
+use frame_support::traits::Currency;
 type Assets<T> = pallet_assets::Pallet<T>;
+type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
+
 
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
-	use super::{traits::LLM, *};
+	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{fungibles::Mutate, Currency},
+		traits::fungibles::Mutate,
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -165,10 +171,7 @@ pub mod pallet {
 		AccountId32, SaturatedConversion,
 	};
 	use sp_std::vec::Vec;
-
-	type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::Balance;
+	use liberland_traits::{LLM, CitizenshipChecker};
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -211,6 +214,10 @@ pub mod pallet {
 	#[pallet::getter(fn election_lock_duration)]
 	pub(super) type ElectionlockDuration<T: Config> =
 		StorageValue<_, u64, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+
+	#[pallet::storage]
+	#[pallet::getter(fn citizens)]
+	pub(super) type Citizens<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -683,7 +690,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
+	impl<T: Config> LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
 			let minimum = match T::CitizenshipMinimumPooledLLM::get().try_into() {
 				Ok(m) => m,
@@ -746,7 +753,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
+	impl<T: Config> CitizenshipChecker<T::AccountId> for Pallet<T> {
 		fn ensure_politics_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
@@ -758,10 +765,17 @@ pub mod pallet {
 			Self::is_known_good(account)
 		}
 
-		fn citizens_count() -> usize {
-			pallet_identity::Pallet::<T>::identities_iter()
-				.filter(|(_account, registration)| Self::is_known_good_identity(registration))
-				.count()
+		fn citizens_count() -> u64 {
+			Citizens::<T>::get()
+		}
+
+		fn identity_changed(was_citizen_before_change: bool, account: &T::AccountId) {
+			let is_citizen_now = Self::is_citizen(account);
+			if was_citizen_before_change && !is_citizen_now {
+				Citizens::<T>::mutate(|c| *c -= 1);
+			} else if !was_citizen_before_change && is_citizen_now {
+				Citizens::<T>::mutate(|c| *c += 1);
+			}
 		}
 	}
 }

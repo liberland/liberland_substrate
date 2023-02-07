@@ -1,6 +1,5 @@
 use crate::{
 	mock::*,
-	traits::{CitizenshipChecker, LLM as LLMTrait},
 	Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease, Withdrawlock,
 	WithdrawlockDuration,
 };
@@ -9,6 +8,7 @@ use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use hex_literal::hex;
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
+use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -346,7 +346,7 @@ fn get_llm_politics_works() {
 	});
 }
 
-fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>) {
+fn setup_identity(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>, judgement: bool) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 	let additional = match eligible_on {
 		Some(n) => vec![(
@@ -371,14 +371,16 @@ fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>) {
 
 	let o = RuntimeOrigin::signed(id);
 	Identity::set_identity(o, Box::new(info.clone())).unwrap();
-	Identity::provide_judgement(
-		RuntimeOrigin::signed(0),
-		0,
-		id,
-		pallet_identity::Judgement::KnownGood,
-		BlakeTwo256::hash_of(&info),
-	)
-	.unwrap();
+	if judgement {
+		Identity::provide_judgement(
+			RuntimeOrigin::signed(0),
+			0,
+			id,
+			pallet_identity::Judgement::KnownGood,
+			BlakeTwo256::hash_of(&info),
+		)
+		.unwrap();
+	}
 }
 
 #[test]
@@ -388,15 +390,15 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 
 		// judgment OK, eligible_on ok, but missing citizen field
-		setup_broken_citizen(11, false, Some(vec![0]));
+		setup_identity(11, false, Some(vec![0]), true);
 		assert_noop!(LLM::ensure_politics_allowed(&11), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok, but missing eligible_on
-		setup_broken_citizen(12, true, None);
+		setup_identity(12, true, None, true);
 		assert_noop!(LLM::ensure_politics_allowed(&12), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok eligible_on set but in the future
-		setup_broken_citizen(13, true, Some(vec![0x40, 0x42, 0x0F]));
+		setup_identity(13, true, Some(vec![0x40, 0x42, 0x0F]), true);
 		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
 
 		System::set_block_number(999_999); // still future
@@ -467,4 +469,45 @@ fn releases_correct_amounts() {
 			assert_eq!(Assets::total_supply(id), TOTALLLM::get());
 		}
 	});
+}
+
+#[test]
+fn correctly_tracks_number_of_citizens() {
+	new_test_ext().execute_with(|| {
+		let root = RuntimeOrigin::root();
+		assert_eq!(LLM::citizens_count(), 5);
+
+		// set identity resets judgement - strips citizenship even if valid
+		setup_identity(1, true, Some(vec![0]), false);
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// judgement restores citizenship
+		let info = Identity::identity(1).unwrap().info;
+		Identity::provide_judgement(
+			RuntimeOrigin::signed(0),
+			0,
+			1,
+			pallet_identity::Judgement::KnownGood,
+			BlakeTwo256::hash_of(&info),
+		)
+		.unwrap();
+		assert_eq!(LLM::citizens_count(), 5);
+
+		// clear identity strips citizenship
+		Identity::clear_identity(RuntimeOrigin::signed(1)).unwrap();
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// set non-citizen identity doesnt affect count
+		setup_identity(99, false, None, false);
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// clear identity doesnt affect count if done on non-citizen
+		Identity::clear_identity(RuntimeOrigin::signed(99)).unwrap();
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// kill identity strips citizenship
+		Identity::kill_identity(root, 2).unwrap();
+		assert_eq!(LLM::citizens_count(), 3);
+
+	})
 }

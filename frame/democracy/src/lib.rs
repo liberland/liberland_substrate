@@ -171,8 +171,7 @@ use frame_support::{
 	RuntimeDebug,
 	weights::Weight,
 };
-use pallet_llm::traits::{CitizenshipChecker, LLM};
-use pallet_liberland_initializer::traits::LLInitializer;
+use liberland_traits::{CitizenshipChecker, LLM, LLInitializer};
 use sp_runtime::{
 	traits::{Bounded as ArithBounded, One, Saturating, StaticLookup, Zero},
 	ArithmeticError, DispatchError, DispatchResult,
