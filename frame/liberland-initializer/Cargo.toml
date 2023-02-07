@@ -53,4 +53,7 @@ runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+	"frame-support/try-runtime",
+	"pallet-llm/try-runtime",
+]

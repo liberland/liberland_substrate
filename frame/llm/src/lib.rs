@@ -160,7 +160,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::fungibles::Mutate,
+		traits::{OnRuntimeUpgrade, fungibles::Mutate},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -299,8 +299,11 @@ pub mod pallet {
 		Locked,
 	}
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
@@ -311,9 +314,19 @@ pub mod pallet {
 			Weight::zero()
 		}
 
-		fn on_finalize(_n: T::BlockNumber) {}
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+			migrations::v1::Migration::<T>::pre_upgrade()
+		}
 
-		fn offchain_worker(_n: T::BlockNumber) {}
+		fn on_runtime_upgrade() -> Weight {
+			migrations::v1::Migration::<T>::on_runtime_upgrade()
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+			migrations::v1::Migration::<T>::post_upgrade(state)
+		}
 	}
 
 	#[pallet::call]

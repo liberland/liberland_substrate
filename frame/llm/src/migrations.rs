@@ -9,6 +9,7 @@ const TARGET: &'static str = "runtime::llm::migration::v1";
 
 pub mod v1 {
 	use super::*;
+    use sp_std::vec::Vec;
 
 	#[storage_alias]
 	pub type IdentityOf<T: Config> = StorageMap<
@@ -16,7 +17,6 @@ pub mod v1 {
         Twox64Concat,
         <T as frame_system::Config>::AccountId,
         Registration<BalanceOf<T>, <T as pallet_identity::Config>::MaxRegistrars, <T as pallet_identity::Config>::MaxAdditionalFields>,
-        OptionQuery,
 	>;
 
 	/// Migration for adding origin type to proposals and referendums.
@@ -30,7 +30,6 @@ pub mod v1 {
 			Ok(().encode())
 		}
 
-		#[allow(deprecated)]
 		fn on_runtime_upgrade() -> Weight {
 			let mut weight = T::DbWeight::get().reads(1);
 			if StorageVersion::get::<Pallet<T>>() != 0 {
@@ -42,6 +41,25 @@ pub mod v1 {
 				return weight
 			}
 
+            IdentityOf::<T>::translate(|_, reg: Registration<BalanceOf<T>, <T as pallet_identity::Config>::MaxRegistrars, <T as pallet_identity::Config>::MaxAdditionalFields>| {
+                let mut additional = Vec::new();
+                let mut v = Vec::new();
+                v.push(0);
+                additional.push(
+                    (
+                        pallet_identity::Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
+                        pallet_identity::Data::Raw(v.try_into().unwrap())
+                    )
+                );
+                Some(pallet_identity::Registration {
+                    info: pallet_identity::IdentityInfo {
+                        additional: additional.try_into().unwrap(),
+                        ..reg.info
+                    },
+                    ..reg
+                })
+            });
+
             let citizens_count = IdentityOf::<T>::iter_keys().filter(|id| Pallet::<T>::is_citizen(id)).count();
             let citizens_count: u64 = citizens_count.try_into().unwrap();
 			Citizens::<T>::put(citizens_count);
@@ -52,7 +70,7 @@ pub mod v1 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 1, "must upgrade");
 			log::info!(
 				target: TARGET,
