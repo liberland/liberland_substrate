@@ -1,4 +1,12 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use sp_runtime::DispatchError;
+
+mod impls;
+pub trait LLInitializer<AccountId, Balance> {
+	#[cfg(feature = "runtime-benchmarks")]
+	fn make_citizen(account: &AccountId, amount: Balance);
+}
 
 /// trait for LLM methods that only interact with LLM pallet
 pub trait LLM<AccountId, Balance> {
@@ -24,5 +32,8 @@ pub trait CitizenshipChecker<AccountId> {
 	fn is_citizen(account: &AccountId) -> bool;
 
 	/// Calculate number of valid citizens (KnownGood judgements). This is expensive.
-	fn citizens_count() -> usize;
+	fn citizens_count() -> u64;
+
+	/// To be used by identity pallet to update stored number of citizens
+	fn identity_changed(was_citizen_before_change: bool, account: &AccountId);
 }

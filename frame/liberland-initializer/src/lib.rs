@@ -53,7 +53,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
-pub mod traits;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,6 +61,7 @@ pub mod pallet {
 	use pallet_identity::{Data, IdentityInfo, RegistrarIndex};
 	use sp_runtime::traits::{Hash, StaticLookup};
 	use sp_std::prelude::*;
+	use liberland_traits::LLInitializer;
 
 	type IdentityPallet<T> = pallet_identity::Pallet<T>;
 
@@ -176,7 +176,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::LLInitializer<T::AccountId, T::Balance> for Pallet<T> {
+	impl<T: Config> LLInitializer<T::AccountId, T::Balance> for Pallet<T> {
 		#[cfg(feature = "runtime-benchmarks")]
 		fn make_citizen(account: &T::AccountId, amount: T::Balance) {
 			if pallet_identity::Pallet::<T>::registrars().len() == 0 {

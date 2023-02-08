@@ -2958,6 +2958,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
 
 [[package]]
+name = "liberland-traits"
+version = "0.1.0"
+dependencies = [
+ "sp-runtime",
+]
+
+[[package]]
 name = "libloading"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4424,6 +4431,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "liberland-traits",
  "log",
  "pallet-assets",
  "pallet-balances",
@@ -4485,6 +4493,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "liberland-traits",
  "log",
  "pallet-assets",
  "pallet-balances",
@@ -4533,6 +4542,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "liberland-traits",
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
@@ -4586,6 +4596,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "liberland-traits",
  "log",
  "pallet-identity",
  "pallet-llm",
@@ -4605,6 +4616,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "liberland-traits",
  "log",
  "pallet-assets",
  "pallet-balances",
@@ -4630,6 +4642,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal",
+ "liberland-traits",
  "log",
  "pallet-assets",
  "pallet-balances",

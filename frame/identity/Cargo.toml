@@ -22,6 +22,7 @@ frame-system = { version = "4.0.0-dev", default-features = false, branch = "polk
 sp-io = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
 sp-runtime = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
 sp-std = { version = "5.0.0", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
+liberland-traits = { default-features = false, path = "../liberland-traits" }
 
 [dev-dependencies]
 pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
@@ -38,10 +39,12 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"liberland-traits/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"liberland-traits/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime"]
