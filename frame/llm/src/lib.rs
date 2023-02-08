@@ -172,6 +172,7 @@ pub mod pallet {
 	};
 	use sp_std::vec::Vec;
 	use liberland_traits::{LLM, CitizenshipChecker};
+	use sp_runtime::Perquintill;
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -393,7 +394,6 @@ pub mod pallet {
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
 			// check if we have political locked LLM
-			log::info!("unlock called");
 
 			let politics_balance = LLMPolitics::<T>::get(sender.clone());
 			ensure!(politics_balance > 0u8.into(), Error::<T>::InvalidAccount);
@@ -402,8 +402,7 @@ pub mod pallet {
 				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
 			ensure!(current_block_number > Withdrawlock::<T>::get(&sender), Error::<T>::Gottawait);
 
-			let ten_percent: T::Balance = Self::get_10_percent(politics_balance);
-			log::info!("releasing 10% {:?}", ten_percent.clone());
+			let ten_percent: T::Balance = Self::get_unlock_amount(politics_balance)?;
 
 			Self::transfer_from_politipool(sender.clone(), ten_percent)?;
 			LLMPolitics::<T>::mutate(&sender, |b| *b -= ten_percent);
@@ -432,13 +431,14 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
+			// FIXME extract this to runtime or chainspec
+			// > subkey inspect -n polkadot --public 695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94
+			// [...]
+			// SS58 Address:       13P9Z2QVN57yFbsfeQA93Ynadt6NCXzsJyP5FiXZ4mRKn1rN
 			let account_map: Vec<T::AccountId> = vec![
 				Self::account_id32_to_accountid(
-					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
+					hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(), /* test senate */
 				),
-				Self::account_id32_to_accountid(
-					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
-				), // V + DEVKEY + N + M
 			];
 			let sender: T::AccountId = ensure_signed(origin)?;
 
@@ -538,9 +538,12 @@ pub mod pallet {
 			Assets::<T>::balance(Self::llm_id().into(), account)
 		}
 
-		// get 10% of the users balance
-		fn get_10_percent(balance: T::Balance) -> T::Balance {
-			balance / 10u8.into()
+		// FIXME extract this to runtime or chainspec
+		fn get_unlock_amount(balance: T::Balance) -> Result<T::Balance, Error<T>> {
+			let factor = Perquintill::from_rational(8742u64, 1000000u64);
+			let balance: u64 = balance.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
+			let amount = factor.mul_floor(balance);
+			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
 
 		fn transfer(
@@ -593,8 +596,9 @@ pub mod pallet {
 			ensure!(asset_supply == 0u8.into(), Error::<T>::AssetExists); // if the asset supply is zero == that means it is not been created and we can create
 
 			let min_balance: T::Balance = 1u8.into();
-			let name: Vec<u8> = "Liberland Merit".into();
-			let symbol: Vec<u8> = "LLM".into();
+			// FIXME extract this to runtime/chainspec
+			let name: Vec<u8> = "LiberTest Merit".into();
+			let symbol: Vec<u8> = "LTM".into();
 			let decimals: u8 = 12u8;
 			Assets::<T>::force_create(
 				origin.clone(),
