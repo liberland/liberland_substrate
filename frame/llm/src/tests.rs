@@ -1,6 +1,5 @@
 use crate::{
 	mock::*,
-	traits::{CitizenshipChecker, LLM as LLMTrait},
 	Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease, Withdrawlock,
 	WithdrawlockDuration,
 };
@@ -9,6 +8,7 @@ use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use hex_literal::hex;
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
+use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -159,31 +159,31 @@ fn cant_politics_unlock_if_withdraw_locked() {
 fn politics_unlock_deposits_event() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(1);
-		assert_ok!(LLM::politics_lock(origin.clone(), 10));
+		assert_ok!(LLM::politics_lock(origin.clone(), 1000));
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		System::assert_last_event(Event::LLMPoliticsUnlocked(1, 1).into());
+		System::assert_last_event(Event::LLMPoliticsUnlocked(1, 8).into());
 	});
 }
 
 #[test]
-fn politics_unlock_releases_10_percent() {
+fn politics_unlock_releases_dot8742_percent() {
 	new_test_ext().execute_with(|| {
 		let id = LLM::llm_id();
 		let politipool = LLM::get_llm_politipool_account();
 		let origin = RuntimeOrigin::signed(2);
 
-		assert_ok!(LLM::politics_lock(origin.clone(), 5000));
+		assert_ok!(LLM::politics_lock(origin.clone(), 6000));
 		assert_ok!(LLM::politics_unlock(origin.clone()));
 
-		assert_eq!(Assets::balance(id, 2), 1000 + 500);
-		assert_eq!(LLMPolitics::<Test>::get(2), 5000 - 500);
-		assert_eq!(Assets::balance(id, politipool), 5000 - 500);
+		assert_eq!(Assets::balance(id, 2), 52);
+		assert_eq!(LLMPolitics::<Test>::get(2), 6000 - 52);
+		assert_eq!(Assets::balance(id, politipool), 6000 - 52);
 
 		System::set_block_number(Withdrawlock::<Test>::get(2) + 1);
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_eq!(Assets::balance(id, 2), 1500 + 450);
-		assert_eq!(LLMPolitics::<Test>::get(2), 4500 - 450);
-		assert_eq!(Assets::balance(id, politipool), 4500 - 450);
+		assert_eq!(Assets::balance(id, 2), 52 + 51);
+		assert_eq!(LLMPolitics::<Test>::get(2), 6000 - 52 - 51);
+		assert_eq!(Assets::balance(id, politipool), 6000 - 52 - 51);
 	});
 }
 
@@ -192,7 +192,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
 		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
+			hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(),
 		));
 
 		assert_noop!(LLM::treasury_llm_transfer(unapproved, 1, 1), Error::<Test>::InvalidAccount);
@@ -204,7 +204,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer() {
 fn treasury_llm_transfer_calls_assets() {
 	new_test_ext().execute_with(|| {
 		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
+			hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(),
 		));
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
@@ -309,14 +309,14 @@ fn get_politi_pooled_amount_works() {
 		assert_ok!(LLM::politics_lock(origin.clone(), 2));
 		assert_eq!(LLM::get_politi_pooled_amount(), 10);
 
-		assert_ok!(LLM::politics_lock(origin2.clone(), 20));
-		assert_eq!(LLM::get_politi_pooled_amount(), 30);
+		assert_ok!(LLM::politics_lock(origin2.clone(), 990));
+		assert_eq!(LLM::get_politi_pooled_amount(), 1000);
 
 		assert_ok!(LLM::politics_unlock(origin2.clone()));
-		assert_eq!(LLM::get_politi_pooled_amount(), 28);
+		assert_eq!(LLM::get_politi_pooled_amount(), 992);
 
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_eq!(LLM::get_politi_pooled_amount(), 27);
+		assert_eq!(LLM::get_politi_pooled_amount(), 992);
 	});
 }
 
@@ -326,32 +326,32 @@ fn get_llm_politics_works() {
 		let origin = RuntimeOrigin::signed(1);
 		let origin2 = RuntimeOrigin::signed(2);
 
-		assert_ok!(LLM::politics_lock(origin.clone(), 4));
-		assert_eq!(LLM::get_llm_politics(&1), 4);
+		assert_ok!(LLM::politics_lock(origin.clone(), 110));
+		assert_eq!(LLM::get_llm_politics(&1), 110);
 
-		assert_ok!(LLM::politics_lock(origin.clone(), 4));
-		assert_eq!(LLM::get_llm_politics(&1), 8);
+		assert_ok!(LLM::politics_lock(origin.clone(), 3));
+		assert_eq!(LLM::get_llm_politics(&1), 113);
 
 		assert_ok!(LLM::politics_lock(origin.clone(), 2));
-		assert_eq!(LLM::get_llm_politics(&1), 10);
+		assert_eq!(LLM::get_llm_politics(&1), 115);
 
-		assert_ok!(LLM::politics_lock(origin2.clone(), 20));
-		assert_eq!(LLM::get_llm_politics(&2), 20);
+		assert_ok!(LLM::politics_lock(origin2.clone(), 1144));
+		assert_eq!(LLM::get_llm_politics(&2), 1144);
 
 		assert_ok!(LLM::politics_unlock(origin2.clone()));
-		assert_eq!(LLM::get_llm_politics(&2), 18);
+		assert_eq!(LLM::get_llm_politics(&2), 1134);
 
 		assert_ok!(LLM::politics_unlock(origin.clone()));
-		assert_eq!(LLM::get_llm_politics(&1), 9);
+		assert_eq!(LLM::get_llm_politics(&1), 114);
 	});
 }
 
-fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<u8>) {
+fn setup_identity(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>, judgement: bool) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
 	let additional = match eligible_on {
 		Some(n) => vec![(
 			Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
-			Data::Raw(vec![n].try_into().unwrap()),
+			Data::Raw(n.try_into().unwrap()),
 		)],
 		None => vec![],
 	};
@@ -371,14 +371,16 @@ fn setup_broken_citizen(id: u64, citizen: bool, eligible_on: Option<u8>) {
 
 	let o = RuntimeOrigin::signed(id);
 	Identity::set_identity(o, Box::new(info.clone())).unwrap();
-	Identity::provide_judgement(
-		RuntimeOrigin::signed(0),
-		0,
-		id,
-		pallet_identity::Judgement::KnownGood,
-		BlakeTwo256::hash_of(&info),
-	)
-	.unwrap();
+	if judgement {
+		Identity::provide_judgement(
+			RuntimeOrigin::signed(0),
+			0,
+			id,
+			pallet_identity::Judgement::KnownGood,
+			BlakeTwo256::hash_of(&info),
+		)
+		.unwrap();
+	}
 }
 
 #[test]
@@ -388,16 +390,24 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 
 		// judgment OK, eligible_on ok, but missing citizen field
-		setup_broken_citizen(11, false, Some(0));
+		setup_identity(11, false, Some(vec![0]), true);
 		assert_noop!(LLM::ensure_politics_allowed(&11), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok, but missing eligible_on
-		setup_broken_citizen(12, true, None);
+		setup_identity(12, true, None, true);
 		assert_noop!(LLM::ensure_politics_allowed(&12), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok eligible_on set but in the future
-		setup_broken_citizen(13, true, Some(100));
+		setup_identity(13, true, Some(vec![0x40, 0x42, 0x0F]), true);
 		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
+
+		System::set_block_number(999_999); // still future
+		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
+
+		assert_ok!(LLM::fake_send(RuntimeOrigin::signed(13), 13, 5000));
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(13), 5000));
+		System::set_block_number(1_000_000); // and its ok
+		assert_ok!(LLM::ensure_politics_allowed(&13));
 	});
 }
 
@@ -459,4 +469,45 @@ fn releases_correct_amounts() {
 			assert_eq!(Assets::total_supply(id), TOTALLLM::get());
 		}
 	});
+}
+
+#[test]
+fn correctly_tracks_number_of_citizens() {
+	new_test_ext().execute_with(|| {
+		let root = RuntimeOrigin::root();
+		assert_eq!(LLM::citizens_count(), 5);
+
+		// set identity resets judgement - strips citizenship even if valid
+		setup_identity(1, true, Some(vec![0]), false);
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// judgement restores citizenship
+		let info = Identity::identity(1).unwrap().info;
+		Identity::provide_judgement(
+			RuntimeOrigin::signed(0),
+			0,
+			1,
+			pallet_identity::Judgement::KnownGood,
+			BlakeTwo256::hash_of(&info),
+		)
+		.unwrap();
+		assert_eq!(LLM::citizens_count(), 5);
+
+		// clear identity strips citizenship
+		Identity::clear_identity(RuntimeOrigin::signed(1)).unwrap();
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// set non-citizen identity doesnt affect count
+		setup_identity(99, false, None, false);
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// clear identity doesnt affect count if done on non-citizen
+		Identity::clear_identity(RuntimeOrigin::signed(99)).unwrap();
+		assert_eq!(LLM::citizens_count(), 4);
+
+		// kill identity strips citizenship
+		Identity::kill_identity(root, 2).unwrap();
+		assert_eq!(LLM::citizens_count(), 3);
+
+	})
 }

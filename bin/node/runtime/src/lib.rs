@@ -123,14 +123,14 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("liberland"),
+	spec_name: create_runtime_str!("Liberland_testnet"),
 	impl_name: create_runtime_str!("liberland-node"),
 	authoring_version: 10,
 	// Per convention: if the runtime behavior changes, increment spec_version
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 5,
+	spec_version: 6,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -442,7 +442,10 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+	// LLD transfer is ~156 bytes long (exact value depends on transferred amount)
+	// We want 1 LLD transfer to cost 0.01 LLD (so that 1 LLD is OK for 100 simple txs)
+	// 0.01 LLD / 156 ~= 0.000064 LLD per byte
+	pub const TransactionByteFee: Balance = 64 * MICROCENTS;
 	pub const OperationalFeeMultiplier: u8 = 5;
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
@@ -524,11 +527,12 @@ impl pallet_session::historical::Config for Runtime {
 
 pallet_staking_reward_curve::build! {
 	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
-		min_inflation: 0_025_000,
-		max_inflation: 0_133_000,
-		ideal_stake: 0_750_000,
-		falloff: 0_050_000,
-		max_piece_count: 40,
+		// for millionth, 10_000 = 0.01 = 1%
+		min_inflation:  0_005_000, // a.k.a. I_0; expressed in millionth
+		max_inflation:  0_100_000, // a.k.a. inflation for ideal_stake; expressed in millionth
+		ideal_stake:    0_750_000,
+		falloff:        0_100_000, // a.k.a. decay rate, expressed in millionth
+		max_piece_count:       40,
 		test_precision: 0_005_000,
 	);
 }
@@ -558,8 +562,8 @@ impl pallet_staking::Config for Runtime {
 	type CurrencyToVote = U128CurrencyToVote;
 	type RewardRemainder = Treasury;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = Treasury; // send the slashed funds to the treasury.
-	type Reward = (); // rewards are minted from the void
+	type Slash = Treasury;
+	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
 	type SlashDeferDuration = SlashDeferDuration;
@@ -722,7 +726,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxRefunds = ConstU32<3>;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight = MinerMaxWeight;
-	type SlashHandler = (); // burn slashes
+	type SlashHandler = Treasury; // burn slashes
 	type RewardHandler = (); // nothing to do upon rewards
 	type DataProvider = Staking;
 	type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
@@ -822,7 +826,7 @@ impl pallet_referenda::Config for Runtime {
 	type SubmitOrigin = EnsureSigned<AccountId>;
 	type CancelOrigin = EnsureRoot<AccountId>;
 	type KillOrigin = EnsureRoot<AccountId>;
-	type Slash = ();
+	type Slash = Treasury;
 	type Votes = pallet_conviction_voting::VotesOf<Runtime>;
 	type Tally = pallet_conviction_voting::TallyOf<Runtime>;
 	type SubmissionDeposit = SubmissionDeposit;
@@ -834,12 +838,12 @@ impl pallet_referenda::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 2 * MINUTES;//  | Change me for testing 2 * MINUTES;//
-	pub const VotingPeriod: BlockNumber = 4 * MINUTES;//* 24 * 60 * MINUTES;
-	pub const FastTrackVotingPeriod: BlockNumber = 3 * MINUTES;//* 24 * 60 * MINUTES;
-	pub const MinimumDeposit: Balance = 10;//100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 3 * MINUTES;//30 * 24 * 60 * MINUTES;
-	pub const CooloffPeriod: BlockNumber = 3 * MINUTES;//28 * 24 * 60 * MINUTES;
+	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
+	pub const VotingPeriod: BlockNumber = 7 * DAYS;
+	pub const FastTrackVotingPeriod: BlockNumber = 7 * DAYS;
+	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
+	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
+	pub const CooloffPeriod: BlockNumber = 7 * DAYS;
 	pub const MaxProposals: u32 = 100;
 }
 
@@ -920,12 +924,12 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 }
 
 parameter_types! {
-	pub const CandidacyBond: Balance = 10 * DOLLARS;
+	pub const CandidacyBond: Balance = 10 * GRAINS_IN_LLM;
 	// 1 storage item created, key size is 32 bytes, value size is 16+16.
 	pub const VotingBondBase: Balance = deposit(1, 64);
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = deposit(0, 32);
-	pub const TermDuration: BlockNumber = 2 * MINUTES;//7 * DAYS;
+	pub const TermDuration: BlockNumber = 14 * DAYS;
 	pub const DesiredMembers: u32 = 4;
 	pub const DesiredRunnersUp: u32 = 3;
 	pub const MaxVoters: u32 = 10 * 1000;
@@ -1002,7 +1006,7 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 3 * MINUTES;//28 * DAYS;
+	pub const SpendPeriod: BlockNumber = 60 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TipCountdown: BlockNumber = 2 * MINUTES;//1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -1011,7 +1015,7 @@ parameter_types! {
 	pub const BountyDepositBase: Balance = 1 * DOLLARS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 2 * MINUTES;//1 * DAYS;
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const BountyUpdatePeriod: BlockNumber = 2 * MINUTES;// 14 * DAYS;
+	pub const BountyUpdatePeriod: BlockNumber = 60 * DAYS;
 	pub const MaximumReasonLength: u32 = 300;
 	pub const MaxApprovals: u32 = 100;
 	pub const MaxBalance: Balance = Balance::max_value();
@@ -1268,6 +1272,7 @@ impl pallet_identity::Config for Runtime {
 	type ForceOrigin = EnsureRootOrHalfCouncil;
 	type RegistrarOrigin = EnsureRootOrHalfCouncil;
 	type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+	type Citizenship = LLM;
 }
 
 parameter_types! {
@@ -1412,7 +1417,7 @@ parameter_types! {
 
 parameter_types! {
 	pub const TOTALLLM: Balance      = 70_000_000u128 * GRAINS_IN_LLM;
-	pub const PRERELEASELLM: Balance =  7_000_000u128 * GRAINS_IN_LLM;
+	pub const PRERELEASELLM: Balance = 13_300_000u128 * GRAINS_IN_LLM;
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 }
 
@@ -1635,7 +1640,6 @@ pub type Executive = frame_executive::Executive<
 // `OnRuntimeUpgrade`.
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
-	pallet_assets::migration::v1::MigrateToV1<Runtime>,
 );
 
 /// MMR helper types.

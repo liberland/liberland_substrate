@@ -127,13 +127,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
-pub mod traits;
 
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+
+mod migrations;
 
 /// Liberland Merit Pallet
 /*
@@ -146,15 +147,20 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 */
 
+use frame_support::traits::Currency;
 type Assets<T> = pallet_assets::Pallet<T>;
+type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
+
 
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
-	use super::{traits::LLM, *};
+	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{fungibles::Mutate, Currency},
+		traits::{OnRuntimeUpgrade, fungibles::Mutate},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -165,10 +171,8 @@ pub mod pallet {
 		AccountId32, SaturatedConversion,
 	};
 	use sp_std::vec::Vec;
-
-	type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::Balance;
+	use liberland_traits::{LLM, CitizenshipChecker};
+	use sp_runtime::Perquintill;
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -211,6 +215,10 @@ pub mod pallet {
 	#[pallet::getter(fn election_lock_duration)]
 	pub(super) type ElectionlockDuration<T: Config> =
 		StorageValue<_, u64, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+
+	#[pallet::storage]
+	#[pallet::getter(fn citizens)]
+	pub(super) type Citizens<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -292,8 +300,11 @@ pub mod pallet {
 		Locked,
 	}
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
@@ -304,9 +315,19 @@ pub mod pallet {
 			Weight::zero()
 		}
 
-		fn on_finalize(_n: T::BlockNumber) {}
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+			migrations::v1::Migration::<T>::pre_upgrade()
+		}
 
-		fn offchain_worker(_n: T::BlockNumber) {}
+		fn on_runtime_upgrade() -> Weight {
+			migrations::v1::Migration::<T>::on_runtime_upgrade()
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+			migrations::v1::Migration::<T>::post_upgrade(state)
+		}
 	}
 
 	#[pallet::call]
@@ -373,7 +394,6 @@ pub mod pallet {
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
 			// check if we have political locked LLM
-			log::info!("unlock called");
 
 			let politics_balance = LLMPolitics::<T>::get(sender.clone());
 			ensure!(politics_balance > 0u8.into(), Error::<T>::InvalidAccount);
@@ -382,8 +402,7 @@ pub mod pallet {
 				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
 			ensure!(current_block_number > Withdrawlock::<T>::get(&sender), Error::<T>::Gottawait);
 
-			let ten_percent: T::Balance = Self::get_10_percent(politics_balance);
-			log::info!("releasing 10% {:?}", ten_percent.clone());
+			let ten_percent: T::Balance = Self::get_unlock_amount(politics_balance)?;
 
 			Self::transfer_from_politipool(sender.clone(), ten_percent)?;
 			LLMPolitics::<T>::mutate(&sender, |b| *b -= ten_percent);
@@ -412,13 +431,14 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
+			// FIXME extract this to runtime or chainspec
+			// > subkey inspect -n polkadot --public 695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94
+			// [...]
+			// SS58 Address:       13P9Z2QVN57yFbsfeQA93Ynadt6NCXzsJyP5FiXZ4mRKn1rN
 			let account_map: Vec<T::AccountId> = vec![
 				Self::account_id32_to_accountid(
-					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
+					hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(), /* test senate */
 				),
-				Self::account_id32_to_accountid(
-					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
-				), // V + DEVKEY + N + M
 			];
 			let sender: T::AccountId = ensure_signed(origin)?;
 
@@ -518,9 +538,12 @@ pub mod pallet {
 			Assets::<T>::balance(Self::llm_id().into(), account)
 		}
 
-		// get 10% of the users balance
-		fn get_10_percent(balance: T::Balance) -> T::Balance {
-			balance / 10u8.into()
+		// FIXME extract this to runtime or chainspec
+		fn get_unlock_amount(balance: T::Balance) -> Result<T::Balance, Error<T>> {
+			let factor = Perquintill::from_rational(8742u64, 1000000u64);
+			let balance: u64 = balance.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
+			let amount = factor.mul_floor(balance);
+			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
 
 		fn transfer(
@@ -573,8 +596,9 @@ pub mod pallet {
 			ensure!(asset_supply == 0u8.into(), Error::<T>::AssetExists); // if the asset supply is zero == that means it is not been created and we can create
 
 			let min_balance: T::Balance = 1u8.into();
-			let name: Vec<u8> = "Liberland Merit".into();
-			let symbol: Vec<u8> = "LLM".into();
+			// FIXME extract this to runtime/chainspec
+			let name: Vec<u8> = "LiberTest Merit".into();
+			let symbol: Vec<u8> = "LTM".into();
 			let decimals: u8 = 12u8;
 			Assets::<T>::force_create(
 				origin.clone(),
@@ -669,7 +693,6 @@ pub mod pallet {
 			let release_amount = Self::get_release_amount();
 			Self::release_tokens_from_vault(release_amount).unwrap();
 
-			log::info!("maybe_release ran all the way");
 			true
 		}
 
@@ -684,7 +707,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::LLM<T::AccountId, T::Balance> for Pallet<T> {
+	impl<T: Config> LLM<T::AccountId, T::Balance> for Pallet<T> {
 		fn check_pooled_llm(account: &T::AccountId) -> bool {
 			let minimum = match T::CitizenshipMinimumPooledLLM::get().try_into() {
 				Ok(m) => m,
@@ -747,7 +770,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> traits::CitizenshipChecker<T::AccountId> for Pallet<T> {
+	impl<T: Config> CitizenshipChecker<T::AccountId> for Pallet<T> {
 		fn ensure_politics_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
@@ -759,10 +782,17 @@ pub mod pallet {
 			Self::is_known_good(account)
 		}
 
-		fn citizens_count() -> usize {
-			pallet_identity::Pallet::<T>::identities_iter()
-				.filter(|(_account, registration)| Self::is_known_good_identity(registration))
-				.count()
+		fn citizens_count() -> u64 {
+			Citizens::<T>::get()
+		}
+
+		fn identity_changed(was_citizen_before_change: bool, account: &T::AccountId) {
+			let is_citizen_now = Self::is_citizen(account);
+			if was_citizen_before_change && !is_citizen_now {
+				Citizens::<T>::mutate(|c| *c -= 1);
+			} else if !was_citizen_before_change && is_citizen_now {
+				Citizens::<T>::mutate(|c| *c += 1);
+			}
 		}
 	}
 }

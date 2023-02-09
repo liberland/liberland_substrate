@@ -49,7 +49,7 @@ mod tests;
 pub mod pallet {
 	use frame_support::{pallet_prelude::*, Blake2_128Concat};
 	use frame_system::pallet_prelude::*;
-	use pallet_llm::traits::CitizenshipChecker;
+	use liberland_traits::CitizenshipChecker;
 
 	type Citizenship<T> = <T as Config>::Citizenship;
 
@@ -99,6 +99,8 @@ pub mod pallet {
 		InsufficientVetoCount,
 		/// Given action cannot be done on given (tier, index).
 		ProtectedLegislation,
+		/// Internal error, for example related to incompatible types
+		InternalError,
 	}
 
 	#[derive(Clone, Copy)]
@@ -323,9 +325,11 @@ pub mod pallet {
 			// We could optimize it and for ex. return list of all citizens when
 			// counting them, but that would result in a more confusing code.
 			// Let's postpone this optimization until it's confirmed it's needed.
-			let valid_vetos = Vetos::<T>::iter_key_prefix((tier, index))
+			let valid_vetos: u64 = Vetos::<T>::iter_key_prefix((tier, index))
 				.filter(|sender| Citizenship::<T>::is_citizen(sender))
-				.count();
+				.count()
+				.try_into()
+				.map_err(|_| Error::<T>::InternalError)?;
 
 			ensure!(valid_vetos >= required, Error::<T>::InsufficientVetoCount);
 

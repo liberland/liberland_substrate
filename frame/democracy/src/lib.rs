@@ -171,8 +171,7 @@ use frame_support::{
 	RuntimeDebug,
 	weights::Weight,
 };
-use pallet_llm::traits::{CitizenshipChecker, LLM};
-use pallet_liberland_initializer::traits::LLInitializer;
+use liberland_traits::{CitizenshipChecker, LLM, LLInitializer};
 use sp_runtime::{
 	traits::{Bounded as ArithBounded, One, Saturating, StaticLookup, Zero},
 	ArithmeticError, DispatchError, DispatchResult,
@@ -227,7 +226,7 @@ pub mod pallet {
 	use sp_core::H256;
 
 	/// The current storage version.
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -563,16 +562,16 @@ pub mod pallet {
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-			migrations::v2::Migration::<T>::pre_upgrade()
+			migrations::v3::Migration::<T>::pre_upgrade()
 		}
 
 		fn on_runtime_upgrade() -> Weight {
-			migrations::v2::Migration::<T>::on_runtime_upgrade()
+			migrations::v3::Migration::<T>::on_runtime_upgrade()
 		}
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
-			migrations::v2::Migration::<T>::post_upgrade(state)
+			migrations::v3::Migration::<T>::post_upgrade(state)
 		}
 	}
 
