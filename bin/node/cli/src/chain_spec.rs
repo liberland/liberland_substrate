@@ -109,7 +109,7 @@ pub fn bastiat_testnet_config() -> ChainSpec {
 		bastiat_testnet_config_genesis,
 		vec![
 			"/ip4/164.92.254.132/tcp/30333/p2p/12D3KooWFzt9D5Pbza9ahfVjfXfRHsbsQRXmkf64FgY3LrLCSV8N".parse().unwrap(),
-			"/ip4/167.99.90.52/tcp/30333/p2p/12D3KooWL7BRq4mak1mG677YjZ6bfQaLK7cBpNypXZPWRn8z8Tmz".parse().unwrap(),
+			"/ip4/167.99.90.52/tcp/30333/p2p/12D3KooWNUFT7agTugfRJMbVp22Y5MHpUvnjZU6n6rVH1ovHhGxm".parse().unwrap(),
 			"/ip4/207.154.237.18/tcp/30333/p2p/12D3KooWBVTvE4yx6WnGCAkBEMxLMDiHbgyh3WKFcBeyhrvJMT3k".parse().unwrap(),
 		],
 		None,
