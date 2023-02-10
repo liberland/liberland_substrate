@@ -664,14 +664,15 @@ pub mod pallet {
 			block
 		}
 
+		// FIXME move this to runtime
 		fn get_future_block() -> u64 {
 			let current_block_number: u64 =
 				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
 			let blocks_per_second: u64 = 6u64; // 6 seconds per block
 			let one_minute: u64 = 60u64 / blocks_per_second;
 			let one_day: u64 = one_minute * 60u64 * 24u64;
-			let _one_year: u64 = one_day * 365u64; //365.24
-			let block = current_block_number + 2u64 * one_minute; // 2 minutes
+			let one_year: u64 = one_day * 365u64; //365.24
+			let block = current_block_number + one_year;
 			block
 		}
 
