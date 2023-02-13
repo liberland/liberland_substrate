@@ -5,7 +5,6 @@ use crate::{
 };
 use codec::Compact;
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
-use hex_literal::hex;
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
@@ -191,9 +190,7 @@ fn politics_unlock_releases_dot8742_percent() {
 fn only_approved_accounts_can_call_treasury_llm_transfer() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(),
-		));
+		let approved = RuntimeOrigin::signed(777);
 
 		assert_noop!(LLM::treasury_llm_transfer(unapproved, 1, 1), Error::<Test>::InvalidAccount);
 		assert_ok!(LLM::treasury_llm_transfer(approved, 1, 1));
@@ -203,9 +200,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer() {
 #[test]
 fn treasury_llm_transfer_calls_assets() {
 	new_test_ext().execute_with(|| {
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(),
-		));
+		let approved = RuntimeOrigin::signed(777);
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		assert_ok!(LLM::treasury_llm_transfer(approved.clone(), 1, 10));
@@ -220,9 +215,7 @@ fn treasury_llm_transfer_calls_assets() {
 fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
-		));
+		let approved = RuntimeOrigin::signed(777);
 
 		assert_noop!(
 			LLM::treasury_llm_transfer_to_politipool(unapproved, 1, 1),
@@ -235,9 +228,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
 #[test]
 fn treasury_llm_transfer_to_politipool_locks_funds() {
 	new_test_ext().execute_with(|| {
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
-		));
+		let approved = RuntimeOrigin::signed(777);
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		let politipool = LLM::get_llm_politipool_account();
@@ -510,4 +501,22 @@ fn correctly_tracks_number_of_citizens() {
 		assert_eq!(LLM::citizens_count(), 3);
 
 	})
+}
+
+#[test]
+fn ensure_senate_can_be_changed() {
+	new_test_ext().execute_with(|| {
+		let origin = RuntimeOrigin::signed(123);
+		assert_ok!(LLM::set_senate(RuntimeOrigin::root(), Some(123)));
+		assert_ok!(LLM::treasury_llm_transfer_to_politipool(origin, 1, 10));
+	});
+}
+
+#[test]
+fn ensure_senate_can_be_disabled() {
+	new_test_ext().execute_with(|| {
+		let origin = RuntimeOrigin::signed(123);
+		assert_ok!(LLM::set_senate(RuntimeOrigin::root(), None));
+		assert_noop!(LLM::treasury_llm_transfer_to_politipool(origin, 1, 10), Error::<Test>::NoSenate);
+	});
 }

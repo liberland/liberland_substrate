@@ -189,7 +189,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		(ll_node_1_stash, 100 * DOLLARS),
 		(ll_node_2_stash, 100 * DOLLARS),
 		(ll_node_3_stash, 100 * DOLLARS),
-		(senate_multisig, llm_to_lld_10_to_1(kitchensink_runtime::PRERELEASELLM::get())),
+		(senate_multisig.clone(), llm_to_lld_10_to_1(kitchensink_runtime::PRERELEASELLM::get())),
 	];
 
 	lld_balances.extend(
@@ -254,6 +254,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		llm: LLMConfig {
 			unpooling_withdrawlock_duration: 3600*24*30,
 			unpooling_electionlock_duration: 3600*24*30,
+			senate: Some(senate_multisig),
 			_phantom: Default::default(),
 		},
 		liberland_initializer: LiberlandInitializerConfig {

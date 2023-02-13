@@ -175,6 +175,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_llm::GenesisConfig::<Test> {
 		unpooling_withdrawlock_duration: 180,
 		unpooling_electionlock_duration: 190,
+		senate: Some(777),
 		_phantom: Default::default(),
 	}
 	.assimilate_storage(&mut t)

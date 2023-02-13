@@ -164,7 +164,6 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
-	use hex_literal::hex;
 	use scale_info::prelude::vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
@@ -220,6 +219,10 @@ pub mod pallet {
 	#[pallet::getter(fn citizens)]
 	pub(super) type Citizens<T: Config> = StorageValue<_, u64, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn senate)]
+	pub(super) type Senate<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		/// duration, in seconds, for which additional unlocks should be locked
@@ -228,6 +231,8 @@ pub mod pallet {
 		/// duration, in seconds, for which politics rights should be suspended
 		/// after `politics_unlock`
 		pub unpooling_electionlock_duration: u64,
+		/// Senate account
+		pub senate: Option<T::AccountId>,
 		pub _phantom: PhantomData<T>,
 	}
 
@@ -237,6 +242,7 @@ pub mod pallet {
 			Self {
 				unpooling_withdrawlock_duration: WithdrawlockDurationOnEmpty::<T>::get(),
 				unpooling_electionlock_duration: ElectionlockDurationOnEmpty::<T>::get(),
+				senate: None,
 				_phantom: Default::default(),
 			}
 		}
@@ -250,6 +256,7 @@ pub mod pallet {
 
 			WithdrawlockDuration::<T>::put(&self.unpooling_withdrawlock_duration);
 			ElectionlockDuration::<T>::put(&self.unpooling_electionlock_duration);
+			Senate::<T>::set(self.senate.clone());
 		}
 	}
 
@@ -298,6 +305,8 @@ pub mod pallet {
 		NonCitizen,
 		/// Temporary locked after unpooling LLM
 		Locked,
+		/// Senate not set
+		NoSenate,
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -431,18 +440,9 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
-			// FIXME extract this to runtime or chainspec
-			// > subkey inspect -n polkadot --public 695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94
-			// [...]
-			// SS58 Address:       13P9Z2QVN57yFbsfeQA93Ynadt6NCXzsJyP5FiXZ4mRKn1rN
-			let account_map: Vec<T::AccountId> = vec![
-				Self::account_id32_to_accountid(
-					hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(), /* test senate */
-				),
-			];
 			let sender: T::AccountId = ensure_signed(origin)?;
-
-			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
+			let senate = Senate::<T>::get().ok_or(Error::<T>::NoSenate)?;
+			ensure!(sender == senate, Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account, amount)
 		}
@@ -460,17 +460,9 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
-			let account_map: Vec<T::AccountId> = vec![
-				Self::account_id32_to_accountid(
-					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
-				),
-				Self::account_id32_to_accountid(
-					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
-				), // V + DEVKEY + N + M
-			];
 			let sender: T::AccountId = ensure_signed(origin)?;
-
-			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
+			let senate = Senate::<T>::get().ok_or(Error::<T>::NoSenate)?;
+			ensure!(sender == senate, Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account.clone(), amount)?;
 			Self::do_politics_lock(to_account, amount)
@@ -504,6 +496,17 @@ pub mod pallet {
 			let _x = amount;
 			let _y = to_account;
 			todo!("approve_transfer");
+		}
+
+		/// Set senate
+		#[pallet::weight(10_000)]
+		pub fn set_senate(
+			origin: OriginFor<T>,
+			senate: Option<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Senate::<T>::set(senate);
+			Ok(())
 		}
 	}
 
