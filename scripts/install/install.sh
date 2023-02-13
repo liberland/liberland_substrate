@@ -12,6 +12,7 @@ chain_spec_exists=""
 chain_spec_url="null"
 release_info=""
 keychain_exists=""
+session_keys=""
 
 echo "This script will setup a Liberland Validator on your PC. Press Ctrl-C at any time to cancel."
 echo -n "Checking privileges... "
@@ -45,15 +46,15 @@ else
 fi
 
 if ! command -v jq &>/dev/null || \
-   ! command -v curl &>/dev/null || \
-   ! command -v grep &>/dev/null || \
-   ! command -v cut &>/dev/null
+! command -v curl &>/dev/null || \
+! command -v grep &>/dev/null || \
+! command -v cut &>/dev/null
 then
 	echo
 	echo "We need to install some dependencies before continuing:"
 	echo "  jq curl grep coreutils"
 	echo "Press Enter to confirm or Ctrl-C to cancel"
-	read
+	read < /dev/tty
 	$sudo_cmd apt-get install -y jq curl grep coreutils
 	echo
 fi
@@ -77,14 +78,14 @@ else
 			(( i++ )) || true
 		done
 		echo -n "Select number: "
-		read chain_spec_idx
+		read chain_spec_idx < /dev/tty
 		chain_spec_url="$(jq -r ".assets | map(select(.name | endswith(\".raw.json\"))) | .[$chain_spec_idx].browser_download_url" < $release_info)"
 	done
 fi
 node_url="$(jq -r ".assets[] | select(.name == \"linux_x86_build\") | .browser_download_url" < $release_info)"
 rm $release_info
 
-if [ "$(ls -A /opt/liberland/data/chains)" ]; then
+if [ -n "$(ls -A /opt/liberland/data/chains &>/dev/null)" ]; then
 	keychain_exists=1
 else
 	keychain_exists=0
@@ -105,7 +106,7 @@ else
 	echo "  [ ] Data dir already exists, so session keys won't be regenerated."
 fi
 echo "Press Enter to continue or Ctrl-C to cancel."
-read
+read < /dev/tty
 
 echo "Enable NTP..."
 $sudo_cmd timedatectl set-ntp true
@@ -138,10 +139,27 @@ $sudo_cmd systemctl daemon-reload
 $sudo_cmd systemctl enable liberland-validator
 $sudo_cmd systemctl start liberland-validator
 if [ $keychain_exists -eq 0 ]; then
-	echo "Waiting 30s for node to start..."
-	sleep 30
-	echo "Generating session keys..."
-	session_keys=$(curl -sSL -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' http://127.0.0.1:9933 | jq -r .result)
+	echo -n "Waiting for node to start to generate session keys (up to 5 minutes)..."
+	i=0
+	while [ -z "$session_keys" ]; do
+		echo -n "."
+		if [ $i -gt 60 ]; then
+			echo
+			echo "Node didn't start after 5 minutes. Please investigate logs: $sudo_cmd journalctl -u liberland-validator." >&2
+			exit 1
+		fi
+		sleep 5
+		if ! systemctl is-active --quiet liberland-validator; then
+			echo
+			echo "liberland-validator crashed! Please investigate logs: $sudo_cmd journalctl -u liberland-validator." >&2
+			exit 1
+		fi
+		set +e
+		session_keys=$(curl -sSL -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' http://127.0.0.1:9933 2>/dev/null | jq -r .result)
+		(( i++ ))
+		set -e
+	done
+	echo
 fi
 
 echo "Done!"
