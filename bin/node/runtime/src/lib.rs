@@ -1420,6 +1420,9 @@ parameter_types! {
 	pub const PRERELEASELLM: Balance = 13_300_000u128 * GRAINS_IN_LLM;
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1428,9 +1431,11 @@ impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM; //70 million in hardcap
 	type PreReleasedAmount = PRERELEASELLM; // PreRelease 7 million
-	type AssetId = u32;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
 }
 
 impl pallet_nis::Config for Runtime {

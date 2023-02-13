@@ -200,6 +200,9 @@ parameter_types! {
 	pub const ASSETID: u32 = 0u32;
 	pub const CitizenshipMinimum: u64 = 5000u64;
 	pub const UnlockFactor: Permill = Permill::from_percent(10);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
 }
 
 impl pallet_liberland_initializer::Config for Test {}
@@ -209,8 +212,10 @@ impl pallet_llm::Config for Test {
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
-	type AssetId = u32;
 	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
 }
 
 parameter_types! {

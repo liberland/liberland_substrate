@@ -281,11 +281,9 @@ pub mod pallet {
 		/// How much funds unlock on politics_unlock
 		type UnlockFactor: Get<Permill>;
 
-		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
-			+ Parameter
-			+ From<u32>
-			+ Ord
-			+ Copy;
+		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
+		type AssetName: Get<Vec<u8>>;
+		type AssetSymbol: Get<Vec<u8>>;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -559,7 +557,7 @@ pub mod pallet {
 			let origin = frame_system::RawOrigin::Signed(from_account.clone()).into();
 			Assets::<T>::transfer(
 				origin,
-				Self::llm_id().into().into(),
+				Self::llm_id().into(),
 				T::Lookup::unlookup(to_account.clone()),
 				amount.clone(),
 			)
@@ -593,7 +591,7 @@ pub mod pallet {
 
 		// could do like a OriginFor<SenateGroup> or X(Tech) committee
 		fn create_llm(origin: OriginFor<T>) -> DispatchResult {
-			let assetid = Self::llm_id().into();
+			let assetid = Self::llm_id();
 			let treasury = Self::get_llm_treasury_account();
 			let challenger_lookup: <T::Lookup as StaticLookup>::Source =
 				T::Lookup::unlookup(treasury.clone());
@@ -601,9 +599,6 @@ pub mod pallet {
 			ensure!(asset_supply == 0u8.into(), Error::<T>::AssetExists); // if the asset supply is zero == that means it is not been created and we can create
 
 			let min_balance: T::Balance = 1u8.into();
-			// FIXME extract this to runtime/chainspec
-			let name: Vec<u8> = "LiberTest Merit".into();
-			let symbol: Vec<u8> = "LTM".into();
 			let decimals: u8 = 12u8;
 			Assets::<T>::force_create(
 				origin.clone(),
@@ -615,8 +610,8 @@ pub mod pallet {
 			Assets::<T>::force_set_metadata(
 				origin.clone(),
 				assetid.into(),
-				name,
-				symbol,
+				T::AssetName::get(),
+				T::AssetSymbol::get(),
 				decimals,
 				false,
 			)?;
@@ -637,8 +632,8 @@ pub mod pallet {
 		}
 
 		/// Asset ID of the LLM asset for `pallet-assets`
-		pub fn llm_id() -> AssetId<T> {
-			1u32.into()
+		pub fn llm_id() -> <T as pallet_assets::Config>::AssetId {
+			<T as Config>::AssetId::get()
 		}
 
 		/// AccountId of **Vault** account. **Vault** account stores all LLM

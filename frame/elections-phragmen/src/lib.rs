@@ -116,7 +116,6 @@ use liberland_traits::{CitizenshipChecker, LLM, LLInitializer};
 use scale_info::TypeInfo;
 use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
-	Permill,
 	traits::{Saturating, StaticLookup, Zero},
 	DispatchError, Perbill, RuntimeDebug,
 };
@@ -1125,6 +1124,7 @@ mod tests {
 	};
 	use frame_system::ensure_signed;
 	use sp_runtime::{
+		Permill,
 		testing::{Header, H256},
 		traits::{BlakeTwo256, IdentityLookup},
 		BuildStorage,
@@ -1251,6 +1251,9 @@ mod tests {
 		pub const PRERELEASELLM: u64 = 7000000u64;
 		pub const CitizenshipMinimum: u64 = 5000u64;
 		pub const UnlockFactor: Permill = Permill::from_percent(10);
+		pub const AssetId: u32 = 1;
+		pub const AssetName: &'static str = "LiberTest Merit";
+		pub const AssetSymbol: &'static str = "LTM";
 	}
 
 	impl pallet_liberland_initializer::Config for Test {}
@@ -1259,9 +1262,11 @@ mod tests {
 		type RuntimeEvent = RuntimeEvent;
 		type TotalSupply = TOTALLLM;
 		type PreReleasedAmount = PRERELEASELLM;
-		type AssetId = u32;
 		type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
 		type UnlockFactor = UnlockFactor;
+		type AssetId = AssetId;
+		type AssetName = AssetName;
+		type AssetSymbol = AssetSymbol;
 	}
 
 	pub struct TestChangeMembers;
