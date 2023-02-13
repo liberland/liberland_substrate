@@ -171,7 +171,7 @@ pub mod pallet {
 	};
 	use sp_std::vec::Vec;
 	use liberland_traits::{LLM, CitizenshipChecker};
-	use sp_runtime::Perquintill;
+	use sp_runtime::Permill;
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -277,6 +277,9 @@ pub mod pallet {
 
 		/// Minimum amount of LLM Accounts needs politipooled to have citizenship rights
 		type CitizenshipMinimumPooledLLM: Get<u128>; // Pre defined the total supply in runtime
+
+		/// How much funds unlock on politics_unlock
+		type UnlockFactor: Get<Permill>;
 
 		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
 			+ Parameter
@@ -541,9 +544,8 @@ pub mod pallet {
 			Assets::<T>::balance(Self::llm_id().into(), account)
 		}
 
-		// FIXME extract this to runtime or chainspec
 		fn get_unlock_amount(balance: T::Balance) -> Result<T::Balance, Error<T>> {
-			let factor = Perquintill::from_rational(8742u64, 1000000u64);
+			let factor = T::UnlockFactor::get();
 			let balance: u64 = balance.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
 			let amount = factor.mul_floor(balance);
 			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)

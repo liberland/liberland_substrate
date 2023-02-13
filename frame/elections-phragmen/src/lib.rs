@@ -116,6 +116,7 @@ use liberland_traits::{CitizenshipChecker, LLM, LLInitializer};
 use scale_info::TypeInfo;
 use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
+	Permill,
 	traits::{Saturating, StaticLookup, Zero},
 	DispatchError, Perbill, RuntimeDebug,
 };
@@ -1249,6 +1250,7 @@ mod tests {
 		pub const TOTALLLM: u64 = 70000000u64;
 		pub const PRERELEASELLM: u64 = 7000000u64;
 		pub const CitizenshipMinimum: u64 = 5000u64;
+		pub const UnlockFactor: Permill = Permill::from_percent(10);
 	}
 
 	impl pallet_liberland_initializer::Config for Test {}
@@ -1259,7 +1261,9 @@ mod tests {
 		type PreReleasedAmount = PRERELEASELLM;
 		type AssetId = u32;
 		type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+		type UnlockFactor = UnlockFactor;
 	}
+
 	pub struct TestChangeMembers;
 	impl ChangeMembers<u64> for TestChangeMembers {
 		fn change_members_sorted(incoming: &[u64], outgoing: &[u64], new: &[u64]) {

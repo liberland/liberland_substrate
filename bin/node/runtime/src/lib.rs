@@ -1419,6 +1419,7 @@ parameter_types! {
 	pub const TOTALLLM: Balance      = 70_000_000u128 * GRAINS_IN_LLM;
 	pub const PRERELEASELLM: Balance = 13_300_000u128 * GRAINS_IN_LLM;
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
+	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1429,6 +1430,7 @@ impl pallet_llm::Config for Runtime {
 	type PreReleasedAmount = PRERELEASELLM; // PreRelease 7 million
 	type AssetId = u32;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+	type UnlockFactor = UnlockFactor;
 }
 
 impl pallet_nis::Config for Runtime {

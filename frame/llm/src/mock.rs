@@ -7,6 +7,7 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
+	Permill,
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
 };
@@ -96,6 +97,7 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const CitizenshipMinimum: u64 = 5000u64;
+	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 }
 
 impl pallet_llm::Config for Test {
@@ -104,6 +106,7 @@ impl pallet_llm::Config for Test {
 	type PreReleasedAmount = PRERELEASELLM;
 	type AssetId = u32;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+	type UnlockFactor = UnlockFactor;
 }
 
 parameter_types! {
