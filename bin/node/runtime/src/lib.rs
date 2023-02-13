@@ -1423,6 +1423,7 @@ parameter_types! {
 	pub const AssetId: u32 = 1;
 	pub const AssetName: &'static str = "LiberTest Merit";
 	pub const AssetSymbol: &'static str = "LTM";
+	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1436,6 +1437,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetId = AssetId;
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
+	type InflationEventInterval = InflationEventInterval;
 }
 
 impl pallet_nis::Config for Runtime {

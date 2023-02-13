@@ -167,7 +167,7 @@ pub mod pallet {
 	use scale_info::prelude::vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
-		AccountId32, SaturatedConversion,
+		AccountId32,
 	};
 	use sp_std::vec::Vec;
 	use liberland_traits::{LLM, CitizenshipChecker};
@@ -176,7 +176,7 @@ pub mod pallet {
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
 	#[pallet::getter(fn next_release)]
-	pub(super) type NextRelease<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0
+	pub(super) type NextRelease<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>; // ValueQuery ,  OnEmpty = 0
 
 	/// amount of LLM each account has allocated into politics
 	#[pallet::storage]
@@ -188,32 +188,32 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock)]
 	pub(super) type Withdrawlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::BlockNumber, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
-	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> u64 {
-		120u64
+	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> T::BlockNumber {
+		120u8.into()
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock_duration)]
 	pub(super) type WithdrawlockDuration<T: Config> =
-		StorageValue<_, u64, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
+		StorageValue<_, T::BlockNumber, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
 
 	/// block number until which account can't participate in politics directly
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock)]
 	pub(super) type Electionlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::BlockNumber, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
-	pub fn ElectionlockDurationOnEmpty<T: Config>() -> u64 {
-		120u64
+	pub fn ElectionlockDurationOnEmpty<T: Config>() -> T::BlockNumber {
+		120u8.into()
 	}
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock_duration)]
 	pub(super) type ElectionlockDuration<T: Config> =
-		StorageValue<_, u64, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+		StorageValue<_, T::BlockNumber, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizens)]
@@ -227,10 +227,10 @@ pub mod pallet {
 	pub struct GenesisConfig<T: Config> {
 		/// duration, in seconds, for which additional unlocks should be locked
 		/// after `politics_unlock`
-		pub unpooling_withdrawlock_duration: u64,
+		pub unpooling_withdrawlock_duration: T::BlockNumber,
 		/// duration, in seconds, for which politics rights should be suspended
 		/// after `politics_unlock`
-		pub unpooling_electionlock_duration: u64,
+		pub unpooling_electionlock_duration: T::BlockNumber,
 		/// Senate account
 		pub senate: Option<T::AccountId>,
 		pub _phantom: PhantomData<T>,
@@ -284,6 +284,7 @@ pub mod pallet {
 		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
 		type AssetName: Get<Vec<u8>>;
 		type AssetSymbol: Get<Vec<u8>>;
+		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -320,8 +321,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(b: T::BlockNumber) -> Weight {
-			let blocknumber = b.saturated_into::<u64>();
-			Self::maybe_release(blocknumber);
+			Self::maybe_release(b);
 			Weight::zero()
 		}
 
@@ -408,8 +408,7 @@ pub mod pallet {
 			let politics_balance = LLMPolitics::<T>::get(sender.clone());
 			ensure!(politics_balance > 0u8.into(), Error::<T>::InvalidAccount);
 
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
 			ensure!(current_block_number > Withdrawlock::<T>::get(&sender), Error::<T>::Gottawait);
 
 			let ten_percent: T::Balance = Self::get_unlock_amount(politics_balance)?;
@@ -417,10 +416,8 @@ pub mod pallet {
 			Self::transfer_from_politipool(sender.clone(), ten_percent)?;
 			LLMPolitics::<T>::mutate(&sender, |b| *b -= ten_percent);
 
-			let withdraw_lock_end =
-				Self::get_future_block_with_seconds(Self::withdraw_lock_duration());
-			let election_lock_end =
-				Self::get_future_block_with_seconds(Self::election_lock_duration());
+			let withdraw_lock_end = current_block_number + Self::withdraw_lock_duration();
+			let election_lock_end = current_block_number + Self::election_lock_duration();
 			Withdrawlock::<T>::insert(&sender, withdraw_lock_end);
 			Electionlock::<T>::insert(&sender, election_lock_end);
 
@@ -442,7 +439,7 @@ pub mod pallet {
 			amount: T::Balance,
 		) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin)?;
-			let senate = Senate::<T>::get().ok_or(Error::<T>::NoSenate)?;
+			let senate = Self::senate().ok_or(Error::<T>::NoSenate)?;
 			ensure!(sender == senate, Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account, amount)
@@ -462,7 +459,7 @@ pub mod pallet {
 			amount: T::Balance,
 		) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin)?;
-			let senate = Senate::<T>::get().ok_or(Error::<T>::NoSenate)?;
+			let senate = Self::senate().ok_or(Error::<T>::NoSenate)?;
 			ensure!(sender == senate, Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account.clone(), amount)?;
@@ -656,24 +653,9 @@ pub mod pallet {
 			PalletId(*b"polilock").into_account_truncating()
 		}
 
-		fn get_future_block_with_seconds(seconds: u64) -> u64 {
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
-			let seconds_per_block: u64 = 6u64; // 6 seconds per block
-			let block = current_block_number + seconds / seconds_per_block;
-			block
-		}
-
-		// FIXME move this to runtime
-		fn get_future_block() -> u64 {
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
-			let blocks_per_second: u64 = 6u64; // 6 seconds per block
-			let one_minute: u64 = 60u64 / blocks_per_second;
-			let one_day: u64 = one_minute * 60u64 * 24u64;
-			let one_year: u64 = one_day * 365u64; //365.24
-			let block = current_block_number + one_year;
-			block
+		fn get_future_block() -> T::BlockNumber {
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			current_block_number + T::InflationEventInterval::get()
 		}
 
 		// each time we release (should be each year), release 10% from vault
@@ -685,7 +667,7 @@ pub mod pallet {
 			release_amount
 		}
 
-		fn maybe_release(block: u64) -> bool {
+		fn maybe_release(block: T::BlockNumber) -> bool {
 			if block < NextRelease::<T>::get() {
 				return false
 			}
@@ -719,8 +701,7 @@ pub mod pallet {
 
 		fn is_election_unlocked(account: &T::AccountId) -> bool {
 			if Electionlock::<T>::contains_key(account) {
-				let current_block_number: u64 =
-					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+				let current_block_number = frame_system::Pallet::<T>::block_number();
 				let unlocked_on_block = Electionlock::<T>::get(account);
 				return current_block_number > unlocked_on_block
 			}
@@ -746,8 +727,7 @@ pub mod pallet {
 			>,
 		) -> bool {
 			use pallet_identity::{Data, Data::Raw, Judgement::KnownGood};
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
 			let eligible_on_key = Raw(b"eligible_on".to_vec().try_into().unwrap());
 			let eligible_on = match reg.info.additional.iter().find(|v| v.0 == eligible_on_key) {
 				Some((_, Raw(x))) => x,
@@ -757,10 +737,14 @@ pub mod pallet {
 			// little-endian
 			// 256 = vec![0x00, 0x01];
 			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
+			let eligible_on: Result<T::BlockNumber, _> = eligible_on.try_into();
 
-			reg.info.citizen != Data::None &&
-				eligible_on <= current_block_number &&
-				reg.judgements.contains(&(0u32, KnownGood))
+			match eligible_on {
+				Ok(eligible_on) => reg.info.citizen != Data::None &&
+						eligible_on <= current_block_number &&
+						reg.judgements.contains(&(0u32, KnownGood)),
+				_ => false,
+			}
 		}
 
 		fn is_known_good(account: &T::AccountId) -> bool {
