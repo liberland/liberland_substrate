@@ -1,6 +1,7 @@
 use crate as pallet_llm;
 use frame_support::{
 	ord_parameter_types, parameter_types,
+	weights::Weight,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
@@ -43,6 +44,7 @@ impl pallet_assets::Config for Test {
 	type Freezer = ();
 	type WeightInfo = ();
 	type Extra = ();
+	type CallbackHandle = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -51,7 +53,9 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights =
-		frame_system::limits::BlockWeights::simple_max(frame_support::weights::constants::WEIGHT_PER_SECOND.set_proof_size(u64::MAX));
+		frame_system::limits::BlockWeights::simple_max(
+			Weight::from_parts(frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
+		);
 }
 impl frame_system::Config for Test {
 	type AccountData = pallet_balances::AccountData<u64>;
