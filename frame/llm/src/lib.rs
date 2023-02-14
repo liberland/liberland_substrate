@@ -160,7 +160,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{OnRuntimeUpgrade, fungibles::Mutate},
+		traits::fungibles::Mutate,
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -313,20 +313,6 @@ pub mod pallet {
 			let blocknumber = b.saturated_into::<u64>();
 			Self::maybe_release(blocknumber);
 			Weight::zero()
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-			migrations::v1::Migration::<T>::pre_upgrade()
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			migrations::v1::Migration::<T>::on_runtime_upgrade()
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
-			migrations::v1::Migration::<T>::post_upgrade(state)
 		}
 	}
 

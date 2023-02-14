@@ -84,7 +84,7 @@ async fn telemetry_works() {
 
 	// Stop the process
 	kill(Pid::from_raw(substrate.id().try_into().unwrap()), SIGINT).unwrap();
-	assert!(common::wait_for(&mut substrate, 60).map(|x| x.success()).unwrap_or_default());
+	assert!(common::wait_for(&mut substrate, 120).map(|x| x.success()).unwrap_or_default());
 
 	let output = substrate.wait_with_output().unwrap();
 

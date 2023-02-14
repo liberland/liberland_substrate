@@ -132,7 +132,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 6,
+	spec_version: 7,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1677,10 +1677,75 @@ pub type Executive = frame_executive::Executive<
 	Migrations,
 >;
 
+
+// staking is only expected to be used by polkadot/kusama/et al., so they didn't
+// bother to bump the default storage version. as such, we have V7_0_0 version
+// set, but it's actually the layout of V12. Fix it before running V13 migration.
+mod staking_v12 {
+	use super::*;
+	use frame_support::{storage_alias, traits::OnRuntimeUpgrade, pallet_prelude::*};
+
+	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	enum ObsoleteReleases {
+		V1_0_0Ancient,
+		V2_0_0,
+		V3_0_0,
+		V4_0_0,
+		V5_0_0,
+		V6_0_0,
+		V7_0_0,
+		V8_0_0,
+		V9_0_0,
+		V10_0_0,
+		V11_0_0,
+		V12_0_0,
+	}
+
+	impl Default for ObsoleteReleases {
+		fn default() -> Self {
+			Self::V12_0_0
+		}
+	}
+
+	#[storage_alias]
+	type StorageVersion<T: pallet_staking::Config> = StorageValue<pallet_staking::Pallet<T>, ObsoleteReleases, ValueQuery>;
+
+	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
+	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+			frame_support::ensure!(
+                StorageVersion::<T>::get() == ObsoleteReleases::V7_0_0,
+                "Expected v7 before upgrading to v12"
+            );
+
+            Ok(Default::default())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			StorageVersion::<T>::put(ObsoleteReleases::V12_0_0);
+			log::info!("Migrated pallet-staking StorageVersion to V12");
+			T::DbWeight::get().reads_writes(1, 1)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_: Vec<u8>) -> Result<(), &'static str> {
+			frame_support::ensure!(
+                StorageVersion::<T>::get() == ObsoleteReleases::V12_0_0,
+                "Failed to upgrade to v12"
+            );
+			Ok(())
+		}
+	}
+}
+
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
+	pallet_referenda::migration::v1::MigrateV0ToV1<Runtime>,
+	staking_v12::Migration<Runtime>,
+	pallet_staking::migrations::v13::MigrateToV13<Runtime>,
 );
 
 /// MMR helper types.
