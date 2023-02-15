@@ -16,7 +16,7 @@
     "ss58Format": 56,
     "standardAccount": "*25519",
     "tokenDecimals": 12,
-    "tokenSymbol": "LTD",
+    "tokenSymbol": "LDN",
     "website": "https://liberland.org"
   },
   "forkBlocks": null,

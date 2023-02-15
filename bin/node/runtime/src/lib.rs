@@ -1427,8 +1427,8 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const AssetName: &'static str = "LiberTest Merit";
-	pub const AssetSymbol: &'static str = "LTM";
+	pub const AssetName: &'static str = "Liberland Kuna";
+	pub const AssetSymbol: &'static str = "LKN";
 	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
 }
 
