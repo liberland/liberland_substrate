@@ -1756,6 +1756,7 @@ type Migrations = (
 	pallet_referenda::migration::v1::MigrateV0ToV1<Runtime>,
 	staking_v12::Migration<Runtime>,
 	pallet_staking::migrations::v13::MigrateToV13<Runtime>,
+	pallet_llm::migrations::v2::Migration<Runtime>,
 );
 
 /// MMR helper types.

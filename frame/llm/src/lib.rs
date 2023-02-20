@@ -491,6 +491,7 @@ pub mod pallet {
 		}
 
 		/// Set senate
+		#[pallet::call_index(8)]
 		#[pallet::weight(10_000)]
 		pub fn set_senate(
 			origin: OriginFor<T>,
@@ -721,24 +722,25 @@ pub mod pallet {
 			>,
 		) -> bool {
 			use pallet_identity::{Data, Data::Raw, Judgement::KnownGood};
+
+			let citizen_key = Raw(b"citizen".to_vec().try_into().unwrap());
+			let is_citizen_field_set = matches!(reg.info.additional.iter().find(|v| v.0 == citizen_key), Some(x) if x.1 != Data::None);
+
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 			let eligible_on_key = Raw(b"eligible_on".to_vec().try_into().unwrap());
 			let eligible_on = match reg.info.additional.iter().find(|v| v.0 == eligible_on_key) {
 				Some((_, Raw(x))) => x,
 				_ => return false,
 			};
-
 			// little-endian
 			// 256 = vec![0x00, 0x01];
 			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
 			let eligible_on: Result<T::BlockNumber, _> = eligible_on.try_into();
 
-			match eligible_on {
-				Ok(eligible_on) => reg.info.citizen != Data::None &&
-						eligible_on <= current_block_number &&
-						reg.judgements.contains(&(0u32, KnownGood)),
-				_ => false,
-			}
+			let is_eligible = matches!(eligible_on, Ok(eligible_on) if eligible_on <= current_block_number);
+			let is_known_good_judgment = reg.judgements.contains(&(0u32, KnownGood));
+
+			is_citizen_field_set && is_eligible && is_known_good_judgment
 		}
 
 		fn is_known_good(account: &T::AccountId) -> bool {
