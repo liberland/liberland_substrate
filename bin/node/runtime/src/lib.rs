@@ -1752,6 +1752,7 @@ mod staking_v12 {
 // `OnRuntimeUpgrade`.
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
+	pallet_llm::migrations::ltm_to_lkn::Migration<Runtime>,
 	pallet_referenda::migration::v1::MigrateV0ToV1<Runtime>,
 	staking_v12::Migration<Runtime>,
 	pallet_staking::migrations::v13::MigrateToV13<Runtime>,
