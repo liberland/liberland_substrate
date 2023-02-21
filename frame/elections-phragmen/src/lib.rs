@@ -128,6 +128,8 @@ pub use weights::WeightInfo;
 /// All migrations.
 pub mod migrations;
 
+const LOG_TARGET: &str = "runtime::elections-phragmen";
+
 /// The maximum votes allowed per voter.
 pub const MAXIMUM_VOTE: usize = 16;
 
@@ -325,6 +327,7 @@ pub mod pallet {
 		/// # <weight>
 		/// We assume the maximum weight among all 3 cases: vote_equal, vote_more and vote_less.
 		/// # </weight>
+		#[pallet::call_index(0)]
 		#[pallet::weight(
 			T::WeightInfo::vote_more(votes.len() as u32)
 			.max(T::WeightInfo::vote_less(votes.len() as u32))
@@ -370,6 +373,7 @@ pub mod pallet {
 		/// This removes the lock and returns the deposit.
 		///
 		/// The dispatch origin of this call must be signed and be a voter.
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::remove_voter())]
 		pub fn remove_voter(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -393,6 +397,7 @@ pub mod pallet {
 		/// # <weight>
 		/// The number of current candidates must be provided as witness data.
 		/// # </weight>
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::submit_candidacy(*candidate_count))]
 		pub fn submit_candidacy(
 			origin: OriginFor<T>,
@@ -435,6 +440,7 @@ pub mod pallet {
 		/// # <weight>
 		/// The type of renouncing must be provided as witness data.
 		/// # </weight>
+		#[pallet::call_index(3)]
 		#[pallet::weight(match *renouncing {
 			Renouncing::Candidate(count) => T::WeightInfo::renounce_candidacy_candidate(count),
 			Renouncing::Member => T::WeightInfo::renounce_candidacy_members(),
@@ -493,6 +499,7 @@ pub mod pallet {
 		/// If we have a replacement, we use a small weight. Else, since this is a root call and
 		/// will go into phragmen, we assume full block for now.
 		/// # </weight>
+		#[pallet::call_index(4)]
 		#[pallet::weight(if *rerun_election {
 			T::WeightInfo::remove_member_without_replacement()
 		} else {
@@ -528,6 +535,7 @@ pub mod pallet {
 		/// # <weight>
 		/// The total number of voters and those that are defunct must be provided as witness data.
 		/// # </weight>
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::clean_defunct_voters(*_num_voters, *_num_defunct))]
 		pub fn clean_defunct_voters(
 			origin: OriginFor<T>,
@@ -765,10 +773,7 @@ impl<T: Config> Pallet<T> {
 				} else {
 					// overlap. This can never happen. If so, it seems like our intended replacement
 					// is already a member, so not much more to do.
-					log::error!(
-						target: "runtime::elections-phragmen",
-						"A member seems to also be a runner-up.",
-					);
+					log::error!(target: LOG_TARGET, "A member seems to also be a runner-up.");
 				}
 				next_best
 			});
@@ -907,7 +912,7 @@ impl<T: Config> Pallet<T> {
 			Ok(_) => (),
 			Err(_) => {
 				log::error!(
-					target: "runtime::elections-phragmen",
+					target: LOG_TARGET,
 					"Failed to run election. Number of voters exceeded",
 				);
 				Self::deposit_event(Event::ElectionError);
@@ -1056,11 +1061,7 @@ impl<T: Config> Pallet<T> {
 					<ElectionRounds<T>>::mutate(|v| *v += 1);
 				})
 				.map_err(|e| {
-					log::error!(
-						target: "runtime::elections-phragmen",
-						"Failed to run election [{:?}].",
-						e,
-					);
+					log::error!(target: LOG_TARGET, "Failed to run election [{:?}].", e,);
 					Self::deposit_event(Event::ElectionError);
 				});
 
@@ -1212,6 +1213,7 @@ mod tests {
 		type Freezer = ();
 		type WeightInfo = ();
 		type Extra = ();
+		type CallbackHandle = ();
 		type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 		type RemoveItemsLimit = ConstU32<1000>;
 		#[cfg(feature = "runtime-benchmarks")]

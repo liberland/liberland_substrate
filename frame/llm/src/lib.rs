@@ -160,7 +160,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{OnRuntimeUpgrade, fungibles::Mutate},
+		traits::fungibles::Mutate,
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -314,58 +314,10 @@ pub mod pallet {
 			Self::maybe_release(blocknumber);
 			Weight::zero()
 		}
-
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-			migrations::v1::Migration::<T>::pre_upgrade()
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			migrations::v1::Migration::<T>::on_runtime_upgrade()
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
-			migrations::v1::Migration::<T>::post_upgrade(state)
-		}
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Release LLM to account by transferring LLM from **Vault**.
-		/// Development only, to be removed/restricted.  DO NOT USE IN PROD.
-		///
-		/// - `to_account`: Account to release LLM to
-		/// - `amount`: Amount of LLM to release
-		///
-		/// Emits: `Transferred` from `pallet-assets`
-		#[pallet::weight(10_000)]
-		pub fn fake_send(
-			origin: OriginFor<T>,
-			to_account: T::AccountId,
-			amount: T::Balance,
-		) -> DispatchResult {
-			ensure_signed(origin)?;
-			Self::transfer_from_vault(to_account, amount)
-		}
-
-		/// Wrapper over `pallet-assets` `transfer`. Transfers LLM from sender
-		/// to specified account.
-		///
-		/// - `to_account`: Account to transfer LLM to
-		/// - `amount`: Amount of LLM to transfer
-		///
-		/// Emits: `Transferred` from `pallet-assets`
-		#[pallet::weight(10_000)]
-		pub fn send_llm(
-			origin: OriginFor<T>,
-			to_account: T::AccountId,
-			amount: T::Balance,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin.clone())?;
-			Self::transfer(sender, to_account, amount)
-		}
-
 		/// Lock LLM into politics pool, a.k.a. politipool.  Internally it
 		/// transfers LLM to **Politipool** account.
 		///
@@ -374,6 +326,7 @@ pub mod pallet {
 		/// Emits:
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
+		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
@@ -390,6 +343,7 @@ pub mod pallet {
 		/// Emits:
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
+		#[pallet::call_index(1)]
 		#[pallet::weight(10_000)]
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
@@ -425,6 +379,7 @@ pub mod pallet {
 		/// - `amount`: Amount to transfer.
 		///
 		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::call_index(2)]
 		#[pallet::weight(10_000)]
 		pub fn treasury_llm_transfer(
 			origin: OriginFor<T>,
@@ -454,6 +409,7 @@ pub mod pallet {
 		/// - `amount`: Amount to transfer.
 		///
 		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
 		pub fn treasury_llm_transfer_to_politipool(
 			origin: OriginFor<T>,
@@ -482,6 +438,7 @@ pub mod pallet {
 		/// - `amount`: Amount to transfer.
 		///
 		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
 		pub fn send_llm_to_politipool(
 			origin: OriginFor<T>,
@@ -494,7 +451,44 @@ pub mod pallet {
 			Self::do_politics_lock(to_account, amount)
 		}
 
+		/// Wrapper over `pallet-assets` `transfer`. Transfers LLM from sender
+		/// to specified account.
+		///
+		/// - `to_account`: Account to transfer LLM to
+		/// - `amount`: Amount of LLM to transfer
+		///
+		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::call_index(5)]
+		#[pallet::weight(10_000)]
+		pub fn send_llm(
+			origin: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin.clone())?;
+			Self::transfer(sender, to_account, amount)
+		}
+
+		/// Release LLM to account by transferring LLM from **Vault**.
+		/// Development only, to be removed/restricted.  DO NOT USE IN PROD.
+		///
+		/// - `to_account`: Account to release LLM to
+		/// - `amount`: Amount of LLM to release
+		///
+		/// Emits: `Transferred` from `pallet-assets`
+		#[pallet::call_index(6)]
+		#[pallet::weight(10_000)]
+		pub fn fake_send(
+			origin: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
+			ensure_signed(origin)?;
+			Self::transfer_from_vault(to_account, amount)
+		}
+
 		/// Allow the senate to approve transfers
+		#[pallet::call_index(7)]
 		#[pallet::weight(10_000)]
 		pub fn approve_transfer(
 			_origin: OriginFor<T>,

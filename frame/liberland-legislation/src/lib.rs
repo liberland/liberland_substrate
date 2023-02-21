@@ -184,6 +184,7 @@ pub mod pallet {
 		/// `index` already exists.
 		///
 		/// Emits `LawAdded`.
+		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
 		pub fn add_law(
 			origin: OriginFor<T>,
@@ -218,6 +219,7 @@ pub mod pallet {
 		/// - `index`: Index of the legislation.
 		///
 		/// Emits `LawRepealed`.
+		#[pallet::call_index(1)]
 		#[pallet::weight(10_000)]
 		pub fn repeal_law(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
@@ -250,6 +252,7 @@ pub mod pallet {
 		/// Will fail with `NonCitizen` if caller isn't a valid citizen.
 		///
 		/// Emits `VetoSubmitted`.
+		#[pallet::call_index(2)]
 		#[pallet::weight(10_000)]
 		pub fn submit_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
@@ -273,6 +276,7 @@ pub mod pallet {
 		/// - `index`: Index of the legislation.
 		///
 		/// Emits `VetoReverted`.
+		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
 		pub fn revert_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
@@ -298,6 +302,7 @@ pub mod pallet {
 		/// doesn't meet requirements for given Tier.
 		///
 		/// Emits `LawRepealedByHeadcountVeto`.
+		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
 		pub fn trigger_headcount_veto(
 			origin: OriginFor<T>,
