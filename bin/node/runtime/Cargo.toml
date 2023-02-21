@@ -81,7 +81,6 @@ pallet-recovery = { version = "4.0.0-dev", default-features = false, branch = "p
 pallet-referenda = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-session = { version = "4.0.0-dev", features = [ "historical" ], branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate", default-features = false }
 pallet-session-benchmarking = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate", default-features = false, optional = true }
-pallet-staking = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-state-trie-migration = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-scheduler = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
@@ -100,6 +99,7 @@ pallet-vesting = { version = "4.0.0-dev", default-features = false, branch = "po
 pallet-whitelist = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-nfts = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 
+pallet-staking = { version = "4.0.0-dev", default-features = false, path = "../../../frame/staking" }
 pallet-democracy = { version = "4.0.0-dev", default-features = false, path = "../../../frame/democracy" }
 pallet-elections-phragmen = { version = "5.0.0-dev", default-features = false, path = "../../../frame/elections-phragmen" }
 pallet-identity = { version = "4.0.0-dev", default-features = false, path = "../../../frame/identity" }

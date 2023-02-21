@@ -5449,7 +5449,6 @@ dependencies = [
 [[package]]
 name = "pallet-staking"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#f38bd6671d460293c93062cc1e4fe9e9e490cb29"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -5457,16 +5456,24 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-authorship",
+ "pallet-bags-list",
+ "pallet-balances",
  "pallet-session",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
  "parity-scale-codec",
  "rand_chacha 0.2.2",
  "scale-info",
  "serde",
  "sp-application-crypto",
+ "sp-core",
  "sp-io",
+ "sp-npos-elections",
  "sp-runtime",
  "sp-staking",
  "sp-std",
+ "sp-tracing",
+ "substrate-test-utils",
 ]
 
 [[package]]
