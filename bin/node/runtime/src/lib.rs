@@ -449,7 +449,7 @@ parameter_types! {
 	// LLD transfer is ~156 bytes long (exact value depends on transferred amount)
 	// We want 1 LLD transfer to cost 0.01 LLD (so that 1 LLD is OK for 100 simple txs)
 	// 0.01 LLD / 156 ~= 0.000064 LLD per byte
-	pub const TransactionByteFee: Balance = 64 * MICROCENTS;
+	pub const TransactionByteFee: Balance = 6400 * MICROCENTS;
 	pub const OperationalFeeMultiplier: u8 = 5;
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
@@ -1256,9 +1256,9 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BasicDeposit: Balance = 10 * DOLLARS;       // 258 bytes on-chain
-	pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
-	pub const SubAccountDeposit: Balance = 2 * DOLLARS;   // 53 bytes on-chain
+	pub const BasicDeposit: Balance = 1 * CENTS;
+	pub const FieldDeposit: Balance = 100 * MILLICENTS;
+	pub const SubAccountDeposit: Balance = 500 * MILLICENTS;
 	pub const MaxSubAccounts: u32 = 100;
 	pub const MaxAdditionalFields: u32 = 100;
 	pub const MaxRegistrars: u32 = 20;

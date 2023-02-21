@@ -25,10 +25,10 @@
 pub mod currency {
 	use node_primitives::Balance;
 
-	pub const MICROCENTS: Balance = 1_000_000;
-	pub const MILLICENTS: Balance = 1_000 * MICROCENTS;
-	pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-	pub const DOLLARS: Balance = 100 * CENTS;
+	pub const MICROCENTS: Balance = 10_000;             // =            10_000 = 0.00000001 LLD
+	pub const MILLICENTS: Balance = 1_000 * MICROCENTS; // =        10_000_000 = 0.00001 LLD
+	pub const CENTS: Balance = 1_000 * MILLICENTS;      // =    10_000_000_000 = 0.01 LLD
+	pub const DOLLARS: Balance = 100 * CENTS;           // = 1_000_000_000_000 = 1 LLD
 
 	pub const fn deposit(items: u32, bytes: u32) -> Balance {
 		items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
