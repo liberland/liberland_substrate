@@ -8,6 +8,7 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
+	Permill,
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
 };
@@ -100,14 +101,23 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const CitizenshipMinimum: u64 = 5000u64;
+	pub const UnlockFactor: Permill = Permill::from_parts(8742);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
+	pub const InflationEventInterval: u64 = 1000;
 }
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
-	type AssetId = u32;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
+	type InflationEventInterval = InflationEventInterval;
 }
 
 parameter_types! {
@@ -179,6 +189,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_llm::GenesisConfig::<Test> {
 		unpooling_withdrawlock_duration: 180,
 		unpooling_electionlock_duration: 190,
+		senate: Some(777),
 		_phantom: Default::default(),
 	}
 	.assimilate_storage(&mut t)

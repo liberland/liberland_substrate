@@ -164,20 +164,19 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
-	use hex_literal::hex;
 	use scale_info::prelude::vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
-		AccountId32, SaturatedConversion,
+		AccountId32,
 	};
 	use sp_std::vec::Vec;
 	use liberland_traits::{LLM, CitizenshipChecker};
-	use sp_runtime::Perquintill;
+	use sp_runtime::Permill;
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
 	#[pallet::getter(fn next_release)]
-	pub(super) type NextRelease<T: Config> = StorageValue<_, u64, ValueQuery>; // ValueQuery ,  OnEmpty = 0
+	pub(super) type NextRelease<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>; // ValueQuery ,  OnEmpty = 0
 
 	/// amount of LLM each account has allocated into politics
 	#[pallet::storage]
@@ -189,45 +188,51 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock)]
 	pub(super) type Withdrawlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::BlockNumber, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
-	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> u64 {
-		120u64
+	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> T::BlockNumber {
+		120u8.into()
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock_duration)]
 	pub(super) type WithdrawlockDuration<T: Config> =
-		StorageValue<_, u64, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
+		StorageValue<_, T::BlockNumber, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
 
 	/// block number until which account can't participate in politics directly
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock)]
 	pub(super) type Electionlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>; // account and blocknumber
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::BlockNumber, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
-	pub fn ElectionlockDurationOnEmpty<T: Config>() -> u64 {
-		120u64
+	pub fn ElectionlockDurationOnEmpty<T: Config>() -> T::BlockNumber {
+		120u8.into()
 	}
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock_duration)]
 	pub(super) type ElectionlockDuration<T: Config> =
-		StorageValue<_, u64, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+		StorageValue<_, T::BlockNumber, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizens)]
 	pub(super) type Citizens<T: Config> = StorageValue<_, u64, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn senate)]
+	pub(super) type Senate<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		/// duration, in seconds, for which additional unlocks should be locked
 		/// after `politics_unlock`
-		pub unpooling_withdrawlock_duration: u64,
+		pub unpooling_withdrawlock_duration: T::BlockNumber,
 		/// duration, in seconds, for which politics rights should be suspended
 		/// after `politics_unlock`
-		pub unpooling_electionlock_duration: u64,
+		pub unpooling_electionlock_duration: T::BlockNumber,
+		/// Senate account
+		pub senate: Option<T::AccountId>,
 		pub _phantom: PhantomData<T>,
 	}
 
@@ -237,6 +242,7 @@ pub mod pallet {
 			Self {
 				unpooling_withdrawlock_duration: WithdrawlockDurationOnEmpty::<T>::get(),
 				unpooling_electionlock_duration: ElectionlockDurationOnEmpty::<T>::get(),
+				senate: None,
 				_phantom: Default::default(),
 			}
 		}
@@ -250,6 +256,7 @@ pub mod pallet {
 
 			WithdrawlockDuration::<T>::put(&self.unpooling_withdrawlock_duration);
 			ElectionlockDuration::<T>::put(&self.unpooling_electionlock_duration);
+			Senate::<T>::set(self.senate.clone());
 		}
 	}
 
@@ -271,11 +278,13 @@ pub mod pallet {
 		/// Minimum amount of LLM Accounts needs politipooled to have citizenship rights
 		type CitizenshipMinimumPooledLLM: Get<u128>; // Pre defined the total supply in runtime
 
-		type AssetId: IsType<<Self as pallet_assets::Config>::AssetId>
-			+ Parameter
-			+ From<u32>
-			+ Ord
-			+ Copy;
+		/// How much funds unlock on politics_unlock
+		type UnlockFactor: Get<Permill>;
+
+		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
+		type AssetName: Get<Vec<u8>>;
+		type AssetSymbol: Get<Vec<u8>>;
+		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -298,6 +307,8 @@ pub mod pallet {
 		NonCitizen,
 		/// Temporary locked after unpooling LLM
 		Locked,
+		/// Senate not set
+		NoSenate,
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -310,8 +321,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(b: T::BlockNumber) -> Weight {
-			let blocknumber = b.saturated_into::<u64>();
-			Self::maybe_release(blocknumber);
+			Self::maybe_release(b);
 			Weight::zero()
 		}
 	}
@@ -352,8 +362,7 @@ pub mod pallet {
 			let politics_balance = LLMPolitics::<T>::get(sender.clone());
 			ensure!(politics_balance > 0u8.into(), Error::<T>::InvalidAccount);
 
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
 			ensure!(current_block_number > Withdrawlock::<T>::get(&sender), Error::<T>::Gottawait);
 
 			let ten_percent: T::Balance = Self::get_unlock_amount(politics_balance)?;
@@ -361,10 +370,8 @@ pub mod pallet {
 			Self::transfer_from_politipool(sender.clone(), ten_percent)?;
 			LLMPolitics::<T>::mutate(&sender, |b| *b -= ten_percent);
 
-			let withdraw_lock_end =
-				Self::get_future_block_with_seconds(Self::withdraw_lock_duration());
-			let election_lock_end =
-				Self::get_future_block_with_seconds(Self::election_lock_duration());
+			let withdraw_lock_end = current_block_number + Self::withdraw_lock_duration();
+			let election_lock_end = current_block_number + Self::election_lock_duration();
 			Withdrawlock::<T>::insert(&sender, withdraw_lock_end);
 			Electionlock::<T>::insert(&sender, election_lock_end);
 
@@ -386,18 +393,9 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
-			// FIXME extract this to runtime or chainspec
-			// > subkey inspect -n polkadot --public 695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94
-			// [...]
-			// SS58 Address:       13P9Z2QVN57yFbsfeQA93Ynadt6NCXzsJyP5FiXZ4mRKn1rN
-			let account_map: Vec<T::AccountId> = vec![
-				Self::account_id32_to_accountid(
-					hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(), /* test senate */
-				),
-			];
 			let sender: T::AccountId = ensure_signed(origin)?;
-
-			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
+			let senate = Self::senate().ok_or(Error::<T>::NoSenate)?;
+			ensure!(sender == senate, Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account, amount)
 		}
@@ -416,17 +414,9 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
-			let account_map: Vec<T::AccountId> = vec![
-				Self::account_id32_to_accountid(
-					hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(), /* test senate */
-				),
-				Self::account_id32_to_accountid(
-					hex!["9b1e9c82659816b21042772690aafdc58e784aa69eeefdb68fa1e86a036ff634"].into(),
-				), // V + DEVKEY + N + M
-			];
 			let sender: T::AccountId = ensure_signed(origin)?;
-
-			ensure!(account_map.contains(&sender), Error::<T>::InvalidAccount);
+			let senate = Self::senate().ok_or(Error::<T>::NoSenate)?;
+			ensure!(sender == senate, Error::<T>::InvalidAccount);
 
 			Self::transfer_from_treasury(to_account.clone(), amount)?;
 			Self::do_politics_lock(to_account, amount)
@@ -499,6 +489,17 @@ pub mod pallet {
 			let _y = to_account;
 			todo!("approve_transfer");
 		}
+
+		/// Set senate
+		#[pallet::weight(10_000)]
+		pub fn set_senate(
+			origin: OriginFor<T>,
+			senate: Option<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Senate::<T>::set(senate);
+			Ok(())
+		}
 	}
 
 	#[pallet::event]
@@ -532,9 +533,8 @@ pub mod pallet {
 			Assets::<T>::balance(Self::llm_id().into(), account)
 		}
 
-		// FIXME extract this to runtime or chainspec
 		fn get_unlock_amount(balance: T::Balance) -> Result<T::Balance, Error<T>> {
-			let factor = Perquintill::from_rational(8742u64, 1000000u64);
+			let factor = T::UnlockFactor::get();
 			let balance: u64 = balance.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
 			let amount = factor.mul_floor(balance);
 			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
@@ -548,7 +548,7 @@ pub mod pallet {
 			let origin = frame_system::RawOrigin::Signed(from_account.clone()).into();
 			Assets::<T>::transfer(
 				origin,
-				Self::llm_id().into().into(),
+				Self::llm_id().into(),
 				T::Lookup::unlookup(to_account.clone()),
 				amount.clone(),
 			)
@@ -582,7 +582,7 @@ pub mod pallet {
 
 		// could do like a OriginFor<SenateGroup> or X(Tech) committee
 		fn create_llm(origin: OriginFor<T>) -> DispatchResult {
-			let assetid = Self::llm_id().into();
+			let assetid = Self::llm_id();
 			let treasury = Self::get_llm_treasury_account();
 			let challenger_lookup: <T::Lookup as StaticLookup>::Source =
 				T::Lookup::unlookup(treasury.clone());
@@ -590,9 +590,6 @@ pub mod pallet {
 			ensure!(asset_supply == 0u8.into(), Error::<T>::AssetExists); // if the asset supply is zero == that means it is not been created and we can create
 
 			let min_balance: T::Balance = 1u8.into();
-			// FIXME extract this to runtime/chainspec
-			let name: Vec<u8> = "LiberTest Merit".into();
-			let symbol: Vec<u8> = "LTM".into();
 			let decimals: u8 = 12u8;
 			Assets::<T>::force_create(
 				origin.clone(),
@@ -604,8 +601,8 @@ pub mod pallet {
 			Assets::<T>::force_set_metadata(
 				origin.clone(),
 				assetid.into(),
-				name,
-				symbol,
+				T::AssetName::get(),
+				T::AssetSymbol::get(),
 				decimals,
 				false,
 			)?;
@@ -626,8 +623,8 @@ pub mod pallet {
 		}
 
 		/// Asset ID of the LLM asset for `pallet-assets`
-		pub fn llm_id() -> AssetId<T> {
-			1u32.into()
+		pub fn llm_id() -> <T as pallet_assets::Config>::AssetId {
+			<T as Config>::AssetId::get()
 		}
 
 		/// AccountId of **Vault** account. **Vault** account stores all LLM
@@ -650,24 +647,9 @@ pub mod pallet {
 			PalletId(*b"polilock").into_account_truncating()
 		}
 
-		fn get_future_block_with_seconds(seconds: u64) -> u64 {
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
-			let seconds_per_block: u64 = 6u64; // 6 seconds per block
-			let block = current_block_number + seconds / seconds_per_block;
-			block
-		}
-
-		// FIXME move this to runtime
-		fn get_future_block() -> u64 {
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
-			let blocks_per_second: u64 = 6u64; // 6 seconds per block
-			let one_minute: u64 = 60u64 / blocks_per_second;
-			let one_day: u64 = one_minute * 60u64 * 24u64;
-			let one_year: u64 = one_day * 365u64; //365.24
-			let block = current_block_number + one_year;
-			block
+		fn get_future_block() -> T::BlockNumber {
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			current_block_number + T::InflationEventInterval::get()
 		}
 
 		// each time we release (should be each year), release 10% from vault
@@ -679,7 +661,7 @@ pub mod pallet {
 			release_amount
 		}
 
-		fn maybe_release(block: u64) -> bool {
+		fn maybe_release(block: T::BlockNumber) -> bool {
 			if block < NextRelease::<T>::get() {
 				return false
 			}
@@ -713,8 +695,7 @@ pub mod pallet {
 
 		fn is_election_unlocked(account: &T::AccountId) -> bool {
 			if Electionlock::<T>::contains_key(account) {
-				let current_block_number: u64 =
-					<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+				let current_block_number = frame_system::Pallet::<T>::block_number();
 				let unlocked_on_block = Electionlock::<T>::get(account);
 				return current_block_number > unlocked_on_block
 			}
@@ -740,8 +721,7 @@ pub mod pallet {
 			>,
 		) -> bool {
 			use pallet_identity::{Data, Data::Raw, Judgement::KnownGood};
-			let current_block_number: u64 =
-				<frame_system::Pallet<T>>::block_number().try_into().unwrap_or(0u64);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
 			let eligible_on_key = Raw(b"eligible_on".to_vec().try_into().unwrap());
 			let eligible_on = match reg.info.additional.iter().find(|v| v.0 == eligible_on_key) {
 				Some((_, Raw(x))) => x,
@@ -751,10 +731,14 @@ pub mod pallet {
 			// little-endian
 			// 256 = vec![0x00, 0x01];
 			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
+			let eligible_on: Result<T::BlockNumber, _> = eligible_on.try_into();
 
-			reg.info.citizen != Data::None &&
-				eligible_on <= current_block_number &&
-				reg.judgements.contains(&(0u32, KnownGood))
+			match eligible_on {
+				Ok(eligible_on) => reg.info.citizen != Data::None &&
+						eligible_on <= current_block_number &&
+						reg.judgements.contains(&(0u32, KnownGood)),
+				_ => false,
+			}
 		}
 
 		fn is_known_good(account: &T::AccountId) -> bool {
