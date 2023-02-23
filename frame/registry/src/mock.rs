@@ -1,10 +1,10 @@
 pub use crate as pallet_registry;
 use frame_support::{
 	parameter_types,
-	weights::Weight,
 	traits::{ConstU32, ConstU64},
+	weights::Weight,
 };
-use frame_system::{EnsureRoot};
+use frame_system::EnsureRoot;
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
 	testing::Header,
@@ -60,7 +60,7 @@ impl frame_system::Config for Test {
 }
 
 impl pallet_balances::Config for Test {
-	type MaxReserves = ();
+	type MaxReserves = ConstU32<1>;
 	type ReserveIdentifier = [u8; 8];
 	type MaxLocks = ConstU32<10>;
 	type Balance = u64;
@@ -76,6 +76,7 @@ parameter_types! {
 	pub BaseDeposit: u64 = 1;
 	pub ByteDeposit: u64 = 2;
 	pub MaxRegistrars: u32 = 2;
+	pub ReserveIdentifier: &'static [u8; 8] = b"registry";
 }
 
 impl pallet_registry::Config for Test {
@@ -86,11 +87,12 @@ impl pallet_registry::Config for Test {
 	type BaseDeposit = BaseDeposit;
 	type ByteDeposit = ByteDeposit;
 	type RegistrarOrigin = EnsureRoot<u64>;
+	type ReserveIdentifier = ReserveIdentifier;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(1, 1), (2, 100), (3, 10000000000)];
+	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 1)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();
