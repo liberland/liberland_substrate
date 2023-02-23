@@ -7,6 +7,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
+	BoundedVec,
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
@@ -72,27 +73,23 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-	pub MaxDataLength: u32 = 5;
-	pub BaseDeposit: u64 = 1;
-	pub ByteDeposit: u64 = 2;
-	pub MaxRegistrars: u32 = 2;
 	pub ReserveIdentifier: &'static [u8; 8] = b"registry";
 }
 
 impl pallet_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type MaxDataLength = MaxDataLength;
-	type MaxRegistrars = MaxRegistrars;
-	type BaseDeposit = BaseDeposit;
-	type ByteDeposit = ByteDeposit;
+	type EntityData = BoundedVec<u8, ConstU32<5>>;
+	type MaxRegistrars = ConstU32<2>;
+	type BaseDeposit = ConstU64<1>;
+	type ByteDeposit = ConstU64<2>;
 	type RegistrarOrigin = EnsureRoot<u64>;
 	type ReserveIdentifier = ReserveIdentifier;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 1)];
+	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 3)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();

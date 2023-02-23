@@ -1,13 +1,12 @@
 use crate::{
 	mock::*,
-	Data,
 	//	EntityRegistry, EntityRequests, Registrars
 	Error,
 };
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::{BadOrigin, Hash};
 
-type DataOf<T> = Data<<T as pallet_registry::Config>::MaxDataLength>;
+type DataOf<T> = <T as pallet_registry::Config>::EntityData;
 type HashingOf<T> = <T as frame_system::Config>::Hashing;
 
 #[test]
@@ -54,15 +53,15 @@ fn set_entity_works() {
 		let data2: DataOf<Test> = vec![3, 2, 1].try_into().unwrap();
 
 		assert_ok!(Registry::set_entity(RuntimeOrigin::signed(0), data1.clone()));
-		assert_eq!(Registry::requests(0), Some((7u64, data1.clone())));
+		assert_eq!(Registry::requests(0), Some((9u64, data1.clone())));
 
 		assert_ok!(Registry::set_entity(RuntimeOrigin::signed(1), data2.clone()));
-		assert_eq!(Registry::requests(0), Some((7u64, data1.clone())));
-		assert_eq!(Registry::requests(1), Some((7u64, data2.clone())));
+		assert_eq!(Registry::requests(0), Some((9u64, data1.clone())));
+		assert_eq!(Registry::requests(1), Some((9u64, data2.clone())));
 
 		assert_ok!(Registry::set_entity(RuntimeOrigin::signed(0), data2.clone()));
-		assert_eq!(Registry::requests(0), Some((7u64, data2.clone())));
-		assert_eq!(Registry::requests(1), Some((7u64, data2.clone())));
+		assert_eq!(Registry::requests(0), Some((9u64, data2.clone())));
+		assert_eq!(Registry::requests(1), Some((9u64, data2.clone())));
 	});
 }
 
@@ -79,7 +78,7 @@ fn register_entity_works() {
 		assert_eq!(Registry::registries(1, 0), None);
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
 		assert_ok!(Registry::register_entity(registrar, 0, 1, HashingOf::<Test>::hash_of(&data)));
-		assert_eq!(Registry::registries(1, 0), Some((7u64, Some(data))));
+		assert_eq!(Registry::registries(1, 0), Some((9u64, Some(data))));
 	});
 }
 
@@ -156,11 +155,11 @@ fn new_requests_dont_overwrite_registry() {
 		assert_eq!(Registry::registries(1, 0), None);
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
 		assert_ok!(Registry::register_entity(registrar, 0, 1, HashingOf::<Test>::hash_of(&data)));
-		assert_eq!(Registry::registries(1, 0), Some((7u64, Some(data.clone()))));
+		assert_eq!(Registry::registries(1, 0), Some((9u64, Some(data.clone()))));
 
 		assert_ok!(Registry::set_entity(entity, data2.clone()));
-		assert_eq!(Registry::requests(1), Some((7u64, data2)));
-		assert_eq!(Registry::registries(1, 0), Some((7u64, Some(data))));
+		assert_eq!(Registry::requests(1), Some((9u64, data2)));
+		assert_eq!(Registry::registries(1, 0), Some((9u64, Some(data))));
 	});
 }
 
@@ -182,14 +181,14 @@ fn multiple_registries_dont_collide() {
 
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
 		assert_ok!(Registry::register_entity(registrar1, 0, 2, HashingOf::<Test>::hash_of(&data)));
-		assert_eq!(Registry::registries(2, 0), Some((7u64, Some(data.clone()))));
+		assert_eq!(Registry::registries(2, 0), Some((9u64, Some(data.clone()))));
 		assert_eq!(Registry::registries(2, 1), None);
 
 		assert_ok!(Registry::set_entity(entity.clone(), data2.clone()));
 		assert_ok!(Registry::request_registration(entity.clone(), 1));
 		assert_ok!(Registry::register_entity(registrar2, 1, 2, HashingOf::<Test>::hash_of(&data2)));
-		assert_eq!(Registry::registries(2, 0), Some((7u64, Some(data))));
-		assert_eq!(Registry::registries(2, 1), Some((7u64, Some(data2))));
+		assert_eq!(Registry::registries(2, 0), Some((9u64, Some(data))));
+		assert_eq!(Registry::registries(2, 1), Some((9u64, Some(data2))));
 	});
 }
 
@@ -206,12 +205,12 @@ fn clear_entity_wipes_only_request() {
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
 		assert_ok!(Registry::register_entity(registrar, 0, 2, HashingOf::<Test>::hash_of(&data)));
 
-		assert_eq!(Registry::requests(2), Some((7u64, data.clone())));
-		assert_eq!(Registry::registries(2, 0), Some((7u64, Some(data.clone()))));
+		assert_eq!(Registry::requests(2), Some((9u64, data.clone())));
+		assert_eq!(Registry::registries(2, 0), Some((9u64, Some(data.clone()))));
 
 		assert_ok!(Registry::clear_entity(entity));
 		assert_eq!(Registry::requests(2), None);
-		assert_eq!(Registry::registries(2, 0), Some((7u64, Some(data.clone()))));
+		assert_eq!(Registry::registries(2, 0), Some((9u64, Some(data.clone()))));
 	});
 }
 
@@ -233,14 +232,14 @@ fn unregister_wipes_only_single_registry_data() {
 		assert_ok!(Registry::register_entity(registrar1, 0, 2, HashingOf::<Test>::hash_of(&data)));
 		assert_ok!(Registry::register_entity(registrar2, 1, 2, HashingOf::<Test>::hash_of(&data)));
 
-		assert_eq!(Registry::requests(2), Some((7u64, data.clone())));
-		assert_eq!(Registry::registries(2, 0), Some((7u64, Some(data.clone()))));
-		assert_eq!(Registry::registries(2, 1), Some((7u64, Some(data.clone()))));
+		assert_eq!(Registry::requests(2), Some((9u64, data.clone())));
+		assert_eq!(Registry::registries(2, 0), Some((9u64, Some(data.clone()))));
+		assert_eq!(Registry::registries(2, 1), Some((9u64, Some(data.clone()))));
 
 		assert_ok!(Registry::unregister(entity.clone(), 0));
-		assert_eq!(Registry::requests(2), Some((7u64, data.clone())));
+		assert_eq!(Registry::requests(2), Some((9u64, data.clone())));
 		assert_eq!(Registry::registries(2, 0), None);
-		assert_eq!(Registry::registries(2, 1), Some((7u64, Some(data.clone()))));
+		assert_eq!(Registry::registries(2, 1), Some((9u64, Some(data.clone()))));
 
 		assert_ok!(Registry::unregister(entity, 1));
 		assert_eq!(Registry::registries(2, 1), None);
@@ -270,11 +269,11 @@ fn set_entity_reserves_correct_amounts() {
 		let entity = RuntimeOrigin::signed(0);
 
 		assert_ok!(Registry::set_entity(entity.clone(), data1.clone()));
-		assert_eq!(Balances::reserved_balance(0), 3u64);
+		assert_eq!(Balances::reserved_balance(0), 5u64);
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64);
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64);
 	})
 }
 
@@ -286,12 +285,12 @@ fn set_entity_frees_reserves_if_possible() {
 		let entity = RuntimeOrigin::signed(0);
 
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64);
 		assert_ok!(Registry::set_entity(entity.clone(), data1.clone()));
-		assert_eq!(Balances::reserved_balance(0), 3u64);
-		assert_eq!(Balances::free_balance(0), 97u64);
+		assert_eq!(Balances::reserved_balance(0), 5u64);
+		assert_eq!(Balances::free_balance(0), 95u64);
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64);
 	})
 }
 
@@ -302,12 +301,12 @@ fn clear_entity_refunds_deposit() {
 		let entity = RuntimeOrigin::signed(0);
 
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64);
 		assert_ok!(Registry::clear_entity(entity.clone()));
 		assert_eq!(Balances::reserved_balance(0), 0u64);
 		assert_eq!(Balances::free_balance(0), 100u64);
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64);
 	})
 }
 
@@ -329,10 +328,10 @@ fn unregister_refunds_deposits() {
 		assert_ok!(Registry::register_entity(registrar2, 1, 2, HashingOf::<Test>::hash_of(&data)));
 		assert_ok!(Registry::clear_entity(entity.clone()));
 
-		assert_eq!(Balances::reserved_balance(2), 14u64);
+		assert_eq!(Balances::reserved_balance(2), 18u64);
 		assert_ok!(Registry::unregister(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(2), 7u64);
-		assert_eq!(Balances::free_balance(2), 93u64);
+		assert_eq!(Balances::reserved_balance(2), 9u64);
+		assert_eq!(Balances::free_balance(2), 91u64);
 		assert_ok!(Registry::unregister(entity, 1));
 		assert_eq!(Balances::reserved_balance(2), 0u64);
 		assert_eq!(Balances::free_balance(2), 100u64);
@@ -350,13 +349,13 @@ fn request_registration_reserves_correct_amounts() {
 
 		assert_ok!(Registry::set_entity(entity.clone(), data1.clone()));
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(0), 3u64 + 3u64);
+		assert_eq!(Balances::reserved_balance(0), 5u64 + 5u64);
 
 		assert_ok!(Registry::set_entity(entity.clone(), data3.clone()));
-		assert_eq!(Balances::reserved_balance(0), 7u64 + 3u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64 + 5u64);
 
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(0), 7u64 + 7u64);
+		assert_eq!(Balances::reserved_balance(0), 9u64 + 9u64);
 	})
 }
 
@@ -420,10 +419,10 @@ fn refund_works_for_unregistered() {
 		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 1));
 		assert_ok!(Registry::set_entity(entity.clone(), data2.clone()));
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(0), 5u64 + 5u64);
+		assert_eq!(Balances::reserved_balance(0), 7u64 + 7u64);
 		assert_ok!(Registry::refund(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(0), 5u64);
-		assert_eq!(Balances::free_balance(0), 95u64);
+		assert_eq!(Balances::reserved_balance(0), 7u64);
+		assert_eq!(Balances::free_balance(0), 93u64);
 	});
 }
 
@@ -440,16 +439,16 @@ fn refund_works_for_reduced_size() {
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
 		assert_ok!(Registry::register_entity(registrar.clone(), 0, 0, HashingOf::<Test>::hash_of(&data2)));
 		assert_ok!(Registry::clear_entity(entity.clone()));
-		assert_eq!(Balances::reserved_balance(0), 5u64);
+		assert_eq!(Balances::reserved_balance(0), 7u64);
 
 		assert_ok!(Registry::set_entity(entity.clone(), data1.clone()));
 		assert_ok!(Registry::request_registration(entity.clone(), 0));
 		assert_ok!(Registry::register_entity(registrar.clone(), 0, 0, HashingOf::<Test>::hash_of(&data1)));
 		assert_ok!(Registry::clear_entity(entity.clone()));
-		assert_eq!(Balances::reserved_balance(0), 5u64);
+		assert_eq!(Balances::reserved_balance(0), 7u64);
 
 		assert_ok!(Registry::refund(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(0), 3u64);
-		assert_eq!(Balances::free_balance(0), 97u64);
+		assert_eq!(Balances::reserved_balance(0), 5u64);
+		assert_eq!(Balances::free_balance(0), 95u64);
 	});
 }

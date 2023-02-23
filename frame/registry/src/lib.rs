@@ -19,7 +19,6 @@ mod tests;
 
 use frame_support::BoundedVec;
 pub type RegistrarIndex = u32;
-pub type Data<MaxLen> = BoundedVec<u8, MaxLen>;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -46,9 +45,6 @@ pub mod pallet {
 		type Currency: NamedReservableCurrency<Self::AccountId>;
 
 		#[pallet::constant]
-		type MaxDataLength: Get<u32>;
-
-		#[pallet::constant]
 		type MaxRegistrars: Get<u32>;
 
 		#[pallet::constant]
@@ -61,6 +57,8 @@ pub mod pallet {
 		type ReserveIdentifier: Get<&'static ReserveIdentifierOf<Self>>;
 
 		type RegistrarOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
+		type EntityData: Parameter + Member + MaxEncodedLen;
 	}
 
 	#[pallet::error]
@@ -92,7 +90,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AccountId,
-		(BalanceOf<T>, Data<T::MaxDataLength>),
+		(BalanceOf<T>, T::EntityData),
 		OptionQuery,
 	>;
 
@@ -104,7 +102,7 @@ pub mod pallet {
 		T::AccountId,
 		Blake2_128Concat,
 		RegistrarIndex,
-		(BalanceOf<T>, Option<Data<T::MaxDataLength>>),
+		(BalanceOf<T>, Option<T::EntityData>),
 		OptionQuery,
 	>;
 
@@ -161,7 +159,7 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(10_000)]
-		pub fn set_entity(origin: OriginFor<T>, data: Data<T::MaxDataLength>) -> DispatchResult {
+		pub fn set_entity(origin: OriginFor<T>, data: T::EntityData) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
 			let required_deposit = Self::calculate_deposit(&data);
 			let old_deposit =
@@ -310,8 +308,8 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn calculate_deposit(data: &Data<T::MaxDataLength>) -> BalanceOf<T> {
-			let data_len = data.len() as u32;
+		fn calculate_deposit(data: &T::EntityData) -> BalanceOf<T> {
+			let data_len = data.encoded_size() as u32;
 			let required_deposit = T::BaseDeposit::get()
 				.saturating_add(T::ByteDeposit::get().saturating_mul(data_len.into()));
 			required_deposit
