@@ -845,3 +845,71 @@ fn collective_can_be_entity() {
 		assert_ok!(RegistryWithCollectives::clear_entity(entity_origin.clone()));
 	})
 }
+
+#[test]
+fn force_unregister_verifies_origin() {
+	new_test_ext().execute_with(|| {
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+		assert_noop!(Registry::force_unregister(entity, 0, 0), Error::<Test>::InvalidRegistrar);
+		assert_noop!(Registry::force_unregister(registrar, 1, 0), Error::<Test>::InvalidRegistrar);
+	})
+}
+
+#[test]
+fn force_unregister_fails_on_unregistered_entity() {
+	new_test_ext().execute_with(|| {
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+		assert_noop!(Registry::force_unregister(registrar, 0, 0), Error::<Test>::InvalidEntity);
+	})
+}
+
+#[test]
+fn force_unregister_works() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::set_entity(entity.clone(), data.clone(), false));
+		assert_ok!(Registry::request_registration(entity.clone(), 0));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+		assert!(matches!(Registry::registries(1, 0), Some(_)));
+		assert_ok!(Registry::force_unregister(registrar, 0, 1));
+		assert_eq!(Registry::registries(1, 0), None);
+	})
+}
+
+#[test]
+fn force_unregister_refunds_deposit() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::set_entity(entity.clone(), data.clone(), false));
+		assert_ok!(Registry::request_registration(entity.clone(), 0));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+		assert_ok!(Registry::clear_entity(entity.clone()));
+		assert_eq!(Balances::reserved_balance(1), 5u64);
+		assert_ok!(Registry::force_unregister(registrar, 0, 1));
+		assert_eq!(Balances::reserved_balance(1), 0u64);
+		assert_eq!(Balances::free_balance(1), 100u64);
+	})
+}

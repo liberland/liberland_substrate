@@ -270,6 +270,33 @@ pub mod pallet {
 
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
+		pub fn force_unregister(
+			origin: OriginFor<T>,
+			registrar_index: RegistrarIndex,
+			entity: T::AccountId,
+		) -> DispatchResult {
+			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
+
+			Self::registrars()
+				.get(registrar_index as usize)
+				.filter(|acc| *acc == &sender)
+				.ok_or(Error::<T, I>::InvalidRegistrar)?;
+
+			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registrar_index) {
+				// refund deposit
+				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
+			} else {
+				return Err(Error::<T, I>::InvalidEntity.into())
+			}
+			EntityRegistries::<T, I>::remove(&entity, registrar_index);
+
+			Self::deposit_event(Event::EntityUnregistered { entity, registrar_index });
+
+			Ok(())
+		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight(10_000)]
 		pub fn request_registration(
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
@@ -303,7 +330,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(5)]
+		#[pallet::call_index(6)]
 		#[pallet::weight(10_000)]
 		pub fn register_entity(
 			origin: OriginFor<T>,
@@ -341,7 +368,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(6)]
+		#[pallet::call_index(7)]
 		#[pallet::weight(10_000)]
 		pub fn refund(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
@@ -363,7 +390,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(7)]
+		#[pallet::call_index(8)]
 		#[pallet::weight(10_000)]
 		pub fn set_registered_entity(
 			origin: OriginFor<T>,
