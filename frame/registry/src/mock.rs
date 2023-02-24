@@ -1,14 +1,17 @@
+use core::marker::PhantomData;
+
 pub use crate as pallet_registry;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, ConstU64},
+	traits::{ConstU32, ConstU64, EitherOf, MapSuccess},
 	weights::Weight,
+	PalletId,
 };
-use frame_system::EnsureRoot;
-use sp_core::{ConstU16, H256};
+use frame_system::{EnsureRoot, EnsureSigned};
+use sp_core::{ConstU16, Get, H256};
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Morph},
 	BoundedVec,
 };
 
@@ -25,6 +28,8 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Registry: pallet_registry::{Pallet, Call, Storage, Config<T>, Event<T>},
 		SecondRegistry: pallet_registry::<Instance2>,
+		RegistryWithCollectives: pallet_registry::<Instance3>,
+		Collective: pallet_collective,
 	}
 );
 
@@ -84,7 +89,9 @@ impl pallet_registry::Config for Test {
 	type MaxRegistrars = ConstU32<2>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
-	type RegistrarOrigin = EnsureRoot<u64>;
+	type AddRegistrarOrigin = EnsureRoot<u64>;
+	type RegistrarOrigin = EnsureSigned<u64>;
+	type EntityOrigin = EnsureSigned<u64>;
 	type ReserveIdentifier = ReserveIdentifier;
 }
 
@@ -95,13 +102,67 @@ impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 	type MaxRegistrars = ConstU32<2>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
-	type RegistrarOrigin = EnsureRoot<u64>;
+	type AddRegistrarOrigin = EnsureRoot<u64>;
+	type RegistrarOrigin = EnsureSigned<u64>;
+	type EntityOrigin = EnsureSigned<u64>;
+	type ReserveIdentifier = ReserveIdentifier;
+}
+
+impl pallet_collective::Config for Test {
+	type RuntimeOrigin = RuntimeOrigin;
+	type Proposal = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type MotionDuration = ConstU64<1>;
+	type MaxProposals = ConstU32<1>;
+	type MaxMembers = ConstU32<1>;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Test>;
+}
+pub struct MapCollective<T, R> {
+	_phantom: PhantomData<T>,
+	_phantom2: PhantomData<R>,
+}
+
+impl<T, R> Morph<T> for MapCollective<T, R>
+where
+	R: Get<u64>,
+{
+	type Outcome = u64;
+
+	fn morph(_: T) -> Self::Outcome {
+		R::get()
+	}
+}
+
+parameter_types! {
+	pub CollectiveAccountId: u64 = PalletId(*b"collecti").into_account_truncating();
+}
+
+type EnsureSignedOrMembers = EitherOf<
+	EnsureSigned<u64>,
+	MapSuccess<
+		pallet_collective::EnsureMembers<u64, (), 1>,
+		MapCollective<(u32, u32), CollectiveAccountId>,
+	>,
+>;
+
+impl pallet_registry::Config<pallet_registry::Instance3> for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type EntityData = BoundedVec<u8, ConstU32<5>>;
+	type MaxRegistrars = ConstU32<2>;
+	type BaseDeposit = ConstU64<1>;
+	type ByteDeposit = ConstU64<2>;
+	type AddRegistrarOrigin = EnsureRoot<u64>;
+	type RegistrarOrigin = EnsureSignedOrMembers;
+	type EntityOrigin = EnsureSignedOrMembers;
 	type ReserveIdentifier = ReserveIdentifier;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 3)];
+	let collective_account_id = CollectiveAccountId::get();
+	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 3), (collective_account_id, 10)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();

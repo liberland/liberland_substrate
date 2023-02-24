@@ -701,7 +701,6 @@ fn instances_dont_mix() {
 	})
 }
 
-
 #[test]
 fn set_registered_entity_fails_on_non_editable() {
 	new_test_ext().execute_with(|| {
@@ -718,7 +717,10 @@ fn set_registered_entity_fails_on_non_editable() {
 			1,
 			HashingOf::<Test>::hash_of(&data)
 		));
-		assert_noop!(Registry::set_registered_entity(registrar, 0, 1, data), Error::<Test>::NotEditableByRegistrar);
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 0, 1, data),
+			Error::<Test>::NotEditableByRegistrar
+		);
 	})
 }
 
@@ -731,7 +733,10 @@ fn set_registered_entity_fails_on_not_registered() {
 
 		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
 		assert_ok!(Registry::set_entity(entity.clone(), data.clone(), false));
-		assert_noop!(Registry::set_registered_entity(registrar, 0, 1, data), Error::<Test>::InvalidEntity);
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 0, 1, data),
+			Error::<Test>::InvalidEntity
+		);
 	})
 }
 
@@ -743,15 +748,21 @@ fn set_registered_entity_verifies_origin() {
 		let registrar = RuntimeOrigin::signed(0);
 
 		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
-		assert_noop!(Registry::set_registered_entity(registrar, 1, 1, data.clone()), Error::<Test>::InvalidRegistrar);
-		assert_noop!(Registry::set_registered_entity(entity, 0, 1, data), Error::<Test>::InvalidRegistrar);
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 1, 1, data.clone()),
+			Error::<Test>::InvalidRegistrar
+		);
+		assert_noop!(
+			Registry::set_registered_entity(entity, 0, 1, data),
+			Error::<Test>::InvalidRegistrar
+		);
 	})
 }
 
 #[test]
 fn set_registered_entity_fails_on_bigger_data() {
 	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1,].try_into().unwrap();
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
 		let data2: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
 		let entity = RuntimeOrigin::signed(1);
 		let registrar = RuntimeOrigin::signed(0);
@@ -765,14 +776,17 @@ fn set_registered_entity_fails_on_bigger_data() {
 			1,
 			HashingOf::<Test>::hash_of(&data1)
 		));
-		assert_noop!(Registry::set_registered_entity(registrar, 0, 1, data2), Error::<Test>::InsufficientDeposit);
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 0, 1, data2),
+			Error::<Test>::InsufficientDeposit
+		);
 	})
 }
 
 #[test]
 fn set_registered_entity_works_with_same_size_and_smaller_data() {
 	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1,].try_into().unwrap();
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
 		let data2: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
 		let entity = RuntimeOrigin::signed(1);
 		let registrar = RuntimeOrigin::signed(0);
@@ -788,5 +802,46 @@ fn set_registered_entity_works_with_same_size_and_smaller_data() {
 		));
 		assert_ok!(Registry::set_registered_entity(registrar.clone(), 0, 1, data2));
 		assert_ok!(Registry::set_registered_entity(registrar, 0, 1, data1));
+	})
+}
+
+#[test]
+fn collective_can_be_registrar() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let collective_account_id = CollectiveAccountId::get();
+		let registrar_origin = pallet_collective::Origin::<Test>::Members(1, 1);
+
+		assert_ok!(RegistryWithCollectives::add_registrar(
+			RuntimeOrigin::root(),
+			collective_account_id
+		));
+		assert_ok!(RegistryWithCollectives::set_entity(entity.clone(), data.clone(), true));
+		assert_ok!(RegistryWithCollectives::request_registration(entity.clone(), 0));
+		assert_ok!(RegistryWithCollectives::register_entity(
+			registrar_origin.into(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+	})
+}
+
+#[test]
+fn collective_can_be_entity() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let collective_account_id = CollectiveAccountId::get();
+		let entity_origin: RuntimeOrigin = pallet_collective::Origin::<Test>::Members(1, 1).into();
+
+		assert_ok!(RegistryWithCollectives::set_entity(entity_origin.clone(), data.clone(), true));
+		assert_eq!(
+			RegistryWithCollectives::requests(collective_account_id),
+			Some(Request { deposit: 5u64, data: data.clone(), editable_by_registrar: true })
+		);
+		assert_ok!(RegistryWithCollectives::request_registration(entity_origin.clone(), 0));
+		assert_ok!(RegistryWithCollectives::refund(entity_origin.clone(), 0));
+		assert_ok!(RegistryWithCollectives::clear_entity(entity_origin.clone()));
 	})
 }

@@ -57,7 +57,7 @@ where
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::{DispatchResult, *};
-	use frame_system::{ensure_signed, pallet_prelude::*};
+	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::vec;
 	use sp_runtime::{traits::Hash, Saturating};
 
@@ -97,7 +97,11 @@ pub mod pallet {
 		#[pallet::constant]
 		type ReserveIdentifier: Get<&'static ReserveIdentifierOf<Self, I>>;
 
-		type RegistrarOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		type AddRegistrarOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
+		type RegistrarOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
+
+		type EntityOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		type EntityData: Parameter + Member + MaxEncodedLen;
 	}
@@ -176,7 +180,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
 		pub fn add_registrar(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
-			T::RegistrarOrigin::ensure_origin(origin)?;
+			T::AddRegistrarOrigin::ensure_origin(origin)?;
 
 			let registrar_index = Registrars::<T, I>::try_mutate(
 				|registrars| -> Result<RegistrarIndex, DispatchError> {
@@ -197,7 +201,7 @@ pub mod pallet {
 			data: T::EntityData,
 			editable_by_registrar: bool,
 		) -> DispatchResult {
-			let entity = ensure_signed(origin)?;
+			let entity = T::EntityOrigin::ensure_origin(origin)?;
 			let required_deposit = Self::calculate_deposit(&data);
 			let old_deposit = Self::requests(&entity)
 				.map(|Request { deposit, .. }| deposit)
@@ -232,7 +236,7 @@ pub mod pallet {
 		#[pallet::call_index(2)]
 		#[pallet::weight(10_000)]
 		pub fn clear_entity(origin: OriginFor<T>) -> DispatchResult {
-			let entity = ensure_signed(origin)?;
+			let entity = T::EntityOrigin::ensure_origin(origin)?;
 
 			if let Some(Request { deposit, .. }) = Self::requests(&entity) {
 				// refund deposit
@@ -250,7 +254,7 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
 		pub fn unregister(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
-			let entity = ensure_signed(origin)?;
+			let entity = T::EntityOrigin::ensure_origin(origin)?;
 			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registrar_index) {
 				// refund deposit
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
@@ -270,7 +274,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
 		) -> DispatchResult {
-			let entity = ensure_signed(origin)?;
+			let entity = T::EntityOrigin::ensure_origin(origin)?;
 
 			let Request { data, .. } =
 				Self::requests(&entity).ok_or(Error::<T, I>::InvalidEntity)?;
@@ -307,7 +311,7 @@ pub mod pallet {
 			entity: T::AccountId,
 			data: T::Hash,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
+			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
 
 			Self::registrars()
 				.get(registrar_index as usize)
@@ -340,7 +344,7 @@ pub mod pallet {
 		#[pallet::call_index(6)]
 		#[pallet::weight(10_000)]
 		pub fn refund(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
-			let entity = ensure_signed(origin)?;
+			let entity = T::EntityOrigin::ensure_origin(origin)?;
 			let Registration { deposit, data, editable_by_registrar } =
 				Self::registries(&entity, &registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
 			let required_deposit =
@@ -367,14 +371,15 @@ pub mod pallet {
 			entity: T::AccountId,
 			data: T::EntityData,
 		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
+			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
 
 			Self::registrars()
 				.get(registrar_index as usize)
 				.filter(|acc| *acc == &sender)
 				.ok_or(Error::<T, I>::InvalidRegistrar)?;
 
-			let Registration { deposit, editable_by_registrar, .. } = Self::registries(&entity, registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
+			let Registration { deposit, editable_by_registrar, .. } =
+				Self::registries(&entity, registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
 			ensure!(editable_by_registrar, Error::<T, I>::NotEditableByRegistrar);
 
 			let required_deposit = Self::calculate_deposit(&data);
