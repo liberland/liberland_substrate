@@ -7,9 +7,9 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	BoundedVec,
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
+	BoundedVec,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;

@@ -17,16 +17,46 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-use frame_support::BoundedVec;
+use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{
+	traits::{Currency, NamedReservableCurrency},
+	BoundedVec,
+};
+use scale_info::TypeInfo;
+use sp_runtime::RuntimeDebug;
+
 pub type RegistrarIndex = u32;
+
+#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct Request<Balance, EntityData> {
+	pub deposit: Balance,
+	pub data: EntityData,
+	pub editable_by_registrar: bool,
+}
+
+#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct Registration<Balance, EntityData>
+where
+	Balance: Default,
+{
+	pub deposit: Balance,
+	pub data: Option<EntityData>,
+	pub editable_by_registrar: bool,
+}
+
+impl<Balance, EntityData> Default for Registration<Balance, EntityData>
+where
+	Balance: Default,
+{
+	fn default() -> Self {
+		Self { deposit: Default::default(), data: None, editable_by_registrar: false }
+	}
+}
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{
-		pallet_prelude::{DispatchResult, *},
-		traits::{Currency, NamedReservableCurrency},
-	};
+	use frame_support::pallet_prelude::{DispatchResult, *};
 	use frame_system::{ensure_signed, pallet_prelude::*};
 	use scale_info::prelude::vec;
 	use sp_runtime::{traits::Hash, Saturating};
@@ -38,6 +68,9 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId,
 	>>::ReserveIdentifier;
 
+	type RequestOf<T, I> = Request<BalanceOf<T, I>, <T as Config<I>>::EntityData>;
+	type RegistrationOf<T, I> = Registration<BalanceOf<T, I>, <T as Config<I>>::EntityData>;
+
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::pallet]
@@ -48,7 +81,8 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RuntimeEvent: From<Event<Self, I>>
+			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type Currency: NamedReservableCurrency<Self::AccountId>;
 
 		#[pallet::constant]
@@ -80,6 +114,8 @@ pub mod pallet {
 		InvalidEntity,
 		/// Insufficient deposit for data storage
 		InsufficientDeposit,
+		/// Entity doesn't allow edits by registrars
+		NotEditableByRegistrar,
 	}
 
 	#[pallet::event]
@@ -96,13 +132,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn requests)]
-	pub(super) type EntityRequests<T: Config<I>, I: 'static = ()> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		(BalanceOf<T, I>, T::EntityData),
-		OptionQuery,
-	>;
+	pub(super) type EntityRequests<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, RequestOf<T, I>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn registries)]
@@ -112,7 +143,7 @@ pub mod pallet {
 		T::AccountId,
 		Blake2_128Concat,
 		RegistrarIndex,
-		(BalanceOf<T, I>, Option<T::EntityData>),
+		RegistrationOf<T, I>,
 		OptionQuery,
 	>;
 
@@ -161,13 +192,18 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(10_000)]
-		pub fn set_entity(origin: OriginFor<T>, data: T::EntityData) -> DispatchResult {
+		pub fn set_entity(
+			origin: OriginFor<T>,
+			data: T::EntityData,
+			editable_by_registrar: bool,
+		) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
 			let required_deposit = Self::calculate_deposit(&data);
-			let old_deposit =
-				Self::requests(&entity).map(|(deposit, _)| deposit).unwrap_or_default();
+			let old_deposit = Self::requests(&entity)
+				.map(|Request { deposit, .. }| deposit)
+				.unwrap_or_default();
 
-			if required_deposit >= old_deposit {
+			if required_deposit > old_deposit {
 				// reserve more
 				T::Currency::reserve_named(
 					T::ReserveIdentifier::get(),
@@ -183,7 +219,10 @@ pub mod pallet {
 				);
 			}
 
-			EntityRequests::<T, I>::insert(&entity, (required_deposit, data));
+			EntityRequests::<T, I>::insert(
+				&entity,
+				Request { deposit: required_deposit, data, editable_by_registrar },
+			);
 
 			Self::deposit_event(Event::EntitySet { entity });
 
@@ -195,11 +234,11 @@ pub mod pallet {
 		pub fn clear_entity(origin: OriginFor<T>) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
 
-			if let Some((deposit, _)) = Self::requests(&entity) {
+			if let Some(Request { deposit, .. }) = Self::requests(&entity) {
 				// refund deposit
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
 			} else {
-				return Err(Error::<T, I>::InvalidEntity.into());
+				return Err(Error::<T, I>::InvalidEntity.into())
 			}
 			EntityRequests::<T, I>::remove(&entity);
 
@@ -212,11 +251,11 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn unregister(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
-			if let Some((deposit, _)) = Self::registries(&entity, registrar_index) {
+			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registrar_index) {
 				// refund deposit
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
 			} else {
-				return Err(Error::<T, I>::InvalidEntity.into());
+				return Err(Error::<T, I>::InvalidEntity.into())
 			}
 			EntityRegistries::<T, I>::remove(&entity, registrar_index);
 
@@ -233,23 +272,27 @@ pub mod pallet {
 		) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
 
-			let data =
-				Self::requests(&entity).map(|(_, data)| data).ok_or(Error::<T, I>::InvalidEntity)?;
+			let Request { data, .. } =
+				Self::requests(&entity).ok_or(Error::<T, I>::InvalidEntity)?;
 
-			let (old_deposit, old_data) = Self::registries(&entity, registrar_index).unwrap_or_default();
+			let old_registration = Self::registries(&entity, registrar_index).unwrap_or_default();
 			let new_deposit = Self::calculate_deposit(&data);
-			let required_deposit = old_deposit.max(new_deposit);
+			let required_deposit = old_registration.deposit.max(new_deposit);
 
-			if required_deposit > old_deposit {
+			if required_deposit > old_registration.deposit {
 				// reserve more
 				T::Currency::reserve_named(
 					T::ReserveIdentifier::get(),
 					&entity,
-					required_deposit - old_deposit,
+					required_deposit - old_registration.deposit,
 				)?;
 			}
 
-			EntityRegistries::<T, I>::insert(&entity, registrar_index, (required_deposit, old_data));
+			EntityRegistries::<T, I>::insert(
+				&entity,
+				registrar_index,
+				Registration { deposit: required_deposit, ..old_registration },
+			);
 
 			Self::deposit_event(Event::RegistrationRequested { entity, registrar_index });
 
@@ -271,19 +314,23 @@ pub mod pallet {
 				.filter(|acc| *acc == &sender)
 				.ok_or(Error::<T, I>::InvalidRegistrar)?;
 
-			let request_data =
-				Self::requests(&entity).map(|(_, data)| data).ok_or(Error::<T, I>::InvalidEntity)?;
+			let Request { data: request_data, editable_by_registrar, .. } =
+				Self::requests(&entity).ok_or(Error::<T, I>::InvalidEntity)?;
 
 			ensure!(T::Hashing::hash_of(&request_data) == data, Error::<T, I>::MismatchedData);
 
 			let deposit = Self::registries(&entity, &registrar_index)
-				.map(|(deposit, _)| deposit)
+				.map(|Registration { deposit, .. }| deposit)
 				.unwrap_or_default();
 
 			let required_deposit = Self::calculate_deposit(&request_data);
 			ensure!(deposit >= required_deposit, Error::<T, I>::InsufficientDeposit);
 
-			EntityRegistries::<T, I>::insert(&entity, registrar_index, (deposit, Some(request_data)));
+			EntityRegistries::<T, I>::insert(
+				&entity,
+				registrar_index,
+				Registration { deposit, data: Some(request_data), editable_by_registrar },
+			);
 
 			Self::deposit_event(Event::EntityRegistered { entity, registrar_index });
 
@@ -294,16 +341,52 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn refund(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
-			let (deposit, data) =
+			let Registration { deposit, data, editable_by_registrar } =
 				Self::registries(&entity, &registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
 			let required_deposit =
 				data.as_ref().map(|data| Self::calculate_deposit(data)).unwrap_or_default();
 			let refund = deposit.saturating_sub(required_deposit); // shouldn't saturate, but lets be defensive
 
 			T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, refund);
-			EntityRegistries::<T, I>::insert(&entity, registrar_index, (required_deposit, data));
+			EntityRegistries::<T, I>::insert(
+				&entity,
+				registrar_index,
+				Registration { deposit: required_deposit, data, editable_by_registrar },
+			);
 
 			Self::deposit_event(Event::RefundProcessed { entity, registrar_index });
+
+			Ok(())
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(10_000)]
+		pub fn set_registered_entity(
+			origin: OriginFor<T>,
+			registrar_index: RegistrarIndex,
+			entity: T::AccountId,
+			data: T::EntityData,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+
+			Self::registrars()
+				.get(registrar_index as usize)
+				.filter(|acc| *acc == &sender)
+				.ok_or(Error::<T, I>::InvalidRegistrar)?;
+
+			let Registration { deposit, editable_by_registrar, .. } = Self::registries(&entity, registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
+			ensure!(editable_by_registrar, Error::<T, I>::NotEditableByRegistrar);
+
+			let required_deposit = Self::calculate_deposit(&data);
+			ensure!(deposit >= required_deposit, Error::<T, I>::InsufficientDeposit);
+
+			EntityRegistries::<T, I>::insert(
+				&entity,
+				registrar_index,
+				Registration { deposit, data: Some(data), editable_by_registrar },
+			);
+
+			Self::deposit_event(Event::EntityRegistered { entity, registrar_index });
 
 			Ok(())
 		}
