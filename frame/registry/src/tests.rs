@@ -1,7 +1,6 @@
 use crate::{
 	mock::*,
-	//	EntityRegistry, EntityRequests, Registrars
-	Error,
+	Error, Event,
 };
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::{BadOrigin, Hash};
@@ -451,4 +450,96 @@ fn refund_works_for_reduced_size() {
 		assert_eq!(Balances::reserved_balance(0), 5u64);
 		assert_eq!(Balances::free_balance(0), 95u64);
 	});
+}
+
+#[test]
+fn add_registrar_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let registrar_index = 0;
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+		System::assert_last_event(Event::RegistrarAdded { registrar_index }.into());
+	})
+}
+
+#[test]
+fn set_entity_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = 1;
+		assert_ok!(Registry::set_entity(RuntimeOrigin::signed(entity), data1));
+		System::assert_last_event(Event::EntitySet { entity }.into());
+	})
+}
+
+#[test]
+fn clear_entity_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = 1;
+		assert_ok!(Registry::set_entity(RuntimeOrigin::signed(entity), data1));
+		assert_ok!(Registry::clear_entity(RuntimeOrigin::signed(entity)));
+		System::assert_last_event(Event::EntityCleared { entity }.into());
+	})
+}
+
+#[test]
+fn unregister_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::set_entity(entity.clone(), data.clone()));
+		assert_ok!(Registry::request_registration(entity.clone(), 0));
+		assert_ok!(Registry::register_entity(registrar, 0, 1, HashingOf::<Test>::hash_of(&data)));
+		assert_ok!(Registry::unregister(entity.clone(), 0));
+		System::assert_last_event(Event::EntityUnregistered { entity: 1, registrar_index: 0 }.into());
+	})
+}
+
+#[test]
+fn request_registration_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::set_entity(entity.clone(), data.clone()));
+		assert_ok!(Registry::request_registration(entity.clone(), 0));
+		System::assert_last_event(Event::RegistrationRequested { entity: 1, registrar_index: 0 }.into());
+	})
+}
+
+#[test]
+fn register_entity_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::set_entity(entity.clone(), data.clone()));
+		assert_ok!(Registry::request_registration(entity.clone(), 0));
+		assert_ok!(Registry::register_entity(registrar, 0, 1, HashingOf::<Test>::hash_of(&data)));
+		System::assert_last_event(Event::EntityRegistered { entity: 1, registrar_index: 0 }.into());
+	})
+}
+
+#[test]
+fn refund_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::set_entity(entity.clone(), data.clone()));
+		assert_ok!(Registry::request_registration(entity.clone(), 0));
+		assert_ok!(Registry::refund(entity.clone(), 0));
+		System::assert_last_event(Event::RefundProcessed { entity: 1, registrar_index: 0 }.into());
+	})
 }

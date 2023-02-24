@@ -78,10 +78,13 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		RegistrarAdded { idx: RegistrarIndex },
-		RequestedUpdate { what: T::AccountId },
-		RegistryUpdated { what: T::AccountId, registrar: RegistrarIndex },
-		EntityCleared { what: T::AccountId },
+		RegistrarAdded { registrar_index: RegistrarIndex },
+		EntitySet { entity: T::AccountId },
+		EntityCleared { entity: T::AccountId },
+		EntityUnregistered { entity: T::AccountId, registrar_index: RegistrarIndex },
+		RegistrationRequested { entity: T::AccountId, registrar_index: RegistrarIndex },
+		EntityRegistered { entity: T::AccountId, registrar_index: RegistrarIndex },
+		RefundProcessed { entity: T::AccountId, registrar_index: RegistrarIndex },
 	}
 
 	#[pallet::storage]
@@ -145,14 +148,14 @@ pub mod pallet {
 		pub fn add_registrar(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::RegistrarOrigin::ensure_origin(origin)?;
 
-			let idx = Registrars::<T>::try_mutate(
+			let registrar_index = Registrars::<T>::try_mutate(
 				|registrars| -> Result<RegistrarIndex, DispatchError> {
 					registrars.try_push(account).map_err(|_| Error::<T>::TooManyRegistrars)?;
 					Ok((registrars.len() - 1) as RegistrarIndex)
 				},
 			)?;
 
-			Self::deposit_event(Event::RegistrarAdded { idx });
+			Self::deposit_event(Event::RegistrarAdded { registrar_index });
 
 			Ok(())
 		}
@@ -183,7 +186,7 @@ pub mod pallet {
 
 			EntityRequests::<T>::insert(&entity, (required_deposit, data));
 
-			Self::deposit_event(Event::RequestedUpdate { what: entity });
+			Self::deposit_event(Event::EntitySet { entity });
 
 			Ok(())
 		}
@@ -201,24 +204,24 @@ pub mod pallet {
 			}
 			EntityRequests::<T>::remove(&entity);
 
-			Self::deposit_event(Event::EntityCleared { what: entity });
+			Self::deposit_event(Event::EntityCleared { entity });
 
 			Ok(())
 		}
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
-		pub fn unregister(origin: OriginFor<T>, registrar: RegistrarIndex) -> DispatchResult {
+		pub fn unregister(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
-			if let Some((deposit, _)) = Self::registries(&entity, registrar) {
+			if let Some((deposit, _)) = Self::registries(&entity, registrar_index) {
 				// refund deposit
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
 			} else {
 				return Err(Error::<T>::InvalidEntity.into());
 			}
-			EntityRegistries::<T>::remove(&entity, registrar);
+			EntityRegistries::<T>::remove(&entity, registrar_index);
 
-			Self::deposit_event(Event::EntityCleared { what: entity });
+			Self::deposit_event(Event::EntityUnregistered { entity, registrar_index });
 
 			Ok(())
 		}
@@ -227,14 +230,14 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn request_registration(
 			origin: OriginFor<T>,
-			registrar: RegistrarIndex,
+			registrar_index: RegistrarIndex,
 		) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
 
 			let data =
 				Self::requests(&entity).map(|(_, data)| data).ok_or(Error::<T>::InvalidEntity)?;
 
-			let (old_deposit, old_data) = Self::registries(&entity, registrar).unwrap_or_default();
+			let (old_deposit, old_data) = Self::registries(&entity, registrar_index).unwrap_or_default();
 			let new_deposit = Self::calculate_deposit(&data);
 			let required_deposit = old_deposit.max(new_deposit);
 
@@ -247,9 +250,9 @@ pub mod pallet {
 				)?;
 			}
 
-			EntityRegistries::<T>::insert(&entity, registrar, (required_deposit, old_data));
+			EntityRegistries::<T>::insert(&entity, registrar_index, (required_deposit, old_data));
 
-			Self::deposit_event(Event::EntityCleared { what: entity });
+			Self::deposit_event(Event::RegistrationRequested { entity, registrar_index });
 
 			Ok(())
 		}
@@ -258,14 +261,14 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn register_entity(
 			origin: OriginFor<T>,
-			registrar: RegistrarIndex,
+			registrar_index: RegistrarIndex,
 			entity: T::AccountId,
 			data: T::Hash,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
 			Self::registrars()
-				.get(registrar as usize)
+				.get(registrar_index as usize)
 				.filter(|acc| *acc == &sender)
 				.ok_or(Error::<T>::InvalidRegistrar)?;
 
@@ -274,34 +277,34 @@ pub mod pallet {
 
 			ensure!(T::Hashing::hash_of(&request_data) == data, Error::<T>::MismatchedData);
 
-			let deposit = Self::registries(&entity, &registrar)
+			let deposit = Self::registries(&entity, &registrar_index)
 				.map(|(deposit, _)| deposit)
 				.unwrap_or_default();
 
 			let required_deposit = Self::calculate_deposit(&request_data);
 			ensure!(deposit >= required_deposit, Error::<T>::InsufficientDeposit);
 
-			EntityRegistries::<T>::insert(&entity, registrar, (deposit, Some(request_data)));
+			EntityRegistries::<T>::insert(&entity, registrar_index, (deposit, Some(request_data)));
 
-			Self::deposit_event(Event::RegistryUpdated { what: entity, registrar });
+			Self::deposit_event(Event::EntityRegistered { entity, registrar_index });
 
 			Ok(())
 		}
 
 		#[pallet::call_index(6)]
 		#[pallet::weight(10_000)]
-		pub fn refund(origin: OriginFor<T>, registrar: RegistrarIndex) -> DispatchResult {
+		pub fn refund(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = ensure_signed(origin)?;
 			let (deposit, data) =
-				Self::registries(&entity, &registrar).ok_or(Error::<T>::InvalidEntity)?;
+				Self::registries(&entity, &registrar_index).ok_or(Error::<T>::InvalidEntity)?;
 			let required_deposit =
 				data.as_ref().map(|data| Self::calculate_deposit(data)).unwrap_or_default();
 			let refund = deposit.saturating_sub(required_deposit); // shouldn't saturate, but lets be defensive
 
 			T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, refund);
-			EntityRegistries::<T>::insert(&entity, registrar, (required_deposit, data));
+			EntityRegistries::<T>::insert(&entity, registrar_index, (required_deposit, data));
 
-			Self::deposit_event(Event::RegistryUpdated { what: entity, registrar });
+			Self::deposit_event(Event::RefundProcessed { entity, registrar_index });
 
 			Ok(())
 		}
