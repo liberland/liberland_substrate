@@ -1427,8 +1427,8 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const AssetName: &'static str = "LiberTest Merit";
-	pub const AssetSymbol: &'static str = "LTM";
+	pub const AssetName: &'static str = "Liberland Kuna";
+	pub const AssetSymbol: &'static str = "LKN";
 	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
 }
 
@@ -1752,6 +1752,7 @@ mod staking_v12 {
 // `OnRuntimeUpgrade`.
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
+	pallet_llm::migrations::ltm_to_lkn::Migration<Runtime>,
 	pallet_referenda::migration::v1::MigrateV0ToV1<Runtime>,
 	staking_v12::Migration<Runtime>,
 	pallet_staking::migrations::v13::MigrateToV13<Runtime>,

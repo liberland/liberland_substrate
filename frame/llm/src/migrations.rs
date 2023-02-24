@@ -19,7 +19,6 @@ pub mod v1 {
         Registration<BalanceOf<T>, <T as pallet_identity::Config>::MaxRegistrars, <T as pallet_identity::Config>::MaxAdditionalFields>,
 	>;
 
-	/// Migration for adding origin type to proposals and referendums.
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
@@ -77,6 +76,48 @@ pub mod v1 {
 				"Counted {} citizens",
 				Citizens::<T>::get(),
 			);
+			Ok(())
+		}
+	}
+}
+
+pub mod ltm_to_lkn {
+	use super::*;
+	#[cfg(feature = "try-runtime")]
+	use sp_std::vec::Vec;
+
+
+	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
+
+	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+			Ok(().encode())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			let weight = T::DbWeight::get().reads(1);
+			let origin = frame_system::RawOrigin::Root.into();
+
+			let id = <T as Config>::AssetId::get();
+			let name = T::AssetName::get();
+			let symbol = T::AssetSymbol::get();
+
+			Assets::<T>::force_set_metadata(
+				origin,
+				id.into(),
+				name.into(),
+				symbol.into(),
+				12,
+				false).unwrap();
+
+			log::warn!(target: TARGET, "Reset metadata of LLM asset!");
+				
+			weight
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
 			Ok(())
 		}
 	}

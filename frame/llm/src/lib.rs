@@ -134,7 +134,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-mod migrations;
+pub mod migrations;
 
 /// Liberland Merit Pallet
 /*

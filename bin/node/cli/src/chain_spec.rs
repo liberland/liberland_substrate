@@ -92,7 +92,7 @@ fn bastiat_properties() -> Properties {
 	p.insert("prefix".into(), 56.into());
 	p.insert("network".into(), "Liberland_testnet".into());
 	p.insert("displayName".into(), "Bastiat".into());
-	p.insert("tokenSymbol".into(), "LTD".into());
+	p.insert("tokenSymbol".into(), "LDN".into());
 	p.insert("tokenDecimals".into(), 12.into());
 	p.insert("standardAccount".into(), "*25519".into());
 	p.insert("ss58Format".into(), 56.into());
