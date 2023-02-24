@@ -24,6 +24,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Registry: pallet_registry::{Pallet, Call, Storage, Config<T>, Event<T>},
+		SecondRegistry: pallet_registry::<Instance2>,
 	}
 );
 
@@ -77,6 +78,17 @@ parameter_types! {
 }
 
 impl pallet_registry::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type EntityData = BoundedVec<u8, ConstU32<5>>;
+	type MaxRegistrars = ConstU32<2>;
+	type BaseDeposit = ConstU64<1>;
+	type ByteDeposit = ConstU64<2>;
+	type RegistrarOrigin = EnsureRoot<u64>;
+	type ReserveIdentifier = ReserveIdentifier;
+}
+
+impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EntityData = BoundedVec<u8, ConstU32<5>>;
