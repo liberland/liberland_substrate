@@ -3220,6 +3220,7 @@ dependencies = [
  "pallet-randomness-collective-flip",
  "pallet-recovery",
  "pallet-referenda",
+ "pallet-registry",
  "pallet-scheduler",
  "pallet-session",
  "pallet-session-benchmarking",

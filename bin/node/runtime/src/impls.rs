@@ -21,11 +21,13 @@ use crate::{
 	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance,
 };
 use frame_support::{
+	pallet_prelude::{PhantomData, Get},
 	traits::{
 		fungibles::{Balanced, CreditOf},
 		Currency, OnUnbalanced,
 	},
 };
+use sp_runtime::traits::Morph;
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
@@ -55,6 +57,22 @@ pub struct OnStakerSlashNoop;
 impl OnStakerSlash<AccountId, Balance> for OnStakerSlashNoop {
 	fn on_slash(_stash: &AccountId, _slashed_active: Balance, _slashed_ongoing: &BTreeMap<EraIndex, Balance>) {
 		// do nothing
+	}
+}
+
+pub struct ToAccountId<T, R> {
+	_phantom: PhantomData<T>,
+	_phantom2: PhantomData<R>,
+}
+
+impl<T, R> Morph<T> for ToAccountId<T, R>
+where
+	R: Get<AccountId>,
+{
+	type Outcome = AccountId;
+
+	fn morph(_: T) -> Self::Outcome {
+		R::get()
 	}
 }
 

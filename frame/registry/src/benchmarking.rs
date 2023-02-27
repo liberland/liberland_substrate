@@ -19,7 +19,7 @@ fn add_registrars<T: Config<I>, I: 'static>(r: u32) -> DispatchResult {
 }
 
 fn get_data<T: Config<I>, I: 'static>(b: u8, s: usize) -> T::EntityData {
-	let raw_data: BoundedVec<u8, ConstU32<1024>> = [b].repeat((s-2) as usize).try_into().unwrap();
+	let raw_data: BoundedVec<u8, ConstU32<1024>> = [b].repeat((s - 2) as usize).try_into().unwrap();
 	let raw_data = raw_data.encode();
 	Decode::decode(&mut TrailingZeroInput::new(raw_data.as_ref())).unwrap()
 }

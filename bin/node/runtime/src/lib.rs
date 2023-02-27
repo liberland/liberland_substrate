@@ -32,13 +32,14 @@ use frame_election_provider_support::{
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	BoundedVec,
 	pallet_prelude::Get,
 	parameter_types,
 	traits::{
 		fungible::ItemOf, AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32,
-		Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
+		Currency, EitherOf, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
 		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, U128CurrencyToVote,
-		WithdrawReasons,
+		WithdrawReasons, MapSuccess,
 	},
 	weights::{
 		constants::{
@@ -74,7 +75,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
-		SaturatedConversion, StaticLookup,
+		SaturatedConversion, StaticLookup, AccountIdConversion,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
@@ -98,7 +99,7 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop};
+use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId};
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -1583,6 +1584,39 @@ impl pallet_state_trie_migration::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub CompanyRegistryReserveIdentifier: &'static [u8; 8] = b"compregi";
+	pub CompanyRegistryMaxRegistrars: u32 = 10u32;
+	pub CompanyRegistryBaseDeposit: Balance = 1 * CENTS;
+	pub CompanyRegistryByteDeposit: Balance = 100 * MILLICENTS;
+	pub CouncilAccountId: AccountId = PalletId(*b"regcouni").into_account_truncating();
+}
+
+type EnsureMembersAsAccountId<I, A> = MapSuccess<
+	pallet_collective::EnsureProportionMoreThan<AccountId, I, 1, 2>, // half of collective
+	ToAccountId<(), A>
+>;
+
+type RegistryEnsureRegistrar = EitherOf<
+	EnsureSigned<AccountId>,
+	EnsureMembersAsAccountId<CouncilCollective, CouncilAccountId>,
+>;
+
+type CompanyRegistryInstance = pallet_collective::Instance1;
+impl pallet_registry::Config<CompanyRegistryInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type AddRegistrarOrigin = EnsureRoot<AccountId>;
+	type RegistrarOrigin = RegistryEnsureRegistrar;
+	type MaxRegistrars = CompanyRegistryMaxRegistrars;
+	type BaseDeposit = CompanyRegistryBaseDeposit;
+	type ByteDeposit = CompanyRegistryByteDeposit;
+	type EntityOrigin = EnsureSigned<AccountId>;
+	type ReserveIdentifier = CompanyRegistryReserveIdentifier;
+	type WeightInfo = ();
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1643,6 +1677,7 @@ construct_runtime!(
 		Elections: pallet_elections_phragmen,
 		Staking: pallet_staking,
 		Session: pallet_session,
+		CompanyRegistry: pallet_registry::<Instance1>,
 	}
 );
 
@@ -1821,6 +1856,7 @@ mod benches {
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
 		[pallet_whitelist, Whitelist]
+		[pallet_registry, CompanyRegistry]
 	);
 }
 
