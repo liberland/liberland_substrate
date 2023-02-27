@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use core::marker::PhantomData;
 
 pub use crate as pallet_registry;
@@ -85,20 +87,21 @@ parameter_types! {
 impl pallet_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type EntityData = BoundedVec<u8, ConstU32<5>>;
-	type MaxRegistrars = ConstU32<2>;
+	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type MaxRegistrars = ConstU32<10>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
 	type AddRegistrarOrigin = EnsureRoot<u64>;
 	type RegistrarOrigin = EnsureSigned<u64>;
 	type EntityOrigin = EnsureSigned<u64>;
 	type ReserveIdentifier = ReserveIdentifier;
+	type WeightInfo = ();
 }
 
 impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type EntityData = BoundedVec<u8, ConstU32<5>>;
+	type EntityData = BoundedVec<u8, ConstU32<1024>>;
 	type MaxRegistrars = ConstU32<2>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
@@ -106,6 +109,7 @@ impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 	type RegistrarOrigin = EnsureSigned<u64>;
 	type EntityOrigin = EnsureSigned<u64>;
 	type ReserveIdentifier = ReserveIdentifier;
+	type WeightInfo = ();
 }
 
 impl pallet_collective::Config for Test {
@@ -149,7 +153,7 @@ type EnsureSignedOrMembers = EitherOf<
 impl pallet_registry::Config<pallet_registry::Instance3> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type EntityData = BoundedVec<u8, ConstU32<5>>;
+	type EntityData = BoundedVec<u8, ConstU32<1024>>;
 	type MaxRegistrars = ConstU32<2>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
@@ -157,6 +161,7 @@ impl pallet_registry::Config<pallet_registry::Instance3> for Test {
 	type RegistrarOrigin = EnsureSignedOrMembers;
 	type EntityOrigin = EnsureSignedOrMembers;
 	type ReserveIdentifier = ReserveIdentifier;
+	type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

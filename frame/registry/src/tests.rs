@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use crate::{mock::*, Error, Event, Registration, Request};
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::{BadOrigin, Hash};
@@ -32,9 +34,17 @@ fn add_registrar_works() {
 fn add_registrar_respects_max_registrars() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 1));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 2));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 3));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 4));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 5));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 6));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 7));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 8));
+		assert_ok!(Registry::add_registrar(RuntimeOrigin::root(), 9));
 		assert_noop!(
-			Registry::add_registrar(RuntimeOrigin::root(), 0),
+			Registry::add_registrar(RuntimeOrigin::root(), 10),
 			Error::<Test>::TooManyRegistrars
 		);
 	});

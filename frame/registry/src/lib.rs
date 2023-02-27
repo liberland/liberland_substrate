@@ -11,11 +11,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 pub use pallet::*;
 
-#[cfg(test)]
+mod benchmarking;
 mod mock;
-
-#[cfg(test)]
 mod tests;
+pub mod weights;
+pub use crate::weights::WeightInfo;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
@@ -53,6 +53,9 @@ where
 	}
 }
 
+type BalanceOf<T, I> =
+	<<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -60,9 +63,6 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::vec;
 	use sp_runtime::{traits::Hash, Saturating};
-
-	type BalanceOf<T, I> =
-		<<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	type ReserveIdentifierOf<T, I> = <<T as Config<I>>::Currency as NamedReservableCurrency<
 		<T as frame_system::Config>::AccountId,
@@ -104,6 +104,8 @@ pub mod pallet {
 		type EntityOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		type EntityData: Parameter + Member + MaxEncodedLen;
+
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::error]
@@ -178,7 +180,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::add_registrar(T::MaxRegistrars::get()))]
 		pub fn add_registrar(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::AddRegistrarOrigin::ensure_origin(origin)?;
 
@@ -195,7 +197,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_entity(T::EntityData::max_encoded_len() as u32))]
 		pub fn set_entity(
 			origin: OriginFor<T>,
 			data: T::EntityData,
@@ -234,7 +236,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::clear_entity())]
 		pub fn clear_entity(origin: OriginFor<T>) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
 
@@ -252,7 +254,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::unregister())]
 		pub fn unregister(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
 			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registrar_index) {
@@ -269,7 +271,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::force_unregister(T::MaxRegistrars::get()))]
 		pub fn force_unregister(
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
@@ -296,7 +298,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::request_registration(T::EntityData::max_encoded_len() as u32))]
 		pub fn request_registration(
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
@@ -331,7 +333,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::register_entity(T::MaxRegistrars::get(), T::EntityData::max_encoded_len() as u32))]
 		pub fn register_entity(
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
@@ -369,7 +371,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::refund(T::EntityData::max_encoded_len() as u32))]
 		pub fn refund(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
 			let Registration { deposit, data, editable_by_registrar } =
@@ -391,7 +393,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_registered_entity(T::MaxRegistrars::get(), T::EntityData::max_encoded_len() as u32))]
 		pub fn set_registered_entity(
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
