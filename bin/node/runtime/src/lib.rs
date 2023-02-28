@@ -1588,7 +1588,7 @@ parameter_types! {
 	pub CompanyRegistryReserveIdentifier: &'static [u8; 8] = b"compregi";
 	pub CompanyRegistryMaxRegistrars: u32 = 10u32;
 	pub CompanyRegistryBaseDeposit: Balance = 1 * CENTS;
-	pub CompanyRegistryByteDeposit: Balance = 100 * MILLICENTS;
+	pub CompanyRegistryByteDeposit: Balance = 10 * MILLICENTS;
 	pub CouncilAccountId: AccountId = PalletId(*b"regcouni").into_account_truncating();
 }
 
