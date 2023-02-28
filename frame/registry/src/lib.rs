@@ -5,31 +5,25 @@
 //! Registry pallet is a general-purpose pallet for tracking and registering
 //! data about abstract entities.
 //!
-//! In Liberland, it's used to implement Company Registry
+//! In Liberland, it's used to implement Company Registry.
 //!
 //! ## Terminology
 //!
-//! * Entity - object, identified with AccountId, that can have data attached to it and can be
-//!   registered at a registrar
-//! * Registrar - AccountId that can register Entities in Registry. Each registrar has it's own
-//!   Registry.
-//! * Registry - database of Entities and their data that were registered at given Registrar.
-//! * Deposit - amount of Currency that gets reserved when setting Entity data or requesting
-//!   registration - can be withdrawn when data is removed
+//! * Entity - object, identified with AccountId, that has data attached to it and can be registered
+//!   at a registrar
+//! * Registrar - AccountId that can register Entities in Registry.
+//! * Registry - database of Entities and their data that were registered.
+//! * Deposit - amount of Currency that gets reserved when requesting registration - refunded data
+//!   is removed
 //!
 //! ## Entity Lifecycle
 //!
-//! 1. Entity must be created using the `set_entity()` call. This creates
-//!    entity and assigns requested data to it.
-//! 2. If Entity wishes to be registered at given registrar:
-//!     1. It must call `request_registration()` to deposit Currency for registration at given
-//! registrar and,     2. The registrar must call `register_entity()` to actually add Entity's data
-//! to the Registry 3. If Entity doesn't need any new registrations, it can call
-//!    `clear_entity()` which will refund the deposit. It doesn't remove the Entity
-//!    from Registries
-//! 4. When Entity can unregister at any time with `unregister()` call - deposit will be refunded.
-//!
-//! To update data in Registry, Entity has to follow the same path as on first registration.
+//! 1. Entity requests registration at Registry using `request_registration()` call. This creates
+//!    and stores a Registration Request and reserves the deposit.
+//! 2. If Registrar approves Entity's data, they call `register_entity()` which
+//!    moves data from Registration Request to the Registry.
+//! 3. To update the data, Entity needs to repeat the same process as for initial registration.
+//! 3. Entity can be removed from Registry by the Registrar - deposit will be refunded.
 //!
 //! ## Deposits
 //!
@@ -46,18 +40,14 @@
 //! deposit = BaseDeposit + N * ByteDeposit
 //! ```
 //!
-//! Deposits are separate for the current data (`set_entity`, `clear_identity` calls) and for each
-//! registry (as data is stored separately as well).
+//! Deposits are separate for each registry (as data is stored separately as
+//! well).
 //!
-//! * `set_entity(data, editable)` requires deposit length of `data` parameter. Will immediately
-//!   reserve/refund any difference.
-//! * `clear_identity()` will refund complete deposit for current data.
+//! * `request_registration(registry, data, editable)` requires deposit for length of `data`
+//!   parameter. Will immediately reserve/refund any difference.
+//! * `cancel_request()` will refund complete deposit for given request.
 //! * `unregister()` will refund deposit for data at given registrar.
-//! * `request_registration()` will calculate required deposit based on maximum of the current data
-//!   and data stored at given registrar (may be 0). Will immediately reserve if needed, but will
-//!   not refund any excess (see `refund()` for that)
-//! * `refund()` will calculate required deposit based on data stored at given registrar and refund
-//!   any excess deposit.
+//! * `register_entity()` will refund old deposit, if any.
 //!
 //! ## Pallet Config
 //!
@@ -75,7 +65,7 @@
 //!
 //! ## Genesis Config
 //!
-//! * `registrars`: registrars that should be preset on genesis
+//! * `registries`: registries that should be preset on genesis
 //!
 //! ## Interface
 //!
@@ -86,14 +76,11 @@
 //! These calls can be made from any _Signed_ origin.
 //!
 //! * `add_registrar`: Adds a new registrar
-//! * `set_entity`: Adds Entity if needed and sets its current data
-//! * `clear_entity`: Removes current Entity data - doesn't remove Entity from Registries
-//! * `unregister`: Removes Entity from given Registry - called by Registrar
-//! * `request_registration`: Deposits Currency required to register current data (see `set_entity`)
-//!   at given Registry
+//! * `request_registration`: Requests a registration of Entity in Registry
+//! * `cancel_request`: Cancels registration request
+//! * `unregister`: Removes Entity from given Registry
 //! * `register_entity`: Adds Entity to the Registry
-//! * `refund`: Refunds any excess deposit for given Registry
-//! * `set_registered_entity`: Sets Entity data in given Registry
+//! * `set_registered_entity`: Updates Entity data in given Registry
 //!
 //!
 //! License: MIT
@@ -140,13 +127,10 @@ pub struct Request<Balance, EntityData> {
 
 #[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 /// Structure for keeping Entity data in Registry
-pub struct Registration<Balance, EntityData>
-{
-	/// Deposit for data - will be at least enough to cover for data stored in
-	/// Registry, may be bigger if Entity requested registration update with
-	/// bigger data and Registrar didn't confirm it yet
+pub struct Registration<Balance, EntityData> {
+	/// Deposit safely reserved - will always match length of data
 	pub deposit: Balance,
-	/// Registered Entity data - if None, Entity isn't yet registered by Registrar
+	/// Registered Entity data
 	pub data: EntityData,
 	/// Whether Registrar can edit Entity data
 	pub editable_by_registrar: bool,
@@ -252,12 +236,20 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn requests)]
 	/// Registration requests. See `request_registration` and `cancel_request`
-	pub(super) type Requests<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_128Concat, RegistryIndex, Blake2_128Concat, T::AccountId, RequestOf<T, I>, OptionQuery>;
+	pub(super) type Requests<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		RegistryIndex,
+		Blake2_128Concat,
+		T::AccountId,
+		RequestOf<T, I>,
+		OptionQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn registries)]
-	/// Registered data of Entities in given Registries
+	/// Registered data of Entities in given Registries. See `register_entity`, `unregister` and
+	/// `set_registered_data`
 	pub(super) type Registries<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
@@ -270,7 +262,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn registrars)]
-	/// List of registries - order matters!
+	/// List of registries - order matters, as it's tied to RegistryIndex!
 	pub(super) type Registrars<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BoundedVec<T::AccountId, T::MaxRegistrars>, ValueQuery>;
 
@@ -320,17 +312,18 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Set current, unregistered data of Entity.
+		/// Request registration of Entity in Registry
 		///
+		/// * `registry_index` - Registry to register in
 		/// * `data` - data to set
 		/// * `editable_by_registrar` - if true, registrar will be able to modify Entity's data in
-		///   registry
+		///   the Registry
 		///
 		/// Entity will be stored under AccountId of caller.
 		///
 		/// Will reserve deposit to cover stored data.
 		///
-		/// Emits `EntitySet`.
+		/// Emits `RegistrationRequested`.
 		///
 		/// Must be called by `EntityOrigin`
 		#[pallet::call_index(1)]
@@ -347,21 +340,11 @@ pub mod pallet {
 				.map(|Request { deposit, .. }| deposit)
 				.unwrap_or_default();
 
-			if required_deposit > old_deposit {
-				// reserve more
-				T::Currency::reserve_named(
-					T::ReserveIdentifier::get(),
-					&entity,
-					required_deposit - old_deposit,
-				)?;
-			} else {
-				// refund excess
-				T::Currency::unreserve_named(
-					T::ReserveIdentifier::get(),
-					&entity,
-					old_deposit - required_deposit,
-				);
-			}
+			// refund old deposit, if any
+			T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, old_deposit);
+
+			// reserve new deposit
+			T::Currency::reserve_named(T::ReserveIdentifier::get(), &entity, required_deposit)?;
 
 			Requests::<T, I>::insert(
 				&registry_index,
@@ -374,16 +357,21 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Clear current, unregistered data of Entity.
+		/// Cancel Entity's Registration request for given Registry
+		///
+		/// * `registry_index` - Registry to register in
 		///
 		/// Will refund deposit of stored data.
 		///
-		/// Emits `EntityCleared`.
+		/// Emits `RegistrationRequestCanceled`.
 		///
 		/// Must be called by `EntityOrigin`
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::cancel_request())]
-		pub fn cancel_request(origin: OriginFor<T>, registry_index: RegistryIndex) -> DispatchResult {
+		pub fn cancel_request(
+			origin: OriginFor<T>,
+			registry_index: RegistryIndex,
+		) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
 
 			if let Some(Request { deposit, .. }) = Self::requests(&registry_index, &entity) {
@@ -436,7 +424,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Add Entity to registry. Entity data will be copied to the registry.
+		/// Add Entity to Registry. Entity data will be copied to the Registry.
 		///
 		/// * `registry_index` - Registry index to add to
 		/// * `entity` - AccountId of Entity to register
@@ -484,7 +472,11 @@ pub mod pallet {
 			Registries::<T, I>::insert(
 				&registry_index,
 				&entity,
-				Registration { deposit: request_deposit, data: request_data, editable_by_registrar },
+				Registration {
+					deposit: request_deposit,
+					data: request_data,
+					editable_by_registrar,
+				},
 			);
 
 			Self::deposit_event(Event::EntityRegistered { entity, registry_index });
@@ -529,7 +521,7 @@ pub mod pallet {
 			Registries::<T, I>::insert(
 				&registry_index,
 				&entity,
-				Registration { deposit, data: data, editable_by_registrar },
+				Registration { deposit, data, editable_by_registrar },
 			);
 
 			Self::deposit_event(Event::EntityRegistered { entity, registry_index });
