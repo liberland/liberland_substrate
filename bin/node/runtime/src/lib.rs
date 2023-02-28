@@ -1606,7 +1606,7 @@ type CompanyRegistryInstance = pallet_collective::Instance1;
 impl pallet_registry::Config<CompanyRegistryInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type EntityData = BoundedVec<u8, ConstU32<8192>>; // max 8KiB data per entity
 	type AddRegistrarOrigin = EnsureRoot<AccountId>;
 	type RegistrarOrigin = RegistryEnsureRegistrar;
 	type MaxRegistrars = CompanyRegistryMaxRegistrars;
