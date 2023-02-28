@@ -42,7 +42,7 @@
 //! * if there's a deposit, but now we want to store less or no data, the excess will be refunded
 //!
 //! Formula for required deposit to store `N` bytes of data:
-//! ```
+//! ```ignore
 //! deposit = BaseDeposit + N * ByteDeposit
 //! ```
 //!
@@ -52,7 +52,7 @@
 //! * `set_entity(data, editable)` requires deposit length of `data` parameter. Will immediately
 //!   reserve/refund any difference.
 //! * `clear_identity()` will refund complete deposit for current data.
-//! * `unregister()`, `force_unregister()` will refund deposit for data at given registrar.
+//! * `unregister()` will refund deposit for data at given registrar.
 //! * `request_registration()` will calculate required deposit based on maximum of the current data
 //!   and data stored at given registrar (may be 0). Will immediately reserve if needed, but will
 //!   not refund any excess (see `refund()` for that)
@@ -88,8 +88,7 @@
 //! * `add_registrar`: Adds a new registrar
 //! * `set_entity`: Adds Entity if needed and sets its current data
 //! * `clear_entity`: Removes current Entity data - doesn't remove Entity from Registries
-//! * `unregister`: Removes Entity from given Registry - called by Entity
-//! * `force_unregister`: Removes Entity from given Registry - called by Registrar
+//! * `unregister`: Removes Entity from given Registry - called by Registrar
 //! * `request_registration`: Deposits Currency required to register current data (see `set_entity`)
 //!   at given Registry
 //! * `register_entity`: Adds Entity to the Registry
@@ -414,6 +413,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/* see https://github.com/liberland/liberland_substrate/issues/250
 		/// Remove Entity from given registry.
 		///
 		/// * `registrar_index` - Registry index to remove from
@@ -439,6 +439,7 @@ pub mod pallet {
 
 			Ok(())
 		}
+		*/
 
 		/// Remove Entity from given registry.
 		///
@@ -451,8 +452,8 @@ pub mod pallet {
 		///
 		/// Must be called by `RegistryOrigin`
 		#[pallet::call_index(4)]
-		#[pallet::weight(T::WeightInfo::force_unregister(T::MaxRegistrars::get()))]
-		pub fn force_unregister(
+		#[pallet::weight(T::WeightInfo::unregister(T::MaxRegistrars::get()))]
+		pub fn unregister(
 			origin: OriginFor<T>,
 			registrar_index: RegistrarIndex,
 			entity: T::AccountId,

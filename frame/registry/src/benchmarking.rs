@@ -56,6 +56,7 @@ benchmarks_instance_pallet! {
 	assert_eq!(Registry::<T, I>::requests(acc), None);
   }
 
+  /* see https://github.com/liberland/liberland_substrate/issues/250
   unregister {
 	let acc: T::AccountId = account("entity", 0, SEED);
 	let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value() / 2u32.into());
@@ -75,8 +76,9 @@ benchmarks_instance_pallet! {
   verify {
 	assert_eq!(Registry::<T, I>::registries(acc, 0), None);
   }
+  */
 
-  force_unregister {
+  unregister {
 	let r in 1 .. T::MaxRegistrars::get() => add_registrars::<T, I>(r)?;
 
 	let registrar: T::RuntimeOrigin = RawOrigin::Signed(account("registrar", r, SEED)).into();

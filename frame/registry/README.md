@@ -27,7 +27,6 @@ registrar and,     2. The registrar must call `register_entity()` to actually ad
 to the Registry 3. If Entity doesn't need any new registrations, it can call
    `clear_entity()` which will refund the deposit. It doesn't remove the Entity
    from Registries
-4. When Entity can unregister at any time with `unregister()` call - deposit will be refunded.
 
 To update data in Registry, Entity has to follow the same path as on first registration.
 
@@ -52,7 +51,7 @@ registry (as data is stored separately as well).
 * `set_entity(data, editable)` requires deposit length of `data` parameter. Will immediately
   reserve/refund any difference.
 * `clear_identity()` will refund complete deposit for current data.
-* `unregister()`, `force_unregister()` will refund deposit for data at given registrar.
+* `unregister()` will refund deposit for data at given registrar.
 * `request_registration()` will calculate required deposit based on maximum of the current data
   and data stored at given registrar (may be 0). Will immediately reserve if needed, but will
   not refund any excess (see `refund()` for that)
@@ -88,8 +87,7 @@ These calls can be made from any _Signed_ origin.
 * `add_registrar`: Adds a new registrar
 * `set_entity`: Adds Entity if needed and sets its current data
 * `clear_entity`: Removes current Entity data - doesn't remove Entity from Registries
-* `unregister`: Removes Entity from given Registry - called by Entity
-* `force_unregister`: Removes Entity from given Registry - called by Registrar
+* `unregister`: Removes Entity from given Registry - called by Registrar
 * `request_registration`: Deposits Currency required to register current data (see `set_entity`)
   at given Registry
 * `register_entity`: Adds Entity to the Registry
