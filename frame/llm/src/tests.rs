@@ -1,13 +1,12 @@
 use crate::{
-	mock::*,
-	Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease, Withdrawlock,
-	WithdrawlockDuration,
+	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease,
+	Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
 use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
-use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -339,17 +338,20 @@ fn get_llm_politics_works() {
 
 fn setup_identity(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>, judgement: bool) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
-	let additional = match eligible_on {
-		Some(n) => vec![(
+	let mut additional = vec![];
+	if let Some(n) = eligible_on {
+		additional.push((
 			Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
 			Data::Raw(n.try_into().unwrap()),
-		)],
-		None => vec![],
+		));
 	};
 
-	let citizen = if citizen { data.clone() } else { Data::None };
+	if citizen {
+		additional.push((Data::Raw(b"citizen".to_vec().try_into().unwrap()), data.clone()));
+	};
+
 	let info = IdentityInfo {
-		citizen,
+		twitter: data.clone(),
 		additional: additional.try_into().unwrap(),
 		display: data.clone(),
 		legal: data.clone(),
@@ -381,7 +383,7 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 
 		// judgment OK, eligible_on ok, but missing citizen field
-		setup_identity(11, false, Some(vec![0]), true);
+		setup_identity(11, false, Some(vec![0u8]), true);
 		assert_noop!(LLM::ensure_politics_allowed(&11), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok, but missing eligible_on
@@ -499,7 +501,6 @@ fn correctly_tracks_number_of_citizens() {
 		// kill identity strips citizenship
 		Identity::kill_identity(root, 2).unwrap();
 		assert_eq!(LLM::citizens_count(), 3);
-
 	})
 }
 

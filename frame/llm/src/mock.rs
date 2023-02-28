@@ -153,9 +153,10 @@ pub fn setup_citizenships(accounts: Vec<u64>) {
 		Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
 		Data::Raw(vec![0].try_into().unwrap()),
 	);
+	let citizen = (Data::Raw(b"citizen".to_vec().try_into().unwrap()), data.clone());
 	let info = IdentityInfo {
-		citizen: data.clone(),
-		additional: vec![eligible_on].try_into().unwrap(),
+		twitter: data.clone(),
+		additional: vec![eligible_on, citizen].try_into().unwrap(),
 		display: data.clone(),
 		legal: data.clone(),
 		web: data.clone(),

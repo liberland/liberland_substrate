@@ -126,10 +126,14 @@ pub mod pallet {
 				Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
 			    Data::Raw(vec![0].try_into().unwrap()),
 			);
+			let citizen = (
+				Data::Raw(b"citizen".to_vec().try_into().unwrap()),
+			    data.clone(),
+			);
 
 			IdentityInfo {
-				citizen: data,
-				additional: vec![(eligible_on)].try_into().unwrap(),
+				twitter: data,
+				additional: vec![eligible_on, citizen].try_into().unwrap(),
 				display: Data::None,
 				legal: Data::None,
 				web: Data::None,
