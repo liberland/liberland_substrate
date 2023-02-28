@@ -200,7 +200,6 @@ impl SortedMembers<u64> for OneToFive {
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
-	pub const ASSETID: u32 = 0u32;
 	pub const CitizenshipMinimum: u64 = 5000u64;
 	pub const UnlockFactor: Permill = Permill::from_percent(10);
 	pub const AssetId: u32 = 1;

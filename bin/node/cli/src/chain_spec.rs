@@ -320,6 +320,15 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 		AccountId::from_ss58check("5CDpDTBeDdg2KtpgG9WGS92fN4HxpMrSpwtbS6xXke8qU8Xr").unwrap(),
 	];
 
+	let min_citizenship_llm = 5000 * GRAINS_IN_LLM;
+	let mut citizens_with_balance: Vec<(AccountId, Balance, Balance)> = citizens.iter().map(|id| (id.clone(), 0, 0)).collect();
+	citizens_with_balance.extend(vec![
+		// Nodes 1-3
+		(AccountId::from_ss58check("5FyJBpWan9YzAyjwEzKcns4SJYrcJcAb3PKRB7rb8cymgryX").unwrap(), min_citizenship_llm, min_citizenship_llm),
+		(AccountId::from_ss58check("5Df7LyLkNq8BymLP22G7Z696kxao1bMqYLMnGKmPZKqZhrbh").unwrap(), min_citizenship_llm, min_citizenship_llm),
+		(AccountId::from_ss58check("5CLUTtAS3w6zLsj7ffZSb7stKKczVUJXHztstmRq1aUSMzHT").unwrap(), min_citizenship_llm, min_citizenship_llm)
+	]);
+
 	let registrar_key = AccountId::from_ss58check("5G96noBmnpNgpsaVXMsEs7961NU1zUNqQractuCp5R1hKejm").unwrap();
 	let root_key: AccountId = AccountId::from_ss58check("5GZXCJvjfniCCLmKiyqzXLdwgcSgiQNUtsuFVhrpvfjopShL").unwrap();
 
@@ -342,7 +351,7 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 		Some(endowed_accounts),
 		Some(vec![]),
 		registrar_key.into(),
-		citizens.into_iter().map(|id| (id, 0, 0)).collect(),
+		citizens_with_balance,
 		Some(technical_committee),
 	)
 }
@@ -542,6 +551,7 @@ pub fn testnet_genesis(
 			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
 			slash_reward_fraction: Perbill::from_percent(10),
 			stakers,
+			citizenship_required: false,
 			..Default::default()
 		},
 		democracy: DemocracyConfig::default(),
