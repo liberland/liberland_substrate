@@ -26,13 +26,11 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_registry.
 pub trait WeightInfo {
-	fn add_registrar(r: u32, ) -> Weight;
-	fn set_entity(s: u32, ) -> Weight;
-	fn clear_entity() -> Weight;
-	fn unregister(r: u32, ) -> Weight;
+	fn add_registry(r: u32, ) -> Weight;
 	fn request_registration(s: u32, ) -> Weight;
+	fn cancel_request() -> Weight;
+	fn unregister(r: u32, ) -> Weight;
 	fn register_entity(r: u32, s: u32, ) -> Weight;
-	fn refund(s: u32, ) -> Weight;
 	fn set_registered_entity(r: u32, s: u32, ) -> Weight;
 }
 
@@ -41,97 +39,72 @@ pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: CompanyRegistry Registrars (r:1 w:1)
 	/// The range of component `r` is `[1, 9]`.
-	fn add_registrar(r: u32, ) -> Weight {
-		// Minimum execution time: 17_322 nanoseconds.
-		Weight::from_ref_time(17_737_228)
-			// Standard Error: 5_126
-			.saturating_add(Weight::from_ref_time(53_207).saturating_mul(r.into()))
+	fn add_registry(r: u32, ) -> Weight {
+		// Minimum execution time: 17_383 nanoseconds.
+		Weight::from_ref_time(17_638_245)
+			// Standard Error: 4_309
+			.saturating_add(Weight::from_ref_time(73_910).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	// Storage: CompanyRegistry EntityRequests (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	/// The range of component `s` is `[2, 1026]`.
-	fn set_entity(s: u32, ) -> Weight {
-		// Minimum execution time: 30_638 nanoseconds.
-		Weight::from_ref_time(31_357_231)
-			// Standard Error: 150
-			.saturating_add(Weight::from_ref_time(828).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	// Storage: CompanyRegistry EntityRequests (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	fn clear_entity() -> Weight {
-		// Minimum execution time: 34_406 nanoseconds.
-		Weight::from_ref_time(35_297_000)
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	// Storage: CompanyRegistry Registrars (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	/// The range of component `r` is `[1, 10]`.
-	fn unregister(r: u32, ) -> Weight {
-		// Minimum execution time: 36_429 nanoseconds.
-		Weight::from_ref_time(37_360_453)
-			// Standard Error: 11_367
-			.saturating_add(Weight::from_ref_time(16_673).saturating_mul(r.into()))
-			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(T::DbWeight::get().writes(3))
-	}
-	// Storage: CompanyRegistry EntityRequests (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
+	// Storage: CompanyRegistry Requests (r:1 w:1)
 	// Storage: Balances Reserves (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	/// The range of component `s` is `[2, 1026]`.
 	fn request_registration(s: u32, ) -> Weight {
-		// Minimum execution time: 34_966 nanoseconds.
-		Weight::from_ref_time(35_492_006)
-			// Standard Error: 107
-			.saturating_add(Weight::from_ref_time(889).saturating_mul(s.into()))
+		// Minimum execution time: 21_491 nanoseconds.
+		Weight::from_ref_time(33_708_803)
+			// Standard Error: 877
+			.saturating_add(Weight::from_ref_time(3_455).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	// Storage: CompanyRegistry Requests (r:1 w:1)
+	// Storage: Balances Reserves (r:1 w:1)
+	// Storage: System Account (r:1 w:1)
+	fn cancel_request() -> Weight {
+		// Minimum execution time: 35_066 nanoseconds.
+		Weight::from_ref_time(35_126_000)
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	// Storage: CompanyRegistry Registrars (r:1 w:0)
+	// Storage: CompanyRegistry Registries (r:1 w:1)
+	// Storage: Balances Reserves (r:1 w:1)
+	// Storage: System Account (r:1 w:1)
+	/// The range of component `r` is `[1, 10]`.
+	fn unregister(_r: u32, ) -> Weight {
+		// Minimum execution time: 36_038 nanoseconds.
+		Weight::from_ref_time(36_893_939)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: CompanyRegistry Registrars (r:1 w:0)
-	// Storage: CompanyRegistry EntityRequests (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
+	// Storage: CompanyRegistry Requests (r:1 w:1)
+	// Storage: CompanyRegistry Registries (r:1 w:1)
 	/// The range of component `r` is `[1, 10]`.
 	/// The range of component `s` is `[2, 1026]`.
-	fn register_entity(_r: u32, s: u32, ) -> Weight {
-		// Minimum execution time: 25_889 nanoseconds.
-		Weight::from_ref_time(27_162_907)
-			// Standard Error: 93
-			.saturating_add(Weight::from_ref_time(2_006).saturating_mul(s.into()))
+	fn register_entity(r: u32, s: u32, ) -> Weight {
+		// Minimum execution time: 25_358 nanoseconds.
+		Weight::from_ref_time(25_744_293)
+			// Standard Error: 9_675
+			.saturating_add(Weight::from_ref_time(18_608).saturating_mul(r.into()))
+			// Standard Error: 88
+			.saturating_add(Weight::from_ref_time(1_878).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	/// The range of component `s` is `[2, 1026]`.
-	fn refund(s: u32, ) -> Weight {
-		// Minimum execution time: 34_265 nanoseconds.
-		Weight::from_ref_time(34_881_652)
-			// Standard Error: 130
-			.saturating_add(Weight::from_ref_time(223).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(3))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: CompanyRegistry Registrars (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
+	// Storage: CompanyRegistry Registries (r:1 w:1)
 	/// The range of component `r` is `[1, 10]`.
 	/// The range of component `s` is `[2, 1026]`.
 	fn set_registered_entity(r: u32, s: u32, ) -> Weight {
-		// Minimum execution time: 22_974 nanoseconds.
-		Weight::from_ref_time(23_314_031)
-			// Standard Error: 10_001
-			.saturating_add(Weight::from_ref_time(48_675).saturating_mul(r.into()))
-			// Standard Error: 91
-			.saturating_add(Weight::from_ref_time(1_040).saturating_mul(s.into()))
+		// Minimum execution time: 22_723 nanoseconds.
+		Weight::from_ref_time(23_344_246)
+			// Standard Error: 8_352
+			.saturating_add(Weight::from_ref_time(1_263).saturating_mul(r.into()))
+			// Standard Error: 76
+			.saturating_add(Weight::from_ref_time(737).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -141,97 +114,72 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 impl WeightInfo for () {
 	// Storage: CompanyRegistry Registrars (r:1 w:1)
 	/// The range of component `r` is `[1, 9]`.
-	fn add_registrar(r: u32, ) -> Weight {
-		// Minimum execution time: 17_322 nanoseconds.
-		Weight::from_ref_time(17_737_228)
-			// Standard Error: 5_126
-			.saturating_add(Weight::from_ref_time(53_207).saturating_mul(r.into()))
+	fn add_registry(r: u32, ) -> Weight {
+		// Minimum execution time: 17_383 nanoseconds.
+		Weight::from_ref_time(17_638_245)
+			// Standard Error: 4_309
+			.saturating_add(Weight::from_ref_time(73_910).saturating_mul(r.into()))
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-	// Storage: CompanyRegistry EntityRequests (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	/// The range of component `s` is `[2, 1026]`.
-	fn set_entity(s: u32, ) -> Weight {
-		// Minimum execution time: 30_638 nanoseconds.
-		Weight::from_ref_time(31_357_231)
-			// Standard Error: 150
-			.saturating_add(Weight::from_ref_time(828).saturating_mul(s.into()))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(3))
-	}
-	// Storage: CompanyRegistry EntityRequests (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	fn clear_entity() -> Weight {
-		// Minimum execution time: 34_406 nanoseconds.
-		Weight::from_ref_time(35_297_000)
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(3))
-	}
-	// Storage: CompanyRegistry Registrars (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	/// The range of component `r` is `[1, 10]`.
-	fn unregister(r: u32, ) -> Weight {
-		// Minimum execution time: 36_429 nanoseconds.
-		Weight::from_ref_time(37_360_453)
-			// Standard Error: 11_367
-			.saturating_add(Weight::from_ref_time(16_673).saturating_mul(r.into()))
-			.saturating_add(RocksDbWeight::get().reads(4))
-			.saturating_add(RocksDbWeight::get().writes(3))
-	}
-	// Storage: CompanyRegistry EntityRequests (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
+	// Storage: CompanyRegistry Requests (r:1 w:1)
 	// Storage: Balances Reserves (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	/// The range of component `s` is `[2, 1026]`.
 	fn request_registration(s: u32, ) -> Weight {
-		// Minimum execution time: 34_966 nanoseconds.
-		Weight::from_ref_time(35_492_006)
-			// Standard Error: 107
-			.saturating_add(Weight::from_ref_time(889).saturating_mul(s.into()))
+		// Minimum execution time: 21_491 nanoseconds.
+		Weight::from_ref_time(33_708_803)
+			// Standard Error: 877
+			.saturating_add(Weight::from_ref_time(3_455).saturating_mul(s.into()))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(3))
+	}
+	// Storage: CompanyRegistry Requests (r:1 w:1)
+	// Storage: Balances Reserves (r:1 w:1)
+	// Storage: System Account (r:1 w:1)
+	fn cancel_request() -> Weight {
+		// Minimum execution time: 35_066 nanoseconds.
+		Weight::from_ref_time(35_126_000)
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(3))
+	}
+	// Storage: CompanyRegistry Registrars (r:1 w:0)
+	// Storage: CompanyRegistry Registries (r:1 w:1)
+	// Storage: Balances Reserves (r:1 w:1)
+	// Storage: System Account (r:1 w:1)
+	/// The range of component `r` is `[1, 10]`.
+	fn unregister(_r: u32, ) -> Weight {
+		// Minimum execution time: 36_038 nanoseconds.
+		Weight::from_ref_time(36_893_939)
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	// Storage: CompanyRegistry Registrars (r:1 w:0)
-	// Storage: CompanyRegistry EntityRequests (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
+	// Storage: CompanyRegistry Requests (r:1 w:1)
+	// Storage: CompanyRegistry Registries (r:1 w:1)
 	/// The range of component `r` is `[1, 10]`.
 	/// The range of component `s` is `[2, 1026]`.
-	fn register_entity(_r: u32, s: u32, ) -> Weight {
-		// Minimum execution time: 25_889 nanoseconds.
-		Weight::from_ref_time(27_162_907)
-			// Standard Error: 93
-			.saturating_add(Weight::from_ref_time(2_006).saturating_mul(s.into()))
+	fn register_entity(r: u32, s: u32, ) -> Weight {
+		// Minimum execution time: 25_358 nanoseconds.
+		Weight::from_ref_time(25_744_293)
+			// Standard Error: 9_675
+			.saturating_add(Weight::from_ref_time(18_608).saturating_mul(r.into()))
+			// Standard Error: 88
+			.saturating_add(Weight::from_ref_time(1_878).saturating_mul(s.into()))
 			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(1))
-	}
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
-	// Storage: Balances Reserves (r:1 w:1)
-	// Storage: System Account (r:1 w:1)
-	/// The range of component `s` is `[2, 1026]`.
-	fn refund(s: u32, ) -> Weight {
-		// Minimum execution time: 34_265 nanoseconds.
-		Weight::from_ref_time(34_881_652)
-			// Standard Error: 130
-			.saturating_add(Weight::from_ref_time(223).saturating_mul(s.into()))
-			.saturating_add(RocksDbWeight::get().reads(3))
-			.saturating_add(RocksDbWeight::get().writes(3))
+			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	// Storage: CompanyRegistry Registrars (r:1 w:0)
-	// Storage: CompanyRegistry EntityRegistries (r:1 w:1)
+	// Storage: CompanyRegistry Registries (r:1 w:1)
 	/// The range of component `r` is `[1, 10]`.
 	/// The range of component `s` is `[2, 1026]`.
 	fn set_registered_entity(r: u32, s: u32, ) -> Weight {
-		// Minimum execution time: 22_974 nanoseconds.
-		Weight::from_ref_time(23_314_031)
-			// Standard Error: 10_001
-			.saturating_add(Weight::from_ref_time(48_675).saturating_mul(r.into()))
-			// Standard Error: 91
-			.saturating_add(Weight::from_ref_time(1_040).saturating_mul(s.into()))
+		// Minimum execution time: 22_723 nanoseconds.
+		Weight::from_ref_time(23_344_246)
+			// Standard Error: 8_352
+			.saturating_add(Weight::from_ref_time(1_263).saturating_mul(r.into()))
+			// Standard Error: 76
+			.saturating_add(Weight::from_ref_time(737).saturating_mul(s.into()))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}

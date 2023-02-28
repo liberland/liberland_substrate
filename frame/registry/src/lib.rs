@@ -124,11 +124,10 @@ use frame_support::{
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 
-pub type RegistrarIndex = u32;
+pub type RegistryIndex = u32;
 
 #[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-/// Structure for keeping current Entity data that may be added to Registry by
-/// Registrar
+/// Structure for keeping Entity data that want to be registered
 pub struct Request<Balance, EntityData> {
 	/// Deposit safely reserved - will always match length of data
 	pub deposit: Balance,
@@ -142,26 +141,15 @@ pub struct Request<Balance, EntityData> {
 #[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 /// Structure for keeping Entity data in Registry
 pub struct Registration<Balance, EntityData>
-where
-	Balance: Default,
 {
 	/// Deposit for data - will be at least enough to cover for data stored in
 	/// Registry, may be bigger if Entity requested registration update with
 	/// bigger data and Registrar didn't confirm it yet
 	pub deposit: Balance,
 	/// Registered Entity data - if None, Entity isn't yet registered by Registrar
-	pub data: Option<EntityData>,
+	pub data: EntityData,
 	/// Whether Registrar can edit Entity data
 	pub editable_by_registrar: bool,
-}
-
-impl<Balance, EntityData> Default for Registration<Balance, EntityData>
-where
-	Balance: Default,
-{
-	fn default() -> Self {
-		Self { deposit: Default::default(), data: None, editable_by_registrar: false }
-	}
 }
 
 type BalanceOf<T, I> =
@@ -234,12 +222,12 @@ pub mod pallet {
 	pub enum Error<T, I = ()> {
 		/// Maximum amount of registrars reached. Cannot add any more.
 		TooManyRegistrars,
-		/// Invalid registrar - either doesn't exist or not authorized
-		InvalidRegistrar,
-		/// Trying to register entity with old/wrong data.
-		MismatchedData,
 		/// Trying to register entity that didn't request anything.
 		InvalidEntity,
+		/// Invalid registry - either doesn't exist or not authorized
+		InvalidRegistry,
+		/// Trying to register entity with old/wrong data.
+		MismatchedData,
 		/// Insufficient deposit for data storage
 		InsufficientDeposit,
 		/// Entity doesn't allow edits by registrars
@@ -250,88 +238,84 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// New Registrar added
-		RegistrarAdded { registrar_index: RegistrarIndex },
-		/// Current (unregistered) data of Entity updated
-		EntitySet { entity: T::AccountId },
-		/// Current (unregistered) data of Entity cleared
-		EntityCleared { entity: T::AccountId },
-		/// Entity was removed from Registry
-		EntityUnregistered { entity: T::AccountId, registrar_index: RegistrarIndex },
-		/// Entity paid deposit for registering
-		RegistrationRequested { entity: T::AccountId, registrar_index: RegistrarIndex },
+		RegistryAdded { registry_index: RegistryIndex },
+		/// Entity provided data and deposit for registration
+		RegistrationRequested { entity: T::AccountId, registry_index: RegistryIndex },
+		/// Entity canceled registration request before registrar registered it
+		RegistrationRequestCanceled { entity: T::AccountId, registry_index: RegistryIndex },
 		/// Registrar added Entity to Registry
-		EntityRegistered { entity: T::AccountId, registrar_index: RegistrarIndex },
-		/// Entity got a refund of excess deposit from Registry
-		RefundProcessed { entity: T::AccountId, registrar_index: RegistrarIndex },
+		EntityRegistered { entity: T::AccountId, registry_index: RegistryIndex },
+		/// Entity was removed from Registry
+		EntityUnregistered { entity: T::AccountId, registry_index: RegistryIndex },
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn requests)]
-	/// Current, unregistered data of Entities. See `set_entity` and `clear_entity`
-	pub(super) type EntityRequests<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, RequestOf<T, I>, OptionQuery>;
+	/// Registration requests. See `request_registration` and `cancel_request`
+	pub(super) type Requests<T: Config<I>, I: 'static = ()> =
+		StorageDoubleMap<_, Blake2_128Concat, RegistryIndex, Blake2_128Concat, T::AccountId, RequestOf<T, I>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn registries)]
 	/// Registered data of Entities in given Registries
-	pub(super) type EntityRegistries<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+	pub(super) type Registries<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		T::AccountId, // EntityId
+		RegistryIndex, // Registry
 		Blake2_128Concat,
-		RegistrarIndex, // Registry
+		T::AccountId, // EntityId
 		RegistrationOf<T, I>,
 		OptionQuery,
 	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn registrars)]
-	/// List of registrars - order matters!
+	/// List of registries - order matters!
 	pub(super) type Registrars<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BoundedVec<T::AccountId, T::MaxRegistrars>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
-		/// Registrars that should be preset on genesis
-		pub registrars: BoundedVec<T::AccountId, T::MaxRegistrars>,
+		/// Registries that should be preset on genesis
+		pub registries: BoundedVec<T::AccountId, T::MaxRegistrars>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
 		fn default() -> Self {
-			Self { registrars: Default::default() }
+			Self { registries: Default::default() }
 		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
 		fn build(&self) {
-			Registrars::<T, I>::put(&self.registrars);
+			Registrars::<T, I>::put(&self.registries);
 		}
 	}
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		/// Add a new registrar.
+		/// Add a new registry.
 		///
-		/// * `account` - AccountId of new Registrar
+		/// * `account` - AccountId of Registrar for the new Registry
 		///
-		/// Emits `RegistrarAdded` with the index of new Registry.
+		/// Emits `RegistryAdded` with the index of new Registry.
 		///
 		/// Must be called by `AddRegistrarOrigin`
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::add_registrar(T::MaxRegistrars::get()))]
-		pub fn add_registrar(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::add_registry(T::MaxRegistrars::get()))]
+		pub fn add_registry(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::AddRegistrarOrigin::ensure_origin(origin)?;
 
-			let registrar_index = Registrars::<T, I>::try_mutate(
-				|registrars| -> Result<RegistrarIndex, DispatchError> {
+			let registry_index = Registrars::<T, I>::try_mutate(
+				|registrars| -> Result<RegistryIndex, DispatchError> {
 					registrars.try_push(account).map_err(|_| Error::<T, I>::TooManyRegistrars)?;
-					Ok((registrars.len() - 1) as RegistrarIndex)
+					Ok((registrars.len() - 1) as RegistryIndex)
 				},
 			)?;
 
-			Self::deposit_event(Event::RegistrarAdded { registrar_index });
+			Self::deposit_event(Event::RegistryAdded { registry_index });
 
 			Ok(())
 		}
@@ -350,15 +334,16 @@ pub mod pallet {
 		///
 		/// Must be called by `EntityOrigin`
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::set_entity(T::EntityData::max_encoded_len() as u32))]
-		pub fn set_entity(
+		#[pallet::weight(T::WeightInfo::request_registration(T::EntityData::max_encoded_len() as u32))]
+		pub fn request_registration(
 			origin: OriginFor<T>,
+			registry_index: RegistryIndex,
 			data: T::EntityData,
 			editable_by_registrar: bool,
 		) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
 			let required_deposit = Self::calculate_deposit(&data);
-			let old_deposit = Self::requests(&entity)
+			let old_deposit = Self::requests(&registry_index, &entity)
 				.map(|Request { deposit, .. }| deposit)
 				.unwrap_or_default();
 
@@ -378,12 +363,13 @@ pub mod pallet {
 				);
 			}
 
-			EntityRequests::<T, I>::insert(
+			Requests::<T, I>::insert(
+				&registry_index,
 				&entity,
 				Request { deposit: required_deposit, data, editable_by_registrar },
 			);
 
-			Self::deposit_event(Event::EntitySet { entity });
+			Self::deposit_event(Event::RegistrationRequested { registry_index, entity });
 
 			Ok(())
 		}
@@ -396,54 +382,26 @@ pub mod pallet {
 		///
 		/// Must be called by `EntityOrigin`
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::clear_entity())]
-		pub fn clear_entity(origin: OriginFor<T>) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::cancel_request())]
+		pub fn cancel_request(origin: OriginFor<T>, registry_index: RegistryIndex) -> DispatchResult {
 			let entity = T::EntityOrigin::ensure_origin(origin)?;
 
-			if let Some(Request { deposit, .. }) = Self::requests(&entity) {
+			if let Some(Request { deposit, .. }) = Self::requests(&registry_index, &entity) {
 				// refund deposit
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
 			} else {
 				return Err(Error::<T, I>::InvalidEntity.into())
 			}
-			EntityRequests::<T, I>::remove(&entity);
+			Requests::<T, I>::remove(&registry_index, &entity);
 
-			Self::deposit_event(Event::EntityCleared { entity });
-
-			Ok(())
-		}
-
-		/* see https://github.com/liberland/liberland_substrate/issues/250
-		/// Remove Entity from given registry.
-		///
-		/// * `registrar_index` - Registry index to remove from
-		///
-		/// Will refund deposit of stored data.
-		///
-		/// Emits `EntityUnregistered`.
-		///
-		/// Must be called by `EntityOrigin`
-		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::unregister())]
-		pub fn unregister(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
-			let entity = T::EntityOrigin::ensure_origin(origin)?;
-			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registrar_index) {
-				// refund deposit
-				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
-			} else {
-				return Err(Error::<T, I>::InvalidEntity.into())
-			}
-			EntityRegistries::<T, I>::remove(&entity, registrar_index);
-
-			Self::deposit_event(Event::EntityUnregistered { entity, registrar_index });
+			Self::deposit_event(Event::RegistrationRequestCanceled { entity, registry_index });
 
 			Ok(())
 		}
-		*/
 
 		/// Remove Entity from given registry.
 		///
-		/// * `registrar_index` - Registry index to remove from
+		/// * `registry_index` - Registry index to remove from
 		/// * `entity` - AccountId of entity to unregister
 		///
 		/// Will refund deposit of stored data.
@@ -451,80 +409,36 @@ pub mod pallet {
 		/// Emits `EntityUnregistered`.
 		///
 		/// Must be called by `RegistryOrigin`
-		#[pallet::call_index(4)]
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::unregister(T::MaxRegistrars::get()))]
 		pub fn unregister(
 			origin: OriginFor<T>,
-			registrar_index: RegistrarIndex,
+			registry_index: RegistryIndex,
 			entity: T::AccountId,
 		) -> DispatchResult {
 			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
 
 			Self::registrars()
-				.get(registrar_index as usize)
+				.get(registry_index as usize)
 				.filter(|acc| *acc == &sender)
-				.ok_or(Error::<T, I>::InvalidRegistrar)?;
+				.ok_or(Error::<T, I>::InvalidRegistry)?;
 
-			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registrar_index) {
+			if let Some(Registration { deposit, .. }) = Self::registries(&registry_index, &entity) {
 				// refund deposit
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
 			} else {
 				return Err(Error::<T, I>::InvalidEntity.into())
 			}
-			EntityRegistries::<T, I>::remove(&entity, registrar_index);
+			Registries::<T, I>::remove(&registry_index, &entity);
 
-			Self::deposit_event(Event::EntityUnregistered { entity, registrar_index });
-
-			Ok(())
-		}
-
-		/// Pay deposit for registering Entity in given Registry
-		///
-		/// * `registrar_index` - Registry index to remove from
-		///
-		/// Will reserve deposit to cover stored data based on current data (see `set_entity`).
-		///
-		/// Emits `RegistrationRequested`.
-		///
-		/// Must be called by `EntityOrigin`
-		#[pallet::call_index(5)]
-		#[pallet::weight(T::WeightInfo::request_registration(T::EntityData::max_encoded_len() as u32))]
-		pub fn request_registration(
-			origin: OriginFor<T>,
-			registrar_index: RegistrarIndex,
-		) -> DispatchResult {
-			let entity = T::EntityOrigin::ensure_origin(origin)?;
-
-			let Request { data, .. } =
-				Self::requests(&entity).ok_or(Error::<T, I>::InvalidEntity)?;
-
-			let old_registration = Self::registries(&entity, registrar_index).unwrap_or_default();
-			let new_deposit = Self::calculate_deposit(&data);
-			let required_deposit = old_registration.deposit.max(new_deposit);
-
-			if required_deposit > old_registration.deposit {
-				// reserve more
-				T::Currency::reserve_named(
-					T::ReserveIdentifier::get(),
-					&entity,
-					required_deposit - old_registration.deposit,
-				)?;
-			}
-
-			EntityRegistries::<T, I>::insert(
-				&entity,
-				registrar_index,
-				Registration { deposit: required_deposit, ..old_registration },
-			);
-
-			Self::deposit_event(Event::RegistrationRequested { entity, registrar_index });
+			Self::deposit_event(Event::EntityUnregistered { entity, registry_index });
 
 			Ok(())
 		}
 
 		/// Add Entity to registry. Entity data will be copied to the registry.
 		///
-		/// * `registrar_index` - Registry index to add to
+		/// * `registry_index` - Registry index to add to
 		/// * `entity` - AccountId of Entity to register
 		/// * `data` - Hash of data being registered
 		///
@@ -534,71 +448,46 @@ pub mod pallet {
 		/// Emits `EntityRegistered`.
 		///
 		/// Must be called by `RegistrarOrigin`
-		#[pallet::call_index(6)]
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::register_entity(T::MaxRegistrars::get(), T::EntityData::max_encoded_len() as u32))]
 		pub fn register_entity(
 			origin: OriginFor<T>,
-			registrar_index: RegistrarIndex,
+			registry_index: RegistryIndex,
 			entity: T::AccountId,
 			data: T::Hash,
 		) -> DispatchResult {
+			// make sure origin is valid for given registry index
 			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
-
 			Self::registrars()
-				.get(registrar_index as usize)
+				.get(registry_index as usize)
 				.filter(|acc| *acc == &sender)
-				.ok_or(Error::<T, I>::InvalidRegistrar)?;
+				.ok_or(Error::<T, I>::InvalidRegistry)?;
 
-			let Request { data: request_data, editable_by_registrar, .. } =
-				Self::requests(&entity).ok_or(Error::<T, I>::InvalidEntity)?;
-
+			// get the request and verify it matches what we want to register
+			let Request { data: request_data, deposit: request_deposit, editable_by_registrar } =
+				Self::requests(&registry_index, &entity).ok_or(Error::<T, I>::InvalidEntity)?;
 			ensure!(T::Hashing::hash_of(&request_data) == data, Error::<T, I>::MismatchedData);
 
-			let deposit = Self::registries(&entity, &registrar_index)
+			// ensure deposit is ok - mostly defensive, it should never fail,
+			// unless deposits were increased in runtime upgrade
+			let required_deposit = Self::calculate_deposit(&request_data);
+			ensure!(request_deposit >= required_deposit, Error::<T, I>::InsufficientDeposit);
+
+			// Refund old deposit, if any
+			let old_deposit = Self::registries(&registry_index, &entity)
 				.map(|Registration { deposit, .. }| deposit)
 				.unwrap_or_default();
+			T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, old_deposit);
 
-			let required_deposit = Self::calculate_deposit(&request_data);
-			ensure!(deposit >= required_deposit, Error::<T, I>::InsufficientDeposit);
-
-			EntityRegistries::<T, I>::insert(
+			// Move request to registration
+			Requests::<T, I>::remove(&registry_index, &entity);
+			Registries::<T, I>::insert(
+				&registry_index,
 				&entity,
-				registrar_index,
-				Registration { deposit, data: Some(request_data), editable_by_registrar },
+				Registration { deposit: request_deposit, data: request_data, editable_by_registrar },
 			);
 
-			Self::deposit_event(Event::EntityRegistered { entity, registrar_index });
-
-			Ok(())
-		}
-
-		/// Refunds any excess deposit from given registry. Usually called to
-		/// cancel `request_registration` or after size of registered data was
-		/// reduced.
-		///
-		/// * `registrar_index` - Registry index to refund from
-		///
-		/// Emits `RefundProcessed`.
-		///
-		/// Must be called by `EntityOrigin`
-		#[pallet::call_index(7)]
-		#[pallet::weight(T::WeightInfo::refund(T::EntityData::max_encoded_len() as u32))]
-		pub fn refund(origin: OriginFor<T>, registrar_index: RegistrarIndex) -> DispatchResult {
-			let entity = T::EntityOrigin::ensure_origin(origin)?;
-			let Registration { deposit, data, editable_by_registrar } =
-				Self::registries(&entity, &registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
-			let required_deposit =
-				data.as_ref().map(|data| Self::calculate_deposit(data)).unwrap_or_default();
-			let refund = deposit.saturating_sub(required_deposit); // shouldn't saturate, but lets be defensive
-
-			T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, refund);
-			EntityRegistries::<T, I>::insert(
-				&entity,
-				registrar_index,
-				Registration { deposit: required_deposit, data, editable_by_registrar },
-			);
-
-			Self::deposit_event(Event::RefundProcessed { entity, registrar_index });
+			Self::deposit_event(Event::EntityRegistered { entity, registry_index });
 
 			Ok(())
 		}
@@ -606,45 +495,75 @@ pub mod pallet {
 		/// Sets Entity data in Registry. Entity must've been registered with
 		/// `editable_by_registrar = true`.
 		///
-		/// * `registrar_index` - Registry index to set data in
+		/// * `registry_index` - Registry index to set data in
 		/// * `entity` - AccountId of the Entity
 		/// * `data` - data to set
 		///
 		/// Emits `EntityRegistered`.
 		///
 		/// Must be called by `RegistrarOrigin`
-		#[pallet::call_index(8)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::set_registered_entity(T::MaxRegistrars::get(), T::EntityData::max_encoded_len() as u32))]
 		pub fn set_registered_entity(
 			origin: OriginFor<T>,
-			registrar_index: RegistrarIndex,
+			registry_index: RegistryIndex,
 			entity: T::AccountId,
 			data: T::EntityData,
 		) -> DispatchResult {
+			// make sure origin is ok for registry_index
 			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
-
 			Self::registrars()
-				.get(registrar_index as usize)
+				.get(registry_index as usize)
 				.filter(|acc| *acc == &sender)
-				.ok_or(Error::<T, I>::InvalidRegistrar)?;
+				.ok_or(Error::<T, I>::InvalidRegistry)?;
 
+			// verify entity is editable by registrar
 			let Registration { deposit, editable_by_registrar, .. } =
-				Self::registries(&entity, registrar_index).ok_or(Error::<T, I>::InvalidEntity)?;
+				Self::registries(&registry_index, &entity).ok_or(Error::<T, I>::InvalidEntity)?;
 			ensure!(editable_by_registrar, Error::<T, I>::NotEditableByRegistrar);
 
+			// ensure there's enough deposit to cover for the new data
 			let required_deposit = Self::calculate_deposit(&data);
 			ensure!(deposit >= required_deposit, Error::<T, I>::InsufficientDeposit);
 
-			EntityRegistries::<T, I>::insert(
+			Registries::<T, I>::insert(
+				&registry_index,
 				&entity,
-				registrar_index,
-				Registration { deposit, data: Some(data), editable_by_registrar },
+				Registration { deposit, data: data, editable_by_registrar },
 			);
 
-			Self::deposit_event(Event::EntityRegistered { entity, registrar_index });
+			Self::deposit_event(Event::EntityRegistered { entity, registry_index });
 
 			Ok(())
 		}
+
+		/* see https://github.com/liberland/liberland_substrate/issues/250
+		/// Remove Entity from given registry.
+		///
+		/// * `registry_index` - Registry index to remove from
+		///
+		/// Will refund deposit of stored data.
+		///
+		/// Emits `EntityUnregistered`.
+		///
+		/// Must be called by `EntityOrigin`
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::WeightInfo::unregister())]
+		pub fn unregister(origin: OriginFor<T>, registry_index: RegistryIndex) -> DispatchResult {
+			let entity = T::EntityOrigin::ensure_origin(origin)?;
+			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registry_index) {
+				// refund deposit
+				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
+			} else {
+				return Err(Error::<T, I>::InvalidEntity.into())
+			}
+			EntityRegistries::<T, I>::remove(&entity, registry_index);
+
+			Self::deposit_event(Event::EntityUnregistered { entity, registry_index });
+
+			Ok(())
+		}
+		*/
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
