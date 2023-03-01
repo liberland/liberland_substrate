@@ -7,6 +7,7 @@ use sp_runtime::traits::{BadOrigin, Hash};
 type DataOf<T> = <T as pallet_registry::Config>::EntityData;
 type HashingOf<T> = <T as frame_system::Config>::Hashing;
 
+/* add_registry */
 #[test]
 fn add_registry_requires_correct_origin() {
 	new_test_ext().execute_with(|| {
@@ -50,6 +51,16 @@ fn add_registry_respects_max_registrars() {
 	});
 }
 
+#[test]
+fn add_registry_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let registry_index = 0;
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		System::assert_last_event(Event::<Test>::RegistryAdded { registry_index }.into());
+	})
+}
+
+/* request_registration */
 #[test]
 fn request_registration_works() {
 	new_test_ext().execute_with(|| {
@@ -101,6 +112,236 @@ fn request_registration_works() {
 	});
 }
 
+#[test]
+fn request_registration_fails_on_broke() {
+	new_test_ext().execute_with(|| {
+		let almost_broke = RuntimeOrigin::signed(3);
+		let broke = RuntimeOrigin::signed(4);
+		let empty: DataOf<Test> = vec![].try_into().unwrap();
+		let non_empty: DataOf<Test> = vec![1].try_into().unwrap();
+
+		assert_ok!(Registry::request_registration(almost_broke.clone(), 0, empty.clone(), false));
+		assert_noop!(
+			Registry::request_registration(almost_broke, 0, non_empty.clone(), false),
+			pallet_balances::Error::<Test>::InsufficientBalance
+		);
+		assert_noop!(
+			Registry::request_registration(broke.clone(), 0, empty, false),
+			pallet_balances::Error::<Test>::InsufficientBalance
+		);
+		assert_noop!(
+			Registry::request_registration(broke, 0, non_empty, false),
+			pallet_balances::Error::<Test>::InsufficientBalance
+		);
+	})
+}
+
+#[test]
+fn request_registration_frees_reserves_if_possible() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 9u64);
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 5u64);
+		assert_eq!(Balances::free_balance(0), 95u64);
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 9u64);
+	})
+}
+
+#[test]
+fn request_registration_reserves_correct_amounts() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 1));
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 5u64);
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 9u64);
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 5u64);
+	})
+}
+
+#[test]
+fn request_registration_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = 1;
+		assert_ok!(Registry::request_registration(RuntimeOrigin::signed(entity), 0, data1, false));
+		System::assert_last_event(
+			Event::<Test>::RegistrationRequested { entity, registry_index: 0 }.into(),
+		);
+	})
+}
+
+/* cancel_request */
+#[test]
+fn cancel_request_wipes_only_request() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(2);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(Registry::register_entity(registrar, 0, 2, HashingOf::<Test>::hash_of(&data)));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+
+		assert_eq!(
+			Registry::requests(0, 2),
+			Some(Request { deposit: 9u64, data: data.clone(), editable_by_registrar: false })
+		);
+		assert_eq!(
+			Registry::registries(0, 2),
+			Some(Registration { deposit: 9u64, data: data.clone(), editable_by_registrar: false })
+		);
+
+		assert_ok!(Registry::cancel_request(entity, 0));
+		assert_eq!(Registry::requests(0, 2), None);
+		assert_eq!(
+			Registry::registries(0, 2),
+			Some(Registration { deposit: 9u64, data: data.clone(), editable_by_registrar: false })
+		);
+	});
+}
+
+#[test]
+fn cancel_request_refunds_deposit() {
+	new_test_ext().execute_with(|| {
+		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 9u64);
+		assert_ok!(Registry::cancel_request(entity.clone(), 0));
+		assert_eq!(Balances::reserved_balance(0), 0u64);
+		assert_eq!(Balances::free_balance(0), 100u64);
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
+		assert_eq!(Balances::reserved_balance(0), 9u64);
+	})
+}
+
+#[test]
+fn cancel_request_fails_on_nonexistent_entity() {
+	new_test_ext().execute_with(|| {
+		let entity = RuntimeOrigin::signed(0);
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		assert_noop!(Registry::cancel_request(entity.clone(), 0), Error::<Test>::InvalidEntity);
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
+		assert_ok!(Registry::cancel_request(entity.clone(), 0));
+		assert_noop!(Registry::cancel_request(entity.clone(), 0), Error::<Test>::InvalidEntity);
+	})
+}
+
+#[test]
+fn cancel_request_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = 1;
+		assert_ok!(Registry::request_registration(RuntimeOrigin::signed(entity), 0, data1, false));
+		assert_ok!(Registry::cancel_request(RuntimeOrigin::signed(entity), 0));
+		System::assert_last_event(
+			Event::<Test>::RegistrationRequestCanceled { entity, registry_index: 0 }.into(),
+		);
+	})
+}
+
+/* unregister */
+#[test]
+fn unregister_verifies_origin() {
+	new_test_ext().execute_with(|| {
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_noop!(Registry::unregister(entity, 0, 0), Error::<Test>::InvalidRegistry);
+		assert_noop!(Registry::unregister(registrar, 1, 0), Error::<Test>::InvalidRegistry);
+	})
+}
+
+#[test]
+fn unregister_fails_on_unregistered_entity() {
+	new_test_ext().execute_with(|| {
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_noop!(Registry::unregister(registrar, 0, 0), Error::<Test>::InvalidEntity);
+	})
+}
+
+#[test]
+fn unregister_works() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+		assert!(matches!(Registry::registries(0, 1), Some(_)));
+		assert_ok!(Registry::unregister(registrar, 0, 1));
+		assert_eq!(Registry::registries(0, 1), None);
+	})
+}
+
+#[test]
+fn unregister_refunds_deposit() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+		assert_eq!(Balances::reserved_balance(1), 5u64);
+		assert_ok!(Registry::unregister(registrar, 0, 1));
+		assert_eq!(Balances::reserved_balance(1), 0u64);
+		assert_eq!(Balances::free_balance(1), 100u64);
+	})
+}
+
+#[test]
+fn unregister_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(Registry::register_entity(registrar.clone(), 0, 1, HashingOf::<Test>::hash_of(&data)));
+		assert_ok!(Registry::unregister(registrar, 0, 1));
+		System::assert_last_event(
+			Event::<Test>::EntityUnregistered { entity: 1, registry_index: 0 }.into(),
+		);
+	})
+}
+
+/* register_entity */
 #[test]
 fn register_entity_works() {
 	new_test_ext().execute_with(|| {
@@ -180,6 +421,169 @@ fn register_entity_verifies_origin() {
 }
 
 #[test]
+fn register_entity_verifies_deposit_amount() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+
+		Requests::<Test>::insert(
+			0,
+			1,
+			Request {
+				deposit: 4u64, // should be 5 to match data
+				data: data1.clone(),
+				editable_by_registrar: false,
+			},
+		);
+		assert_noop!(
+			Registry::register_entity(registrar.clone(), 0, 1, HashingOf::<Test>::hash_of(&data1)),
+			Error::<Test>::InsufficientDeposit
+		);
+	});
+}
+
+#[test]
+fn register_entity_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(Registry::register_entity(registrar, 0, 1, HashingOf::<Test>::hash_of(&data)));
+		System::assert_last_event(
+			Event::<Test>::EntityRegistered { entity: 1, registry_index: 0 }.into(),
+		);
+	})
+}
+
+/* set_registered_entity */
+#[test]
+fn set_registered_entity_fails_on_non_editable() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 0, 1, data),
+			Error::<Test>::NotEditableByRegistrar
+		);
+	})
+}
+
+#[test]
+fn set_registered_entity_fails_on_not_registered() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 0, 1, data),
+			Error::<Test>::InvalidEntity
+		);
+	})
+}
+
+#[test]
+fn set_registered_entity_verifies_origin() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 1, 1, data.clone()),
+			Error::<Test>::InvalidRegistry
+		);
+		assert_noop!(
+			Registry::set_registered_entity(entity, 0, 1, data),
+			Error::<Test>::InvalidRegistry
+		);
+	})
+}
+
+#[test]
+fn set_registered_entity_fails_on_bigger_data() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		let data2: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), true));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data1)
+		));
+		assert_noop!(
+			Registry::set_registered_entity(registrar, 0, 1, data2),
+			Error::<Test>::InsufficientDeposit
+		);
+	})
+}
+
+#[test]
+fn set_registered_entity_works_with_same_size_and_smaller_data() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		let data2: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let registrar = RuntimeOrigin::signed(0);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data2.clone(), true));
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data2)
+		));
+		assert_ok!(Registry::set_registered_entity(registrar.clone(), 0, 1, data2));
+		assert_ok!(Registry::set_registered_entity(registrar, 0, 1, data1));
+	})
+}
+
+#[test]
+fn set_registered_entity_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let data2: DataOf<Test> = vec![2, 1, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
+
+		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
+
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), true));
+		assert_ok!(Registry::register_entity(registrar.clone(), 0, 1, HashingOf::<Test>::hash_of(&data)));
+		assert_ok!(Registry::set_registered_entity(registrar, 0, 1, data2));
+		System::assert_last_event(
+			Event::<Test>::EntityRegistered { entity: 1, registry_index: 0 }.into(),
+		);
+	})
+}
+
+/* other */
+#[test]
 fn new_requests_dont_overwrite_registry() {
 	new_test_ext().execute_with(|| {
 		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
@@ -246,34 +650,125 @@ fn multiple_registries_dont_collide() {
 }
 
 #[test]
-fn cancel_request_wipes_only_request() {
+fn instances_dont_mix() {
 	new_test_ext().execute_with(|| {
 		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
 		let registrar = RuntimeOrigin::signed(0);
-		let entity = RuntimeOrigin::signed(2);
+
+		assert_ok!(SecondRegistry::add_registry(RuntimeOrigin::root(), 0));
+		assert_ok!(SecondRegistry::request_registration(entity.clone(), 0, data.clone(), false));
+		assert_ok!(SecondRegistry::register_entity(
+			registrar,
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+
+		assert_eq!(Registry::requests(0, 1), None);
+		assert_eq!(Registry::registries(0, 1), None);
+	})
+}
+
+#[test]
+fn collective_can_be_registrar() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let entity = RuntimeOrigin::signed(1);
+		let collective_account_id = CollectiveAccountId::get();
+		let registrar_origin: RuntimeOrigin =
+			pallet_collective::Origin::<Test>::Members(1, 1).into();
+
+		assert_ok!(RegistryWithCollectives::add_registry(
+			RuntimeOrigin::root(),
+			collective_account_id
+		));
+		assert_ok!(RegistryWithCollectives::request_registration(
+			entity.clone(),
+			0,
+			data.clone(),
+			true
+		));
+		assert_ok!(RegistryWithCollectives::register_entity(
+			registrar_origin.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data)
+		));
+		assert_ok!(RegistryWithCollectives::unregister(registrar_origin.clone(), 0, 1));
+	})
+}
+
+#[test]
+fn collective_can_be_entity() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![1].try_into().unwrap();
+		let collective_account_id = CollectiveAccountId::get();
+		let entity_origin: RuntimeOrigin = pallet_collective::Origin::<Test>::Members(1, 1).into();
+
+		assert_ok!(RegistryWithCollectives::request_registration(
+			entity_origin.clone(),
+			0,
+			data.clone(),
+			true
+		));
+		assert_eq!(
+			RegistryWithCollectives::requests(0, collective_account_id),
+			Some(Request { deposit: 5u64, data: data.clone(), editable_by_registrar: true })
+		);
+		assert_ok!(RegistryWithCollectives::cancel_request(entity_origin.clone(), 0));
+	})
+}
+
+#[test]
+fn whole_process_deposits_test() {
+	new_test_ext().execute_with(|| {
+		let data1: DataOf<Test> = vec![1].try_into().unwrap();
+		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
+		let registrar = RuntimeOrigin::signed(0);
+		let entity = RuntimeOrigin::signed(1);
 
 		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
 
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_ok!(Registry::register_entity(registrar, 0, 2, HashingOf::<Test>::hash_of(&data)));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
+		// initial, small data
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
+		assert_eq!(Balances::reserved_balance(1), 5u64);
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data1)
+		));
+		assert_eq!(Balances::reserved_balance(1), 5u64);
 
-		assert_eq!(
-			Registry::requests(0, 2),
-			Some(Request { deposit: 9u64, data: data.clone(), editable_by_registrar: false })
-		);
-		assert_eq!(
-			Registry::registries(0, 2),
-			Some(Registration { deposit: 9u64, data: data.clone(), editable_by_registrar: false })
-		);
+		// increase data, should increase reserves
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
+		// 5 for registered data + 9 for registration
+		assert_eq!(Balances::reserved_balance(1), 14u64);
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data3)
+		));
+		// 5 for old registration was refunded
+		assert_eq!(Balances::reserved_balance(1), 9u64);
 
-		assert_ok!(Registry::cancel_request(entity, 0));
-		assert_eq!(Registry::requests(0, 2), None);
-		assert_eq!(
-			Registry::registries(0, 2),
-			Some(Registration { deposit: 9u64, data: data.clone(), editable_by_registrar: false })
-		);
-	});
+		// decrease data, should decrease reserves
+		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
+		assert_eq!(Balances::reserved_balance(1), 14u64);
+		assert_ok!(Registry::register_entity(
+			registrar.clone(),
+			0,
+			1,
+			HashingOf::<Test>::hash_of(&data1)
+		));
+		assert_eq!(Balances::reserved_balance(1), 5u64);
+
+		// unregister, refund
+		assert_ok!(Registry::unregister(registrar.clone(), 0, 1));
+		assert_eq!(Balances::reserved_balance(1), 0u64);
+	})
 }
 
 /* see https://github.com/liberland/liberland_substrate/issues/250
@@ -390,455 +885,3 @@ fn unregister_fails_on_not_registered_entity() {
 	})
 }
 */
-
-#[test]
-fn request_registration_fails_on_broke() {
-	new_test_ext().execute_with(|| {
-		let almost_broke = RuntimeOrigin::signed(3);
-		let broke = RuntimeOrigin::signed(4);
-		let empty: DataOf<Test> = vec![].try_into().unwrap();
-		let non_empty: DataOf<Test> = vec![1].try_into().unwrap();
-
-		assert_ok!(Registry::request_registration(almost_broke.clone(), 0, empty.clone(), false));
-		assert_noop!(
-			Registry::request_registration(almost_broke, 0, non_empty.clone(), false),
-			pallet_balances::Error::<Test>::InsufficientBalance
-		);
-		assert_noop!(
-			Registry::request_registration(broke.clone(), 0, empty, false),
-			pallet_balances::Error::<Test>::InsufficientBalance
-		);
-		assert_noop!(
-			Registry::request_registration(broke, 0, non_empty, false),
-			pallet_balances::Error::<Test>::InsufficientBalance
-		);
-	})
-}
-
-#[test]
-fn request_registration_frees_reserves_if_possible() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 9u64);
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 5u64);
-		assert_eq!(Balances::free_balance(0), 95u64);
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 9u64);
-	})
-}
-
-#[test]
-fn cancel_request_refunds_deposit() {
-	new_test_ext().execute_with(|| {
-		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 9u64);
-		assert_ok!(Registry::cancel_request(entity.clone(), 0));
-		assert_eq!(Balances::reserved_balance(0), 0u64);
-		assert_eq!(Balances::free_balance(0), 100u64);
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 9u64);
-	})
-}
-
-#[test]
-fn request_registration_reserves_correct_amounts() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 1));
-
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 5u64);
-
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 9u64);
-
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
-		assert_eq!(Balances::reserved_balance(0), 5u64);
-	})
-}
-
-#[test]
-fn cancel_request_fails_on_nonexistent_entity() {
-	new_test_ext().execute_with(|| {
-		let entity = RuntimeOrigin::signed(0);
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		assert_noop!(Registry::cancel_request(entity.clone(), 0), Error::<Test>::InvalidEntity);
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
-		assert_ok!(Registry::cancel_request(entity.clone(), 0));
-		assert_noop!(Registry::cancel_request(entity.clone(), 0), Error::<Test>::InvalidEntity);
-	})
-}
-
-#[test]
-fn register_entity_verifies_deposit_amount() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-
-		Requests::<Test>::insert(
-			0,
-			1,
-			Request {
-				deposit: 4u64, // should be 5 to match data
-				data: data1.clone(),
-				editable_by_registrar: false,
-			},
-		);
-		assert_noop!(
-			Registry::register_entity(registrar.clone(), 0, 1, HashingOf::<Test>::hash_of(&data1)),
-			Error::<Test>::InsufficientDeposit
-		);
-	});
-}
-
-#[test]
-fn add_registry_deposits_event() {
-	new_test_ext().execute_with(|| {
-		let registry_index = 0;
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		System::assert_last_event(Event::<Test>::RegistryAdded { registry_index }.into());
-	})
-}
-
-#[test]
-fn request_registration_deposits_event() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = 1;
-		assert_ok!(Registry::request_registration(RuntimeOrigin::signed(entity), 0, data1, false));
-		System::assert_last_event(
-			Event::<Test>::RegistrationRequested { entity, registry_index: 0 }.into(),
-		);
-	})
-}
-
-#[test]
-fn cancel_request_deposits_event() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = 1;
-		assert_ok!(Registry::request_registration(RuntimeOrigin::signed(entity), 0, data1, false));
-		assert_ok!(Registry::cancel_request(RuntimeOrigin::signed(entity), 0));
-		System::assert_last_event(
-			Event::<Test>::RegistrationRequestCanceled { entity, registry_index: 0 }.into(),
-		);
-	})
-}
-
-#[test]
-fn register_entity_deposits_event() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let registrar = RuntimeOrigin::signed(0);
-		let entity = RuntimeOrigin::signed(1);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_ok!(Registry::register_entity(registrar, 0, 1, HashingOf::<Test>::hash_of(&data)));
-		System::assert_last_event(
-			Event::<Test>::EntityRegistered { entity: 1, registry_index: 0 }.into(),
-		);
-	})
-}
-
-#[test]
-fn instances_dont_mix() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(SecondRegistry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(SecondRegistry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_ok!(SecondRegistry::register_entity(
-			registrar,
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data)
-		));
-
-		assert_eq!(Registry::requests(0, 1), None);
-		assert_eq!(Registry::registries(0, 1), None);
-	})
-}
-
-#[test]
-fn set_registered_entity_fails_on_non_editable() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data)
-		));
-		assert_noop!(
-			Registry::set_registered_entity(registrar, 0, 1, data),
-			Error::<Test>::NotEditableByRegistrar
-		);
-	})
-}
-
-#[test]
-fn set_registered_entity_fails_on_not_registered() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_noop!(
-			Registry::set_registered_entity(registrar, 0, 1, data),
-			Error::<Test>::InvalidEntity
-		);
-	})
-}
-
-#[test]
-fn set_registered_entity_verifies_origin() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_noop!(
-			Registry::set_registered_entity(registrar, 1, 1, data.clone()),
-			Error::<Test>::InvalidRegistry
-		);
-		assert_noop!(
-			Registry::set_registered_entity(entity, 0, 1, data),
-			Error::<Test>::InvalidRegistry
-		);
-	})
-}
-
-#[test]
-fn set_registered_entity_fails_on_bigger_data() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		let data2: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), true));
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data1)
-		));
-		assert_noop!(
-			Registry::set_registered_entity(registrar, 0, 1, data2),
-			Error::<Test>::InsufficientDeposit
-		);
-	})
-}
-
-#[test]
-fn set_registered_entity_works_with_same_size_and_smaller_data() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		let data2: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data2.clone(), true));
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data2)
-		));
-		assert_ok!(Registry::set_registered_entity(registrar.clone(), 0, 1, data2));
-		assert_ok!(Registry::set_registered_entity(registrar, 0, 1, data1));
-	})
-}
-
-#[test]
-fn collective_can_be_registrar() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1].try_into().unwrap();
-		let entity = RuntimeOrigin::signed(1);
-		let collective_account_id = CollectiveAccountId::get();
-		let registrar_origin: RuntimeOrigin =
-			pallet_collective::Origin::<Test>::Members(1, 1).into();
-
-		assert_ok!(RegistryWithCollectives::add_registry(
-			RuntimeOrigin::root(),
-			collective_account_id
-		));
-		assert_ok!(RegistryWithCollectives::request_registration(
-			entity.clone(),
-			0,
-			data.clone(),
-			true
-		));
-		assert_ok!(RegistryWithCollectives::register_entity(
-			registrar_origin.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data)
-		));
-		assert_ok!(RegistryWithCollectives::unregister(registrar_origin.clone(), 0, 1));
-	})
-}
-
-#[test]
-fn collective_can_be_entity() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1].try_into().unwrap();
-		let collective_account_id = CollectiveAccountId::get();
-		let entity_origin: RuntimeOrigin = pallet_collective::Origin::<Test>::Members(1, 1).into();
-
-		assert_ok!(RegistryWithCollectives::request_registration(
-			entity_origin.clone(),
-			0,
-			data.clone(),
-			true
-		));
-		assert_eq!(
-			RegistryWithCollectives::requests(0, collective_account_id),
-			Some(Request { deposit: 5u64, data: data.clone(), editable_by_registrar: true })
-		);
-		assert_ok!(RegistryWithCollectives::cancel_request(entity_origin.clone(), 0));
-	})
-}
-
-#[test]
-fn unregister_verifies_origin() {
-	new_test_ext().execute_with(|| {
-		let registrar = RuntimeOrigin::signed(0);
-		let entity = RuntimeOrigin::signed(1);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_noop!(Registry::unregister(entity, 0, 0), Error::<Test>::InvalidRegistry);
-		assert_noop!(Registry::unregister(registrar, 1, 0), Error::<Test>::InvalidRegistry);
-	})
-}
-
-#[test]
-fn unregister_fails_on_unregistered_entity() {
-	new_test_ext().execute_with(|| {
-		let registrar = RuntimeOrigin::signed(0);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_noop!(Registry::unregister(registrar, 0, 0), Error::<Test>::InvalidEntity);
-	})
-}
-
-#[test]
-fn unregister_works() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1].try_into().unwrap();
-		let registrar = RuntimeOrigin::signed(0);
-		let entity = RuntimeOrigin::signed(1);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data)
-		));
-		assert!(matches!(Registry::registries(0, 1), Some(_)));
-		assert_ok!(Registry::unregister(registrar, 0, 1));
-		assert_eq!(Registry::registries(0, 1), None);
-	})
-}
-
-#[test]
-fn unregister_refunds_deposit() {
-	new_test_ext().execute_with(|| {
-		let data: DataOf<Test> = vec![1].try_into().unwrap();
-		let registrar = RuntimeOrigin::signed(0);
-		let entity = RuntimeOrigin::signed(1);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data.clone(), false));
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data)
-		));
-		assert_eq!(Balances::reserved_balance(1), 5u64);
-		assert_ok!(Registry::unregister(registrar, 0, 1));
-		assert_eq!(Balances::reserved_balance(1), 0u64);
-		assert_eq!(Balances::free_balance(1), 100u64);
-	})
-}
-
-#[test]
-fn whole_process_deposits_test() {
-	new_test_ext().execute_with(|| {
-		let data1: DataOf<Test> = vec![1].try_into().unwrap();
-		let data3: DataOf<Test> = vec![1, 2, 3].try_into().unwrap();
-		let registrar = RuntimeOrigin::signed(0);
-		let entity = RuntimeOrigin::signed(1);
-
-		assert_ok!(Registry::add_registry(RuntimeOrigin::root(), 0));
-
-		// initial, small data
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
-		assert_eq!(Balances::reserved_balance(1), 5u64);
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data1)
-		));
-		assert_eq!(Balances::reserved_balance(1), 5u64);
-
-		// increase data, should increase reserves
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data3.clone(), false));
-		// 5 for registered data + 9 for registration
-		assert_eq!(Balances::reserved_balance(1), 14u64);
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data3)
-		));
-		// 5 for old registration was refunded
-		assert_eq!(Balances::reserved_balance(1), 9u64);
-
-		// decrease data, should decrease reserves
-		assert_ok!(Registry::request_registration(entity.clone(), 0, data1.clone(), false));
-		assert_eq!(Balances::reserved_balance(1), 14u64);
-		assert_ok!(Registry::register_entity(
-			registrar.clone(),
-			0,
-			1,
-			HashingOf::<Test>::hash_of(&data1)
-		));
-		assert_eq!(Balances::reserved_balance(1), 5u64);
-
-		// unregister, refund
-		assert_ok!(Registry::unregister(registrar.clone(), 0, 1));
-		assert_eq!(Balances::reserved_balance(1), 0u64);
-	})
-}

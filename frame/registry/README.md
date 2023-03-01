@@ -71,11 +71,7 @@
 
  ### Dispatchable Functions
 
- #### Public
-
- These calls can be made from any _Signed_ origin.
-
- * `add_registrar`: Adds a new registrar
+ * `add_registry`: Adds a new registrar
  * `request_registration`: Requests a registration of Entity in Registry
  * `cancel_request`: Cancels registration request
  * `unregister`: Removes Entity from given Registry
