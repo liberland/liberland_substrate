@@ -88,6 +88,7 @@ impl pallet_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type EntityId = u32;
 	type MaxRegistrars = ConstU32<10>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
@@ -102,6 +103,7 @@ impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type EntityId = u32;
 	type MaxRegistrars = ConstU32<2>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;
@@ -154,6 +156,7 @@ impl pallet_registry::Config<pallet_registry::Instance3> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type EntityId = u32;
 	type MaxRegistrars = ConstU32<2>;
 	type BaseDeposit = ConstU64<1>;
 	type ByteDeposit = ConstU64<2>;

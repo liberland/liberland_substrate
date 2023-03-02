@@ -1589,7 +1589,7 @@ parameter_types! {
 	pub CompanyRegistryMaxRegistrars: u32 = 10u32;
 	pub CompanyRegistryBaseDeposit: Balance = 1 * CENTS;
 	pub CompanyRegistryByteDeposit: Balance = 10 * MILLICENTS;
-	pub CouncilAccountId: AccountId = PalletId(*b"regcouni").into_account_truncating();
+	pub CouncilAccountId: AccountId = PalletId(*b"regcounc").into_account_truncating();
 }
 
 type EnsureMembersAsAccountId<I, A> = MapSuccess<
@@ -1607,6 +1607,7 @@ impl pallet_registry::Config<CompanyRegistryInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EntityData = BoundedVec<u8, ConstU32<8192>>; // max 8KiB data per entity
+	type EntityId = u32; // max 4,294,967,295 companies registrations (including removed, IDs arent reused)
 	type AddRegistrarOrigin = EnsureRoot<AccountId>;
 	type RegistrarOrigin = RegistryEnsureRegistrar;
 	type MaxRegistrars = CompanyRegistryMaxRegistrars;
