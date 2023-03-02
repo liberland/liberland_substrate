@@ -45,11 +45,11 @@
 //! Deposits are separate for each registry (as data is stored separately as
 //! well).
 //!
-//! * `request_entity(registry, data, editable)` requires deposit for length of `data`
-//!   parameter. Will immediately reserve the required deposit.
-//! * `request_registration(registry, data, editable)` requires deposit for
-//!   length of `data` parameter. Will refund deposit of previous pending request
-//!   (if any) and immediately reserve the new required deposit.
+//! * `request_entity(registry, data, editable)` requires deposit for length of `data` parameter.
+//!   Will immediately reserve the required deposit.
+//! * `request_registration(registry, data, editable)` requires deposit for length of `data`
+//!   parameter. Will refund deposit of previous pending request (if any) and immediately reserve
+//!   the new required deposit.
 //! * `cancel_request()` will refund complete deposit for given request.
 //! * `unregister()` will refund deposit for data at given registrar.
 //! * `register_entity()` will refund old deposit, if any.
@@ -66,12 +66,14 @@
 //! * `RegistrarOrigin` - origin of registrars - must return AccountId on success
 //! * `EntityOrigin` - origin of entities - must return AccountId on usccess
 //! * `EntityData` - type that will be used to store and process Entities data
-//! * `EntityId` - type that will be used to identify Entities - usually `u32` or bigger unsigned int type
+//! * `EntityId` - type that will be used to identify Entities - usually `u32` or bigger unsigned
+//!   int type
 //! * `WeightInfo` - see [Substrate docs](https://docs.substrate.io/reference/how-to-guides/weights/use-custom-weights/)
 //!
 //! ## Genesis Config
 //!
 //! * `registries`: registries that should be preset on genesis
+//! * `entities`: entities that should exist on genesis - will collect deposits from owners
 //!
 //! ## Interface
 //!
@@ -149,7 +151,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::vec;
 	use sp_runtime::{
-		traits::{AtLeast32BitUnsigned, CheckedAdd, Hash},
+		traits::{AtLeast32BitUnsigned, CheckedAdd, Hash, MaybeSerializeDeserialize},
 		Saturating,
 	};
 
@@ -202,14 +204,10 @@ pub mod pallet {
 		type EntityOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		/// Type for storing and processing Entities' Data
-		type EntityData: Parameter + Member + MaxEncodedLen;
+		type EntityData: Parameter + Member + MaybeSerializeDeserialize + MaxEncodedLen;
 
 		/// Type for identifying Entities
-		type EntityId: Parameter
-			+ Member
-			+ MaxEncodedLen
-			+ AtLeast32BitUnsigned
-			+ Default;
+		type EntityId: Parameter + Member + MaxEncodedLen + AtLeast32BitUnsigned + Default;
 
 		/// WeightInfo
 		type WeightInfo: WeightInfo;
@@ -309,12 +307,22 @@ pub mod pallet {
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
 		/// Registries that should be preset on genesis
 		pub registries: BoundedVec<T::AccountId, T::MaxRegistrars>,
+
+		/// Entities that should be preset on genesis - collects deposits from
+		/// owners automatically - will fail if not enough balance or if
+		/// registry doesn't exist
+		pub entities: Vec<(
+			T::AccountId,  // Owner
+			RegistryIndex, // Registry
+			T::EntityData, // Data
+			bool,          // editable_by_registrar?
+		)>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
 		fn default() -> Self {
-			Self { registries: Default::default() }
+			Self { registries: Default::default(), entities: Default::default() }
 		}
 	}
 
@@ -322,6 +330,24 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
 		fn build(&self) {
 			Registrars::<T, I>::put(&self.registries);
+
+			for (owner, reg_idx, data, editable_by_registrar) in &self.entities {
+				assert!(*reg_idx < self.registries.len() as u32);
+				let entity_id = Pallet::<T, I>::get_next_entity_id().unwrap();
+				let deposit = Pallet::<T, I>::calculate_deposit(&data);
+				T::Currency::reserve_named(T::ReserveIdentifier::get(), &owner, deposit).unwrap();
+				EntityOwner::<T, I>::insert(&entity_id, owner);
+				OwnerEntities::<T, I>::insert(owner, &entity_id, true);
+				Registries::<T, I>::insert(
+					reg_idx,
+					&entity_id,
+					Registration {
+						deposit,
+						data: data.clone(),
+						editable_by_registrar: *editable_by_registrar,
+					},
+				);
+			}
 		}
 	}
 
@@ -383,7 +409,7 @@ pub mod pallet {
 		/// Request an additional registration or updated registration of Entity
 		/// in Registry. If there already is a pending request, it will be
 		/// canceled and it's deposit will be refunded.
-		/// 
+		///
 		/// Must be called by the Owner of the Entity
 		///
 		/// * `registry_index` - Registry to register in

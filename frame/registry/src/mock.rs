@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 pub use crate as pallet_registry;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, ConstU64, EitherOf, MapSuccess},
+	traits::{ConstU32, ConstU64, EitherOf, GenesisBuild, MapSuccess},
 	weights::Weight,
 	PalletId,
 };
@@ -32,6 +32,7 @@ frame_support::construct_runtime!(
 		SecondRegistry: pallet_registry::<Instance2>,
 		RegistryWithCollectives: pallet_registry::<Instance3>,
 		Collective: pallet_collective,
+		GenesisTestRegistry: pallet_registry::<Instance4>,
 	}
 );
 
@@ -167,13 +168,36 @@ impl pallet_registry::Config<pallet_registry::Instance3> for Test {
 	type WeightInfo = ();
 }
 
+impl pallet_registry::Config<pallet_registry::Instance4> for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type EntityData = BoundedVec<u8, ConstU32<1024>>;
+	type EntityId = u32;
+	type MaxRegistrars = ConstU32<10>;
+	type BaseDeposit = ConstU64<1>;
+	type ByteDeposit = ConstU64<2>;
+	type AddRegistrarOrigin = EnsureRoot<u64>;
+	type RegistrarOrigin = EnsureSigned<u64>;
+	type EntityOrigin = EnsureSigned<u64>;
+	type ReserveIdentifier = ReserveIdentifier;
+	type WeightInfo = ();
+}
+
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let collective_account_id = CollectiveAccountId::get();
-	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 3), (collective_account_id, 10)];
+	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 3), (collective_account_id, 10), (999, 100)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();
+
+	GenesisTestRegistryConfig {
+		registries: vec![0, 1].try_into().unwrap(),
+		entities: vec![(999, 0, vec![0, 1, 2].try_into().unwrap(), false)],
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
 		System::set_block_number(1);

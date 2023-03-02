@@ -9,21 +9,23 @@
 
  ## Terminology
 
- * Entity - object, identified with AccountId, that has data attached to it and can be registered
+ * Entity - object, identified with EntityId, that has data attached to it and can be registered
    at a registrar
  * Registrar - AccountId that can register Entities in Registry.
  * Registry - database of Entities and their data that were registered.
  * Deposit - amount of Currency that gets reserved when requesting registration - refunded data
    is removed
+ * Owner - AccountId that can request registrations for Entity
 
  ## Entity Lifecycle
 
- 1. Entity requests registration at Registry using `request_registration()` call. This creates
-    and stores a Registration Request and reserves the deposit.
+ 1. Entity is created by owner with `request_entity()` call. This assigns an
+    EntityId and requests first registration.
  2. If Registrar approves Entity's data, they call `register_entity()` which
     moves data from Registration Request to the Registry.
- 3. To update the data, Entity needs to repeat the same process as for initial registration.
- 3. Entity can be removed from Registry by the Registrar - deposit will be refunded.
+ 3. To update the data or register at additional Registry, Entity's owner can
+    use `request_registration()` call.
+ 4. Entity can be removed from Registry by the Registrar - deposit will be refunded.
 
  ## Deposits
 
@@ -43,8 +45,11 @@
  Deposits are separate for each registry (as data is stored separately as
  well).
 
+ * `request_entity(registry, data, editable)` requires deposit for length of `data` parameter.
+   Will immediately reserve the required deposit.
  * `request_registration(registry, data, editable)` requires deposit for length of `data`
-   parameter. Will immediately reserve/refund any difference.
+   parameter. Will refund deposit of previous pending request (if any) and immediately reserve
+   the new required deposit.
  * `cancel_request()` will refund complete deposit for given request.
  * `unregister()` will refund deposit for data at given registrar.
  * `register_entity()` will refund old deposit, if any.
@@ -61,18 +66,22 @@
  * `RegistrarOrigin` - origin of registrars - must return AccountId on success
  * `EntityOrigin` - origin of entities - must return AccountId on usccess
  * `EntityData` - type that will be used to store and process Entities data
+ * `EntityId` - type that will be used to identify Entities - usually `u32` or bigger unsigned
+   int type
  * `WeightInfo` - see [Substrate docs](https://docs.substrate.io/reference/how-to-guides/weights/use-custom-weights/)
 
  ## Genesis Config
 
  * `registries`: registries that should be preset on genesis
+ * `entities`: entities that should exist on genesis - will collect deposits from owners
 
  ## Interface
 
  ### Dispatchable Functions
 
  * `add_registry`: Adds a new registrar
- * `request_registration`: Requests a registration of Entity in Registry
+ * `request_entity`: Creates Entity, assigns EntityId and requests first registration
+ * `request_registration`: Requests an additional or updated registration of Entity in Registry
  * `cancel_request`: Cancels registration request
  * `unregister`: Removes Entity from given Registry
  * `register_entity`: Adds Entity to the Registry

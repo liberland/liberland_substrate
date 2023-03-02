@@ -894,6 +894,21 @@ fn whole_process_deposits_test() {
 	})
 }
 
+#[test]
+fn genesis_build_works() {
+	new_test_ext().execute_with(|| {
+		let data: DataOf<Test> = vec![0, 1, 2].try_into().unwrap();
+		assert_eq!(GenesisTestRegistry::registrars(), vec![0, 1]);
+		assert_eq!(GenesisTestRegistry::entity_owner(0), Some(999));
+		assert_eq!(GenesisTestRegistry::owner_entities(999, 0), true);
+		assert_eq!(
+			GenesisTestRegistry::registries(0, 0),
+			Some(Registration { deposit: 9u64, data, editable_by_registrar: false })
+		);
+		assert_eq!(Balances::reserved_balance(999), 9u64);
+	})
+}
+
 /* see https://github.com/liberland/liberland_substrate/issues/250
 #[test]
 fn unregister_wipes_only_single_registry_data() {
