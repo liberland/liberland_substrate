@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Tests for Nfts pallet.
 
 use crate::{mock::*, Event, *};
@@ -22,6 +26,7 @@ use enumflags2::BitFlags;
 use frame_support::{
 	assert_noop, assert_ok,
 	dispatch::Dispatchable,
+	pallet_prelude::DispatchError,
 	traits::{
 		tokens::nonfungibles_v2::{Destroy, Mutate},
 		Currency, Get,
@@ -2496,5 +2501,48 @@ fn add_remove_item_attributes_approval_should_work() {
 			CancelAttributesApprovalWitness { account_attributes: 1 },
 		));
 		assert_eq!(item_attributes_approvals(collection_id, item_id), vec![user_3]);
+	})
+}
+
+#[test]
+fn set_citizenship_required_should_work() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), 1, default_collection_config()));
+		assert_eq!(CitizenshipRequired::<Test>::get(0), false);
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_eq!(CitizenshipRequired::<Test>::get(0), false);
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, true));
+		assert_eq!(CitizenshipRequired::<Test>::get(0), true);
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, true));
+		assert_eq!(CitizenshipRequired::<Test>::get(0), true);
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_eq!(CitizenshipRequired::<Test>::get(0), false);
+	})
+}
+
+#[test]
+fn set_citizenship_required_verifies_origin() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), 1, default_collection_config()));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::root(), 0, false));
+		assert_noop!(Nfts::set_citizenship_required(RuntimeOrigin::signed(2), 0, false), Error::<Test>::NoPermission);
+	})
+}
+
+#[test]
+fn citizenship_is_checked_when_set() {
+	new_test_ext().execute_with(|| {
+		// Only 100 and 101 are considered citizens
+		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), 1, default_collection_config()));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, true));
+		assert_noop!(Nfts::mint(RuntimeOrigin::signed(1), 0, 42, 1, None), DispatchError::Other("NotCitizen"));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 42, 100, None));
+		assert_noop!(Nfts::transfer(RuntimeOrigin::signed(100), 0, 42, 1), DispatchError::Other("NotCitizen"));
+		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(100), 0, 42, 101));
+
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 43, 2, None));
+		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(2), 0, 43, 3));
 	})
 }

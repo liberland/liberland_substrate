@@ -15,10 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Test environment for Nfts pallet.
 
 use super::*;
 use crate as pallet_nfts;
+use liberland_traits::MockCitizenshipChecker;
 
 use frame_support::{
 	construct_runtime, parameter_types,
@@ -112,6 +117,7 @@ impl Config for Test {
 	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
+	type Citizenship = MockCitizenshipChecker<u64, ConstU64<100>, ConstU64<101>>;
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {

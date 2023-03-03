@@ -1533,6 +1533,7 @@ impl pallet_nfts::Config for Runtime {
 	type Helper = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
 	type Locker = ();
+	type Citizenship = LLM;
 }
 
 impl pallet_transaction_storage::Config for Runtime {
