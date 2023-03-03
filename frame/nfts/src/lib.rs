@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! # Nfts Module
 //!
 //! A simple, secure module for dealing with non-fungible items.
@@ -67,6 +71,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{pallet_prelude::*, traits::ExistenceRequirement};
 	use frame_system::pallet_prelude::*;
+	use liberland_traits::CitizenshipChecker;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -177,6 +182,10 @@ pub mod pallet {
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
+
+		/// Liberland Citizenship - optionally used for restricting item
+		/// ownership to Citizens only
+		type Citizenship: CitizenshipChecker<Self::AccountId>;
 	}
 
 	/// Details of a collection.
@@ -205,6 +214,18 @@ pub mod pallet {
 		),
 		(),
 		OptionQuery,
+	>;
+
+	/// Collection configuration - does it need to perform citizenship checks for item ownership?
+	/// Separate storage to minimize deviation from upstream
+	/// Added by Liberland
+	#[pallet::storage]
+	pub(super) type CitizenshipRequired<T: Config<I>, I: 'static = ()> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::CollectionId,
+		bool,
+		ValueQuery, // default false
 	>;
 
 	/// The collections owned by any given account; set out this way so that collections owned by
@@ -1765,6 +1786,34 @@ pub mod pallet {
 				receive_collection,
 				receive_item,
 				witness_price,
+			)
+		}
+
+		/// Set citizenship requirement for ownership of items in collection.
+		///
+		/// The origin must conform to `ForceOrigin` or must be `Signed` and the sender must be the
+		/// owner of the `collection`.
+		///
+		/// - `collection`: The collection to set requirement for
+		/// - `citizenship_required`: If true, only citizens will be able to receive items.
+		/// 
+		/// Note that this doesn't affect current owners.
+		/// 
+		/// Added by Liberland
+		#[pallet::call_index(99)]
+		#[pallet::weight(T::WeightInfo::claim_swap())]
+		pub fn set_citizenship_required(
+			origin: OriginFor<T>,
+			collection: T::CollectionId,
+			citizenship_required: bool,
+		) -> DispatchResult {
+			let maybe_check_owner = T::ForceOrigin::try_origin(origin)
+				.map(|_| None)
+				.or_else(|origin| ensure_signed(origin).map(Some).map_err(DispatchError::from))?;
+			Self::do_set_citizenship_required(
+				collection,
+				citizenship_required,
+				maybe_check_owner,
 			)
 		}
 	}
