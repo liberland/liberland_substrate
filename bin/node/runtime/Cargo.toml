@@ -97,8 +97,8 @@ pallet-transaction-storage = { version = "4.0.0-dev", default-features = false, 
 pallet-uniques = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-vesting = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-whitelist = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
-pallet-nfts = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 
+pallet-nfts = { version = "4.0.0-dev", default-features = false, path = "../../../frame/nfts" }
 pallet-staking = { version = "4.0.0-dev", default-features = false, path = "../../../frame/staking" }
 pallet-democracy = { version = "4.0.0-dev", default-features = false, path = "../../../frame/democracy" }
 pallet-elections-phragmen = { version = "5.0.0-dev", default-features = false, path = "../../../frame/elections-phragmen" }
