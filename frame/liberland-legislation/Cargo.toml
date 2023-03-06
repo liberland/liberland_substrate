@@ -31,11 +31,11 @@ liberland-traits = { path = "../liberland-traits", default-features = false}
 
 [dev-dependencies]
 pallet-balances = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
-pallet-democracy = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
-pallet-identity = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-assets = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-scheduler = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-liberland-initializer = { path = "../liberland-initializer" }
+pallet-democracy = { path = "../democracy" }
+pallet-identity = { path = "../identity" }
 
 [features]
 default = ["std"]
