@@ -262,6 +262,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 			initial_citizens,
 		},
 		company_registry: Default::default(),
+		office: Default::default(),
 	}
 }
 
@@ -601,6 +602,7 @@ pub fn testnet_genesis(
 			citizenship_registrar, initial_citizens
 		},
 		company_registry: Default::default(),
+		office: Default::default(),
 	}
 }
 

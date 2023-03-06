@@ -18,19 +18,24 @@
 //! Some configurable implementations as associated type for the substrate runtime.
 
 use crate::{
-	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance,
+	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance, RuntimeCall,
 };
+use codec::{Encode, Decode};
 use frame_support::{
-	pallet_prelude::{PhantomData, Get},
+	pallet_prelude::{PhantomData, Get, MaxEncodedLen},
+	RuntimeDebug,
 	traits::{
 		fungibles::{Balanced, CreditOf},
-		Currency, OnUnbalanced,
+		Currency, OnUnbalanced, InstanceFilter,
 	},
 };
 use sp_runtime::traits::Morph;
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 pub struct Author;
 impl OnUnbalanced<NegativeImbalance> for Author {
@@ -73,6 +78,46 @@ where
 
 	fn morph(_: T) -> Self::Outcome {
 		R::get()
+	}
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum OfficeCallFilter {
+	Any,
+	Remark,
+}
+
+impl Default for OfficeCallFilter {
+	fn default() -> Self {
+		OfficeCallFilter::Any
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for OfficeCallFilter {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			OfficeCallFilter::Any => true,
+			OfficeCallFilter::Remark =>
+				matches!(c, RuntimeCall::System(frame_system::Call::remark { .. })),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(OfficeCallFilter::Any, _) => true,
+			(_, OfficeCallFilter::Any) => false,
+			_ => false,
+		}
 	}
 }
 

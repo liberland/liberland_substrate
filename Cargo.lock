@@ -3215,6 +3215,7 @@ dependencies = [
  "pallet-nis",
  "pallet-offences",
  "pallet-offences-benchmarking",
+ "pallet-office",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
@@ -3241,6 +3242,7 @@ dependencies = [
  "pallet-whitelist",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-api",
  "sp-authority-discovery",
  "sp-block-builder",
@@ -5300,6 +5302,24 @@ dependencies = [
  "scale-info",
  "sp-runtime",
  "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-office"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
  "sp-std",
 ]
 
