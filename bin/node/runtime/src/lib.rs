@@ -99,7 +99,7 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId};
+use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, OfficeCallFilter};
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -1619,6 +1619,20 @@ impl pallet_registry::Config<CompanyRegistryInstance> for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const OfficePalletId: PalletId = PalletId(*b"office  ");
+}
+
+impl pallet_office::Config<pallet_office::Instance1> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = OfficePalletId;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSigned<AccountId>;
+	type CallFilter = OfficeCallFilter;
+	type WeightInfo = ();
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1680,6 +1694,7 @@ construct_runtime!(
 		Staking: pallet_staking,
 		Session: pallet_session,
 		CompanyRegistry: pallet_registry::<Instance1>,
+		Office: pallet_office::<Instance1>,
 	}
 );
 
@@ -1859,6 +1874,7 @@ mod benches {
 		[pallet_vesting, Vesting]
 		[pallet_whitelist, Whitelist]
 		[pallet_registry, CompanyRegistry]
+		[pallet_office, Office]
 	);
 }
 
