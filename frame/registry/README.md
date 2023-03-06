@@ -64,7 +64,7 @@
  * `ByteDeposit` - see **Deposits** above
  * `AddRegistrarOrigin` - origin that's authorized to add new registrars
  * `RegistrarOrigin` - origin of registrars - must return AccountId on success
- * `EntityOrigin` - origin of entities - must return AccountId on usccess
+ * `EntityOrigin` - origin of entities - must return AccountId on success
  * `EntityData` - type that will be used to store and process Entities data
  * `EntityId` - type that will be used to identify Entities - usually `u32` or bigger unsigned
    int type
