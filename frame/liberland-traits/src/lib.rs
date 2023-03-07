@@ -35,7 +35,7 @@ pub trait CitizenshipChecker<AccountId> {
 	/// * have LLM politipooled
 	/// * have valid citizen identity
 	/// * have a KnownGood judgement
-	fn ensure_nfts_allowed(account: &AccountId) -> Result<(), DispatchError>;
+	fn ensure_land_nfts_allowed(account: &AccountId) -> Result<(), DispatchError>;
 
 	/// Check if given account is a citizen (valid identity + KnownGood judgement)
 	fn is_citizen(account: &AccountId) -> bool;

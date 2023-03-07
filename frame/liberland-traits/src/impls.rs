@@ -17,7 +17,7 @@ where
         Ok(())
     }
 
-    fn ensure_nfts_allowed(account: &T) -> Result<(), DispatchError> {
+    fn ensure_land_nfts_allowed(account: &T) -> Result<(), DispatchError> {
         ensure!(Self::is_citizen(account), DispatchError::Other("NotCitizen"));
         Ok(())
     }
@@ -41,7 +41,7 @@ impl<T> CitizenshipChecker<T> for () {
         Ok(())
     }
 
-    fn ensure_nfts_allowed(_account: &T) -> Result<(), DispatchError> {
+    fn ensure_land_nfts_allowed(_account: &T) -> Result<(), DispatchError> {
         Ok(())
     }
 

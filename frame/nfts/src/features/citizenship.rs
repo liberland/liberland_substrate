@@ -30,7 +30,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     pub fn maybe_ensure_citizenship(collection: T::CollectionId, who: &T::AccountId) -> DispatchResult {
         if CitizenshipRequired::<T, I>::get(collection) {
-            T::Citizenship::ensure_nfts_allowed(who)?
+            T::Citizenship::ensure_land_nfts_allowed(who)?
         }
         Ok(())
     }
