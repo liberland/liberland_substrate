@@ -397,7 +397,7 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		System::set_block_number(999_999); // still future
 		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
 
-		assert_ok!(LLM::fake_send(RuntimeOrigin::signed(13), 13, 5000));
+		assert_ok!(LLM::transfer_from_vault(13, 5000));
 		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(13), 5000));
 		System::set_block_number(1_000_000); // and its ok
 		assert_ok!(LLM::ensure_politics_allowed(&13));

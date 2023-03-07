@@ -80,8 +80,6 @@
 //!
 //! These calls can be made from any _Signed_ origin.
 //!
-//! * `fake_send`: Release LLM from **Vault** to specific account. Development only, to be
-//!   removed/restricted.
 //! * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
 //! * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 //! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
@@ -459,39 +457,8 @@ pub mod pallet {
 			Self::transfer(sender, to_account, amount)
 		}
 
-		/// Release LLM to account by transferring LLM from **Vault**.
-		/// Development only, to be removed/restricted.  DO NOT USE IN PROD.
-		///
-		/// - `to_account`: Account to release LLM to
-		/// - `amount`: Amount of LLM to release
-		///
-		/// Emits: `Transferred` from `pallet-assets`
-		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
-		pub fn fake_send(
-			origin: OriginFor<T>,
-			to_account: T::AccountId,
-			amount: T::Balance,
-		) -> DispatchResult {
-			ensure_signed(origin)?;
-			Self::transfer_from_vault(to_account, amount)
-		}
-
-		/// Allow the senate to approve transfers
-		#[pallet::call_index(7)]
-		#[pallet::weight(10_000)]
-		pub fn approve_transfer(
-			_origin: OriginFor<T>,
-			to_account: T::AccountId,
-			amount: T::Balance,
-		) -> DispatchResult {
-			let _x = amount;
-			let _y = to_account;
-			todo!("approve_transfer");
-		}
-
 		/// Set senate
-		#[pallet::call_index(8)]
+		#[pallet::call_index(6)]
 		#[pallet::weight(10_000)]
 		pub fn set_senate(
 			origin: OriginFor<T>,
@@ -571,7 +538,9 @@ pub mod pallet {
 			Self::transfer(politipool_account, to_account, amount)
 		}
 
-		fn transfer_from_vault(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
+		/// Transfer `amount` LLM to `to_account` from vault
+		/// Used in liberland-initializer and in tests.
+		pub fn transfer_from_vault(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
 			let vault = Self::get_llm_vault_account();
 			Self::transfer(vault, to_account, amount)
 		}

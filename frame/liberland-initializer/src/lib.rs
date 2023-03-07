@@ -169,8 +169,7 @@ pub mod pallet {
 
 		/// Sends `amount` of LLM to `citizen`.
 		fn give_llm(citizen: T::AccountId, amount: T::Balance) {
-			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
-			pallet_llm::Pallet::<T>::fake_send(origin, citizen, amount).unwrap();
+			pallet_llm::Pallet::<T>::transfer_from_vault(citizen, amount).unwrap();
 		}
 
 		/// Politipools `amount` of `citizen`'s LLM.
