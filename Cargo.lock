@@ -3220,6 +3220,7 @@ dependencies = [
  "pallet-randomness-collective-flip",
  "pallet-recovery",
  "pallet-referenda",
+ "pallet-registry",
  "pallet-scheduler",
  "pallet-session",
  "pallet-session-benchmarking",
@@ -5374,6 +5375,25 @@ dependencies = [
  "serde",
  "sp-arithmetic",
  "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-registry"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-collective",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
  "sp-runtime",
  "sp-std",
 ]

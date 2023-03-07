@@ -10,6 +10,7 @@ members = [
 	"frame/elections-phragmen",
 	"frame/identity",
 	"frame/staking",
+	"frame/registry",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates

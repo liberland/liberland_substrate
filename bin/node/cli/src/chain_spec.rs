@@ -261,6 +261,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 			citizenship_registrar: Some(registrar_key),
 			initial_citizens,
 		},
+		company_registry: Default::default(),
 	}
 }
 
@@ -599,6 +600,7 @@ pub fn testnet_genesis(
 		liberland_initializer: LiberlandInitializerConfig {
 			citizenship_registrar, initial_citizens
 		},
+		company_registry: Default::default(),
 	}
 }
 
