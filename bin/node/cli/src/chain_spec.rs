@@ -27,7 +27,7 @@ use kitchensink_runtime::{
 	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
 	AuthorityDiscoveryConfig,BabeConfig, BalancesConfig, Block, CouncilConfig,
 	DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
-	IndicesConfig, MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
+	MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
 	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
 	TechnicalCommitteeConfig, LiberlandInitializerConfig, LLMConfig,
 	CompanyRegistryOfficePalletId, CompanyRegistryOfficeConfig,
@@ -206,7 +206,6 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 	GenesisConfig {
 		system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
 		balances: BalancesConfig { balances: lld_balances, },
-		indices: IndicesConfig { indices: vec![] },
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -254,7 +253,6 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 			pot: 0,
 			max_members: 999,
 		},
-		vesting: Default::default(),
 		assets: pallet_assets::GenesisConfig::default(),
 		transaction_storage: Default::default(),
 		transaction_payment: Default::default(),
@@ -553,7 +551,6 @@ pub fn testnet_genesis(
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
 		},
-		indices: IndicesConfig { indices: vec![] },
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -609,7 +606,6 @@ pub fn testnet_genesis(
 			pot: 0,
 			max_members: 999,
 		},
-		vesting: Default::default(),
 		assets: pallet_assets::GenesisConfig {
 			// This asset is used by the NIS pallet as counterpart currency.
 			assets: vec![(9, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1)],
