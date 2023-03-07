@@ -199,8 +199,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext.execute_with(|| {
 		System::set_block_number(1);
 		setup_citizenships(balances.into_iter().map(|(acc, _)| acc).collect());
-		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 1, 6000));
-		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 2, 6000));
+		LLM::transfer_from_vault(1, 6000).unwrap();
+		LLM::transfer_from_vault(2, 6000).unwrap();
 	});
 	ext
 }

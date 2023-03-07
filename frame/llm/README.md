@@ -72,7 +72,6 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 These calls can be made from any _Signed_ origin.
 
-* `fake_send`: Release LLM from **Vault** to specific account. Development only, to be removed/restricted.
 * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
 * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock period. Affects political rights for an ElectionLock period.
