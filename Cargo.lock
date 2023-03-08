@@ -5111,6 +5111,7 @@ dependencies = [
  "frame-system",
  "liberland-traits",
  "log",
+ "pallet-balances",
  "pallet-identity",
  "pallet-llm",
  "pallet-nfts",

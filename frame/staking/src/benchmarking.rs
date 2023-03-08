@@ -226,7 +226,7 @@ benchmarks! {
 		let controller_lookup = T::Lookup::unlookup(controller.clone());
 		let reward_destination = RewardDestination::Staked;
 		let amount = T::Currency::minimum_balance() * 10u32.into();
-		T::LLInitializer::make_citizen(&controller, 5000u32.into());
+		T::LLInitializer::make_test_citizen(&controller);
 		whitelist_account!(stash);
 	}: _(RawOrigin::Signed(stash.clone()), controller_lookup, amount, reward_destination)
 	verify {
