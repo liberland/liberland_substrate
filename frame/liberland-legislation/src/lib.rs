@@ -39,14 +39,15 @@
 
 pub use pallet::*;
 
-#[cfg(test)]
+mod benchmarking;
 mod mock;
-
-#[cfg(test)]
 mod tests;
+pub mod weights;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use super::*;
 	use frame_support::{pallet_prelude::*, Blake2_128Concat};
 	use frame_system::pallet_prelude::*;
 	use liberland_traits::CitizenshipChecker;
@@ -66,9 +67,12 @@ pub mod pallet {
 		/// Citizenship provider used to check for citizenship and number of citizens (for headcount
 		/// veto).
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
+		type LLInitializer: liberland_traits::LLInitializer<Self::AccountId>;
 
 		type ConstitutionOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		type InternationalTreatyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::event]
@@ -160,15 +164,8 @@ pub mod pallet {
 	/// VetosCount
 	#[pallet::storage]
 	#[pallet::getter(fn vetos_count)]
-	pub(super) type VetosCount<T: Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		u32,
-		Blake2_128Concat,
-		u32,
-		u64,
-		ValueQuery,
-	>;
+	pub(super) type VetosCount<T: Config> =
+		StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, u32, u64, ValueQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -185,7 +182,7 @@ pub mod pallet {
 		///
 		/// Emits `LawAdded`.
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::add_law(law_content.len() as u32))]
 		pub fn add_law(
 			origin: OriginFor<T>,
 			tier: u32,
@@ -195,9 +192,15 @@ pub mod pallet {
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 
 			match tier.into() {
-				Constitution => { T::ConstitutionOrigin::ensure_origin(origin)?; },
-				InternationalTreaty => { T::InternationalTreatyOrigin::ensure_origin(origin)?; },
-				_ => { ensure_root(origin)?; },
+				Constitution => {
+					T::ConstitutionOrigin::ensure_origin(origin)?;
+				},
+				InternationalTreaty => {
+					T::InternationalTreatyOrigin::ensure_origin(origin)?;
+				},
+				_ => {
+					ensure_root(origin)?;
+				},
 			}
 
 			ensure!(!Laws::<T>::contains_key(&tier, &index), Error::<T>::LawAlreadyExists);
@@ -220,7 +223,7 @@ pub mod pallet {
 		///
 		/// Emits `LawRepealed`.
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::repeal_law())]
 		pub fn repeal_law(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			ensure!(tier < InvalidTier as u32, Error::<T>::InvalidTier);
 
@@ -228,11 +231,15 @@ pub mod pallet {
 				Constitution => {
 					T::ConstitutionOrigin::ensure_origin(origin)?;
 					if index == 0 {
-						return Err(Error::<T>::ProtectedLegislation.into());
+						return Err(Error::<T>::ProtectedLegislation.into())
 					}
 				},
-				InternationalTreaty => { T::InternationalTreatyOrigin::ensure_origin(origin)?; },
-				_ => { ensure_root(origin)?; },
+				InternationalTreaty => {
+					T::InternationalTreatyOrigin::ensure_origin(origin)?;
+				},
+				_ => {
+					ensure_root(origin)?;
+				},
 			}
 
 			Laws::<T>::remove(&tier, &index);
@@ -253,7 +260,7 @@ pub mod pallet {
 		///
 		/// Emits `VetoSubmitted`.
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::submit_veto())]
 		pub fn submit_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
 			ensure!(tier != Constitution as u32, Error::<T>::InvalidTier);
@@ -277,7 +284,7 @@ pub mod pallet {
 		///
 		/// Emits `VetoReverted`.
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::revert_veto())]
 		pub fn revert_veto(origin: OriginFor<T>, tier: u32, index: u32) -> DispatchResult {
 			let account = ensure_signed(origin)?;
 			let key = (&tier, &index, &account);
@@ -303,7 +310,7 @@ pub mod pallet {
 		///
 		/// Emits `LawRepealedByHeadcountVeto`.
 		#[pallet::call_index(4)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::trigger_headcount_veto(Citizenship::<T>::citizens_count() as u32))]
 		pub fn trigger_headcount_veto(
 			origin: OriginFor<T>,
 			tier: u32,
@@ -324,12 +331,6 @@ pub mod pallet {
 				_ => return Err(Error::<T>::InvalidTier.into()),
 			};
 
-			// FIXME? Calling `is_citizen` here results in a duplicate reads to
-			// identity of those citizens (as we've already read it once in
-			// citizens_count)
-			// We could optimize it and for ex. return list of all citizens when
-			// counting them, but that would result in a more confusing code.
-			// Let's postpone this optimization until it's confirmed it's needed.
 			let valid_vetos: u64 = Vetos::<T>::iter_key_prefix((tier, index))
 				.filter(|sender| Citizenship::<T>::is_citizen(sender))
 				.count()

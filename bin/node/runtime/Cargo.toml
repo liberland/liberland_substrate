@@ -251,6 +251,7 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-registry/runtime-benchmarks",
 	"pallet-office/runtime-benchmarks",
+	"pallet-liberland-legislation/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 ]
 try-runtime = [

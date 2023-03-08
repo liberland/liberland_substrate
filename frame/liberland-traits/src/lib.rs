@@ -5,9 +5,9 @@ use sp_runtime::DispatchError;
 mod impls;
 pub use impls::*;
 
-pub trait LLInitializer<AccountId, Balance> {
+pub trait LLInitializer<AccountId> {
 	#[cfg(any(test,feature = "runtime-benchmarks"))]
-	fn make_citizen(account: &AccountId, amount: Balance);
+	fn make_test_citizen(account: &AccountId);
 }
 
 /// trait for LLM methods that only interact with LLM pallet

@@ -64,13 +64,16 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{pallet_prelude::*, traits::tokens::nonfungibles_v2::InspectEnumerable};
-	use liberland_traits::LLInitializer;
+	use frame_support::{pallet_prelude::*, traits::Currency, traits::tokens::nonfungibles_v2::InspectEnumerable};
 	use pallet_identity::{Data, IdentityInfo, RegistrarIndex};
 	use sp_runtime::traits::{Hash, StaticLookup};
 	use sp_std::prelude::*;
+	use liberland_traits::LLInitializer;
+	use sp_runtime::traits::Bounded;
 
 	type IdentityPallet<T> = pallet_identity::Pallet<T>;
+	type BalanceOf<T> =
+		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -223,15 +226,24 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> LLInitializer<T::AccountId, T::Balance> for Pallet<T> {
-		#[cfg(feature = "runtime-benchmarks")]
-		fn make_citizen(account: &T::AccountId, amount: T::Balance) {
+	impl<T: Config> LLInitializer<T::AccountId> for Pallet<T> {
+		#[cfg(any(test, feature = "runtime-benchmarks"))]
+		fn make_test_citizen(account: &T::AccountId) {
 			if pallet_identity::Pallet::<T>::registrars().len() == 0 {
 				let registrar: T::AccountId =
 					frame_benchmarking::account("liberland_registrar", 0u32, 0u32);
 				Self::add_registrar(registrar);
 			}
 			let registrar = pallet_identity::Pallet::<T>::registrars()[0].clone().unwrap().account;
+			let amount = match T::CitizenshipMinimumPooledLLM::get().try_into() {
+				Ok(m) => m,
+				_ => panic!("Configured Balance type for pallet_assets can't fit values required by pallet_llm!")
+			};
+
+			if <T as pallet_identity::Config>::Currency::free_balance(&account) == 0u8.into() {
+				let balance = BalanceOf::<T>::max_value() / 2u8.into();
+				<T as pallet_identity::Config>::Currency::make_free_balance_be(&account, balance);
+			}
 
 			Self::give_citizenship(registrar, 0, account.clone());
 			Self::give_llm(account.clone(), amount);

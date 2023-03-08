@@ -715,7 +715,7 @@ pub(crate) fn bond(stash: AccountId, ctrl: AccountId, val: Balance) {
 }
 
 pub(crate) fn bond_validator(stash: AccountId, ctrl: AccountId, val: Balance) {
-	LiberlandInitializer::make_citizen(&ctrl, 5000);
+	LiberlandInitializer::make_test_citizen(&ctrl);
 	bond(stash, ctrl, val);
 	assert_ok!(Staking::validate(RuntimeOrigin::signed(ctrl), ValidatorPrefs::default()));
 	assert_ok!(Session::set_keys(

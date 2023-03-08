@@ -92,7 +92,7 @@ pub fn create_stash_controller<T: Config>(
 		amount,
 		destination,
 	)?;
-	T::LLInitializer::make_citizen(&controller, 5000u32.into());
+	T::LLInitializer::make_test_citizen(&controller);
 	Ok((stash, controller))
 }
 
