@@ -251,6 +251,7 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type WeightInfo = ();
 }
 
 parameter_types! {

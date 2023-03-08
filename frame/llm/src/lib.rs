@@ -126,13 +126,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
-
-#[cfg(test)]
-mod tests;
-
+mod benchmarking;
 pub mod migrations;
+mod mock;
+mod tests;
+pub mod weights;
+pub use weights::WeightInfo;
 
 /// Liberland Merit Pallet
 /*
@@ -144,13 +143,12 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
-
 use frame_support::traits::Currency;
 type Assets<T> = pallet_assets::Pallet<T>;
 type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
-
+type LLMWeightInfo<T> = <T as Config>::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -162,14 +160,13 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
+	use liberland_traits::{CitizenshipChecker, LLM};
 	use scale_info::prelude::vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
-		AccountId32,
+		AccountId32, Permill,
 	};
 	use sp_std::vec::Vec;
-	use liberland_traits::{LLM, CitizenshipChecker};
-	use sp_runtime::Permill;
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -283,6 +280,7 @@ pub mod pallet {
 		type AssetName: Get<Vec<u8>>;
 		type AssetSymbol: Get<Vec<u8>>;
 		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
+		type WeightInfo: WeightInfo;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -335,7 +333,7 @@ pub mod pallet {
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(LLMWeightInfo::<T>::politics_lock())]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			Self::do_politics_lock(sender, amount)?;
@@ -352,7 +350,7 @@ pub mod pallet {
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(LLMWeightInfo::<T>::politics_unlock())]
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
 			// check if we have political locked LLM
@@ -385,7 +383,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(LLMWeightInfo::<T>::treasury_llm_transfer())]
 		pub fn treasury_llm_transfer(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -406,7 +404,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(LLMWeightInfo::<T>::treasury_llm_transfer_to_politipool())]
 		pub fn treasury_llm_transfer_to_politipool(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -427,7 +425,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(4)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(LLMWeightInfo::<T>::send_llm_to_politipool())]
 		pub fn send_llm_to_politipool(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -447,7 +445,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(5)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(LLMWeightInfo::<T>::send_llm())]
 		pub fn send_llm(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -459,11 +457,8 @@ pub mod pallet {
 
 		/// Set senate
 		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
-		pub fn set_senate(
-			origin: OriginFor<T>,
-			senate: Option<T::AccountId>,
-		) -> DispatchResult {
+		#[pallet::weight(LLMWeightInfo::<T>::set_senate())]
+		pub fn set_senate(origin: OriginFor<T>, senate: Option<T::AccountId>) -> DispatchResult {
 			ensure_root(origin)?;
 			Senate::<T>::set(senate);
 			Ok(())
@@ -706,7 +701,8 @@ pub mod pallet {
 			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
 			let eligible_on: Result<T::BlockNumber, _> = eligible_on.try_into();
 
-			let is_eligible = matches!(eligible_on, Ok(eligible_on) if eligible_on <= current_block_number);
+			let is_eligible =
+				matches!(eligible_on, Ok(eligible_on) if eligible_on <= current_block_number);
 			let is_known_good_judgment = reg.judgements.contains(&(0u32, KnownGood));
 
 			is_citizen_field_set && is_eligible && is_known_good_judgment

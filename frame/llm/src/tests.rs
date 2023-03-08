@@ -1,3 +1,4 @@
+#![cfg(test)]
 use crate::{
 	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease,
 	Withdrawlock, WithdrawlockDuration,
@@ -518,6 +519,9 @@ fn ensure_senate_can_be_disabled() {
 	new_test_ext().execute_with(|| {
 		let origin = RuntimeOrigin::signed(123);
 		assert_ok!(LLM::set_senate(RuntimeOrigin::root(), None));
-		assert_noop!(LLM::treasury_llm_transfer_to_politipool(origin, 1, 10), Error::<Test>::NoSenate);
+		assert_noop!(
+			LLM::treasury_llm_transfer_to_politipool(origin, 1, 10),
+			Error::<Test>::NoSenate
+		);
 	});
 }

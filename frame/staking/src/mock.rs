@@ -228,6 +228,7 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type WeightInfo = ();
 }
 
 use pallet_nfts::PalletFeatures;

@@ -1448,6 +1448,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type WeightInfo = ();
 }
 
 impl pallet_nis::Config for Runtime {
@@ -1919,6 +1920,7 @@ mod benches {
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
+		[pallet_llm, LLM]
 	);
 }
 

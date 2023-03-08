@@ -1,16 +1,17 @@
+#![cfg(test)]
 use crate as pallet_llm;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	weights::Weight,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	Permill,
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
+	Permill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -118,6 +119,7 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type WeightInfo = ();
 }
 
 parameter_types! {

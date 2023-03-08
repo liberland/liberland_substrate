@@ -1303,6 +1303,7 @@ mod tests {
 		type AssetName = AssetName;
 		type AssetSymbol = AssetSymbol;
 		type InflationEventInterval = InflationEventInterval;
+		type WeightInfo = ();
 	}
 
 	pub struct TestChangeMembers;
