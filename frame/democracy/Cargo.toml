@@ -37,6 +37,7 @@ pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "h
 pallet-scheduler = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-preimage = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-assets = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+pallet-nfts = { path = "../nfts" }
 
 [features]
 default = ["std"]
@@ -53,6 +54,7 @@ std = [
 	"sp-std/std",
 	"sp-core/std",
 	"pallet-llm/std",
+	"pallet-nfts/std",
 	"pallet-liberland-initializer/std",
 	"liberland-traits/std",
 ]
@@ -62,6 +64,7 @@ runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
+	"pallet-nfts/runtime-benchmarks",
 	"pallet-liberland-initializer/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
 ]

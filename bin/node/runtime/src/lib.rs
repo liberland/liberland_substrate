@@ -1623,11 +1623,13 @@ parameter_types! {
 	pub const IdentityOfficePalletId: PalletId = PalletId(*b"off/iden");
 	pub const CompanyRegistryOfficePalletId: PalletId = PalletId(*b"off/comp");
 	pub const LandRegistryOfficePalletId: PalletId = PalletId(*b"off/land");
+	pub const AssetRegistryOfficePalletId: PalletId = PalletId(*b"off/asse");
 }
 
 type IdentityOfficeInstance = pallet_office::Instance1;
 type CompanyRegistryOfficeInstance = pallet_office::Instance2;
 type LandRegistryOfficeInstance = pallet_office::Instance3;
+type AssetRegistryOfficeInstance = pallet_office::Instance4;
 
 impl pallet_office::Config<IdentityOfficeInstance> for Runtime {
 	type RuntimeCall = RuntimeCall;
@@ -1653,6 +1655,16 @@ impl pallet_office::Config<LandRegistryOfficeInstance> for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = LandRegistryOfficePalletId;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSigned<AccountId>;
+	type CallFilter = NftsCallFilter;
+	type WeightInfo = ();
+}
+
+impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = AssetRegistryOfficePalletId;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AdminOrigin = EnsureSigned<AccountId>;
 	type CallFilter = NftsCallFilter;
@@ -1723,6 +1735,7 @@ construct_runtime!(
 		IdentityOffice: pallet_office::<Instance1>,
 		CompanyRegistryOffice: pallet_office::<Instance2>,
 		LandRegistryOffice: pallet_office::<Instance3>,
+		AssetRegistryOffice: pallet_office::<Instance4>,
 	}
 );
 

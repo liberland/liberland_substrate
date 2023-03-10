@@ -53,6 +53,7 @@ substrate-test-utils = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git
 frame-benchmarking = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 frame-election-provider-support = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 rand_chacha = { version = "0.2" }
+pallet-nfts = { path = "../nfts" }
 
 [features]
 default = ["std"]

@@ -35,6 +35,7 @@ pallet-assets = { branch = "polkadot-v0.9.37", git = "https://github.com/parityt
 pallet-scheduler = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 pallet-liberland-initializer = { path = "../liberland-initializer" }
 pallet-democracy = { path = "../democracy" }
+pallet-nfts = { path = "../nfts" }
 pallet-identity = { path = "../identity" }
 
 [features]
