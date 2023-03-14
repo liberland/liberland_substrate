@@ -99,7 +99,7 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, OfficeCallFilter};
+use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, IdentityCallFilter, RegistryCallFilter, NftsCallFilter};
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -1620,16 +1620,54 @@ impl pallet_registry::Config<CompanyRegistryInstance> for Runtime {
 }
 
 parameter_types! {
-	pub const OfficePalletId: PalletId = PalletId(*b"office  ");
+	pub const IdentityOfficePalletId: PalletId = PalletId(*b"off/iden");
+	pub const CompanyRegistryOfficePalletId: PalletId = PalletId(*b"off/comp");
+	pub const LandRegistryOfficePalletId: PalletId = PalletId(*b"off/land");
+	pub const AssetRegistryOfficePalletId: PalletId = PalletId(*b"off/asse");
 }
 
-impl pallet_office::Config<pallet_office::Instance1> for Runtime {
+type IdentityOfficeInstance = pallet_office::Instance1;
+type CompanyRegistryOfficeInstance = pallet_office::Instance2;
+type LandRegistryOfficeInstance = pallet_office::Instance3;
+type AssetRegistryOfficeInstance = pallet_office::Instance4;
+
+impl pallet_office::Config<IdentityOfficeInstance> for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
-	type PalletId = OfficePalletId;
+	type PalletId = IdentityOfficePalletId;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AdminOrigin = EnsureSigned<AccountId>;
-	type CallFilter = OfficeCallFilter;
+	type CallFilter = IdentityCallFilter;
+	type WeightInfo = ();
+}
+
+impl pallet_office::Config<CompanyRegistryOfficeInstance> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = CompanyRegistryOfficePalletId;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSigned<AccountId>;
+	type CallFilter = RegistryCallFilter;
+	type WeightInfo = ();
+}
+
+impl pallet_office::Config<LandRegistryOfficeInstance> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = LandRegistryOfficePalletId;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSigned<AccountId>;
+	type CallFilter = NftsCallFilter;
+	type WeightInfo = ();
+}
+
+impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = AssetRegistryOfficePalletId;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSigned<AccountId>;
+	type CallFilter = NftsCallFilter;
 	type WeightInfo = ();
 }
 
@@ -1694,7 +1732,10 @@ construct_runtime!(
 		Staking: pallet_staking,
 		Session: pallet_session,
 		CompanyRegistry: pallet_registry::<Instance1>,
-		Office: pallet_office::<Instance1>,
+		IdentityOffice: pallet_office::<Instance1>,
+		CompanyRegistryOffice: pallet_office::<Instance2>,
+		LandRegistryOffice: pallet_office::<Instance3>,
+		AssetRegistryOffice: pallet_office::<Instance4>,
 	}
 );
 
@@ -1874,7 +1915,7 @@ mod benches {
 		[pallet_vesting, Vesting]
 		[pallet_whitelist, Whitelist]
 		[pallet_registry, CompanyRegistry]
-		[pallet_office, Office]
+		[pallet_office, IdentityOffice]
 	);
 }
 

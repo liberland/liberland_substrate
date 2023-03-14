@@ -92,34 +92,157 @@ where
 	scale_info::TypeInfo,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum OfficeCallFilter {
-	Any,
-	Remark,
+pub enum IdentityCallFilter {
+	Admin, // set_fee, set_account_id, set_fields, provide_judgement
+	Judgement, // provide_judgement
 }
 
-impl Default for OfficeCallFilter {
+impl Default for IdentityCallFilter {
 	fn default() -> Self {
-		OfficeCallFilter::Any
+		IdentityCallFilter::Judgement
 	}
 }
 
-impl InstanceFilter<RuntimeCall> for OfficeCallFilter {
+impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
-			OfficeCallFilter::Any => true,
-			OfficeCallFilter::Remark =>
-				matches!(c, RuntimeCall::System(frame_system::Call::remark { .. })),
+			IdentityCallFilter::Admin =>
+				matches!(c,
+					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
+				),
+			IdentityCallFilter::Judgement =>
+				matches!(c,
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
+					RuntimeCall::System(frame_system::Call::remark { .. }) // for benchmarking
+				)
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
 		match (self, o) {
 			(x, y) if x == y => true,
-			(OfficeCallFilter::Any, _) => true,
-			(_, OfficeCallFilter::Any) => false,
+			(IdentityCallFilter::Admin, _) => true,
+			(_, IdentityCallFilter::Admin) => false,
 			_ => false,
 		}
 	}
 }
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum RegistryCallFilter {
+	All, // registry_entity, set_registered_entity, unregister
+	RegisterOnly, // register_entity
+}
+
+impl Default for RegistryCallFilter {
+	fn default() -> Self {
+		RegistryCallFilter::RegisterOnly
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for RegistryCallFilter {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			RegistryCallFilter::All =>
+				matches!(c,
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }) |
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::set_registered_entity { .. }) |
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister { .. })
+				),
+			RegistryCallFilter::RegisterOnly =>
+				matches!(c, RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }))
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(RegistryCallFilter::All, _) => true,
+			(_, RegistryCallFilter::All) => false,
+			_ => false,
+		}
+	}
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum NftsCallFilter {
+	Admin,
+	ManageItems,
+}
+
+impl Default for NftsCallFilter {
+	fn default() -> Self {
+		NftsCallFilter::ManageItems
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for NftsCallFilter {
+	fn filter(&self, c: &RuntimeCall) -> bool {	
+		let matches_manage_items = matches!(c, 
+			RuntimeCall::Nfts(pallet_nfts::Call::mint { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::burn { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::approve_transfer { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::cancel_approval { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::clear_all_transfer_approvals { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::set_attribute { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::clear_attribute { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::approve_item_attributes { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::cancel_item_attributes_approval { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
+		);
+		match self {
+			NftsCallFilter::Admin => matches_manage_items || matches!(c,
+					RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::lock_collection { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::transfer_ownership { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_team { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_properties { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_metadata { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::clear_collection_metadata { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_max_supply { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::update_mint_settings { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_citizenship_required { .. })
+				),
+			NftsCallFilter::ManageItems => matches_manage_items,
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(NftsCallFilter::Admin, _) => true,
+			(_, NftsCallFilter::Admin) => false,
+			_ => false,
+		}
+	}
+}
+
 
 #[cfg(test)]
 mod multiplier_tests {

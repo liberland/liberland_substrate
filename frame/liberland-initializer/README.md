@@ -34,12 +34,17 @@ Add the `LiberlandInitializerConfig` to your `GenesisConfig`:
 	GenesisConfig {
         [...]
 		liberland_initializer: LiberlandInitializerConfig {
-			citizenship_registrar, initial_citizens
+			citizenship_registrar,
+			initial_citizens,
+            land_registrar,
+            asset_registrar,
 		},
     }
 ```
 
 * `citizenship_registrar: Option<AccountId>`: AccountID of account that should be used as an identity registrar for providing citizenship judgements. If `None`, no registrar will be added and citizenships won't be granted to anyone on genesis (but balances will still be respected).
 * `initial_citizens: Vec<(AccountId, Balance, Balance)>`: Vector of `(account: AccountId, total_llm: Balance, politipooled_llm: Balance)` - specifies accounts that should get citizenships together with amount of LLM sent to them and amount of LLM that should be politipooled. Note that politipooled LLM will be taked from the `total_llm`, so `(0, 6000, 5000)` will result in account `0` having `5000` politipooled LLM and `1000` free LLM.
+* `land_registrar: Option<AccountId>`: AccountID of account that should be used as a collection owner for land NFTs.
+* `asset_registrar: Option<AccountId>`: AccountID of account that should be used as a collection owner for asset NFTs.
 
 License: MIT

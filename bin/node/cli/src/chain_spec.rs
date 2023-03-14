@@ -28,7 +28,10 @@ use kitchensink_runtime::{
 	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
 	ImOnlineConfig, IndicesConfig, MaxNominations, SessionConfig,
 	SessionKeys, SocietyConfig, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig, LiberlandInitializerConfig, LLMConfig,
+	TechnicalCommitteeConfig, LiberlandInitializerConfig, LLMConfig, CompanyRegistryOfficePalletId,
+	CompanyRegistryOfficeConfig, LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
+	IdentityOfficePalletId, AssetRegistryOfficeConfig, LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
+	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::{ChainSpecExtension, Properties};
@@ -39,7 +42,7 @@ use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::{Ss58Codec, UncheckedInto}, sr25519, Pair, Public};
 use sp_runtime::{
-	traits::{IdentifyAccount, Verify},
+	traits::{IdentifyAccount, Verify, AccountIdConversion},
 	Perbill,
 };
 
@@ -260,9 +263,13 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		liberland_initializer: LiberlandInitializerConfig {
 			citizenship_registrar: Some(registrar_key),
 			initial_citizens,
+			..Default::default()
 		},
 		company_registry: Default::default(),
-		office: Default::default(),
+		identity_office: Default::default(),
+		company_registry_office: Default::default(),
+		land_registry_office: Default::default(),
+		asset_registry_office: Default::default(),
 	}
 }
 
@@ -352,9 +359,10 @@ fn staging_testnet_config_genesis() -> GenesisConfig {
 		root_key,
 		Some(endowed_accounts),
 		Some(vec![]),
-		registrar_key.into(),
 		citizens_with_balance,
 		Some(technical_committee),
+		None,
+		vec![],
 	)
 }
 
@@ -433,9 +441,10 @@ pub fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Option<Vec<AccountId>>,
 	council_group: Option<Vec<AccountId>>,
-	citizenship_registrar: Option<AccountId>,
 	initial_citizens: Vec<(AccountId, Balance, Balance)>,
 	technical_committee: Option<Vec<AccountId>>,
+	offices_admin: Option<AccountId>,
+	offices_clerks: Vec<AccountId>,
 ) -> GenesisConfig {
 	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
@@ -451,6 +460,8 @@ pub fn testnet_genesis(
 			get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
 			get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 			get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+			LandRegistryOfficePalletId::get().into_account_truncating(),
+			AssetRegistryOfficePalletId::get().into_account_truncating(),
 		]
 	});
 
@@ -528,6 +539,9 @@ pub fn testnet_genesis(
 				.cloned()
 				.collect());
 
+	let identity_clerks = offices_clerks.iter().map(|acc| (acc.clone(), IdentityCallFilter::Judgement)).collect();
+	let registry_clerks = offices_clerks.iter().map(|acc| (acc.clone(), RegistryCallFilter::RegisterOnly)).collect();
+	let nfts_clerks: Vec<(AccountId, NftsCallFilter)> = offices_clerks.iter().map(|acc| (acc.clone(), NftsCallFilter::ManageItems)).collect();
 
 	GenesisConfig {
 		system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
@@ -599,15 +613,39 @@ pub fn testnet_genesis(
 		transaction_payment: Default::default(),
 		llm: Default::default(),
 		liberland_initializer: LiberlandInitializerConfig {
-			citizenship_registrar, initial_citizens
+			citizenship_registrar: Some(IdentityOfficePalletId::get().into_account_truncating()),
+			initial_citizens,
+			land_registrar: Some(LandRegistryOfficePalletId::get().into_account_truncating()),
+			asset_registrar: Some(AssetRegistryOfficePalletId::get().into_account_truncating()),
 		},
-		company_registry: Default::default(),
-		office: Default::default(),
+		company_registry: CompanyRegistryConfig {
+			registries: vec![
+				CompanyRegistryOfficePalletId::get().into_account_truncating()
+			].try_into().unwrap(),
+			entities: vec![],
+		},
+		identity_office: IdentityOfficeConfig {
+			admin: offices_admin.clone(),
+			clerks: identity_clerks,
+		},
+		company_registry_office: CompanyRegistryOfficeConfig {
+			admin: offices_admin.clone(),
+			clerks: registry_clerks,
+		},
+		land_registry_office: LandRegistryOfficeConfig {
+			admin: offices_admin.clone(),
+			clerks: nfts_clerks.clone(),
+		},
+		asset_registry_office: AssetRegistryOfficeConfig {
+			admin: offices_admin,
+			clerks: nfts_clerks,
+		},
 	}
 }
 
 fn development_config_genesis() -> GenesisConfig {
 	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
+	let bob = get_account_id_from_seed::<sr25519::Public>("Bob");
 	let total_llm = 6000 * GRAINS_IN_LLM;
 	let locked_llm = 5000 * GRAINS_IN_LLM;
 	testnet_genesis(
@@ -616,10 +654,9 @@ fn development_config_genesis() -> GenesisConfig {
 		alice.clone(),
 		None,
 		None,
-		Some(alice.clone()),
 		vec![
-			(alice, total_llm, locked_llm),
-			(get_account_id_from_seed::<sr25519::Public>("Bob"), total_llm, locked_llm),
+			(alice.clone(), total_llm, locked_llm),
+			(bob.clone(), total_llm, locked_llm),
 			(get_account_id_from_seed::<sr25519::Public>("Charlie"), total_llm, locked_llm),
 			(AccountId::from_ss58check("5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR").unwrap(), total_llm, locked_llm), // Citizen1
 			(AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(), total_llm, locked_llm), // Dorian
@@ -629,6 +666,8 @@ fn development_config_genesis() -> GenesisConfig {
 			(AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap(), total_llm, locked_llm), // Web3_Test3
 		],
 		None,
+		Some(alice.clone()),
+		vec![bob.clone()],
 	)
 }
 
@@ -650,6 +689,7 @@ pub fn development_config() -> ChainSpec {
 
 fn local_testnet_genesis() -> GenesisConfig {
 	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
+	let bob = get_account_id_from_seed::<sr25519::Public>("Bob");
 	let total_llm = 6000 * GRAINS_IN_LLM;
 	let locked_llm = 5000 * GRAINS_IN_LLM;
 	testnet_genesis(
@@ -658,13 +698,14 @@ fn local_testnet_genesis() -> GenesisConfig {
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,
 		None,
-		Some(alice.clone()),
 		vec![
-			(alice, total_llm, locked_llm),
-			(get_account_id_from_seed::<sr25519::Public>("Bob"), total_llm, locked_llm),
+			(alice.clone(), total_llm, locked_llm),
+			(bob.clone(), total_llm, locked_llm),
 			(get_account_id_from_seed::<sr25519::Public>("Charlie"), total_llm, locked_llm),
 		],
 		None,
+		Some(alice.clone()),
+		vec![bob.clone()],
 	)
 }
 
@@ -698,9 +739,10 @@ pub(crate) mod tests {
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
 			None,
 			None,
-			None,
 			vec![],
 			None,
+			None,
+			vec![],
 		)
 	}
 
