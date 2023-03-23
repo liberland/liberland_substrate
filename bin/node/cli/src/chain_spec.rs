@@ -31,6 +31,7 @@ use kitchensink_runtime::{
 	TechnicalCommitteeConfig, LiberlandInitializerConfig, LLMConfig, CompanyRegistryOfficePalletId,
 	CompanyRegistryOfficeConfig, LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
 	IdentityOfficePalletId, AssetRegistryOfficeConfig, LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
+	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -269,6 +270,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		identity_office: Default::default(),
 		company_registry_office: Default::default(),
 		land_registry_office: Default::default(),
+		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
 	}
 }
@@ -461,6 +463,7 @@ pub fn testnet_genesis(
 			get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 			get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 			LandRegistryOfficePalletId::get().into_account_truncating(),
+			MetaverseLandRegistryOfficePalletId::get().into_account_truncating(),
 			AssetRegistryOfficePalletId::get().into_account_truncating(),
 		]
 	});
@@ -616,6 +619,7 @@ pub fn testnet_genesis(
 			citizenship_registrar: Some(IdentityOfficePalletId::get().into_account_truncating()),
 			initial_citizens,
 			land_registrar: Some(LandRegistryOfficePalletId::get().into_account_truncating()),
+			metaverse_land_registrar: Some(MetaverseLandRegistryOfficePalletId::get().into_account_truncating()),
 			asset_registrar: Some(AssetRegistryOfficePalletId::get().into_account_truncating()),
 		},
 		company_registry: CompanyRegistryConfig {
@@ -633,6 +637,10 @@ pub fn testnet_genesis(
 			clerks: registry_clerks,
 		},
 		land_registry_office: LandRegistryOfficeConfig {
+			admin: offices_admin.clone(),
+			clerks: nfts_clerks.clone(),
+		},
+		metaverse_land_registry_office: MetaverseLandRegistryOfficeConfig {
 			admin: offices_admin.clone(),
 			clerks: nfts_clerks.clone(),
 		},

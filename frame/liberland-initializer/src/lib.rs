@@ -38,6 +38,7 @@
 //! 			citizenship_registrar,
 //! 			initial_citizens,
 //! 			land_registrar,
+//! 			metaverse_land_registrar,
 //! 			asset_registrar,
 //! 		},
 //!     }
@@ -52,6 +53,8 @@
 //!   5000)` will result in account `0` having `5000` politipooled LLM and `1000` free LLM.
 //! * `land_registrar: Option<AccountId>`: AccountID of account that should be used as a collection
 //!   owner for land NFTs.
+//! * `metaverse_land_registrar: Option<AccountId>`: AccountID of account that should be used as a collection
+//!   owner for metaverse land NFTs.
 //! * `asset_registrar: Option<AccountId>`: AccountID of account that should be used as a collection
 //!   owner for asset NFTs.
 //!
@@ -86,6 +89,7 @@ pub mod pallet {
 		pub citizenship_registrar: Option<T::AccountId>,
 		pub initial_citizens: Vec<(T::AccountId, T::Balance, T::Balance)>,
 		pub land_registrar: Option<T::AccountId>,
+		pub metaverse_land_registrar: Option<T::AccountId>,
 		pub asset_registrar: Option<T::AccountId>,
 	}
 
@@ -96,6 +100,7 @@ pub mod pallet {
 				citizenship_registrar: None,
 				initial_citizens: vec![],
 				land_registrar: None,
+				metaverse_land_registrar: None,
 				asset_registrar: None,
 			}
 		}
@@ -121,6 +126,15 @@ pub mod pallet {
 					frame_system::RawOrigin::Root.into(),
 					idx,
 					true,
+				)
+				.unwrap();
+			}
+
+			if let Some(metaverse_land_registrar) = &self.metaverse_land_registrar {
+				pallet_nfts::Pallet::<T>::force_create(
+					frame_system::RawOrigin::Root.into(),
+					T::Lookup::unlookup(metaverse_land_registrar.clone()),
+					collection_config.clone(),
 				)
 				.unwrap();
 			}

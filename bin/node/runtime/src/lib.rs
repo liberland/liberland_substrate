@@ -1623,13 +1623,15 @@ parameter_types! {
 	pub const IdentityOfficePalletId: PalletId = PalletId(*b"off/iden");
 	pub const CompanyRegistryOfficePalletId: PalletId = PalletId(*b"off/comp");
 	pub const LandRegistryOfficePalletId: PalletId = PalletId(*b"off/land");
+	pub const MetaverseLandRegistryOfficePalletId: PalletId = PalletId(*b"off/meta");
 	pub const AssetRegistryOfficePalletId: PalletId = PalletId(*b"off/asse");
 }
 
 type IdentityOfficeInstance = pallet_office::Instance1;
 type CompanyRegistryOfficeInstance = pallet_office::Instance2;
 type LandRegistryOfficeInstance = pallet_office::Instance3;
-type AssetRegistryOfficeInstance = pallet_office::Instance4;
+type MetaverseLandRegistryOfficeInstance = pallet_office::Instance4;
+type AssetRegistryOfficeInstance = pallet_office::Instance5;
 
 impl pallet_office::Config<IdentityOfficeInstance> for Runtime {
 	type RuntimeCall = RuntimeCall;
@@ -1655,6 +1657,16 @@ impl pallet_office::Config<LandRegistryOfficeInstance> for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = LandRegistryOfficePalletId;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSigned<AccountId>;
+	type CallFilter = NftsCallFilter;
+	type WeightInfo = ();
+}
+
+impl pallet_office::Config<MetaverseLandRegistryOfficeInstance> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = MetaverseLandRegistryOfficePalletId;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AdminOrigin = EnsureSigned<AccountId>;
 	type CallFilter = NftsCallFilter;
@@ -1735,7 +1747,8 @@ construct_runtime!(
 		IdentityOffice: pallet_office::<Instance1>,
 		CompanyRegistryOffice: pallet_office::<Instance2>,
 		LandRegistryOffice: pallet_office::<Instance3>,
-		AssetRegistryOffice: pallet_office::<Instance4>,
+		MetaverseLandRegistryOffice: pallet_office::<Instance4>,
+		AssetRegistryOffice: pallet_office::<Instance5>,
 	}
 );
 
