@@ -93,7 +93,7 @@ where
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum IdentityCallFilter {
-	Admin, // set_fee, set_account_id, set_fields, provide_judgement
+	Manager, // set_fee, set_account_id, set_fields, provide_judgement
 	Judgement, // provide_judgement
 }
 
@@ -106,7 +106,7 @@ impl Default for IdentityCallFilter {
 impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
-			IdentityCallFilter::Admin =>
+			IdentityCallFilter::Manager =>
 				matches!(c,
 					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
@@ -123,8 +123,8 @@ impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 	fn is_superset(&self, o: &Self) -> bool {
 		match (self, o) {
 			(x, y) if x == y => true,
-			(IdentityCallFilter::Admin, _) => true,
-			(_, IdentityCallFilter::Admin) => false,
+			(IdentityCallFilter::Manager, _) => true,
+			(_, IdentityCallFilter::Manager) => false,
 			_ => false,
 		}
 	}
@@ -187,7 +187,7 @@ impl InstanceFilter<RuntimeCall> for RegistryCallFilter {
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum NftsCallFilter {
-	Admin,
+	Manager,
 	ManageItems,
 }
 
@@ -215,7 +215,7 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 			RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
 		);
 		match self {
-			NftsCallFilter::Admin => matches_manage_items || matches!(c,
+			NftsCallFilter::Manager => matches_manage_items || matches!(c,
 					RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. }) |
@@ -236,8 +236,8 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 	fn is_superset(&self, o: &Self) -> bool {
 		match (self, o) {
 			(x, y) if x == y => true,
-			(NftsCallFilter::Admin, _) => true,
-			(_, NftsCallFilter::Admin) => false,
+			(NftsCallFilter::Manager, _) => true,
+			(_, NftsCallFilter::Manager) => false,
 			_ => false,
 		}
 	}
