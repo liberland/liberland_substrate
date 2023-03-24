@@ -99,7 +99,7 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, IdentityCallFilter, RegistryCallFilter, NftsCallFilter};
+use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, IdentityCallFilter, RegistryCallFilter, NftsCallFilter, ContainsMember};
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -911,6 +911,7 @@ impl pallet_democracy::Config for Runtime {
 	type Preimages = Preimage;
 	type MaxDeposits = ConstU32<100>;
 	type MaxBlacklisted = ConstU32<100>;
+	type DelegateeFilter = ContainsMember<Runtime, CouncilCollective>;
 }
 
 parameter_types! {

@@ -2,7 +2,7 @@ use crate as pallet_liberland_legislation;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	pallet_prelude::Weight,
-	traits::{EqualPrivilegeOnly, AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	traits::{Everything, EqualPrivilegeOnly, AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
 };
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
@@ -120,6 +120,7 @@ impl pallet_democracy::Config for Test {
 	type Citizenship = LLM;
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
+	type DelegateeFilter = Everything;
 }
 
 impl pallet_balances::Config for Test {

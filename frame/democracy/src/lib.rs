@@ -165,6 +165,7 @@ use frame_support::{
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
 		Bounded, Currency, Get, LockIdentifier, LockableCurrency, QueryPreimage,
 		ReservableCurrency, StorePreimage,
+		Contains,
 	},
 	pallet_prelude::{MaxEncodedLen, TypeInfo},
 	BoundedVec,
@@ -221,7 +222,8 @@ pub enum RawOrigin<Balance> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::{DispatchResult, *};
-	use frame_support::{BoundedVec};use frame_support::pallet_prelude::*;
+	use frame_support::{BoundedVec};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_core::H256;
 
@@ -354,6 +356,7 @@ pub mod pallet {
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
 		type LLInitializer: LLInitializer<Self::AccountId, BalanceOf<Self>>;
+		type DelegateeFilter: Contains<Self::AccountId>;
 	}
 
 	/// The number of (public) proposals that have been made so far.
@@ -551,6 +554,8 @@ pub mod pallet {
 		TooMany,
 		/// Voting period too low
 		VotingPeriodLow,
+		/// Invalid delegate target
+		InvalidDelegateTarget,
 	}
 
 	#[pallet::hooks]
@@ -1377,6 +1382,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<u32, DispatchError> {
 		ensure!(who != target, Error::<T>::Nonsense);
 		ensure!(balance <= T::LLM::get_llm_politics(&who), Error::<T>::InsufficientFunds);
+		ensure!(T::DelegateeFilter::contains(&target), Error::<T>::InvalidDelegateTarget);
 
 		let votes = VotingOf::<T>::try_mutate(&who, |voting| -> Result<u32, DispatchError> {
 			let mut old = Voting::Delegating {
