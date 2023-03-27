@@ -55,15 +55,23 @@
 //! * `LLMPolitics`: amount of LLM each account has allocated into politics
 //! * `Withdrawlock`: block number until which account can't do another `politics_unlock`
 //! * `Electionlock`: block number until which account can't participate in politics directly
+//! * `Citizens`: number of valid citizens
 //!
 //! ## Runtime config
 //!
 //! * `RuntimeEvent`: Event type to use.
-//! * `AssetId`: Type of AssetId.
 //! * `TotalSupply`: Total amount of LLM to be created on genesis. That's all LLM that will ever
 //!   exit. It will be stored in **Vault**.
 //! * `PreReleasedAmount`: Amount of LLM that should be released (a.k.a. transferred from **Vault**
 //!   to **Treasury**) on genesis.
+//! * `CitizenshipMinimumPooledLLM`: Minimum amount of pooled LLM for valid citizens.
+//! * `UnlockFactor`: How much to unlock on politics_unlock
+//! * `AssetId`: LLM AssetId.
+//! * `AssetName`: LLM Asset name.
+//! * `AssetSymbol`: LLM Asset symbol.
+//! * `InflationEventInterval`: How often should 90% of vault be released to trasury.
+//! * `OnLLMPoliticsUnlock`: Handler for unlocks - for example to remove votes and delegeations in
+//!   democracy.
 //!
 //! ## Genesis Config
 //!
@@ -81,6 +89,7 @@
 //! These calls can be made from any _Signed_ origin.
 //!
 //! * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
+//! * `send_llm`: Transfer LLM to another account's politipool.
 //! * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 //! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
 //!   period. Affects political rights for an ElectionLock period.
@@ -90,6 +99,8 @@
 //!
 //! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called
 //!   by Senate.
+//! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account's politipool. Can
+//!   only be called by Senate.
 //!
 //! ### Public functions
 //!
@@ -144,13 +155,11 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
-
 use frame_support::traits::Currency;
 type Assets<T> = pallet_assets::Pallet<T>;
 type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
-
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -158,18 +167,17 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{EnsureOrigin, fungibles::Mutate},
+		traits::{fungibles::Mutate, EnsureOrigin},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
+	use liberland_traits::{CitizenshipChecker, OnLLMPoliticsUnlock, LLM};
 	use scale_info::prelude::vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
-		AccountId32,
+		AccountId32, Permill,
 	};
 	use sp_std::vec::Vec;
-	use liberland_traits::{LLM, CitizenshipChecker};
-	use sp_runtime::Permill;
 
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -278,6 +286,7 @@ pub mod pallet {
 		type AssetName: Get<Vec<u8>>;
 		type AssetSymbol: Get<Vec<u8>>;
 		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
+		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -366,6 +375,7 @@ pub mod pallet {
 			Withdrawlock::<T>::insert(&sender, withdraw_lock_end);
 			Electionlock::<T>::insert(&sender, election_lock_end);
 
+			T::OnLLMPoliticsUnlock::on_llm_politics_unlock(&sender)?;
 			Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(sender, ten_percent));
 			Ok(())
 		}
@@ -681,7 +691,8 @@ pub mod pallet {
 			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
 			let eligible_on: Result<T::BlockNumber, _> = eligible_on.try_into();
 
-			let is_eligible = matches!(eligible_on, Ok(eligible_on) if eligible_on <= current_block_number);
+			let is_eligible =
+				matches!(eligible_on, Ok(eligible_on) if eligible_on <= current_block_number);
 			let is_known_good_judgment = reg.judgements.contains(&(0u32, KnownGood));
 
 			is_citizen_field_set && is_eligible && is_known_good_judgment

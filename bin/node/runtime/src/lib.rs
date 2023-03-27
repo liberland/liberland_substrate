@@ -99,7 +99,11 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, IdentityCallFilter, RegistryCallFilter, NftsCallFilter, ContainsMember};
+use impls::{
+	Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId,
+	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
+	ContainsMember
+};
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -846,7 +850,7 @@ impl pallet_referenda::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
+	pub const LaunchPeriod: BlockNumber = 1 * MINUTES;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 7 * DAYS;
 	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
@@ -1475,6 +1479,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
 	type SenateOrigin = HalfSenateOrigin;
+	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 }
 
 impl pallet_nis::Config for Runtime {

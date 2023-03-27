@@ -251,6 +251,8 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type OnLLMPoliticsUnlock = ();
+	type SenateOrigin = EnsureRoot<u64>;
 }
 
 parameter_types! {

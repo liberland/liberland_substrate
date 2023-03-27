@@ -1,16 +1,16 @@
 use crate as pallet_llm;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	weights::Weight,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	Permill,
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
+	Permill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -118,6 +118,8 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type OnLLMPoliticsUnlock = ();
+	type SenateOrigin = EnsureRoot<u64>;
 }
 
 parameter_types! {
@@ -190,7 +192,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_llm::GenesisConfig::<Test> {
 		unpooling_withdrawlock_duration: 180,
 		unpooling_electionlock_duration: 190,
-		senate: Some(777),
 		_phantom: Default::default(),
 	}
 	.assimilate_storage(&mut t)

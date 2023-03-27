@@ -3,7 +3,7 @@ use crate::{
 	Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
-use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
+use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::OnInitialize};
 use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -189,9 +189,9 @@ fn politics_unlock_releases_dot8742_percent() {
 fn only_approved_accounts_can_call_treasury_llm_transfer() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
-		let approved = RuntimeOrigin::signed(777);
+		let approved = RuntimeOrigin::root();
 
-		assert_noop!(LLM::treasury_llm_transfer(unapproved, 1, 1), Error::<Test>::InvalidAccount);
+		assert_noop!(LLM::treasury_llm_transfer(unapproved, 1, 1), BadOrigin);
 		assert_ok!(LLM::treasury_llm_transfer(approved, 1, 1));
 	});
 }
@@ -199,7 +199,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer() {
 #[test]
 fn treasury_llm_transfer_calls_assets() {
 	new_test_ext().execute_with(|| {
-		let approved = RuntimeOrigin::signed(777);
+		let approved = RuntimeOrigin::root();
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		assert_ok!(LLM::treasury_llm_transfer(approved.clone(), 1, 10));
@@ -214,12 +214,9 @@ fn treasury_llm_transfer_calls_assets() {
 fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
-		let approved = RuntimeOrigin::signed(777);
+		let approved = RuntimeOrigin::root();
 
-		assert_noop!(
-			LLM::treasury_llm_transfer_to_politipool(unapproved, 1, 1),
-			Error::<Test>::InvalidAccount
-		);
+		assert_noop!(LLM::treasury_llm_transfer_to_politipool(unapproved, 1, 1), BadOrigin);
 		assert_ok!(LLM::treasury_llm_transfer_to_politipool(approved, 1, 1));
 	});
 }
@@ -227,7 +224,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
 #[test]
 fn treasury_llm_transfer_to_politipool_locks_funds() {
 	new_test_ext().execute_with(|| {
-		let approved = RuntimeOrigin::signed(777);
+		let approved = RuntimeOrigin::root();
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		let politipool = LLM::get_llm_politipool_account();
@@ -502,22 +499,4 @@ fn correctly_tracks_number_of_citizens() {
 		Identity::kill_identity(root, 2).unwrap();
 		assert_eq!(LLM::citizens_count(), 3);
 	})
-}
-
-#[test]
-fn ensure_senate_can_be_changed() {
-	new_test_ext().execute_with(|| {
-		let origin = RuntimeOrigin::signed(123);
-		assert_ok!(LLM::set_senate(RuntimeOrigin::root(), Some(123)));
-		assert_ok!(LLM::treasury_llm_transfer_to_politipool(origin, 1, 10));
-	});
-}
-
-#[test]
-fn ensure_senate_can_be_disabled() {
-	new_test_ext().execute_with(|| {
-		let origin = RuntimeOrigin::signed(123);
-		assert_ok!(LLM::set_senate(RuntimeOrigin::root(), None));
-		assert_noop!(LLM::treasury_llm_transfer_to_politipool(origin, 1, 10), Error::<Test>::NoSenate);
-	});
 }

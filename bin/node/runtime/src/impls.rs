@@ -19,6 +19,7 @@
 
 use crate::{
 	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance, RuntimeCall,
+	Democracy, RuntimeOrigin,
 };
 use codec::{Encode, Decode};
 use frame_support::{
@@ -30,7 +31,7 @@ use frame_support::{
 		Contains,
 	},
 };
-use sp_runtime::traits::Morph;
+use sp_runtime::{AccountId32, DispatchError, traits::Morph};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
@@ -258,6 +259,27 @@ where
 	}
 }
 
+use pallet_democracy::Voting;
+pub struct OnLLMPoliticsUnlock;
+impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
+{
+	fn on_llm_politics_unlock(account_id: &AccountId32) -> Result<(), DispatchError> {
+		let origin = RuntimeOrigin::signed(account_id.clone());
+
+		match Democracy::voting_of(account_id.clone()) {
+			Voting::Direct { votes, .. } => {
+				for (index, _) in votes {
+					Democracy::remove_vote(origin.clone(), index)?;
+				}
+			},
+			Voting::Delegating { .. } => {
+				Democracy::undelegate(origin.clone()).map_err(|e| e.error)?;
+			}
+		};
+
+		Ok(())
+	}
+}
 
 #[cfg(test)]
 mod multiplier_tests {

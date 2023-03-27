@@ -3181,6 +3181,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "liberland-traits",
  "log",
  "node-primitives",
  "pallet-asset-tx-payment",
