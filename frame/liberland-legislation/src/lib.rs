@@ -69,6 +69,7 @@ pub mod pallet {
 
 		type ConstitutionOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		type InternationalTreatyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		type LowTierDeleteOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	#[pallet::event]
@@ -107,8 +108,8 @@ pub mod pallet {
 	pub enum LegislationTier {
 		Constitution = 0,
 		InternationalTreaty,
-		Tier2, // FIXME proper names
-		Tier3,
+		Law,
+		Tier3, // FIXME proper names
 		Tier4,
 		Tier5,
 		Decision,
@@ -121,7 +122,7 @@ pub mod pallet {
 	impl From<u32> for LegislationTier {
 		fn from(v: u32) -> Self {
 			static VALUES: [LegislationTier; 7] =
-				[Constitution, InternationalTreaty, Tier2, Tier3, Tier4, Tier5, Decision];
+				[Constitution, InternationalTreaty, Law, Tier3, Tier4, Tier5, Decision];
 			for i in VALUES {
 				if v == i as u32 {
 					return i
@@ -232,7 +233,8 @@ pub mod pallet {
 					}
 				},
 				InternationalTreaty => { T::InternationalTreatyOrigin::ensure_origin(origin)?; },
-				_ => { ensure_root(origin)?; },
+				Law => { ensure_root(origin)?; },
+				_ => { T::LowTierDeleteOrigin::ensure_origin(origin)?; },
 			}
 
 			Laws::<T>::remove(&tier, &index);
@@ -316,7 +318,7 @@ pub mod pallet {
 			let citizens = Citizenship::<T>::citizens_count();
 			let required = match tier.into() {
 				InternationalTreaty => citizens / 2 + 1,
-				Tier2 => citizens / 2 + 1,
+				Law => citizens / 2 + 1,
 				Tier3 => citizens / 2 + 1,
 				Tier4 => citizens / 2 + 1,
 				Tier5 => citizens / 2 + 1,

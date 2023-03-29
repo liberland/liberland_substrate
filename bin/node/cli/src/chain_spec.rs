@@ -24,14 +24,18 @@
 
 use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
-	constants::currency::*, constants::llm::*, wasm_binary_unwrap, AuthorityDiscoveryConfig,BabeConfig,
-	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-	ImOnlineConfig, IndicesConfig, MaxNominations, SessionConfig,
-	SessionKeys, SocietyConfig, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig, LiberlandInitializerConfig, LLMConfig, CompanyRegistryOfficePalletId,
-	CompanyRegistryOfficeConfig, LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
-	IdentityOfficePalletId, AssetRegistryOfficeConfig, LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
+	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
+	AuthorityDiscoveryConfig,BabeConfig, BalancesConfig, Block, CouncilConfig,
+	DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
+	IndicesConfig, MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
+	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
+	TechnicalCommitteeConfig, LiberlandInitializerConfig, LLMConfig,
+	CompanyRegistryOfficePalletId, CompanyRegistryOfficeConfig,
+	LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
+	IdentityOfficePalletId, AssetRegistryOfficeConfig,
+	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
+	SenateConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -168,7 +172,6 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 	let web3_test3 = AccountId::from_ss58check("5CkYuVwK6bRjjaqam76VkPG4xXb1TsmbSQzWrMwaFnQ1nu6z").unwrap();
 	let citizen1 = AccountId::from_ss58check("5G3uZjEpvNAQ6U2eUjnMb66B8g6d8wyB68x6CfkRPNcno8eR").unwrap();
 	let registrar_key = AccountId::from_ss58check("5FEaknBkiCR2C436Nz213MwkymeXVJEKE5T7SmUoUSg5rX7X").unwrap(); // a.k.a. ministry of interior
-	let senate_multisig = AccountId::from_ss58check("13P9Z2QVN57yFbsfeQA93Ynadt6NCXzsJyP5FiXZ4mRKn1rN").unwrap();
 	let k = AccountId::from_ss58check("5CDpDTBeDdg2KtpgG9WGS92fN4HxpMrSpwtbS6xXke8qU8Xr").unwrap();
 	let d = AccountId::from_ss58check("5DRthHxYaE4tzBMFg4HEkzMTnox7yXceKyirJvGRPmFMorkx").unwrap();
 	let m = AccountId::from_ss58check("16cmYqp8953CMh3GoFabGcHZMMGehYyxnNADDUAbFH2Tf5tB").unwrap();
@@ -193,7 +196,6 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		(ll_node_1_stash, 100 * DOLLARS),
 		(ll_node_2_stash, 100 * DOLLARS),
 		(ll_node_3_stash, 100 * DOLLARS),
-		(senate_multisig.clone(), llm_to_lld_10_to_1(kitchensink_runtime::PRERELEASELLM::get())),
 	];
 
 	lld_balances.extend(
@@ -232,6 +234,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		democracy: DemocracyConfig::default(),
 		elections: ElectionsConfig::default(),
 		council: CouncilConfig::default(),
+		senate: SenateConfig::default(),
 		technical_committee: TechnicalCommitteeConfig {
 			members: vec![d, m],
 			phantom: Default::default(),
@@ -258,7 +261,6 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		llm: LLMConfig {
 			unpooling_withdrawlock_duration: 3600*24*30,
 			unpooling_electionlock_duration: 3600*24*30,
-			senate: Some(senate_multisig),
 			_phantom: Default::default(),
 		},
 		liberland_initializer: LiberlandInitializerConfig {
@@ -583,6 +585,7 @@ pub fn testnet_genesis(
 				.collect(),
 		},
 		council: CouncilConfig::default(),
+		senate: SenateConfig::default(),
 		technical_committee: TechnicalCommitteeConfig {
 			members: technical_committee,
 			phantom: Default::default(),
