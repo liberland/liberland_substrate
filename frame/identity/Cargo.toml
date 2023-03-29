@@ -16,17 +16,17 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
 enumflags2 = { version = "0.7.4" }
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
-frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
-frame-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
-frame-system = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
-sp-io = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
-sp-runtime = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
-sp-std = { version = "5.0.0", default-features = false, branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
+frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+frame-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+frame-system = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+sp-io = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+sp-runtime = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+sp-std = { version = "5.0.0", default-features = false, branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 liberland-traits = { default-features = false, path = "../liberland-traits" }
 
 [dev-dependencies]
-pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
-sp-core = { version = "7.0.0", branch = "polkadot-v0.9.34", git = "https://github.com/paritytech/substrate" }
+pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+sp-core = { version = "7.0.0", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
 
 [features]
 default = ["std"]

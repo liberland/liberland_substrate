@@ -2,7 +2,7 @@ use crate as pallet_liberland_legislation;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	pallet_prelude::Weight,
-	traits::{EqualPrivilegeOnly, AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	traits::{Everything, EqualPrivilegeOnly, AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
 };
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
@@ -10,6 +10,7 @@ use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
 	Perbill,
+	Permill,
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
@@ -26,6 +27,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		Balances: pallet_balances,
+		Nfts: pallet_nfts,
 		Assets: pallet_assets,
 		Identity: pallet_identity,
 		LiberlandLegislation: pallet_liberland_legislation,
@@ -65,7 +67,9 @@ impl system::Config for Test {
 
 parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights =
-		frame_system::limits::BlockWeights::simple_max(frame_support::weights::constants::WEIGHT_PER_SECOND.set_proof_size(u64::MAX));
+		frame_system::limits::BlockWeights::simple_max(
+			Weight::from_parts(frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
+		);
 }
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
@@ -116,6 +120,7 @@ impl pallet_democracy::Config for Test {
 	type Citizenship = LLM;
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
+	type DelegateeFilter = Everything;
 }
 
 impl pallet_balances::Config for Test {
@@ -128,6 +133,37 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = System;
 	type WeightInfo = ();
+}
+
+use pallet_nfts::PalletFeatures;
+parameter_types! {
+	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+}
+impl pallet_nfts::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type CollectionId = u32;
+	type ItemId = u32;
+	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type Locker = ();
+	type CollectionDeposit = ConstU64<2>;
+	type ItemDeposit = ConstU64<1>;
+	type MetadataDepositBase = ConstU64<1>;
+	type AttributeDepositBase = ConstU64<1>;
+	type DepositPerByte = ConstU64<1>;
+	type StringLimit = ConstU32<50>;
+	type KeyLimit = ConstU32<50>;
+	type ValueLimit = ConstU32<50>;
+	type ApprovalsLimit = ConstU32<10>;
+	type ItemAttributesApprovalsLimit = ConstU32<2>;
+	type MaxTips = ConstU32<10>;
+	type MaxDeadlineDuration = ConstU64<10000>;
+	type Features = Features;
+	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = ();
+	type Citizenship = ();
 }
 
 impl pallet_assets::Config for Test {
@@ -146,6 +182,7 @@ impl pallet_assets::Config for Test {
 	type Freezer = ();
 	type WeightInfo = ();
 	type Extra = ();
+	type CallbackHandle = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -185,14 +222,25 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const CitizenshipMinimum: u64 = 5000u64;
+	pub const UnlockFactor: Permill = Permill::from_percent(10);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
+	pub const InflationEventInterval: u64 = 1000;
 }
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
-	type AssetId = u32;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
+	type InflationEventInterval = InflationEventInterval;
+	type OnLLMPoliticsUnlock = ();
+	type SenateOrigin = EnsureRoot<u64>;
 }
 
 impl pallet_liberland_legislation::Config for Test {
@@ -200,6 +248,7 @@ impl pallet_liberland_legislation::Config for Test {
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
 	type InternationalTreatyOrigin = EnsureSignedBy<One, u64>;
+	type LowTierDeleteOrigin = EnsureRoot<u64>;
 }
 
 // Build genesis storage according to the mock runtime.
@@ -209,6 +258,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_liberland_initializer::GenesisConfig::<Test> {
 		citizenship_registrar: Some(0),
 		initial_citizens: vec![(1, 5000, 5000), (2, 5000, 5000), (3, 5000, 5000)],
+		..Default::default()
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

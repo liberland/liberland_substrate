@@ -18,17 +18,26 @@
 //! Some configurable implementations as associated type for the substrate runtime.
 
 use crate::{
-	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance,
+	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance, RuntimeCall,
+	Democracy, RuntimeOrigin,
 };
+use codec::{Encode, Decode};
 use frame_support::{
+	pallet_prelude::{PhantomData, Get, MaxEncodedLen},
+	RuntimeDebug,
 	traits::{
 		fungibles::{Balanced, CreditOf},
-		Currency, OnUnbalanced,
+		Currency, OnUnbalanced, InstanceFilter,
+		Contains,
 	},
 };
+use sp_runtime::{AccountId32, DispatchError, traits::Morph};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 pub struct Author;
 impl OnUnbalanced<NegativeImbalance> for Author {
@@ -55,6 +64,220 @@ pub struct OnStakerSlashNoop;
 impl OnStakerSlash<AccountId, Balance> for OnStakerSlashNoop {
 	fn on_slash(_stash: &AccountId, _slashed_active: Balance, _slashed_ongoing: &BTreeMap<EraIndex, Balance>) {
 		// do nothing
+	}
+}
+
+pub struct ToAccountId<T, R> {
+	_phantom: PhantomData<T>,
+	_phantom2: PhantomData<R>,
+}
+
+impl<T, R> Morph<T> for ToAccountId<T, R>
+where
+	R: Get<AccountId>,
+{
+	type Outcome = AccountId;
+
+	fn morph(_: T) -> Self::Outcome {
+		R::get()
+	}
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum IdentityCallFilter {
+	Manager, // set_fee, set_account_id, set_fields, provide_judgement
+	Judgement, // provide_judgement
+}
+
+impl Default for IdentityCallFilter {
+	fn default() -> Self {
+		IdentityCallFilter::Judgement
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			IdentityCallFilter::Manager =>
+				matches!(c,
+					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
+				),
+			IdentityCallFilter::Judgement =>
+				matches!(c,
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
+					RuntimeCall::System(frame_system::Call::remark { .. }) // for benchmarking
+				)
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(IdentityCallFilter::Manager, _) => true,
+			(_, IdentityCallFilter::Manager) => false,
+			_ => false,
+		}
+	}
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum RegistryCallFilter {
+	All, // registry_entity, set_registered_entity, unregister
+	RegisterOnly, // register_entity
+}
+
+impl Default for RegistryCallFilter {
+	fn default() -> Self {
+		RegistryCallFilter::RegisterOnly
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for RegistryCallFilter {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			RegistryCallFilter::All =>
+				matches!(c,
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }) |
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::set_registered_entity { .. }) |
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister { .. })
+				),
+			RegistryCallFilter::RegisterOnly =>
+				matches!(c, RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }))
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(RegistryCallFilter::All, _) => true,
+			(_, RegistryCallFilter::All) => false,
+			_ => false,
+		}
+	}
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum NftsCallFilter {
+	Manager,
+	ManageItems,
+}
+
+impl Default for NftsCallFilter {
+	fn default() -> Self {
+		NftsCallFilter::ManageItems
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for NftsCallFilter {
+	fn filter(&self, c: &RuntimeCall) -> bool {	
+		let matches_manage_items = matches!(c, 
+			RuntimeCall::Nfts(pallet_nfts::Call::mint { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::burn { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::approve_transfer { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::cancel_approval { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::clear_all_transfer_approvals { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::set_attribute { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::clear_attribute { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::approve_item_attributes { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::cancel_item_attributes_approval { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. }) |
+			RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
+		);
+		match self {
+			NftsCallFilter::Manager => matches_manage_items || matches!(c,
+					RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::lock_collection { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::transfer_ownership { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_team { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_properties { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_metadata { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::clear_collection_metadata { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_max_supply { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::update_mint_settings { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_citizenship_required { .. })
+				),
+			NftsCallFilter::ManageItems => matches_manage_items,
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(NftsCallFilter::Manager, _) => true,
+			(_, NftsCallFilter::Manager) => false,
+			_ => false,
+		}
+	}
+}
+
+pub struct ContainsMember<T, I>(
+    PhantomData<(T, I)>,
+);
+
+impl<T, I> Contains<T::AccountId> for ContainsMember<T, I>
+where
+	T: frame_system::Config + pallet_collective::Config<I>,
+	I: 'static
+{
+	fn contains(a: &T::AccountId) -> bool {
+		pallet_collective::Pallet::<T, I>::members().contains(a)
+	}
+}
+
+use pallet_democracy::Voting;
+pub struct OnLLMPoliticsUnlock;
+impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
+{
+	fn on_llm_politics_unlock(account_id: &AccountId32) -> Result<(), DispatchError> {
+		let origin = RuntimeOrigin::signed(account_id.clone());
+
+		match Democracy::voting_of(account_id.clone()) {
+			Voting::Direct { votes, .. } => {
+				for (index, _) in votes {
+					Democracy::remove_vote(origin.clone(), index)?;
+				}
+			},
+			Voting::Delegating { .. } => {
+				Democracy::undelegate(origin.clone()).map_err(|e| e.error)?;
+			}
+		};
+
+		Ok(())
 	}
 }
 

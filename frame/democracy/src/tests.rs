@@ -28,7 +28,7 @@ use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstU32, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-		GenesisBuild, OnInitialize, SortedMembers, StorePreimage,
+		GenesisBuild, OnInitialize, SortedMembers, StorePreimage, Everything,
 	},
 	weights::Weight,
 };
@@ -38,6 +38,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BadOrigin, BlakeTwo256, IdentityLookup},
 	Perbill,
+	Permill,
 };
 
 mod cancellation;
@@ -66,6 +67,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Nfts: pallet_nfts,
 		Preimage: pallet_preimage,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Democracy: pallet_democracy::{Pallet, Call, Origin<T>, Storage, Config<T>, Event<T>},
@@ -91,6 +93,7 @@ impl pallet_assets::Config for Test {
 	type Freezer = ();
 	type WeightInfo = ();
 	type Extra = ();
+	type CallbackHandle = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -107,7 +110,9 @@ impl Contains<RuntimeCall> for BaseFilter {
 
 parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights =
-		frame_system::limits::BlockWeights::simple_max(frame_support::weights::constants::WEIGHT_PER_SECOND.set_proof_size(u64::MAX));
+		frame_system::limits::BlockWeights::simple_max(
+			Weight::from_parts(frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
+		);
 }
 impl frame_system::Config for Test {
 	type BaseCallFilter = BaseFilter;
@@ -172,6 +177,36 @@ impl pallet_balances::Config for Test {
 	type AccountStore = System;
 	type WeightInfo = ();
 }
+use pallet_nfts::PalletFeatures;
+parameter_types! {
+	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+}
+impl pallet_nfts::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type CollectionId = u32;
+	type ItemId = u32;
+	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
+	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type Locker = ();
+	type CollectionDeposit = ConstU64<2>;
+	type ItemDeposit = ConstU64<1>;
+	type MetadataDepositBase = ConstU64<1>;
+	type AttributeDepositBase = ConstU64<1>;
+	type DepositPerByte = ConstU64<1>;
+	type StringLimit = ConstU32<50>;
+	type KeyLimit = ConstU32<50>;
+	type ValueLimit = ConstU32<50>;
+	type ApprovalsLimit = ConstU32<10>;
+	type ItemAttributesApprovalsLimit = ConstU32<2>;
+	type MaxTips = ConstU32<10>;
+	type MaxDeadlineDuration = ConstU64<10000>;
+	type Features = Features;
+	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = ();
+	type Citizenship = ();
+}
 parameter_types! {
 	pub static PreimageByteDeposit: u64 = 0;
 	pub static InstantAllowed: bool = false;
@@ -196,8 +231,12 @@ impl SortedMembers<u64> for OneToFive {
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
-	pub const ASSETID: u32 = 0u32;
 	pub const CitizenshipMinimum: u64 = 5000u64;
+	pub const UnlockFactor: Permill = Permill::from_percent(10);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
+	pub const InflationEventInterval: u64 = 1000;
 }
 
 impl pallet_liberland_initializer::Config for Test {}
@@ -207,7 +246,13 @@ impl pallet_llm::Config for Test {
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
-	type AssetId = u32;
+	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
+	type InflationEventInterval = InflationEventInterval;
+	type OnLLMPoliticsUnlock = ();
+	type SenateOrigin = EnsureRoot<u64>;
 }
 
 parameter_types! {
@@ -266,6 +311,7 @@ impl Config for Test {
 	type Citizenship = LLM;
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
+	type DelegateeFilter = Everything;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -284,6 +330,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_liberland_initializer::GenesisConfig::<Test> {
 		citizenship_registrar: Some(0),
 		initial_citizens: llm_balances,
+		..Default::default()
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

@@ -2,6 +2,7 @@ use crate as pallet_llm;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
@@ -9,6 +10,7 @@ use sp_core::{ConstU16, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
+	Permill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -43,6 +45,7 @@ impl pallet_assets::Config for Test {
 	type Freezer = ();
 	type WeightInfo = ();
 	type Extra = ();
+	type CallbackHandle = ();
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -51,7 +54,9 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights =
-		frame_system::limits::BlockWeights::simple_max(frame_support::weights::constants::WEIGHT_PER_SECOND.set_proof_size(u64::MAX));
+		frame_system::limits::BlockWeights::simple_max(
+			Weight::from_parts(frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
+		);
 }
 impl frame_system::Config for Test {
 	type AccountData = pallet_balances::AccountData<u64>;
@@ -96,14 +101,25 @@ parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
 	pub const PRERELEASELLM: u64 = 7000000u64;
 	pub const CitizenshipMinimum: u64 = 5000u64;
+	pub const UnlockFactor: Permill = Permill::from_parts(8742);
+	pub const AssetId: u32 = 1;
+	pub const AssetName: &'static str = "LiberTest Merit";
+	pub const AssetSymbol: &'static str = "LTM";
+	pub const InflationEventInterval: u64 = 1000;
 }
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
-	type AssetId = u32;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
+	type UnlockFactor = UnlockFactor;
+	type AssetId = AssetId;
+	type AssetName = AssetName;
+	type AssetSymbol = AssetSymbol;
+	type InflationEventInterval = InflationEventInterval;
+	type OnLLMPoliticsUnlock = ();
+	type SenateOrigin = EnsureRoot<u64>;
 }
 
 parameter_types! {
@@ -139,9 +155,10 @@ pub fn setup_citizenships(accounts: Vec<u64>) {
 		Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
 		Data::Raw(vec![0].try_into().unwrap()),
 	);
+	let citizen = (Data::Raw(b"citizen".to_vec().try_into().unwrap()), data.clone());
 	let info = IdentityInfo {
-		citizen: data.clone(),
-		additional: vec![eligible_on].try_into().unwrap(),
+		twitter: data.clone(),
+		additional: vec![eligible_on, citizen].try_into().unwrap(),
 		display: data.clone(),
 		legal: data.clone(),
 		web: data.clone(),
@@ -183,8 +200,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	ext.execute_with(|| {
 		System::set_block_number(1);
 		setup_citizenships(balances.into_iter().map(|(acc, _)| acc).collect());
-		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 1, 6000));
-		frame_support::assert_ok!(LLM::fake_send(RuntimeOrigin::signed(1), 2, 6000));
+		LLM::transfer_from_vault(1, 6000).unwrap();
+		LLM::transfer_from_vault(2, 6000).unwrap();
 	});
 	ext
 }

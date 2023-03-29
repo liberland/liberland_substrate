@@ -1,14 +1,12 @@
 use crate::{
-	mock::*,
-	Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease, Withdrawlock,
-	WithdrawlockDuration,
+	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease,
+	Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
-use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
-use hex_literal::hex;
+use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::OnInitialize};
+use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
-use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -191,11 +189,9 @@ fn politics_unlock_releases_dot8742_percent() {
 fn only_approved_accounts_can_call_treasury_llm_transfer() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(),
-		));
+		let approved = RuntimeOrigin::root();
 
-		assert_noop!(LLM::treasury_llm_transfer(unapproved, 1, 1), Error::<Test>::InvalidAccount);
+		assert_noop!(LLM::treasury_llm_transfer(unapproved, 1, 1), BadOrigin);
 		assert_ok!(LLM::treasury_llm_transfer(approved, 1, 1));
 	});
 }
@@ -203,9 +199,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer() {
 #[test]
 fn treasury_llm_transfer_calls_assets() {
 	new_test_ext().execute_with(|| {
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["695ca7a60cc0e33f1671d61e3d56cfa77bea9db7f60459501c892555a7eeaf94"].into(),
-		));
+		let approved = RuntimeOrigin::root();
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		assert_ok!(LLM::treasury_llm_transfer(approved.clone(), 1, 10));
@@ -220,14 +214,9 @@ fn treasury_llm_transfer_calls_assets() {
 fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
 	new_test_ext().execute_with(|| {
 		let unapproved = RuntimeOrigin::signed(1);
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
-		));
+		let approved = RuntimeOrigin::root();
 
-		assert_noop!(
-			LLM::treasury_llm_transfer_to_politipool(unapproved, 1, 1),
-			Error::<Test>::InvalidAccount
-		);
+		assert_noop!(LLM::treasury_llm_transfer_to_politipool(unapproved, 1, 1), BadOrigin);
 		assert_ok!(LLM::treasury_llm_transfer_to_politipool(approved, 1, 1));
 	});
 }
@@ -235,9 +224,7 @@ fn only_approved_accounts_can_call_treasury_llm_transfer_to_politipool() {
 #[test]
 fn treasury_llm_transfer_to_politipool_locks_funds() {
 	new_test_ext().execute_with(|| {
-		let approved = RuntimeOrigin::signed(LLM::account_id32_to_accountid(
-			hex!["91c7c2ea588cc63a45a540d4f2dbbae7967d415d0daec3d6a5a0641e969c635c"].into(),
-		));
+		let approved = RuntimeOrigin::root();
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		let politipool = LLM::get_llm_politipool_account();
@@ -348,17 +335,20 @@ fn get_llm_politics_works() {
 
 fn setup_identity(id: u64, citizen: bool, eligible_on: Option<Vec<u8>>, judgement: bool) {
 	let data = Data::Raw(b"1".to_vec().try_into().unwrap());
-	let additional = match eligible_on {
-		Some(n) => vec![(
+	let mut additional = vec![];
+	if let Some(n) = eligible_on {
+		additional.push((
 			Data::Raw(b"eligible_on".to_vec().try_into().unwrap()),
 			Data::Raw(n.try_into().unwrap()),
-		)],
-		None => vec![],
+		));
 	};
 
-	let citizen = if citizen { data.clone() } else { Data::None };
+	if citizen {
+		additional.push((Data::Raw(b"citizen".to_vec().try_into().unwrap()), data.clone()));
+	};
+
 	let info = IdentityInfo {
-		citizen,
+		twitter: data.clone(),
 		additional: additional.try_into().unwrap(),
 		display: data.clone(),
 		legal: data.clone(),
@@ -390,7 +380,7 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		assert_noop!(LLM::ensure_politics_allowed(&10), Error::<Test>::NonCitizen);
 
 		// judgment OK, eligible_on ok, but missing citizen field
-		setup_identity(11, false, Some(vec![0]), true);
+		setup_identity(11, false, Some(vec![0u8]), true);
 		assert_noop!(LLM::ensure_politics_allowed(&11), Error::<Test>::NonCitizen);
 
 		// judgment OK, citizen ok, but missing eligible_on
@@ -404,7 +394,7 @@ fn ensure_politics_allowed_fails_for_noncitizen() {
 		System::set_block_number(999_999); // still future
 		assert_noop!(LLM::ensure_politics_allowed(&13), Error::<Test>::NonCitizen);
 
-		assert_ok!(LLM::fake_send(RuntimeOrigin::signed(13), 13, 5000));
+		assert_ok!(LLM::transfer_from_vault(13, 5000));
 		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(13), 5000));
 		System::set_block_number(1_000_000); // and its ok
 		assert_ok!(LLM::ensure_politics_allowed(&13));
@@ -508,6 +498,5 @@ fn correctly_tracks_number_of_citizens() {
 		// kill identity strips citizenship
 		Identity::kill_identity(root, 2).unwrap();
 		assert_eq!(LLM::citizens_count(), 3);
-
 	})
 }

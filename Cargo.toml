@@ -8,7 +8,11 @@ members = [
 	"frame/liberland-legislation",
 	"frame/democracy",
 	"frame/elections-phragmen",
-	"frame/identity"
+	"frame/identity",
+	"frame/staking",
+	"frame/registry",
+	"frame/nfts",
+	"frame/office",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
@@ -91,3 +95,5 @@ node-cli = { path = "bin/node/cli" }
 pallet-democracy = { path = "frame/democracy" }
 pallet-identity = { path = "frame/identity" }
 pallet-elections-phragmen = { path = "frame/elections-phragmen" }
+pallet-staking = { path = "frame/staking" }
+pallet-nfts = { path = "frame/nfts" }
