@@ -239,6 +239,8 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type OnLLMPoliticsUnlock = ();
+	type SenateOrigin = EnsureRoot<u64>;
 }
 
 impl pallet_liberland_legislation::Config for Test {
@@ -246,6 +248,7 @@ impl pallet_liberland_legislation::Config for Test {
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
 	type InternationalTreatyOrigin = EnsureSignedBy<One, u64>;
+	type LowTierDeleteOrigin = EnsureRoot<u64>;
 }
 
 // Build genesis storage according to the mock runtime.

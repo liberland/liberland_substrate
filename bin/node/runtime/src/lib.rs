@@ -99,7 +99,11 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-use impls::{Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId, IdentityCallFilter, RegistryCallFilter, NftsCallFilter, ContainsMember};
+use impls::{
+	Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId,
+	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
+	ContainsMember
+};
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -1475,6 +1479,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
 	type SenateOrigin = HalfSenateOrigin;
+	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 }
 
 impl pallet_nis::Config for Runtime {

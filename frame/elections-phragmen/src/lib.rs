@@ -1303,6 +1303,8 @@ mod tests {
 		type AssetName = AssetName;
 		type AssetSymbol = AssetSymbol;
 		type InflationEventInterval = InflationEventInterval;
+		type OnLLMPoliticsUnlock = ();
+		type SenateOrigin = EnsureRoot<u64>;
 	}
 
 	pub struct TestChangeMembers;

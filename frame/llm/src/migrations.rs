@@ -91,7 +91,6 @@ pub mod ltm_to_lkn {
 	#[cfg(feature = "try-runtime")]
 	use sp_std::vec::Vec;
 
-
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
@@ -114,10 +113,12 @@ pub mod ltm_to_lkn {
 				name.into(),
 				symbol.into(),
 				12,
-				false).unwrap();
+				false,
+			)
+			.unwrap();
 
 			log::warn!(target: TARGET, "Reset metadata of LLM asset!");
-				
+
 			weight
 		}
 

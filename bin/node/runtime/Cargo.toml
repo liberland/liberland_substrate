@@ -107,6 +107,7 @@ pallet-identity = { version = "4.0.0-dev", default-features = false, path = "../
 pallet-llm = { path = "../../../frame/llm", version = "0.1.0", default-features = false }
 pallet-liberland-legislation = { version = "0.1.0", path = "../../../frame/liberland-legislation", default-features = false }
 pallet-liberland-initializer = { version = "0.1.0", path = "../../../frame/liberland-initializer", default-features = false }
+liberland-traits = { path = "../../../frame/liberland-traits", default-features = false }
 pallet-registry = { path = "../../../frame/registry", default-features = false }
 pallet-office = { path = "../../../frame/office", default-features = false }
 

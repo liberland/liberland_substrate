@@ -34,6 +34,13 @@ where
     }
 }
 
+/// Noop implementation of CitizenshipChecker - mostly to be used in tests
+impl<T> OnLLMPoliticsUnlock<T> for () {
+	fn on_llm_politics_unlock(_account: &T) -> Result<(), DispatchError> {
+        Ok(())
+    }
+}
+
 /// Noop implementation of CitizenshipChecker - mostly to be used in tests to
 /// prevent circular dependencies
 impl<T> CitizenshipChecker<T> for () {

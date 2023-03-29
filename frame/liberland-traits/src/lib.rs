@@ -10,6 +10,10 @@ pub trait LLInitializer<AccountId, Balance> {
 	fn make_citizen(account: &AccountId, amount: Balance);
 }
 
+pub trait OnLLMPoliticsUnlock<AccountId> {
+	fn on_llm_politics_unlock(account: &AccountId) -> Result<(), DispatchError>;
+}
+
 /// trait for LLM methods that only interact with LLM pallet
 pub trait LLM<AccountId, Balance> {
 	/// check if sender has any LLM politipooled

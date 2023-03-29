@@ -413,6 +413,7 @@ pub mod pallet {
 	///
 	/// TWOX-NOTE: SAFE as `AccountId`s are crypto hashes anyway.
 	#[pallet::storage]
+	#[pallet::getter(fn voting_of)]
 	pub type VotingOf<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
@@ -988,7 +989,6 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::remove_vote(T::MaxVotes::get()))]
 		pub fn remove_vote(origin: OriginFor<T>, index: ReferendumIndex) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::Citizenship::ensure_politics_allowed(&who)?;
 			Self::try_remove_vote(&who, index, UnvoteScope::Any)
 		}
 
