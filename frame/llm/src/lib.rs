@@ -89,7 +89,7 @@
 //! #### Restricted
 //!
 //! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called
-//!   by selected accounts and Senate.
+//!   by Senate.
 //!
 //! ### Public functions
 //!
@@ -158,7 +158,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::fungibles::Mutate,
+		traits::{EnsureOrigin, fungibles::Mutate},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -217,10 +217,6 @@ pub mod pallet {
 	#[pallet::getter(fn citizens)]
 	pub(super) type Citizens<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn senate)]
-	pub(super) type Senate<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		/// duration, in seconds, for which additional unlocks should be locked
@@ -229,8 +225,6 @@ pub mod pallet {
 		/// duration, in seconds, for which politics rights should be suspended
 		/// after `politics_unlock`
 		pub unpooling_electionlock_duration: T::BlockNumber,
-		/// Senate account
-		pub senate: Option<T::AccountId>,
 		pub _phantom: PhantomData<T>,
 	}
 
@@ -240,7 +234,6 @@ pub mod pallet {
 			Self {
 				unpooling_withdrawlock_duration: WithdrawlockDurationOnEmpty::<T>::get(),
 				unpooling_electionlock_duration: ElectionlockDurationOnEmpty::<T>::get(),
-				senate: None,
 				_phantom: Default::default(),
 			}
 		}
@@ -254,7 +247,6 @@ pub mod pallet {
 
 			WithdrawlockDuration::<T>::put(&self.unpooling_withdrawlock_duration);
 			ElectionlockDuration::<T>::put(&self.unpooling_electionlock_duration);
-			Senate::<T>::set(self.senate.clone());
 		}
 	}
 
@@ -278,6 +270,9 @@ pub mod pallet {
 
 		/// How much funds unlock on politics_unlock
 		type UnlockFactor: Get<Permill>;
+
+		/// Senate origin - can transfer from treasury
+		type SenateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
 		type AssetName: Get<Vec<u8>>;
@@ -305,8 +300,6 @@ pub mod pallet {
 		NonCitizen,
 		/// Temporary locked after unpooling LLM
 		Locked,
-		/// Senate not set
-		NoSenate,
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -378,7 +371,7 @@ pub mod pallet {
 		}
 
 		/// Transfer LLM from treasury to specified account. Can only be called
-		/// by selected accounts and Senate.
+		/// by Senate.
 		///
 		/// - `to_account`: Account to transfer to.
 		/// - `amount`: Amount to transfer.
@@ -391,10 +384,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
-			let sender: T::AccountId = ensure_signed(origin)?;
-			let senate = Self::senate().ok_or(Error::<T>::NoSenate)?;
-			ensure!(sender == senate, Error::<T>::InvalidAccount);
-
+			T::SenateOrigin::ensure_origin(origin)?;
 			Self::transfer_from_treasury(to_account, amount)
 		}
 
@@ -412,9 +402,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: T::Balance,
 		) -> DispatchResult {
-			let sender: T::AccountId = ensure_signed(origin)?;
-			let senate = Self::senate().ok_or(Error::<T>::NoSenate)?;
-			ensure!(sender == senate, Error::<T>::InvalidAccount);
+			T::SenateOrigin::ensure_origin(origin)?;
 
 			Self::transfer_from_treasury(to_account.clone(), amount)?;
 			Self::do_politics_lock(to_account, amount)
@@ -455,18 +443,6 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			Self::transfer(sender, to_account, amount)
-		}
-
-		/// Set senate
-		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
-		pub fn set_senate(
-			origin: OriginFor<T>,
-			senate: Option<T::AccountId>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-			Senate::<T>::set(senate);
-			Ok(())
 		}
 	}
 
@@ -550,7 +526,6 @@ pub mod pallet {
 			Self::transfer(treasury, to_account, amount)
 		}
 
-		// could do like a OriginFor<SenateGroup> or X(Tech) committee
 		fn create_llm(origin: OriginFor<T>) -> DispatchResult {
 			let assetid = Self::llm_id();
 			let treasury = Self::get_llm_treasury_account();

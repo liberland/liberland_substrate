@@ -888,12 +888,18 @@ impl pallet_democracy::Config for Runtime {
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
 	type CancellationOrigin =
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+		EitherOf<
+			HalfSenateOrigin,
+			pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>
+		>;
 	// To cancel a proposal before it has been passed, the technical committee must be unanimous or
 	// Root must agree.
 	type CancelProposalOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
+		EitherOf<
+			HalfSenateOrigin,
+			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
+		>
 	>;
 	type BlacklistOrigin = EnsureRoot<AccountId>;
 	// Any single technical committee member may veto a coming council proposal, however they can
@@ -915,7 +921,7 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-	pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES; // DAYS
+	pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES; // FIXME
 	pub const CouncilMaxProposals: u32 = 100;
 	pub const CouncilMaxMembers: u32 = 100;
 }
@@ -991,6 +997,24 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
 	type MotionDuration = TechnicalMotionDuration;
 	type MaxProposals = TechnicalMaxProposals;
 	type MaxMembers = TechnicalMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const SenateMotionDuration: BlockNumber = 7 * DAYS; // FIXME - verify this value
+	pub const SenateMaxProposals: u32 = 100;
+	pub const SenateMaxMembers: u32 = 100;
+}
+type SenateCollective = pallet_collective::Instance3;
+type HalfSenateOrigin = pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
+impl pallet_collective::Config<SenateCollective> for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type Proposal = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type MotionDuration = SenateMotionDuration;
+	type MaxProposals = SenateMaxProposals;
+	type MaxMembers = SenateMaxMembers;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
@@ -1439,6 +1463,7 @@ parameter_types! {
 
 impl pallet_liberland_initializer::Config for Runtime {}
 
+
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type TotalSupply = TOTALLLM; //70 million in hardcap
@@ -1449,6 +1474,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type SenateOrigin = HalfSenateOrigin;
 }
 
 impl pallet_nis::Config for Runtime {
@@ -1569,6 +1595,10 @@ impl pallet_liberland_legislation::Config for Runtime {
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
 	type InternationalTreatyOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>; // FIXME what ratio?
+	type LowTierDeleteOrigin = EitherOf<
+		EnsureRoot<AccountId>,
+		HalfSenateOrigin
+	>;
 }
 
 impl pallet_state_trie_migration::Config for Runtime {
@@ -1690,66 +1720,67 @@ construct_runtime!(
 		NodeBlock = node_primitives::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system,
-		Utility: pallet_utility,
-		Babe: pallet_babe,
-		Timestamp: pallet_timestamp,
+		System: frame_system = 0,
+		Utility: pallet_utility = 1,
+		Babe: pallet_babe = 2,
+		Timestamp: pallet_timestamp = 3,
 		// Authorship must be before session in order to note author in the correct session and era
 		// for im-online and staking.
-		Authorship: pallet_authorship,
-		Indices: pallet_indices,
-		Balances: pallet_balances,
-		TransactionPayment: pallet_transaction_payment,
-		AssetTxPayment: pallet_asset_tx_payment,
-		ElectionProviderMultiPhase: pallet_election_provider_multi_phase,
-		Democracy: pallet_democracy,
-		Council: pallet_collective::<Instance1>,
-		TechnicalCommittee: pallet_collective::<Instance2>,
-		TechnicalMembership: pallet_membership::<Instance1>,
-		Grandpa: pallet_grandpa,
-		Treasury: pallet_treasury,
-		Contracts: pallet_contracts,
-		Sudo: pallet_sudo,
-		ImOnline: pallet_im_online,
-		AuthorityDiscovery: pallet_authority_discovery,
-		Offences: pallet_offences,
-		Historical: pallet_session_historical::{Pallet},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip,
-		Identity: pallet_identity,
-		Society: pallet_society,
-		Recovery: pallet_recovery,
-		Vesting: pallet_vesting,
-		Scheduler: pallet_scheduler,
-		Preimage: pallet_preimage,
-		Proxy: pallet_proxy,
-		Multisig: pallet_multisig,
-		Bounties: pallet_bounties,
-		Tips: pallet_tips,
-		Assets: pallet_assets,
-		Mmr: pallet_mmr,
-		Lottery: pallet_lottery,
-		Nis: pallet_nis,
-		Uniques: pallet_uniques,
-		Nfts: pallet_nfts,
-		TransactionStorage: pallet_transaction_storage,
-		VoterList: pallet_bags_list::<Instance1>,
-		StateTrieMigration: pallet_state_trie_migration,
-		ChildBounties: pallet_child_bounties,
-		Referenda: pallet_referenda,
-		ConvictionVoting: pallet_conviction_voting,
-		Whitelist: pallet_whitelist,
-		LLM: pallet_llm, //{Pallet, Storage, Event<T>}, // LLM Pallet
-		LiberlandLegislation: pallet_liberland_legislation,
-		LiberlandInitializer: pallet_liberland_initializer,
-		Elections: pallet_elections_phragmen,
-		Staking: pallet_staking,
-		Session: pallet_session,
-		CompanyRegistry: pallet_registry::<Instance1>,
-		IdentityOffice: pallet_office::<Instance1>,
-		CompanyRegistryOffice: pallet_office::<Instance2>,
-		LandRegistryOffice: pallet_office::<Instance3>,
-		MetaverseLandRegistryOffice: pallet_office::<Instance4>,
-		AssetRegistryOffice: pallet_office::<Instance5>,
+		Authorship: pallet_authorship = 4,
+		Indices: pallet_indices = 5,
+		Balances: pallet_balances = 6,
+		TransactionPayment: pallet_transaction_payment = 7,
+		AssetTxPayment: pallet_asset_tx_payment = 8,
+		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 9,
+		Democracy: pallet_democracy = 10,
+		Council: pallet_collective::<Instance1> = 11,
+		TechnicalCommittee: pallet_collective::<Instance2> = 12,
+		TechnicalMembership: pallet_membership::<Instance1> = 13,
+		Grandpa: pallet_grandpa = 14,
+		Treasury: pallet_treasury = 15,
+		Contracts: pallet_contracts = 16,
+		Sudo: pallet_sudo = 17,
+		ImOnline: pallet_im_online = 18,
+		AuthorityDiscovery: pallet_authority_discovery = 19,
+		Offences: pallet_offences = 20,
+		Historical: pallet_session_historical::{Pallet} = 21,
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip = 22,
+		Identity: pallet_identity = 23,
+		Society: pallet_society = 24,
+		Recovery: pallet_recovery = 25,
+		Vesting: pallet_vesting = 26,
+		Scheduler: pallet_scheduler = 27,
+		Preimage: pallet_preimage = 28,
+		Proxy: pallet_proxy = 29,
+		Multisig: pallet_multisig = 30,
+		Bounties: pallet_bounties = 31,
+		Tips: pallet_tips = 32,
+		Assets: pallet_assets = 33,
+		Mmr: pallet_mmr = 34,
+		Lottery: pallet_lottery = 35,
+		Nis: pallet_nis = 36,
+		Uniques: pallet_uniques = 37,
+		Nfts: pallet_nfts = 38,
+		TransactionStorage: pallet_transaction_storage = 39,
+		VoterList: pallet_bags_list::<Instance1> = 40,
+		StateTrieMigration: pallet_state_trie_migration = 41,
+		ChildBounties: pallet_child_bounties = 42,
+		Referenda: pallet_referenda = 43,
+		ConvictionVoting: pallet_conviction_voting = 44,
+		Whitelist: pallet_whitelist = 45,
+		LLM: pallet_llm = 46,
+		LiberlandLegislation: pallet_liberland_legislation = 47,
+		LiberlandInitializer: pallet_liberland_initializer = 48,
+		Elections: pallet_elections_phragmen = 49,
+		Staking: pallet_staking = 50,
+		Session: pallet_session = 51,
+		CompanyRegistry: pallet_registry::<Instance1> = 52,
+		IdentityOffice: pallet_office::<Instance1> = 53,
+		CompanyRegistryOffice: pallet_office::<Instance2> = 54,
+		LandRegistryOffice: pallet_office::<Instance3> = 55,
+		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
+		AssetRegistryOffice: pallet_office::<Instance5> = 57,
+		Senate: pallet_collective::<Instance3> = 58,
 	}
 );
 
