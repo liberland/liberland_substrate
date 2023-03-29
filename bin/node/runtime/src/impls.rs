@@ -27,6 +27,7 @@ use frame_support::{
 	traits::{
 		fungibles::{Balanced, CreditOf},
 		Currency, OnUnbalanced, InstanceFilter,
+		Contains,
 	},
 };
 use sp_runtime::traits::Morph;
@@ -240,6 +241,20 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 			(_, NftsCallFilter::Manager) => false,
 			_ => false,
 		}
+	}
+}
+
+pub struct ContainsMember<T, I>(
+    PhantomData<(T, I)>,
+);
+
+impl<T, I> Contains<T::AccountId> for ContainsMember<T, I>
+where
+	T: frame_system::Config + pallet_collective::Config<I>,
+	I: 'static
+{
+	fn contains(a: &T::AccountId) -> bool {
+		pallet_collective::Pallet::<T, I>::members().contains(a)
 	}
 }
 

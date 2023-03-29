@@ -28,7 +28,7 @@ use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstU32, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-		GenesisBuild, OnInitialize, SortedMembers, StorePreimage,
+		GenesisBuild, OnInitialize, SortedMembers, StorePreimage, Everything,
 	},
 	weights::Weight,
 };
@@ -309,6 +309,7 @@ impl Config for Test {
 	type Citizenship = LLM;
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
+	type DelegateeFilter = Everything;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
