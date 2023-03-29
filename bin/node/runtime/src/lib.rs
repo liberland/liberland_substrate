@@ -850,7 +850,7 @@ impl pallet_referenda::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 1 * MINUTES;
+	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 7 * DAYS;
 	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
