@@ -1295,6 +1295,7 @@ mod tests {
 
 	impl pallet_llm::Config for Test {
 		type RuntimeEvent = RuntimeEvent;
+		type Currency = Balances;
 		type TotalSupply = TOTALLLM;
 		type PreReleasedAmount = PRERELEASELLM;
 		type CitizenshipMinimumPooledLLM = CitizenshipMinimum;

@@ -110,6 +110,7 @@ parameter_types! {
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
@@ -185,7 +186,8 @@ pub fn setup_citizenships(accounts: Vec<u64>) {
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50)];
+	let treasury = LLM::get_llm_treasury_account();
+	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (treasury, 100)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();
