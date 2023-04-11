@@ -1,12 +1,16 @@
-use crate::{mock::*, Error, Laws, VetosCount, LegislationTier::*};
+#![cfg(test)]
+use crate::{mock::*, Error, Laws, LegislationTier::*, VetosCount};
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, BoundedVec};
 use pallet_democracy::Tally;
 use sp_core::ConstU32;
 
 fn constitution_origin(ayes: u64, nays: u64, aye_voters: u64, nay_voters: u64) -> RuntimeOrigin {
-	pallet_democracy::Origin::<Test>::Referendum(Tally { ayes, nays, aye_voters, nay_voters, turnout: ayes + nays }, 1000)
-		.try_into()
-		.unwrap()
+	pallet_democracy::Origin::<Test>::Referendum(
+		Tally { ayes, nays, aye_voters, nay_voters, turnout: ayes + nays },
+		1000,
+	)
+	.try_into()
+	.unwrap()
 }
 
 #[test]

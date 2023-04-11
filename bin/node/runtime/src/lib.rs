@@ -1415,6 +1415,8 @@ impl pallet_liberland_legislation::Config for Runtime {
 		EnsureRoot<AccountId>,
 		HalfSenateOrigin
 	>;
+	type LLInitializer = LiberlandInitializer;
+	type WeightInfo = pallet_liberland_legislation::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1745,6 +1747,7 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
+		[pallet_liberland_legislation, LiberlandLegislation]
 	);
 }
 

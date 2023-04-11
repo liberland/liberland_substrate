@@ -355,8 +355,8 @@ pub mod pallet {
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
-		type LLInitializer: LLInitializer<Self::AccountId, BalanceOf<Self>>;
 		type DelegateeFilter: Contains<Self::AccountId>;
+		type LLInitializer: LLInitializer<Self::AccountId>;
 	}
 
 	/// The number of (public) proposals that have been made so far.
