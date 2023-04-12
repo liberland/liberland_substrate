@@ -643,7 +643,6 @@ pub mod pallet {
 			SlashRewardFraction::<T>::put(self.slash_reward_fraction);
 			MinNominatorBond::<T>::put(self.min_nominator_bond);
 			MinValidatorBond::<T>::put(self.min_validator_bond);
-			CitizenshipRequired::<T>::put(self.citizenship_required);
 			if let Some(x) = self.max_validator_count {
 				MaxValidatorsCount::<T>::put(x);
 			}
@@ -685,6 +684,9 @@ pub mod pallet {
 						<T::ElectionProvider as ElectionProviderBase>::MaxWinners::get()
 				);
 			}
+
+			// Only enforced after setting initial stakers
+			CitizenshipRequired::<T>::put(self.citizenship_required);
 
 			// all voters are reported to the `VoterList`.
 			assert_eq!(
