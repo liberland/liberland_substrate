@@ -35,7 +35,7 @@ use kitchensink_runtime::{
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig,
+	SenateConfig, LLM,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -93,6 +93,185 @@ fn llm_to_lld_10_to_1(grains: Balance) -> Balance {
 	let full_merits = grains / GRAINS_IN_LLM;
 	let full_dollars = full_merits / 10;
 	full_dollars * DOLLARS
+}
+
+fn mainnet_properties() -> Properties {
+	let mut p = Properties::new();
+	p.insert("prefix".into(), 56.into());
+	p.insert("network".into(), "Liberland".into());
+	p.insert("displayName".into(), "Liberland".into());
+	p.insert("tokenSymbol".into(), "LLD".into());
+	p.insert("tokenDecimals".into(), 12.into());
+	p.insert("standardAccount".into(), "*25519".into());
+	p.insert("ss58Format".into(), 56.into());
+	p.insert("website".into(), "https://liberland.org".into());
+	p
+}
+
+/// Mainnet config.
+pub fn mainnet_config() -> ChainSpec {
+	ChainSpec::from_genesis(
+		"Liberland",
+		"liberland",
+		ChainType::Live,
+		mainnet_config_genesis,
+		vec![
+			// bootnodes - will fill manually after deployment
+		],
+		None,
+		None,
+		None,
+		Some(mainnet_properties()),
+		Default::default(),
+	)
+}
+
+fn mainnet_config_genesis() -> GenesisConfig {
+	/* SPECIAL ACCOUNTS */
+	let root_key = AccountId::from_ss58check("5D4sqhzUGCSvc6F7Zzx9yh7p5WBbbQfnPxCrirCY2zJ7GDCN").unwrap();
+	let pallet_llm_treasury = LLM::get_llm_treasury_account();
+
+	/* VALIDATORS */
+	let ll_node_1_stash = AccountId::from_ss58check("5DSHUefdTo4d3Vx6byPWgML4fWqXHuAnk7ef9GAouj64aS9x").unwrap();
+	let ll_node_2_stash = AccountId::from_ss58check("5DtUsuyUY2n2ynewXr87YWzhaKJSamEpvPk7JVqG2aZ6LFVi").unwrap();
+	let ll_node_3_stash = AccountId::from_ss58check("5CocsjjhgXxP3hsAVYUVnXhgMoqAyc88cadNGEfsN8kKC3F4").unwrap();
+
+	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId, Balance)> = vec![
+		// Liberland Node 1
+		(
+			ll_node_1_stash.clone(),
+			AccountId::from_ss58check("5CiMmBnHTW35RcKyJMYqrRMVDe8Y6Mf6hzpzk2utKrdde7gs").unwrap(),
+			array_bytes::hex2array_unchecked("5d11d5d17c244d168fac762b90e2c39c41bcefcc3bf6288e6013cc674037197d").unchecked_into(),
+			array_bytes::hex2array_unchecked("5aed4d6b0ce522eb2518ed419f36422fc6362bcea0d7d332ea5a35e2ff281f02").unchecked_into(),
+			array_bytes::hex2array_unchecked("0055834ba0620d0c0ce5423f6a8390c61de301fb062386f75dd0c9868994413c").unchecked_into(),
+			array_bytes::hex2array_unchecked("a4f0cb3347af88484c8562ca1c54033570cd0d7120b3b397a9f5293456af0224").unchecked_into(),
+			100 * DOLLARS,
+		),
+		// Liberland Node 2
+		(
+			ll_node_2_stash.clone(),
+			AccountId::from_ss58check("5CqKDVeckgYUYMbReMLk4QDH84j5b8BdrKRbdGoWj4TQRoK6").unwrap(),
+			array_bytes::hex2array_unchecked("ffdc5d43e1e81e7d52792c97c4c3215ad1a4ea521a1c2f2547bab7a8da5af39b").unchecked_into(),
+			array_bytes::hex2array_unchecked("aacaf7c0ec104e521da89ae89d8a8470cf3d5df790eca8ac2cd79adaa0a10437").unchecked_into(),
+			array_bytes::hex2array_unchecked("7cd34fbd733ded8d1621c37908c81e8370c54f8f62e26f2dfb98afd4ef527618").unchecked_into(),
+			array_bytes::hex2array_unchecked("d470b835d4850eb5af4cd9bb53042528c285f116de20999c144453e305b43066").unchecked_into(),
+			100 * DOLLARS,
+		),
+		// Liberland Node 3
+		(
+			ll_node_3_stash.clone(),
+			AccountId::from_ss58check("5CDFgvbqyKrmZE9FQpGfdAHZbCR5oRN9h1b77BZo4TPSosfw").unwrap(),
+			array_bytes::hex2array_unchecked("851ef2ecc2a98b8ae3f646850f2ef0e8fc79081e774ba354f628510d7ff1fc04").unchecked_into(),
+			array_bytes::hex2array_unchecked("aa1522c673f5d32fddc45e8266d52485756ac8abc4a573f7bfd3825fa015c412").unchecked_into(),
+			array_bytes::hex2array_unchecked("72000e800c811cb2550ad1d52fef1d9bb43acc885e4bafc047d4f2dd47ffb678").unchecked_into(),
+			array_bytes::hex2array_unchecked("3ea7f46f4cd43407c75753a061521a55aa2a0ae82a30ba06fe30d99576841a0d").unchecked_into(),
+			100 * DOLLARS,
+		),
+	];
+
+    /* CITIZENSHIPS AND BALANCES */
+
+	let lld_balances = vec![
+		(pallet_llm_treasury, 1_330_000 * DOLLARS),
+		(ll_node_1_stash,           100 * DOLLARS),
+		(ll_node_2_stash,           100 * DOLLARS),
+		(ll_node_3_stash,           100 * DOLLARS),
+		(
+			AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(),
+			17_300 * DOLLARS
+		),
+		(
+			AccountId::from_ss58check("5FEaknBkiCR2C436Nz213MwkymeXVJEKE5T7SmUoUSg5rX7X").unwrap(),
+			50_000 * DOLLARS
+		),
+		(
+			AccountId::from_ss58check("5CDpDTBeDdg2KtpgG9WGS92fN4HxpMrSpwtbS6xXke8qU8Xr").unwrap(),
+			2_000 * DOLLARS
+		),
+	];
+
+	let initial_citizens = vec![
+		// (address, total llm, pooled llm)
+		(
+			AccountId::from_ss58check("5GGgzku3kHSnAjxk7HBNeYzghSLsQQQGGznZA7u3h6wZUseo").unwrap(),
+			63_000 * GRAINS_IN_LLM,
+			37_000 * GRAINS_IN_LLM,
+		),
+		( // strip citizenship after launch
+			AccountId::from_ss58check("5FEaknBkiCR2C436Nz213MwkymeXVJEKE5T7SmUoUSg5rX7X").unwrap(),
+			100_000 * GRAINS_IN_LLM,
+			      0 * GRAINS_IN_LLM,
+		),
+	];
+	
+	GenesisConfig {
+		system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+		balances: BalancesConfig { balances: lld_balances, },
+		session: SessionConfig {
+			keys: initial_authorities
+				.iter()
+				.map(|x| {
+					(
+						x.0.clone(),
+						x.0.clone(),
+						session_keys(x.2.clone(), x.3.clone(), x.4.clone(), x.5.clone()),
+					)
+				})
+				.collect::<Vec<_>>(),
+		},
+		staking: StakingConfig {
+			validator_count: initial_authorities.len() as u32,
+			minimum_validator_count: initial_authorities.len() as u32,
+			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+			slash_reward_fraction: Perbill::from_percent(10),
+			stakers: initial_authorities
+				.iter()
+				.map(|x|
+					(x.0.clone(), x.1.clone(), x.6.clone(), StakerStatus::Validator))
+				.collect(),
+			citizenship_required: true,
+			..Default::default()
+		},
+		democracy: DemocracyConfig::default(),
+		elections: ElectionsConfig::default(),
+		council: CouncilConfig::default(),
+		senate: SenateConfig::default(),
+		technical_committee: TechnicalCommitteeConfig::default(),
+		sudo: SudoConfig { key: Some(root_key) },
+		babe: BabeConfig {
+			authorities: vec![],
+			epoch_config: Some(kitchensink_runtime::BABE_GENESIS_EPOCH_CONFIG),
+		},
+		im_online: ImOnlineConfig::default(),
+		authority_discovery: AuthorityDiscoveryConfig::default(),
+		grandpa: GrandpaConfig::default(),
+		technical_membership: Default::default(),
+		treasury: Default::default(),
+		society: SocietyConfig {
+			members: vec![],
+			pot: 0,
+			max_members: 999,
+		},
+		assets: pallet_assets::GenesisConfig::default(),
+		transaction_storage: Default::default(),
+		transaction_payment: Default::default(),
+		llm: LLMConfig {
+			unpooling_withdrawlock_duration: 3600*24*30, // 30 days
+			unpooling_electionlock_duration: 3600*24*30,
+			_phantom: Default::default(),
+		},
+		liberland_initializer: LiberlandInitializerConfig {
+			citizenship_registrar: Some(IdentityOfficePalletId::get().into_account_truncating()),
+			initial_citizens,
+			..Default::default()
+		},
+		company_registry: Default::default(),
+		identity_office: Default::default(),
+		company_registry_office: Default::default(),
+		land_registry_office: Default::default(),
+		metaverse_land_registry_office: Default::default(),
+		asset_registry_office: Default::default(),
+	}
 }
 
 fn bastiat_properties() -> Properties {
@@ -820,5 +999,10 @@ pub(crate) mod tests {
 	#[test]
 	fn test_bastiat_test_net_chain_spec() {
 		bastiat_testnet_config().build_storage().unwrap();
+	}
+
+	#[test]
+	fn test_mainnet_chain_spec() {
+		mainnet_config().build_storage().unwrap();
 	}
 }

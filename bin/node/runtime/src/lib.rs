@@ -128,7 +128,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("Liberland_testnet"),
+	spec_name: create_runtime_str!("Liberland"),
 	impl_name: create_runtime_str!("liberland-node"),
 	authoring_version: 10,
 	// Per convention: if the runtime behavior changes, increment spec_version
@@ -751,7 +751,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
+	pub const LaunchPeriod: BlockNumber = 36 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 7 * DAYS;
 	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
@@ -826,7 +826,7 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-	pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES; // FIXME
+	pub const CouncilMotionDuration: BlockNumber = 7 * DAYS;
 	pub const CouncilMaxProposals: u32 = 100;
 	pub const CouncilMaxMembers: u32 = 100;
 }
@@ -849,7 +849,7 @@ parameter_types! {
 	pub const VotingBondBase: Balance = deposit(1, 64);
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = deposit(0, 32);
-	pub const TermDuration: BlockNumber = 14 * DAYS;
+	pub const TermDuration: BlockNumber = 168 * DAYS;
 	pub const DesiredMembers: u32 = 4;
 	pub const DesiredRunnersUp: u32 = 3;
 	pub const MaxVoters: u32 = 10 * 1000;
@@ -889,7 +889,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TechnicalMotionDuration: BlockNumber = 5 * DAYS;
+	pub const TechnicalMotionDuration: BlockNumber = 7 * DAYS;
 	pub const TechnicalMaxProposals: u32 = 100;
 	pub const TechnicalMaxMembers: u32 = 100;
 }
@@ -907,7 +907,7 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
 }
 
 parameter_types! {
-	pub const SenateMotionDuration: BlockNumber = 7 * DAYS; // FIXME - verify this value
+	pub const SenateMotionDuration: BlockNumber = 7 * DAYS;
 	pub const SenateMaxProposals: u32 = 100;
 	pub const SenateMaxMembers: u32 = 100;
 }
@@ -944,14 +944,14 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 60 * DAYS;
+	pub const SpendPeriod: BlockNumber = 168 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
-	pub const TipCountdown: BlockNumber = 2 * MINUTES;//1 * DAYS;
+	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
 	pub const DataDepositPerByte: Balance = 1 * CENTS;
 	pub const BountyDepositBase: Balance = 1 * DOLLARS;
-	pub const BountyDepositPayoutDelay: BlockNumber = 2 * MINUTES;//1 * DAYS;
+	pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const BountyUpdatePeriod: BlockNumber = 60 * DAYS;
 	pub const MaximumReasonLength: u32 = 300;
@@ -1236,10 +1236,10 @@ parameter_types! {
 	pub const CandidateDeposit: Balance = 10 * DOLLARS;
 	pub const WrongSideDeduction: Balance = 2 * DOLLARS;
 	pub const MaxStrikes: u32 = 10;
-	pub const RotationPeriod: BlockNumber = 5 * MINUTES;//80 * HOURS;
+	pub const RotationPeriod: BlockNumber = 80 * HOURS;
 	pub const PeriodSpend: Balance = 500 * DOLLARS;
-	pub const MaxLockDuration: BlockNumber = 2 * MINUTES;//36 * 30 * DAYS;
-	pub const ChallengePeriod: BlockNumber = 3 * MINUTES;//7 * DAYS;
+	pub const MaxLockDuration: BlockNumber = 36 * 30 * DAYS;
+	pub const ChallengePeriod: BlockNumber = 7 * DAYS;
 	pub const MaxCandidateIntake: u32 = 10;
 	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
@@ -1324,8 +1324,8 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const AssetName: &'static str = "Liberland Kuna";
-	pub const AssetSymbol: &'static str = "LKN";
+	pub const AssetName: &'static str = "Liberland Merit";
+	pub const AssetSymbol: &'static str = "LLM";
 	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
 }
 
