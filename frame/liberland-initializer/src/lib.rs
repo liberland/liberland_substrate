@@ -75,6 +75,13 @@ pub mod pallet {
 
 	type IdentityPallet<T> = pallet_identity::Pallet<T>;
 
+	#[cfg(any(test, feature = "runtime-benchmarks"))]
+	use ::{frame_support::traits::Currency, sp_runtime::traits::Bounded};
+
+	#[cfg(any(test, feature = "runtime-benchmarks"))]
+	type BalanceOf<T> =
+		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
