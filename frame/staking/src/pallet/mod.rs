@@ -281,10 +281,7 @@ pub mod pallet {
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 
 		#[cfg(any(test, feature = "runtime-benchmarks"))]
-		type LLInitializer: liberland_traits::LLInitializer<
-								Self::AccountId,
-								BalanceOf<Self>
-							>;
+		type LLInitializer: liberland_traits::LLInitializer<Self::AccountId>;
 	}
 
 	/// The ideal number of active validators.

@@ -284,7 +284,7 @@ pub mod pallet {
 
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
-		type LLInitializer: LLInitializer<Self::AccountId, BalanceOf<Self>>;
+		type LLInitializer: LLInitializer<Self::AccountId>;
 	}
 
 	#[pallet::hooks]
@@ -1295,6 +1295,7 @@ mod tests {
 
 	impl pallet_llm::Config for Test {
 		type RuntimeEvent = RuntimeEvent;
+		type Currency = Balances;
 		type TotalSupply = TOTALLLM;
 		type PreReleasedAmount = PRERELEASELLM;
 		type CitizenshipMinimumPooledLLM = CitizenshipMinimum;

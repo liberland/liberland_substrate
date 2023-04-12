@@ -48,6 +48,7 @@ std = [
 	"frame-benchmarking/std",
 	"pallet-llm/std",
 	"pallet-democracy/std",
+	"pallet-nfts/std",
 	"log/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -60,6 +61,7 @@ runtime-benchmarks = [
 	"pallet-assets/runtime-benchmarks",
 	"pallet-liberland-initializer/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
+	"pallet-nfts/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",

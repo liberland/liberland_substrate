@@ -220,6 +220,7 @@ impl pallet_liberland_initializer::Config for Test {}
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
@@ -717,7 +718,7 @@ pub(crate) fn bond(stash: AccountId, ctrl: AccountId, val: Balance) {
 }
 
 pub(crate) fn bond_validator(stash: AccountId, ctrl: AccountId, val: Balance) {
-	LiberlandInitializer::make_citizen(&ctrl, 5000);
+	LiberlandInitializer::make_test_citizen(&ctrl);
 	bond(stash, ctrl, val);
 	assert_ok!(Staking::validate(RuntimeOrigin::signed(ctrl), ValidatorPrefs::default()));
 	assert_ok!(Session::set_keys(

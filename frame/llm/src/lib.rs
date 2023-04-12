@@ -36,6 +36,7 @@
 //! * **Treasury**:
 //!     * gets `PreReleasedAmount` LLM on genesis and 10% of **Vault** balance periodically (_LLM
 //!       Release Event_)
+//!     * may hold LLD
 //!     * derived from PalletID `py/trsry`: `5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z`
 //!
 //! * **Vault**:
@@ -167,7 +168,11 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{
 		pallet_prelude::{DispatchResult, *},
-		traits::{fungibles::Mutate, EnsureOrigin},
+		traits::{
+			fungibles::Mutate,
+			tokens::{currency::Currency, ExistenceRequirement},
+			EnsureOrigin,
+		},
 		PalletId,
 	};
 	use frame_system::{ensure_signed, pallet_prelude::*};
@@ -264,6 +269,9 @@ pub mod pallet {
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		/// LLD
+		type Currency: Currency<Self::AccountId>;
 
 		/// Total amount of LLM to be created on genesis. That's all LLM that
 		/// will ever exit. It will be stored in **Vault**.
@@ -454,6 +462,29 @@ pub mod pallet {
 			let sender = ensure_signed(origin.clone())?;
 			Self::transfer(sender, to_account, amount)
 		}
+
+		/// Transfer LLD from treasury to specified account. Can only be called
+		/// by Senate.
+		///
+		/// - `to_account`: Account to transfer to.
+		/// - `amount`: Amount to transfer.
+		///
+		/// Emits: `Transfer` from `pallet-balances`
+		#[pallet::call_index(6)]
+		#[pallet::weight(10_000)]
+		pub fn treasury_lld_transfer(
+			origin: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: <<T as Config>::Currency as Currency<T::AccountId>>::Balance,
+		) -> DispatchResult {
+			T::SenateOrigin::ensure_origin(origin)?;
+			<T as Config>::Currency::transfer(
+				&Self::get_llm_treasury_account(),
+				&to_account,
+				amount,
+				ExistenceRequirement::KeepAlive,
+			)
+		}
 	}
 
 	#[pallet::event]
@@ -525,13 +556,15 @@ pub mod pallet {
 		}
 
 		/// Transfer `amount` LLM to `to_account` from vault
-		/// Used in liberland-initializer and in tests.
+		/// Used in tests.
 		pub fn transfer_from_vault(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
 			let vault = Self::get_llm_vault_account();
 			Self::transfer(vault, to_account, amount)
 		}
 
-		fn transfer_from_treasury(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
+		/// Transfer `amount` LLM to `to_account` from treasury
+		/// Used in liberland-initializer and in tests.
+		pub fn transfer_from_treasury(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
 			let treasury = Self::get_llm_treasury_account();
 			Self::transfer(treasury, to_account, amount)
 		}
@@ -593,7 +626,7 @@ pub mod pallet {
 		/// prereleased amount of LLM on genesis and part of LLM from **Vault**
 		/// on LLM Release Events.
 		pub fn get_llm_treasury_account() -> T::AccountId {
-			PalletId(*b"py/trsry").into_account_truncating()
+			PalletId(*b"lltreasu").into_account_truncating()
 		}
 
 		/// AccountId of **Politipool** account. **Politipool** account stores

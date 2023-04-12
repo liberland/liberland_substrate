@@ -1,18 +1,22 @@
+#![cfg(test)]
 use crate as pallet_liberland_legislation;
 use frame_support::{
-	ord_parameter_types, parameter_types,
+	ord_parameter_types,
 	pallet_prelude::Weight,
-	traits::{Everything, EqualPrivilegeOnly, AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	parameter_types,
+	traits::{
+		AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, EqualPrivilegeOnly,
+		Everything, GenesisBuild,
+	},
 };
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
-	Perbill,
-	Permill,
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
+	Perbill, Permill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -220,7 +224,7 @@ impl pallet_liberland_initializer::Config for Test {}
 
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
-	pub const PRERELEASELLM: u64 = 7000000u64;
+	pub const PRERELEASELLM: u64 = 60000000u64;
 	pub const CitizenshipMinimum: u64 = 5000u64;
 	pub const UnlockFactor: Permill = Permill::from_percent(10);
 	pub const AssetId: u32 = 1;
@@ -231,6 +235,7 @@ parameter_types! {
 
 impl pallet_llm::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
 	type TotalSupply = TOTALLLM;
 	type PreReleasedAmount = PRERELEASELLM;
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
@@ -246,15 +251,20 @@ impl pallet_llm::Config for Test {
 impl pallet_liberland_legislation::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
+	type LLInitializer = LiberlandInitializer;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
 	type InternationalTreatyOrigin = EnsureSignedBy<One, u64>;
 	type LowTierDeleteOrigin = EnsureRoot<u64>;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_llm::GenesisConfig::<Test>::default().assimilate_storage(&mut t).unwrap();
+	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 1000), (2, 1000), (3, 1000)] }
+		.assimilate_storage(&mut t)
+		.unwrap();
 	pallet_liberland_initializer::GenesisConfig::<Test> {
 		citizenship_registrar: Some(0),
 		initial_citizens: vec![(1, 5000, 5000), (2, 5000, 5000), (3, 5000, 5000)],
