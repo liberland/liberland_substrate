@@ -465,11 +465,11 @@ fn releases_correct_amounts() {
 fn correctly_tracks_number_of_citizens() {
 	new_test_ext().execute_with(|| {
 		let root = RuntimeOrigin::root();
-		assert_eq!(LLM::citizens_count(), 5);
+		assert_eq!(LLM::citizens_count(), 6);
 
 		// set identity resets judgement - strips citizenship even if valid
 		setup_identity(1, true, Some(vec![0]), false);
-		assert_eq!(LLM::citizens_count(), 4);
+		assert_eq!(LLM::citizens_count(), 5);
 
 		// judgement restores citizenship
 		let info = Identity::identity(1).unwrap().info;
@@ -481,22 +481,46 @@ fn correctly_tracks_number_of_citizens() {
 			BlakeTwo256::hash_of(&info),
 		)
 		.unwrap();
-		assert_eq!(LLM::citizens_count(), 5);
+		assert_eq!(LLM::citizens_count(), 6);
 
 		// clear identity strips citizenship
 		Identity::clear_identity(RuntimeOrigin::signed(1)).unwrap();
-		assert_eq!(LLM::citizens_count(), 4);
+		assert_eq!(LLM::citizens_count(), 5);
 
 		// set non-citizen identity doesnt affect count
 		setup_identity(99, false, None, false);
-		assert_eq!(LLM::citizens_count(), 4);
+		assert_eq!(LLM::citizens_count(), 5);
 
 		// clear identity doesnt affect count if done on non-citizen
 		Identity::clear_identity(RuntimeOrigin::signed(99)).unwrap();
-		assert_eq!(LLM::citizens_count(), 4);
+		assert_eq!(LLM::citizens_count(), 5);
 
 		// kill identity strips citizenship
 		Identity::kill_identity(root, 2).unwrap();
-		assert_eq!(LLM::citizens_count(), 3);
+		assert_eq!(LLM::citizens_count(), 4);
 	})
+}
+
+#[test]
+fn only_approved_accounts_can_call_treasury_lld_transfer() {
+	new_test_ext().execute_with(|| {
+		let unapproved = RuntimeOrigin::signed(1);
+		let approved = RuntimeOrigin::root();
+
+		assert_noop!(LLM::treasury_lld_transfer(unapproved, 1, 1), BadOrigin);
+		assert_ok!(LLM::treasury_lld_transfer(approved, 1, 1));
+	});
+}
+
+#[test]
+fn treasury_lld_transfer_calls_balances() {
+	new_test_ext().execute_with(|| {
+		let approved = RuntimeOrigin::root();
+		let treasury = LLM::get_llm_treasury_account();
+		assert_ok!(LLM::treasury_lld_transfer(approved.clone(), 1, 10));
+		System::assert_has_event(
+			pallet_balances::Event::Transfer { from: treasury, to: 1, amount: 10 }
+				.into(),
+		);
+	});
 }

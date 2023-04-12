@@ -1334,6 +1334,7 @@ impl pallet_liberland_initializer::Config for Runtime {}
 
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
 	type TotalSupply = TOTALLLM; //70 million in hardcap
 	type PreReleasedAmount = PRERELEASELLM; // PreRelease 7 million
 	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
