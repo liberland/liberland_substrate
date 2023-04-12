@@ -224,7 +224,7 @@ impl pallet_liberland_initializer::Config for Test {}
 
 parameter_types! {
 	pub const TOTALLLM: u64 = 70000000u64;
-	pub const PRERELEASELLM: u64 = 7000000u64;
+	pub const PRERELEASELLM: u64 = 60000000u64;
 	pub const CitizenshipMinimum: u64 = 5000u64;
 	pub const UnlockFactor: Permill = Permill::from_percent(10);
 	pub const AssetId: u32 = 1;

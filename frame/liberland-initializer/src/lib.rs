@@ -67,14 +67,18 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{pallet_prelude::*, traits::Currency, traits::tokens::nonfungibles_v2::InspectEnumerable};
+	use frame_support::{pallet_prelude::*, traits::tokens::nonfungibles_v2::InspectEnumerable};
 	use pallet_identity::{Data, IdentityInfo, RegistrarIndex};
 	use sp_runtime::traits::{Hash, StaticLookup};
 	use sp_std::prelude::*;
 	use liberland_traits::LLInitializer;
-	use sp_runtime::traits::Bounded;
 
 	type IdentityPallet<T> = pallet_identity::Pallet<T>;
+
+	#[cfg(any(test, feature = "runtime-benchmarks"))]
+	use ::{frame_support::traits::Currency, sp_runtime::traits::Bounded};
+
+	#[cfg(any(test, feature = "runtime-benchmarks"))]
 	type BalanceOf<T> =
 		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -230,7 +234,7 @@ pub mod pallet {
 
 		/// Sends `amount` of LLM to `citizen`.
 		fn give_llm(citizen: T::AccountId, amount: T::Balance) {
-			pallet_llm::Pallet::<T>::transfer_from_vault(citizen, amount).unwrap();
+			pallet_llm::Pallet::<T>::transfer_from_treasury(citizen, amount).unwrap();
 		}
 
 		/// Politipools `amount` of `citizen`'s LLM.

@@ -1343,7 +1343,10 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
-	type SenateOrigin = HalfSenateOrigin;
+	type SenateOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		HalfSenateOrigin
+	>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 }
 

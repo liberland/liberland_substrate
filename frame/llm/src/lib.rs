@@ -556,13 +556,15 @@ pub mod pallet {
 		}
 
 		/// Transfer `amount` LLM to `to_account` from vault
-		/// Used in liberland-initializer and in tests.
+		/// Used in tests.
 		pub fn transfer_from_vault(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
 			let vault = Self::get_llm_vault_account();
 			Self::transfer(vault, to_account, amount)
 		}
 
-		fn transfer_from_treasury(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
+		/// Transfer `amount` LLM to `to_account` from treasury
+		/// Used in liberland-initializer and in tests.
+		pub fn transfer_from_treasury(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
 			let treasury = Self::get_llm_treasury_account();
 			Self::transfer(treasury, to_account, amount)
 		}
