@@ -71,10 +71,11 @@ else
 	chain_spec_exists=0
 	chain_specs="$(jq -r '.assets[] | select(.name | endswith(".raw.json")) | .name' < $release_info)"
 	while [ "$chain_spec_url" == "null" ]; do
-		echo "Available testnets: "
+		echo "Available networks: "
 		i=0
 		for spec in $chain_specs; do
-			echo "$i) $spec"
+		    name="${spec%.raw.json}"
+			echo "$i) ${name^}"
 			(( i++ )) || true
 		done
 		echo -n "Select number: "
