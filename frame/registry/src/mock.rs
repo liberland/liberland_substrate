@@ -186,7 +186,8 @@ impl pallet_registry::Config<pallet_registry::Instance4> for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let collective_account_id = CollectiveAccountId::get();
-	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 3), (collective_account_id, 10), (999, 100)];
+	let balances =
+		vec![(0, 100), (1, 100), (2, 100), (3, 3), (collective_account_id, 10), (999, 100)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();

@@ -6,7 +6,7 @@ mod impls;
 pub use impls::*;
 
 pub trait LLInitializer<AccountId> {
-	#[cfg(any(test,feature = "runtime-benchmarks"))]
+	#[cfg(any(test, feature = "runtime-benchmarks"))]
 	fn make_test_citizen(account: &AccountId);
 }
 
