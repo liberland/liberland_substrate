@@ -1686,4 +1686,10 @@ impl<
 			r => Err(O::from(r)),
 		})
 	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<O, ()> {
+		// FIXME we should actually implement this to make testing easier
+		Err(())
+	}
 }
