@@ -53,8 +53,8 @@
 //!   5000)` will result in account `0` having `5000` politipooled LLM and `1000` free LLM.
 //! * `land_registrar: Option<AccountId>`: AccountID of account that should be used as a collection
 //!   owner for land NFTs.
-//! * `metaverse_land_registrar: Option<AccountId>`: AccountID of account that should be used as a collection
-//!   owner for metaverse land NFTs.
+//! * `metaverse_land_registrar: Option<AccountId>`: AccountID of account that should be used as a
+//!   collection owner for metaverse land NFTs.
 //! * `asset_registrar: Option<AccountId>`: AccountID of account that should be used as a collection
 //!   owner for asset NFTs.
 //!
@@ -68,10 +68,10 @@ pub use pallet::*;
 pub mod pallet {
 	use super::*;
 	use frame_support::{pallet_prelude::*, traits::tokens::nonfungibles_v2::InspectEnumerable};
+	use liberland_traits::LLInitializer;
 	use pallet_identity::{Data, IdentityInfo, RegistrarIndex};
 	use sp_runtime::traits::{Hash, StaticLookup};
 	use sp_std::prelude::*;
-	use liberland_traits::LLInitializer;
 
 	type IdentityPallet<T> = pallet_identity::Pallet<T>;
 
@@ -79,8 +79,9 @@ pub mod pallet {
 	use ::{frame_support::traits::Currency, sp_runtime::traits::Bounded};
 
 	#[cfg(any(test, feature = "runtime-benchmarks"))]
-	type BalanceOf<T> =
-		<<T as pallet_identity::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);

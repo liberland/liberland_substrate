@@ -15,7 +15,8 @@
 //!
 //! * `PalletId` - PalletId that's used to derive AccountId for dispatching external calls
 //! * `AdminOrigin` - origin for checking admin - must return AccountId on success
-//! * `ForceOrigin` - origin that can add/remove clerks and update admin without the admin AccountId check
+//! * `ForceOrigin` - origin that can add/remove clerks and update admin without the admin AccountId
+//!   check
 //! * `CallFilter` - InstanceFilter for filtering calls by clerk - see mock.rs for example
 //! * `WeightInfo` - see [Substrate docs](https://docs.substrate.io/reference/how-to-guides/weights/use-custom-weights/)
 //!
