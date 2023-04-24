@@ -1521,6 +1521,23 @@ impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const LLDBridgePalletId: PalletId = PalletId(*b"lldbridg");
+	pub const MaxRelays: u32 = 20;
+	pub const MaxWatchers: u32 = 20;
+}
+
+type LLDBridgeInstance = pallet_federated_bridge::Instance1;
+impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Token = Balances;
+	type PalletId = LLDBridgePalletId;
+	type MaxRelays = MaxRelays;
+	type MaxWatchers = MaxWatchers;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1580,6 +1597,7 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
+		LLDBridge: pallet_federated_bridge::<Instance1> = 59,
 	}
 );
 
