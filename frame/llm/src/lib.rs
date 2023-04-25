@@ -145,6 +145,7 @@ mod mock;
 mod tests;
 
 pub mod migrations;
+mod impl_fungible;
 
 /// Liberland Merit Pallet
 /*
@@ -514,7 +515,7 @@ pub mod pallet {
 			init_account
 		}
 
-		fn balance(account: T::AccountId) -> T::Balance {
+		pub fn balance(account: T::AccountId) -> T::Balance {
 			Assets::<T>::balance(Self::llm_id().into(), account)
 		}
 
@@ -525,7 +526,7 @@ pub mod pallet {
 			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
 
-		fn transfer(
+		pub fn transfer(
 			from_account: T::AccountId,
 			to_account: T::AccountId,
 			amount: T::Balance,

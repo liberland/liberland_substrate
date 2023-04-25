@@ -1523,6 +1523,7 @@ impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
 
 parameter_types! {
 	pub const LLDBridgePalletId: PalletId = PalletId(*b"lldbridg");
+	pub const LLMBridgePalletId: PalletId = PalletId(*b"llmbridg");
 	pub const MaxRelays: u32 = 20;
 	pub const MaxWatchers: u32 = 20;
 }
@@ -1533,6 +1534,17 @@ impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
 	type Currency = Balances;
 	type Token = Balances;
 	type PalletId = LLDBridgePalletId;
+	type MaxRelays = MaxRelays;
+	type MaxWatchers = MaxWatchers;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+}
+
+type LLMBridgeInstance = pallet_federated_bridge::Instance2;
+impl pallet_federated_bridge::Config<LLMBridgeInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Token = LLM;
+	type PalletId = LLMBridgePalletId;
 	type MaxRelays = MaxRelays;
 	type MaxWatchers = MaxWatchers;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
@@ -1598,6 +1610,7 @@ construct_runtime!(
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
 		LLDBridge: pallet_federated_bridge::<Instance1> = 59,
+		LLMBridge: pallet_federated_bridge::<Instance2> = 60,
 	}
 );
 

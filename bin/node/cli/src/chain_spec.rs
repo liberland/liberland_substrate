@@ -35,7 +35,7 @@ use kitchensink_runtime::{
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, LLM, LLDBridgeConfig,
+	SenateConfig, LLM, LLDBridgeConfig, LLMBridgeConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -272,6 +272,7 @@ fn mainnet_config_genesis() -> GenesisConfig {
 		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
 		lld_bridge: Default::default(),
+		llm_bridge: Default::default(),
 	}
 }
 
@@ -453,6 +454,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
 		lld_bridge: Default::default(),
+		llm_bridge: Default::default(),
 	}
 }
 
@@ -829,6 +831,11 @@ pub fn testnet_genesis(
 			clerks: nfts_clerks,
 		},
 		lld_bridge: LLDBridgeConfig {
+			admin: Some(root_key.clone()),
+			super_admin: Some(root_key.clone()),
+			..Default::default()
+		},
+		llm_bridge: LLMBridgeConfig {
 			admin: Some(root_key.clone()),
 			super_admin: Some(root_key),
 			..Default::default()
