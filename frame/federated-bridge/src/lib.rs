@@ -7,28 +7,29 @@
 //!
 //! ## Terminology
 //!
-//! * Bridge - complete system for transferring LLD/LLM to/from ETH, consisting
-//!   of the bridge pallet, relays, watchers and bridge contract.
+//! * Bridge - complete system for transferring LLD/LLM to/from ETH, consisting of the bridge
+//!   pallet, relays, watchers and bridge contract.
 //! * Bridge pallet - part of Substrate chain - handles locking and unlocking
-//! * Bridge contract - contract deployed on ETH - handles minting and burning 
+//! * Bridge contract - contract deployed on ETH - handles minting and burning
 //! * Mint/burn - create/destroy wrapped token on ETH side
 //! * Lock/unlock - lock LLD/LLM on substrate side while it's wrapped in tokens on ETH side.
 //! * Stop - state in which bridge stops all actions
 //! * Federation - set of relays, capable of minting and unlocking.
-//! * Relay - offchain software that monitors locks on substrate and burns on eth and relays them to the other chain
+//! * Relay - offchain software that monitors locks on substrate and burns on eth and relays them to
+//!   the other chain
 //! * Watcher - monitors if relays don't misbehave - has right to stop bridge at any time
 //! * Admin - someone with rights to stop/resume bridge
 //! * Superadmin - account with rights to add/remove relay rights
 //!
 //! ## Bridge configuration
-//! 
+//!
 //! ### Option 1: genesis / chainspec
-//! 
+//!
 //! If you're starting a new chain, preconfigure the bridge using chain spec.
 //! See the GenesisConfig struct for details.
-//! 
+//!
 //! ### Option 2: using ForceOrigin
-//! 
+//!
 //! If you're chain is running, but you have some trusted chain authority (like sudo key):
 //! * set the ForceOrigin in runtime config
 //! * using ForceOrigin call `set_admin` and `set_super_admin`
@@ -36,19 +37,19 @@
 //! * using SuperAdmin call `set_votes_required`
 //! * using SuperAdmin or Admin call `add_watcher` for all your watchers
 //! * using SuperAdmin or Admin call `set_state(Active)`
-//! 
+//!
 //! ### Option 3: migration
-//! 
+//!
 //! Write migration that will run on Runtime Upgrade that set everythin you
 //! need. See GenesisBuild implementation for example.
-//! 
+//!
 //! ## Typical ETH -> Substrate transfer flow
-//! 
+//!
 //! 1. User deposits wrapped tokens to eth contract, a Receipt is issued as an event
 //! 2. Relays see the Receipt event and relay it to bridge using `vote_withdraw` call
 //! 3. User waits until `VotesRequired` votes are cast
 //! 4. User calls `withdraw` on the bridge.
-//! 
+//!
 //! ## Typical Substrate -> ETH transfer flow
 //!
 //! 1. User deposits native LLM/LLD to to Bridge pallet using `deposit` call, a
@@ -56,37 +57,35 @@
 //! 2. Relays see the Receipt event and relay it to Ethereum contract
 //! 3. User waits until required number of votes are cast by relays on Ethereum side
 //! 4. User calls `withdraw` on the etherum side.
-//! 
+//!
 //! ## Economics
-//! 
+//!
 //! Running relays requires paying for resource use (CPU, storage, network) and
 //! both Substrate and Ethereum network fees. As such, they're rewarded on each
 //! successful withdrawal by user.
-//! 
+//!
 //! The fee charged to user on withdrawal is set with `set_fee` call and can be
 //! queried from pallet's storage.
-//! 
+//!
 //! This fee is divided equally between relays that actually cast vote on given
 //! transfer.
 //!
 //! ## Security
-//! 
+//!
 //! Following security features are implemented substrate-side:
-//! * bridge is stopped if 2 relays claim different details about given Receipt
-//!   (different amount, recipient etc)
+//! * bridge is stopped if 2 relays claim different details about given Receipt (different amount,
+//!   recipient etc)
 //! * bridge can be stopped by a watcher at any time
-//! * bridge doesn't mint any new funds - only funds stored in bridge (a.k.a.
-//!   existing as wrapped tokens on Eth side) are at risk
+//! * bridge doesn't mint any new funds - only funds stored in bridge (a.k.a. existing as wrapped
+//!   tokens on Eth side) are at risk
 //! * bridge enforces rate-limit on withdrawals
 //! * there's a delay between approval of withdrawal and actually allowing it
-//! 
 //!
 //! ## Pallet Config
 //!
-//! * `Currency` - Currency in which Fee will be charged (should be the same as
-//!    curreny of fees for extrinsics)
-//! * `Token` - fungible implementing Transfer trait that is bridged between
-//!    networks
+//! * `Currency` - Currency in which Fee will be charged (should be the same as curreny of fees for
+//!   extrinsics)
+//! * `Token` - fungible implementing Transfer trait that is bridged between networks
 //! * `PalletId` - used to derive AccountId for bridge wallet
 //! * `MaxRelays`
 //! * `MaxWatchers`
@@ -185,7 +184,7 @@ impl Default for BridgeState {
 pub mod pallet {
 	use super::*;
 	use frame_support::{
-		sp_runtime::traits::AccountIdConversion,
+		sp_runtime::{traits::AccountIdConversion, Saturating},
 		traits::{
 			tokens::fungible::{Inspect, Transfer},
 			ExistenceRequirement,
@@ -233,6 +232,15 @@ pub mod pallet {
 		/// Gives watchers time to stop bridge.
 		type WithdrawalDelay: Get<Self::BlockNumber>;
 
+		#[pallet::constant]
+		/// Rate limit parameters This is implemented as The Leaky Bucket as a
+		/// Meter algorithm - https://en.wikipedia.org/wiki/Leaky_bucket.:w
+		/// First parameter is the max counter (a.k.a. max burst, max single
+		/// withdrawal)
+		/// Second parameter is the decay rate (a.k.a. after reaching max, how
+		/// much can be withdrawn per block)
+		type WithdrawalRateLimit: Get<(BalanceOfToken<Self, I>, BalanceOfToken<Self, I>)>;
+
 		/// Origin that can use calls that can lower bridge security
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
@@ -263,6 +271,8 @@ pub mod pallet {
 		Unauthorized,
 		/// Not enough time passed since Receipt approval
 		TooSoon,
+		/// Too many tokens withdrawn in short time from bridge, try again later
+		RateLimited,
 	}
 
 	#[pallet::event]
@@ -358,6 +368,12 @@ pub mod pallet {
 	/// Account that can use calls that changes config and restarts bridge
 	pub(super) type Admin<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::AccountId, OptionQuery>;
+
+	#[pallet::storage]
+	/// Counter used to track rate limiting
+	/// Decays linearly each block
+	pub(super) type WithdrawalCounter<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, (BalanceOfToken<T, I>, T::BlockNumber), ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -465,8 +481,7 @@ pub mod pallet {
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
 			ensure!(relays.contains(&relay), Error::<T, I>::Unauthorized);
 			ensure!(
-				status == ReceiptStatus::Voting ||
-				matches!(status, ReceiptStatus::Approved(_)),
+				status == ReceiptStatus::Voting || matches!(status, ReceiptStatus::Approved(_)),
 				Error::<T, I>::AlreadyProcessed
 			);
 
@@ -525,7 +540,10 @@ pub mod pallet {
 			let status = StatusOf::<T, I>::get(receipt_id);
 
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
-			ensure!(!matches!(status, ReceiptStatus::Processed(_)), Error::<T, I>::AlreadyProcessed);
+			ensure!(
+				!matches!(status, ReceiptStatus::Processed(_)),
+				Error::<T, I>::AlreadyProcessed
+			);
 
 			if let Some(receipt) = Receipts::<T, I>::get(receipt_id) {
 				if let ReceiptStatus::Approved(approved_on) = status {
@@ -534,13 +552,14 @@ pub mod pallet {
 						current_block_number >= approved_on + T::WithdrawalDelay::get(),
 						Error::<T, I>::TooSoon
 					);
+					Self::rate_limit(receipt.amount)?;
+					Self::take_fee(voters, caller)?;
 					T::Token::transfer(
 						&Self::account_id(),
 						&receipt.substrate_recipient,
 						receipt.amount,
 						false,
 					)?;
-					Self::take_fee(voters, caller)?;
 					StatusOf::<T, I>::insert(
 						receipt_id,
 						ReceiptStatus::Processed(frame_system::Pallet::<T>::block_number()),
@@ -710,7 +729,7 @@ pub mod pallet {
 		/// * stop and resume bridge
 		/// * set withdrawal fee
 		/// * change admin
-		/// 
+		///
 		/// Can be called by ForceOrigin, SuperAdmin and Admin
 		#[pallet::call_index(11)]
 		#[pallet::weight(10_000)]
@@ -730,7 +749,7 @@ pub mod pallet {
 		/// * change admin and superadmin
 		/// * change number of required votes
 		/// * all rights of Admin
-		/// 
+		///
 		/// Can be called by ForceOrigin and SuperAdmin
 		#[pallet::call_index(12)]
 		#[pallet::weight(10_000)]
@@ -784,6 +803,34 @@ pub mod pallet {
 					Some(caller) == SuperAdmin::<T, I>::get(),
 				Error::<T, I>::Unauthorized
 			);
+			Ok(())
+		}
+
+		fn rate_limit(amount: BalanceOfToken<T, I>) -> DispatchResult {
+			let (mut counter, last_block_number) = WithdrawalCounter::<T, I>::get();
+			let (counter_limit, decay_rate) = T::WithdrawalRateLimit::get();
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+
+			// first update the counter to process decay
+			if let Ok(blocks_elapsed) =
+				TryInto::<u32>::try_into(current_block_number - last_block_number)
+			{
+				let decay = decay_rate.saturating_mul(blocks_elapsed.into());
+				counter = counter.saturating_sub(decay);
+			} else {
+				// more than u32::max() blocks passed, that bigger than allowed window
+				counter = 0u8.into();
+			}
+
+			// then add what current withdrawal
+			counter = counter.saturating_add(amount);
+
+			// check rate limit
+			ensure!(counter <= counter_limit, Error::<T, I>::RateLimited);
+
+			// update stored counter
+			WithdrawalCounter::<T, I>::set((counter, current_block_number));
+
 			Ok(())
 		}
 	}

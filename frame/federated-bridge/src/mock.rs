@@ -76,6 +76,7 @@ impl pallet_balances::Config for Test {
 
 parameter_types! {
 	pub const BridgePalletId: PalletId = PalletId(*b"defbridg");
+	pub const RateLimit: (u64, u64) = (1000, 10);
 }
 
 impl pallet_federated_bridge::Config for Test {
@@ -86,12 +87,14 @@ impl pallet_federated_bridge::Config for Test {
 	type MaxRelays = ConstU32<10>;
 	type MaxWatchers = ConstU32<10>;
 	type WithdrawalDelay = ConstU64<10>;
+	type WithdrawalRateLimit = RateLimit;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(0, 100), (1, 100), (2, 100), (3, 100), (4, 100), (5, 100), (6, 100)];
+	let balances =
+		vec![(0, 100), (1, 100), (2, 100), (3, 100), (4, 100), (5, 100), (6, 100), (200, 10000)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();

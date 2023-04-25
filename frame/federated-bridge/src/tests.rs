@@ -397,7 +397,7 @@ fn withdrawal_delay_is_enforced_correctly() {
 		let (receipt_id, receipt) = gen_receipt(50, 1);
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
-		System::set_block_number(15); 
+		System::set_block_number(15);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
 		System::set_block_number(24);
 		assert_noop!(
@@ -415,7 +415,7 @@ fn withdrawal_delay_is_enforced_correctly_with_votes_after_approval() {
 		let (receipt_id, receipt) = gen_receipt(50, 1);
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
-		System::set_block_number(15); 
+		System::set_block_number(15);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
 		System::set_block_number(20);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(2), receipt_id, receipt.clone()));
@@ -760,5 +760,138 @@ fn set_super_admin_works() {
 		assert_eq!(SuperAdmin::<Test>::get(), Some(0));
 		assert_ok!(Bridge::set_super_admin(RuntimeOrigin::root(), 1));
 		assert_eq!(SuperAdmin::<Test>::get(), Some(1));
+	});
+}
+
+/* RATE LIMIT */
+
+#[test]
+fn rate_limit_doesnt_prevent_single_transaction_right_at_limit() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 1000);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 1000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+	});
+}
+
+#[test]
+fn rate_limit_doesnt_multiple_transactions_right_at_limit() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 500);
+		let (receipt_id2, receipt2) = gen_receipt(1, 500);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 1000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id2, receipt2.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id2, receipt2.clone()));
+
+		System::set_block_number(11);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2));
+	});
+}
+
+#[test]
+fn rate_limit_allows_using_up_decayed_amount_immediately() {
+	new_test_ext().execute_with(|| {
+		// our decay rate in mock is 10 tokens per block
+		let (receipt_id, receipt) = gen_receipt(0, 1000);
+		let (receipt_id2, receipt2) = gen_receipt(1, 10);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 10000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id2, receipt2.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id2, receipt2.clone()));
+
+		System::set_block_number(11);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+		System::set_block_number(12);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2));
+	});
+}
+
+#[test]
+fn rate_limit_goes_to_zero_after_window() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 1000);
+		let (receipt_id2, receipt2) = gen_receipt(1, 1000);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 10000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id2, receipt2.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id2, receipt2.clone()));
+
+		System::set_block_number(11);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+		System::set_block_number(111);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2));
+	});
+}
+
+#[test]
+fn rate_limit_prevents_single_big_withdrawals() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 1001);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 10000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
+		assert_noop!(
+			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id),
+			Error::<Test>::RateLimited
+		);
+	});
+}
+
+#[test]
+fn rate_limit_prevents_multiple_withdrawals_over_limit_in_single_block() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 501);
+		let (receipt_id2, receipt2) = gen_receipt(1, 500);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 10000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id2, receipt2.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id2, receipt2.clone()));
+
+		System::set_block_number(11);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+		assert_noop!(
+			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2),
+			Error::<Test>::RateLimited
+		);
+	});
+}
+
+#[test]
+fn rate_limit_respects_decay() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 1000);
+		let (receipt_id2, receipt2) = gen_receipt(1, 500);
+		let (receipt_id3, receipt3) = gen_receipt(2, 501);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 10000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id2, receipt2.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id2, receipt2.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id3, receipt3.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id3, receipt3.clone()));
+
+		System::set_block_number(100);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+		System::set_block_number(149);
+		assert_noop!(
+			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2),
+			Error::<Test>::RateLimited
+		);
+		System::set_block_number(150);
+		assert_noop!(
+			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id3),
+			Error::<Test>::RateLimited
+		);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2));
 	});
 }

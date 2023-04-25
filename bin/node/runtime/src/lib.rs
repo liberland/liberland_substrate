@@ -1527,6 +1527,26 @@ parameter_types! {
 	pub const MaxRelays: u32 = 20;
 	pub const MaxWatchers: u32 = 20;
 	pub const WithdrawalDelay: BlockNumber = 60 * MINUTES;
+
+	// * 66k LLD in single hour (1 burst + hour avg)
+	// * 894k LLD in single day (1 burst + 24*hour avg)
+	pub const LLDRateLimit: (Balance, Balance) = (
+		// max burst and max single withdrawal
+		30_000 * DOLLARS,
+		// decay per block (max average withdrawal rate over infinite time)
+		// 60 LLD * 600 blocks/h = max avg 36k LLD per hour
+		60 * DOLLARS
+	);
+
+	// * 22k LLM in single hour (1 burst + hour avg)
+	// * 298k LLM in single day (1 burst + 24*hour avg)
+	pub const LLMRateLimit: (Balance, Balance) = (
+		// max burst and max single withdrawal
+		10_000 * GRAINS_IN_LLM,
+		// decay per block (max average withdrawal rate over infinite time)
+		// 20 LLM * 600 blocks/h = max avg 12k LLM per hour
+		20 * GRAINS_IN_LLM
+	);
 }
 
 type LLDBridgeInstance = pallet_federated_bridge::Instance1;
@@ -1539,6 +1559,7 @@ impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
 	type MaxWatchers = MaxWatchers;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type WithdrawalDelay = WithdrawalDelay;
+	type WithdrawalRateLimit = LLDRateLimit;
 }
 
 type LLMBridgeInstance = pallet_federated_bridge::Instance2;
@@ -1551,6 +1572,7 @@ impl pallet_federated_bridge::Config<LLMBridgeInstance> for Runtime {
 	type MaxWatchers = MaxWatchers;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type WithdrawalDelay = WithdrawalDelay;
+	type WithdrawalRateLimit = LLMRateLimit;
 }
 
 construct_runtime!(

@@ -80,7 +80,6 @@ Following security features are implemented substrate-side:
 * bridge enforces rate-limit on withdrawals
 * there's a delay between approval of withdrawal and actually allowing it
 
-
 ## Pallet Config
 
 * `Currency` - Currency in which Fee will be charged (should be the same as
