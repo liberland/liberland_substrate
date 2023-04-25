@@ -360,22 +360,22 @@ contract BridgeTest is Test, BridgeEvents {
 
     function testEmergencyStopChecksPerms() public {
         vm.expectRevert("AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x2125d1e225cadc5c8296e2cc1f96ee607770bf4a4a16131e62f6819937437c89");
-        bridge.emergencyStop(0, alice, receipt1);
+        bridge.emergencyStop();
 
         vm.prank(dave);
-        bridge.emergencyStop(0, alice, receipt1);
+        bridge.emergencyStop();
     }
 
     function testEmergencyStopEmitsEvent() public {
         vm.prank(dave);
-        vm.expectEmit(false, false, false, true);
-        emit EmergencyStop(1, alice, receipt1);
-        bridge.emergencyStop(1, alice, receipt1);
+        vm.expectEmit(false, false, false, false);
+        emit EmergencyStop();
+        bridge.emergencyStop();
     }
 
     function testEmergencyStopWorks() public {
         vm.prank(dave);
-        bridge.emergencyStop(1, alice, receipt1);
+        bridge.emergencyStop();
 
         vm.prank(alice);
         vm.expectRevert(BridgeInactive.selector);
@@ -451,7 +451,7 @@ contract BridgeTest is Test, BridgeEvents {
         assertEq(bridge.hasRole(watcher, bob), true);
 
         vm.prank(bob);
-        bridge.emergencyStop(1, alice, receipt1);
+        bridge.emergencyStop();
     }
 
     function testSetActiveRequiresAdmin() public {
@@ -564,7 +564,7 @@ contract BridgeTest is Test, BridgeEvents {
 
         vm.prank(alice);
         vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x2125d1e225cadc5c8296e2cc1f96ee607770bf4a4a16131e62f6819937437c89");
-        bridge.emergencyStop(1, alice, receipt1);
+        bridge.emergencyStop();
     }
 
     function testAddingRelayRequiresSuperAdmin() public {

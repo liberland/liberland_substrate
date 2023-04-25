@@ -42,7 +42,7 @@ interface BridgeEvents {
 	event Approved(bytes32 indexed receiptId);
 	event Vote(bytes32 receiptId, address relay);
 	event Processed(bytes32 receiptId);
-	event EmergencyStop(uint blockNumber, address voter, bytes32 receiptId);
+	event EmergencyStop();
 }
 
 contract Bridge is AccessControl, BridgeEvents {
@@ -102,7 +102,6 @@ contract Bridge is AccessControl, BridgeEvents {
 		// Super admin or admin can remove admins and relays
 		if (role == ADMIN_ROLE || role == RELAY_ROLE)
 			authorized = hasRole(SUPER_ADMIN_ROLE, msg.sender) || hasRole(ADMIN_ROLE, msg.sender);
-
 
 		if (!authorized) revert Unauthorized();
 		_revokeRole(role, account);
@@ -246,7 +245,7 @@ contract Bridge is AccessControl, BridgeEvents {
 	function setFee(uint256 fee_) public onlyRole(ADMIN_ROLE) {
 		fee = fee_;
 	}
-	
+
 	function getFee() public view returns (uint256) {
 		return fee;
 	}
@@ -291,12 +290,8 @@ contract Bridge is AccessControl, BridgeEvents {
 		return bridgeActive;
 	}
 
-	function emergencyStop(
-		uint blockNumber,
-		address voter,
-		bytes32 receiptId
-	) public onlyRole(WATCHER_ROLE) {
-		emit EmergencyStop(blockNumber, voter, receiptId);
+	function emergencyStop() public onlyRole(WATCHER_ROLE) {
+		emit EmergencyStop();
 		_setActive(false);
 	}
 
