@@ -36,6 +36,7 @@
 //! * using SuperAdmin call `add_relay` for all your relays
 //! * using SuperAdmin call `set_votes_required`
 //! * using SuperAdmin or Admin call `add_watcher` for all your watchers
+//! * using SuperAdmin or Admin call `set_fee`
 //! * using SuperAdmin or Admin call `set_state(Active)`
 //!
 //! ### Option 3: migration
@@ -241,7 +242,7 @@ pub mod pallet {
 		/// much can be withdrawn per block)
 		type WithdrawalRateLimit: Get<(BalanceOfToken<Self, I>, BalanceOfToken<Self, I>)>;
 
-		/// Origin that can use calls that can lower bridge security
+		/// Origin that's authorized to set Admin and SuperAdmin
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
