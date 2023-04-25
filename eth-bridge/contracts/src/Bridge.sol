@@ -3,7 +3,6 @@ pragma solidity ^0.8.18;
 
 import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 import "./WrappedToken.sol";
-import "forge-std/console.sol";
 
 struct ReceiptStruct {
 	uint64 substrateBlockNumber;
