@@ -526,7 +526,7 @@ pub mod pallet {
 			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
 
-		pub fn transfer(
+		pub(super) fn transfer(
 			from_account: T::AccountId,
 			to_account: T::AccountId,
 			amount: T::Balance,
