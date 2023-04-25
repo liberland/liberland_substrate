@@ -133,7 +133,7 @@ mod mock;
 mod tests;
 
 pub type EthAddress = [u8; 20];
-pub type ReceiptId = [u8; 16];
+pub type ReceiptId = [u8; 32];
 pub type EthBlockNumber = u64;
 
 #[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
