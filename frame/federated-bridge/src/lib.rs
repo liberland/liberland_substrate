@@ -153,6 +153,8 @@ pub struct Receipt<AccountId, Balance> {
 pub enum ReceiptStatus<BlockNumber> {
 	/// Relays can vote on releasing this to recipient
 	Voting,
+	/// Relays casted required number of votes on block number
+	Approved(BlockNumber),
 	/// Funds already withdrawn to recipient on block number
 	Processed(BlockNumber),
 }
@@ -225,6 +227,12 @@ pub mod pallet {
 		/// Maximum number of watchers
 		type MaxWatchers: Get<u32>;
 
+		#[pallet::constant]
+		/// Delay between getting approval from relays and actually unlocking
+		/// withdrawal for eth -> substrate transfer.
+		/// Gives watchers time to stop bridge.
+		type WithdrawalDelay: Get<Self::BlockNumber>;
+
 		/// Origin that can use calls that can lower bridge security
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
@@ -253,6 +261,8 @@ pub mod pallet {
 		TooManyRelays,
 		/// Caller is unauthorized for this action
 		Unauthorized,
+		/// Not enough time passed since Receipt approval
+		TooSoon,
 	}
 
 	#[pallet::event]
@@ -272,6 +282,8 @@ pub mod pallet {
 			/// Receipt ID
 			receipt_id: ReceiptId,
 		},
+		/// Receipt got approved for withdrawal
+		Approved(ReceiptId),
 		/// Receipt was processed, eth -> substrate transfer complete
 		Processed(ReceiptId),
 		/// Bridge state was changed by watcher, admin or superadmin
@@ -449,10 +461,12 @@ pub mod pallet {
 
 			let relays = Relays::<T, I>::get();
 			let state = State::<T, I>::get();
+			let status = StatusOf::<T, I>::get(receipt_id);
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
 			ensure!(relays.contains(&relay), Error::<T, I>::Unauthorized);
 			ensure!(
-				StatusOf::<T, I>::get(receipt_id) == ReceiptStatus::Voting,
+				status == ReceiptStatus::Voting ||
+				matches!(status, ReceiptStatus::Approved(_)),
 				Error::<T, I>::AlreadyProcessed
 			);
 
@@ -473,6 +487,14 @@ pub mod pallet {
 			if !votes.contains(&relay) {
 				votes.try_push(relay.clone()).map_err(|_| Error::<T, I>::TooManyVotes)?;
 				Voting::<T, I>::insert(receipt_id, &votes);
+				if status == ReceiptStatus::Voting {
+					let votes_required = VotesRequired::<T, I>::get();
+					if votes.len() >= votes_required as usize {
+						let block_number = frame_system::Pallet::<T>::block_number();
+						StatusOf::<T, I>::insert(receipt_id, ReceiptStatus::Approved(block_number));
+						Self::deposit_event(Event::Approved(receipt_id))
+					}
+				}
 
 				Self::deposit_event(Event::Vote { relay, receipt_id })
 			}
@@ -500,19 +522,17 @@ pub mod pallet {
 			let caller = ensure_signed(origin)?;
 			let voters = Voting::<T, I>::get(receipt_id);
 			let state = State::<T, I>::get();
+			let status = StatusOf::<T, I>::get(receipt_id);
 
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
+			ensure!(!matches!(status, ReceiptStatus::Processed(_)), Error::<T, I>::AlreadyProcessed);
 
-			ensure!(
-				StatusOf::<T, I>::get(receipt_id) == ReceiptStatus::Voting,
-				Error::<T, I>::AlreadyProcessed
-			);
-
-			match Receipts::<T, I>::get(receipt_id) {
-				Some(receipt) => {
+			if let Some(receipt) = Receipts::<T, I>::get(receipt_id) {
+				if let ReceiptStatus::Approved(approved_on) = status {
+					let current_block_number = frame_system::Pallet::<T>::block_number();
 					ensure!(
-						voters.len() >= (VotesRequired::<T, I>::get() as usize),
-						Error::<T, I>::NotApproved
+						current_block_number >= approved_on + T::WithdrawalDelay::get(),
+						Error::<T, I>::TooSoon
 					);
 					T::Token::transfer(
 						&Self::account_id(),
@@ -527,8 +547,11 @@ pub mod pallet {
 					);
 					Self::deposit_event(Event::<T, I>::Processed(receipt_id));
 					Ok(())
-				},
-				_ => Err(Error::<T, I>::UnknownReceiptId.into()),
+				} else {
+					Err(Error::<T, I>::NotApproved.into())
+				}
+			} else {
+				Err(Error::<T, I>::UnknownReceiptId.into())
 			}
 		}
 

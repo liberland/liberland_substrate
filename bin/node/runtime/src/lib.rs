@@ -1526,6 +1526,7 @@ parameter_types! {
 	pub const LLMBridgePalletId: PalletId = PalletId(*b"llmbridg");
 	pub const MaxRelays: u32 = 20;
 	pub const MaxWatchers: u32 = 20;
+	pub const WithdrawalDelay: BlockNumber = 60 * MINUTES;
 }
 
 type LLDBridgeInstance = pallet_federated_bridge::Instance1;
@@ -1537,6 +1538,7 @@ impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
 	type MaxRelays = MaxRelays;
 	type MaxWatchers = MaxWatchers;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type WithdrawalDelay = WithdrawalDelay;
 }
 
 type LLMBridgeInstance = pallet_federated_bridge::Instance2;
@@ -1548,6 +1550,7 @@ impl pallet_federated_bridge::Config<LLMBridgeInstance> for Runtime {
 	type MaxRelays = MaxRelays;
 	type MaxWatchers = MaxWatchers;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type WithdrawalDelay = WithdrawalDelay;
 }
 
 construct_runtime!(

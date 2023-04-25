@@ -85,6 +85,7 @@ impl pallet_federated_bridge::Config for Test {
 	type PalletId = BridgePalletId;
 	type MaxRelays = ConstU32<10>;
 	type MaxWatchers = ConstU32<10>;
+	type WithdrawalDelay = ConstU64<10>;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 }
 

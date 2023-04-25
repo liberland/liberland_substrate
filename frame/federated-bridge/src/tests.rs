@@ -133,6 +133,7 @@ fn vote_fails_on_processed_receipt() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
 		assert_noop!(
 			Bridge::vote_withdraw(RuntimeOrigin::signed(2), receipt_id, receipt),
@@ -220,12 +221,30 @@ fn voting_gracefully_handles_too_many_votes() {
 	});
 }
 
+#[test]
+fn voting_sets_approved_status() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(0, 1);
+
+		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Voting);
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Voting);
+		System::set_block_number(2);
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Approved(2));
+		System::set_block_number(3);
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(2), receipt_id, receipt.clone()));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Approved(2));
+	});
+}
+
 /* WITHDRAWALS */
 
 #[test]
 fn withdraw_fails_on_nonexistent_receipt() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, _) = gen_receipt(0, 1);
+		System::set_block_number(11);
 		assert_noop!(
 			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id),
 			Error::<Test>::UnknownReceiptId
@@ -238,6 +257,7 @@ fn withdraw_fails_on_not_enough_votes() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, receipt) = gen_receipt(0, 1);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt));
+		System::set_block_number(11);
 		assert_noop!(
 			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id),
 			Error::<Test>::NotApproved
@@ -251,6 +271,7 @@ fn withdraw_fails_on_stopped_bridge() {
 		let (receipt_id, receipt) = gen_receipt(0, 1);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt));
 		assert_ok!(Bridge::set_state(RuntimeOrigin::signed(100), BridgeState::Stopped));
+		System::set_block_number(11);
 		assert_noop!(
 			Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id),
 			Error::<Test>::BridgeStopped
@@ -265,6 +286,7 @@ fn withdraw_deposits_event() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
 		System::assert_last_event(Event::<Test>::Processed(receipt_id).into());
 	});
@@ -277,6 +299,7 @@ fn withdraw_takes_tokens_from_bridge() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
 		assert_eq!(Balances::free_balance(bridge_wallet()), 9);
 	});
@@ -289,6 +312,7 @@ fn withdraw_sends_tokens_to_recipient() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
 		assert_eq!(Balances::free_balance(50), 1);
 	});
@@ -301,6 +325,7 @@ fn withdraw_fails_on_broke_caller() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_noop!(
 			Bridge::withdraw(RuntimeOrigin::signed(50), receipt_id),
 			pallet_balances::Error::<Test>::InsufficientBalance
@@ -315,6 +340,7 @@ fn withdraw_takes_fee_from_caller() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
 		assert_eq!(Balances::free_balance(4), 96);
 	});
@@ -327,6 +353,7 @@ fn withdraw_distributes_rewards_to_relays_that_voted() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
 		assert_eq!(Balances::free_balance(0), 102);
 		assert_eq!(Balances::free_balance(1), 102);
@@ -341,9 +368,10 @@ fn withdraw_updates_receipt_status() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Voting);
+		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Approved(1));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Processed(1));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Processed(11));
 	});
 }
 
@@ -354,11 +382,50 @@ fn withdraw_works_only_once() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
 		assert_noop!(
 			Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id),
 			Error::<Test>::AlreadyProcessed
 		);
+	});
+}
+
+#[test]
+fn withdrawal_delay_is_enforced_correctly() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(50, 1);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		System::set_block_number(15); 
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(24);
+		assert_noop!(
+			Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id),
+			Error::<Test>::TooSoon
+		);
+		System::set_block_number(25);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
+	});
+}
+
+#[test]
+fn withdrawal_delay_is_enforced_correctly_with_votes_after_approval() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(50, 1);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		System::set_block_number(15); 
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+		System::set_block_number(20);
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(2), receipt_id, receipt.clone()));
+		System::set_block_number(24);
+		assert_noop!(
+			Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id),
+			Error::<Test>::TooSoon
+		);
+		System::set_block_number(25);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
 	});
 }
 
