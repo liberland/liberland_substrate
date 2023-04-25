@@ -34,3 +34,10 @@ jobs:
         run: |
           forge test -vvv
         id: test_solidity
+
+      - name: Analyze with Slither
+        uses: crytic/slither-action@v0.3.0
+        with:
+          target: ./eth-bridge/contracts/
+          slither-config: ./eth-bridge/contracts/slither.config.json
+          ignore-compilation: true

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.18;
 
 import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 import "./WrappedToken.sol";
@@ -58,7 +58,7 @@ contract Bridge is AccessControl, BridgeEvents {
 	// 189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3
 	bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-	WrappedToken token;
+	WrappedToken immutable token;
 	mapping(address => bool) relays;
 	mapping(address => bool) watchers;
 	uint32 votesRequired;
@@ -224,8 +224,12 @@ contract Bridge is AccessControl, BridgeEvents {
 
 	function _takeFee(address[] storage receiptVotes) internal {
 		if (msg.value < fee) revert InsufficientEther();
+		// disabling slither rule as we're specifically adjusting for the
+		// precision loss here
+		// slither-disable-start divide-before-multiply
 		uint256 perVoterFee = msg.value / receiptVotes.length;
 		uint256 remainder = msg.value - perVoterFee * receiptVotes.length;
+		// slither-disable-end divide-before-multiply
 
 		uint256 totalPaid = 0;
 		totalPaid += _giveReward(receiptVotes[0], perVoterFee + remainder);
@@ -304,6 +308,9 @@ contract Bridge is AccessControl, BridgeEvents {
 	function claimReward() public {
 		uint256 amount = pendingRewards[msg.sender];
 		pendingRewards[msg.sender] = 0;
+		// disabling check as this is the recommended way of transferring ether
+		// https://solidity-by-example.org/sending-ether/
+		// slither-disable-next-line low-level-calls
 		(bool sent, ) = msg.sender.call{value: amount}("");
 		if (!sent) revert EthTransferFailed();
 	}
