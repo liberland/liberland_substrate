@@ -8,358 +8,360 @@ import "../src/Bridge.sol";
 using stdStorage for StdStorage;
 
 contract BridgeTest is Test, BridgeEvents {
-	WrappedToken public token;
-	Bridge public bridge;
+    WrappedToken public token;
+    Bridge public bridge;
 
-	address alice = vm.addr(1);
-	address bob = vm.addr(2);
-	address charlie = vm.addr(3);
-	address dave = vm.addr(4);
+    address alice = vm.addr(1);
+    address bob = vm.addr(2);
+    address charlie = vm.addr(3);
+    address dave = vm.addr(4);
 
-	bytes32 substrate1 = "12345678901234567890123456789012";
-	bytes32 receipt1 = "12345678901234567890123456789012";
-	bytes32 receipt2 = "22345678901234567890123456789012";
-	bytes32 receipt3 = "32345678901234567890123456789012";
+    bytes32 substrate1 = "12345678901234567890123456789012";
+    bytes32 receipt1 = "12345678901234567890123456789012";
+    bytes32 receipt2 = "22345678901234567890123456789012";
+    bytes32 receipt3 = "32345678901234567890123456789012";
 
-	event Transfer(address indexed from, address indexed to, uint256 value);
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
-	function setUp() public {
-		token = new WrappedToken("Liberland Merits", "LLM");
-		bridge = new Bridge(token, address(this));
-		bridge.grantRole(bridge.ADMIN_ROLE(), dave);
-		bridge.grantRole(bridge.RELAY_ROLE(), alice);
-		bridge.grantRole(bridge.RELAY_ROLE(), bob);
-		bridge.grantRole(bridge.RELAY_ROLE(), charlie);
-		bridge.grantRole(bridge.WATCHER_ROLE(), alice);
-		bridge.grantRole(bridge.WATCHER_ROLE(), dave);
-		bridge.setSupplyLimit(650);
-		bridge.setVotesRequired(2);
-		bridge.setMintDelay(10);
-		bridge.setRateLimit(1000, 10);
+    function setUp() public {
+        token = new WrappedToken("Liberland Merits", "LLM");
+        bridge = new Bridge(token, address(this));
+        bridge.grantRole(bridge.ADMIN_ROLE(), dave);
+        bridge.grantRole(bridge.RELAY_ROLE(), alice);
+        bridge.grantRole(bridge.RELAY_ROLE(), bob);
+        bridge.grantRole(bridge.RELAY_ROLE(), charlie);
+        bridge.grantRole(bridge.WATCHER_ROLE(), alice);
+        bridge.grantRole(bridge.WATCHER_ROLE(), dave);
+        bridge.setSupplyLimit(650);
+        bridge.setVotesRequired(2);
+        bridge.setMintDelay(10);
+        bridge.setRateLimit(1000, 10);
         vm.startPrank(dave);
-		bridge.setFee(4);
-		bridge.setActive(true);
+        bridge.setFee(4);
+        bridge.setActive(true);
         vm.stopPrank();
-		vm.deal(alice, 100);
-		token.mint(alice, 100);
-		token.mint(bob, 100);
-		token.mint(charlie, 100);
-		token.mint(dave, 100);
-		token.mint(address(this), 100);
-		token.transferOwnership(address(bridge));
-		token.approve(address(bridge), 9999999);
-	}
+        vm.deal(alice, 100);
+        token.mint(alice, 100);
+        token.mint(bob, 100);
+        token.mint(charlie, 100);
+        token.mint(dave, 100);
+        token.mint(address(this), 100);
+        token.transferOwnership(address(bridge));
+        token.approve(address(bridge), 9999999);
+    }
 
-	function testBurnRevertsOnStoppedBridge() public {
+    function testBurnRevertsOnStoppedBridge() public {
         vm.prank(dave);
-		bridge.setActive(false);
+        bridge.setActive(false);
 
-		vm.expectRevert(BridgeInactive.selector);
-		bridge.burn(100, substrate1);
-	}
+        vm.expectRevert(BridgeInactive.selector);
+        bridge.burn(100, substrate1);
+    }
 
-	function testBurnEmitsReceipt() public {
-		vm.expectEmit(false, false, false, false);
-		emit OutgoingReceipt(100, substrate1);
-		bridge.burn(100, substrate1);
-	}
+    function testBurnEmitsReceipt() public {
+        vm.expectEmit(false, false, false, false);
+        emit OutgoingReceipt(100, substrate1);
+        bridge.burn(100, substrate1);
+    }
 
-	function testBurnTakesTokenFromCaller() public {
-		bridge.burn(10, substrate1);
-		assertEq(token.balanceOf(address(this)), 90);
-		bridge.burn(10, substrate1);
-		assertEq(token.balanceOf(address(this)), 80);
-		bridge.burn(80, substrate1);
-		assertEq(token.balanceOf(address(this)), 0);
-	}
+    function testBurnTakesTokenFromCaller() public {
+        bridge.burn(10, substrate1);
+        assertEq(token.balanceOf(address(this)), 90);
+        bridge.burn(10, substrate1);
+        assertEq(token.balanceOf(address(this)), 80);
+        bridge.burn(80, substrate1);
+        assertEq(token.balanceOf(address(this)), 0);
+    }
 
-	function testBurnReducesTotalSupply() public {
-		bridge.burn(10, substrate1);
-		assertEq(token.totalSupply(), 490);
-		bridge.burn(10, substrate1);
-		assertEq(token.totalSupply(), 480);
-		bridge.burn(80, substrate1);
-		assertEq(token.totalSupply(), 400);
-	}
+    function testBurnReducesTotalSupply() public {
+        bridge.burn(10, substrate1);
+        assertEq(token.totalSupply(), 490);
+        bridge.burn(10, substrate1);
+        assertEq(token.totalSupply(), 480);
+        bridge.burn(80, substrate1);
+        assertEq(token.totalSupply(), 400);
+    }
 
-	function testBurnFailsOnInsufficientFunds() public {
-		vm.expectRevert(bytes("ERC20: burn amount exceeds balance"));
-		bridge.burn(101, substrate1);
-	}
+    function testBurnFailsOnInsufficientFunds() public {
+        vm.expectRevert(bytes("ERC20: burn amount exceeds balance"));
+        bridge.burn(101, substrate1);
+    }
 
-	function testVoteFailsOnNonRelay() public {
-		vm.expectRevert(
-			"AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7"
-		);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+    function testVoteFailsOnNonRelay() public {
+        vm.expectRevert(
+            "AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7"
+        );
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVoteFailsOnStoppedBridge() public {
+    function testVoteFailsOnStoppedBridge() public {
         vm.prank(dave);
-		bridge.setActive(false);
-		vm.prank(alice);
-		vm.expectRevert(BridgeInactive.selector);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+        bridge.setActive(false);
+        vm.prank(alice);
+        vm.expectRevert(BridgeInactive.selector);
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVoteSuccedsAfterReachingRequiredVotes() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(charlie);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+    function testVoteSuccedsAfterReachingRequiredVotes() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(charlie);
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVoteFailsOnProcessedReceipt() public {
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+    function testVoteFailsOnProcessedReceipt() public {
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		vm.stopPrank();
-		vm.prank(charlie);
-		vm.expectRevert(AlreadyProcessed.selector);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+        vm.stopPrank();
+        vm.prank(charlie);
+        vm.expectRevert(AlreadyProcessed.selector);
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVoteSetsReceiptDetails() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testVoteSetsReceiptDetails() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		ReceiptStruct memory r = bridge.getReceipt(receipt1);
-		assertEq(r.substrateBlockNumber, 1);
-		assertEq(r.ethRecipient, alice);
-		assertEq(r.amount, 100);
-	}
+        (uint64 substrateBlockNumber, address ethRecipient, uint256 amount,,) = bridge.receipts(receipt1);
+        assertEq(substrateBlockNumber, 1);
+        assertEq(ethRecipient, alice);
+        assertEq(amount, 100);
+    }
 
-	function testVoteStopsBridgeOnMismatchedDetails() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testVoteStopsBridgeOnMismatchedDetails() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.prank(bob);
-		vm.expectEmit(false, false, false, true);
-		emit StateChanged(false);
-		bridge.voteMint(receipt1, 1, 101, alice);
+        vm.prank(bob);
+        vm.expectEmit(false, false, false, true);
+        emit StateChanged(false);
+        bridge.voteMint(receipt1, 1, 101, alice);
 
-		vm.prank(alice);
-		vm.expectRevert(BridgeInactive.selector);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+        vm.prank(alice);
+        vm.expectRevert(BridgeInactive.selector);
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVotingIsIdempotent() public {
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.stopPrank();
+    function testVotingIsIdempotent() public {
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.stopPrank();
 
-		vm.expectRevert(NotApproved.selector);
-		bridge.mint(receipt1);
+        vm.expectRevert(NotApproved.selector);
+        bridge.mint(receipt1);
 
-		vm.prank(bob);
-		vm.expectEmit(true, false, false, false);
-		emit Approved(receipt1);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+        vm.prank(bob);
+        vm.expectEmit(true, false, false, false);
+        emit Approved(receipt1);
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVotingEmitsEvent() public {
-		vm.prank(alice);
-		vm.expectEmit(false, false, false, true);
-		emit Vote(receipt1, alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-	}
+    function testVotingEmitsEvent() public {
+        vm.prank(alice);
+        vm.expectEmit(false, false, false, true);
+        emit Vote(receipt1, alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+    }
 
-	function testVotingSetsApprovedOn() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testVotingSetsApprovedOn() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		ReceiptStruct memory r = bridge.getReceipt(receipt1);
-		assertEq(r.approvedOn, block.number);
-	}
+        (,,, uint256 approvedOn,) = bridge.receipts(receipt1);
+        assertEq(approvedOn, block.number);
+    }
 
-	function testMintFailsOnUnknownReceipt() public {
-		vm.expectRevert(NotApproved.selector);
-		bridge.mint(receipt1);
-	}
+    function testMintFailsOnUnknownReceipt() public {
+        vm.expectRevert(NotApproved.selector);
+        bridge.mint(receipt1);
+    }
 
-	function testMintFailsOnInsufficientVotes() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintFailsOnInsufficientVotes() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.expectRevert(NotApproved.selector);
-		bridge.mint(receipt1);
-	}
+        vm.expectRevert(NotApproved.selector);
+        bridge.mint(receipt1);
+    }
 
-	function testMintFailsOnStoppedBridge() public {
+    function testMintFailsOnStoppedBridge() public {
         vm.prank(dave);
-		bridge.setActive(false);
+        bridge.setActive(false);
 
-		vm.expectRevert(BridgeInactive.selector);
-		bridge.mint(receipt1);
-	}
+        vm.expectRevert(BridgeInactive.selector);
+        bridge.mint(receipt1);
+    }
 
-	function testMintEmitsEvent() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintEmitsEvent() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		vm.expectEmit(true, true, false, true);
-		emit Transfer(address(0), alice, 100);
-		bridge.mint{value: 4}(receipt1);
-	}
+        vm.roll(11);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(0), alice, 100);
+        bridge.mint{value: 4}(receipt1);
+    }
 
-	function testMintIncreasesTotalSupply() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintIncreasesTotalSupply() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		assertEq(token.totalSupply(), 600);
-	}
+        assertEq(token.totalSupply(), 600);
+    }
 
-	function testMintSendsTokensToRecipient() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintSendsTokensToRecipient() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		assertEq(token.balanceOf(alice), 200);
-	}
+        assertEq(token.balanceOf(alice), 200);
+    }
 
-	function testMintRespectsMaxIssuanceLimit() public {
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 149, alice);
-		bridge.voteMint(receipt2, 1, 2, alice);
-		bridge.voteMint(receipt3, 1, 1, alice);
-		vm.stopPrank();
-		vm.startPrank(bob);
-		bridge.voteMint(receipt1, 1, 149, alice);
-		bridge.voteMint(receipt2, 1, 2, alice);
-		bridge.voteMint(receipt3, 1, 1, alice);
-		vm.stopPrank();
+    function testMintRespectsMaxIssuanceLimit() public {
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 149, alice);
+        bridge.voteMint(receipt2, 1, 2, alice);
+        bridge.voteMint(receipt3, 1, 1, alice);
+        vm.stopPrank();
+        vm.startPrank(bob);
+        bridge.voteMint(receipt1, 1, 149, alice);
+        bridge.voteMint(receipt2, 1, 2, alice);
+        bridge.voteMint(receipt3, 1, 1, alice);
+        vm.stopPrank();
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		vm.expectRevert(TooMuchSupply.selector);
-		bridge.mint{value: 4}(receipt2);
+        vm.expectRevert(TooMuchSupply.selector);
+        bridge.mint{value: 4}(receipt2);
 
-		bridge.mint{value: 4}(receipt3);
-	}
+        bridge.mint{value: 4}(receipt3);
+    }
 
-	function testMintFailsOnInsufficientEther() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintFailsOnInsufficientEther() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		vm.expectRevert(InsufficientEther.selector);
-		bridge.mint{value: 3}(receipt1);
-	}
+        vm.roll(11);
+        vm.expectRevert(InsufficientEther.selector);
+        bridge.mint{value: 3}(receipt1);
+    }
 
-	function testMintDistributesRewardsToVotingRelays1() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintDistributesRewardsToVotingRelays1() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		assertEq(bridge.getPendingReward(alice), 2);
-		assertEq(bridge.getPendingReward(bob), 2);
-		assertEq(bridge.getPendingReward(charlie), 0);
-	}
+        assertEq(bridge.pendingRewards(alice), 2);
+        assertEq(bridge.pendingRewards(bob), 2);
+        assertEq(bridge.pendingRewards(charlie), 0);
+    }
 
-	function testMintDistributesRewardsToVotingRelays2() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(charlie);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintDistributesRewardsToVotingRelays2() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(charlie);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		assertEq(bridge.getPendingReward(alice), 2);
-		assertEq(bridge.getPendingReward(bob), 1);
-		assertEq(bridge.getPendingReward(charlie), 1);
-	}
+        assertEq(bridge.pendingRewards(alice), 2);
+        assertEq(bridge.pendingRewards(bob), 1);
+        assertEq(bridge.pendingRewards(charlie), 1);
+    }
 
-	function testMintUpdatesReceiptStatus() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintUpdatesReceiptStatus() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		ReceiptStruct memory r = bridge.getReceipt(receipt1);
-		assertEq(r.processedOn, block.number);
-	}
+        (,,,, uint256 processedOn) = bridge.receipts(receipt1);
+        assertEq(processedOn, block.number);
+    }
 
-	function testMintWorksOnlyOnce() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
+    function testMintWorksOnlyOnce() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
 
-		vm.expectRevert(AlreadyProcessed.selector);
-		bridge.mint{value: 4}(receipt1);
-	}
+        vm.expectRevert(AlreadyProcessed.selector);
+        bridge.mint{value: 4}(receipt1);
+    }
 
-	function testMintRespectsMintDelay() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
+    function testMintRespectsMintDelay() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(10);
-		vm.expectRevert(TooSoon.selector);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(10);
+        vm.expectRevert(TooSoon.selector);
+        bridge.mint{value: 4}(receipt1);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
-	}
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
+    }
 
-	function testMintRespectsMintDelayWithVotesAfterApproval() public {
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 100, alice);
-		vm.prank(charlie);
+    function testMintRespectsMintDelayWithVotesAfterApproval() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(charlie);
         vm.roll(5);
-		bridge.voteMint(receipt1, 1, 100, alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
 
-		vm.roll(10);
-		vm.expectRevert(TooSoon.selector);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(10);
+        vm.expectRevert(TooSoon.selector);
+        bridge.mint{value: 4}(receipt1);
 
-		vm.roll(11);
-		bridge.mint{value: 4}(receipt1);
-	}
+        vm.roll(11);
+        bridge.mint{value: 4}(receipt1);
+    }
 
     function testEmergencyStopChecksPerms() public {
-        vm.expectRevert("AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x2125d1e225cadc5c8296e2cc1f96ee607770bf4a4a16131e62f6819937437c89");
+        vm.expectRevert(
+            "AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x2125d1e225cadc5c8296e2cc1f96ee607770bf4a4a16131e62f6819937437c89"
+        );
         bridge.emergencyStop();
 
         vm.prank(dave);
@@ -385,27 +387,31 @@ contract BridgeTest is Test, BridgeEvents {
     function testSetFeeWorks() public {
         vm.startPrank(dave);
         bridge.setFee(1);
-        assertEq(bridge.getFee(), 1);
+        assertEq(bridge.fee(), 1);
         bridge.setFee(10);
-        assertEq(bridge.getFee(), 10);
+        assertEq(bridge.fee(), 10);
     }
 
     function testSetFeeRequiresAdmin() public {
         vm.prank(alice);
-        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        vm.expectRevert(
+            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775"
+        );
         bridge.setFee(1);
     }
 
     function testSetVotesRequiredWorks() public {
         bridge.setVotesRequired(1);
-        assertEq(bridge.getVotesRequired(), 1);
+        assertEq(bridge.votesRequired(), 1);
         bridge.setVotesRequired(10);
-        assertEq(bridge.getVotesRequired(), 10);
+        assertEq(bridge.votesRequired(), 10);
     }
 
     function testSetVotesRequiredRequiresSuperAdmin() public {
         vm.prank(alice);
-        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x7613a25ecc738585a232ad50a301178f12b3ba8887d13e138b523c4269c47689");
+        vm.expectRevert(
+            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x7613a25ecc738585a232ad50a301178f12b3ba8887d13e138b523c4269c47689"
+        );
         bridge.setVotesRequired(1);
     }
 
@@ -426,7 +432,9 @@ contract BridgeTest is Test, BridgeEvents {
         assertEq(bridge.hasRole(relay, alice), false);
 
         vm.prank(alice);
-        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7");
+        vm.expectRevert(
+            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7"
+        );
         bridge.voteMint(receipt1, 1, 100, alice);
     }
 
@@ -461,21 +469,25 @@ contract BridgeTest is Test, BridgeEvents {
         vm.stopPrank();
 
         vm.startPrank(alice);
-        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        vm.expectRevert(
+            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775"
+        );
         bridge.setActive(true);
 
-        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        vm.expectRevert(
+            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775"
+        );
         bridge.setActive(false);
     }
 
     function testSetActiveWorks() public {
         vm.startPrank(dave);
         bridge.setActive(false);
-        assertEq(bridge.getActive(), false);
+        assertEq(bridge.bridgeActive(), false);
         bridge.setActive(true);
-        assertEq(bridge.getActive(), true);
+        assertEq(bridge.bridgeActive(), true);
         bridge.setActive(false);
-        assertEq(bridge.getActive(), false);
+        assertEq(bridge.bridgeActive(), false);
     }
 
     function testAddingAdminsRequiresAdmin() public {
@@ -563,7 +575,9 @@ contract BridgeTest is Test, BridgeEvents {
         assertEq(bridge.hasRole(watcher, alice), false);
 
         vm.prank(alice);
-        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x2125d1e225cadc5c8296e2cc1f96ee607770bf4a4a16131e62f6819937437c89");
+        vm.expectRevert(
+            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x2125d1e225cadc5c8296e2cc1f96ee607770bf4a4a16131e62f6819937437c89"
+        );
         bridge.emergencyStop();
     }
 
@@ -591,137 +605,137 @@ contract BridgeTest is Test, BridgeEvents {
         vm.prank(dave);
         bridge.voteMint(receipt1, 1, 100, alice);
     }
-    
-    function testRateLimitAllowsSingleTxAtLimit() public {
-		bridge.setSupplyLimit(99999);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		vm.roll(11);
 
-		bridge.mint{value: 4}(receipt1);
+    function testRateLimitAllowsSingleTxAtLimit() public {
+        bridge.setSupplyLimit(99999);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        vm.roll(11);
+
+        bridge.mint{value: 4}(receipt1);
     }
 
     function testRateLimitAllowsMultiTxAtLimit() public {
-		bridge.setSupplyLimit(99999);
-		vm.startPrank(bob);
-		bridge.voteMint(receipt1, 1, 500, alice);
-		bridge.voteMint(receipt2, 1, 500, alice);
+        bridge.setSupplyLimit(99999);
+        vm.startPrank(bob);
+        bridge.voteMint(receipt1, 1, 500, alice);
+        bridge.voteMint(receipt2, 1, 500, alice);
         vm.stopPrank();
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 500, alice);
-		bridge.voteMint(receipt2, 1, 500, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 500, alice);
+        bridge.voteMint(receipt2, 1, 500, alice);
         vm.stopPrank();
-		vm.roll(11);
+        vm.roll(11);
 
-		bridge.mint{value: 4}(receipt1);
-		bridge.mint{value: 4}(receipt2);
+        bridge.mint{value: 4}(receipt1);
+        bridge.mint{value: 4}(receipt2);
     }
 
     function testRateLimitAllowsUsingDecayedAmountRightAway() public {
-		bridge.setSupplyLimit(99999);
-		vm.startPrank(bob);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		bridge.voteMint(receipt2, 1, 10, alice);
+        bridge.setSupplyLimit(99999);
+        vm.startPrank(bob);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        bridge.voteMint(receipt2, 1, 10, alice);
         vm.stopPrank();
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		bridge.voteMint(receipt2, 1, 10, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        bridge.voteMint(receipt2, 1, 10, alice);
         vm.stopPrank();
-		vm.roll(11);
+        vm.roll(11);
 
-		bridge.mint{value: 4}(receipt1);
-		vm.roll(12);
-		bridge.mint{value: 4}(receipt2);
+        bridge.mint{value: 4}(receipt1);
+        vm.roll(12);
+        bridge.mint{value: 4}(receipt2);
     }
 
     function testRateLimitGoesToZeroAfterWholeWindow() public {
-		bridge.setSupplyLimit(99999);
-		vm.startPrank(bob);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		bridge.voteMint(receipt2, 1, 1000, alice);
+        bridge.setSupplyLimit(99999);
+        vm.startPrank(bob);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        bridge.voteMint(receipt2, 1, 1000, alice);
         vm.stopPrank();
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		bridge.voteMint(receipt2, 1, 1000, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        bridge.voteMint(receipt2, 1, 1000, alice);
         vm.stopPrank();
-		vm.roll(11);
+        vm.roll(11);
 
-		bridge.mint{value: 4}(receipt1);
-		vm.roll(111);
-		bridge.mint{value: 4}(receipt2);
+        bridge.mint{value: 4}(receipt1);
+        vm.roll(111);
+        bridge.mint{value: 4}(receipt2);
     }
 
     function testRateLimitPreventsSingleBigMint() public {
-		bridge.setSupplyLimit(99999);
-		vm.prank(bob);
-		bridge.voteMint(receipt1, 1, 1001, alice);
-		vm.prank(alice);
-		bridge.voteMint(receipt1, 1, 1001, alice);
-		vm.roll(11);
+        bridge.setSupplyLimit(99999);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 1001, alice);
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 1001, alice);
+        vm.roll(11);
 
         vm.expectRevert(RateLimited.selector);
-		bridge.mint{value: 4}(receipt1);
+        bridge.mint{value: 4}(receipt1);
     }
 
     function testRateLimitPreventsMultiBigMint() public {
-		bridge.setSupplyLimit(99999);
-		vm.startPrank(bob);
-		bridge.voteMint(receipt1, 1, 501, alice);
-		bridge.voteMint(receipt2, 1, 500, alice);
+        bridge.setSupplyLimit(99999);
+        vm.startPrank(bob);
+        bridge.voteMint(receipt1, 1, 501, alice);
+        bridge.voteMint(receipt2, 1, 500, alice);
         vm.stopPrank();
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 501, alice);
-		bridge.voteMint(receipt2, 1, 500, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 501, alice);
+        bridge.voteMint(receipt2, 1, 500, alice);
         vm.stopPrank();
-		vm.roll(11);
+        vm.roll(11);
 
-		bridge.mint{value: 4}(receipt1);
+        bridge.mint{value: 4}(receipt1);
 
         vm.expectRevert(RateLimited.selector);
-		bridge.mint{value: 4}(receipt2);
+        bridge.mint{value: 4}(receipt2);
     }
 
     function testRateLimitRespectsDecay() public {
-		bridge.setSupplyLimit(99999);
-		vm.startPrank(bob);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		bridge.voteMint(receipt2, 1, 500, alice);
-		bridge.voteMint(receipt3, 1, 501, alice);
+        bridge.setSupplyLimit(99999);
+        vm.startPrank(bob);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        bridge.voteMint(receipt2, 1, 500, alice);
+        bridge.voteMint(receipt3, 1, 501, alice);
         vm.stopPrank();
-		vm.startPrank(alice);
-		bridge.voteMint(receipt1, 1, 1000, alice);
-		bridge.voteMint(receipt2, 1, 500, alice);
-		bridge.voteMint(receipt3, 1, 501, alice);
+        vm.startPrank(alice);
+        bridge.voteMint(receipt1, 1, 1000, alice);
+        bridge.voteMint(receipt2, 1, 500, alice);
+        bridge.voteMint(receipt3, 1, 501, alice);
         vm.stopPrank();
 
-		vm.roll(100);
-		bridge.mint{value: 4}(receipt1);
+        vm.roll(100);
+        bridge.mint{value: 4}(receipt1);
 
-		vm.roll(149);
+        vm.roll(149);
         vm.expectRevert(RateLimited.selector);
-		bridge.mint{value: 4}(receipt2);
+        bridge.mint{value: 4}(receipt2);
 
         vm.roll(150);
         vm.expectRevert(RateLimited.selector);
-		bridge.mint{value: 4}(receipt3);
+        bridge.mint{value: 4}(receipt3);
 
-		bridge.mint{value: 4}(receipt2);
+        bridge.mint{value: 4}(receipt2);
     }
 
     function testMaxTotalSupplyIsRespectedAfterBurns() public {
-		bridge.setSupplyLimit(500);
+        bridge.setSupplyLimit(500);
         bridge.setVotesRequired(1);
 
         vm.prank(alice);
         bridge.voteMint(receipt1, 1, 100, alice);
 
         vm.roll(11);
-		vm.expectRevert(TooMuchSupply.selector);
-		bridge.mint(receipt1);
+        vm.expectRevert(TooMuchSupply.selector);
+        bridge.mint(receipt1);
 
-		bridge.burn(100, substrate1);
-		bridge.mint{value: 4}(receipt1);
+        bridge.burn(100, substrate1);
+        bridge.mint{value: 4}(receipt1);
     }
 }

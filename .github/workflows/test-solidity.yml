@@ -6,7 +6,28 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
+  lint:
+    strategy:
+      fail-fast: true
+
+    name: Solhint linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+      
+      - name: Install solhint
+        run: npm install -g solhint
+
+      - name: Run solhint
+        working-directory: ./eth-bridge/contracts/
+        run: solhint 'src/**/*.sol'
+
+  build_and_test:
     strategy:
       fail-fast: true
 
@@ -34,6 +55,12 @@ jobs:
         run: |
           forge test -vvv
         id: test_solidity
+
+      - name: Run Forge fmt check
+        working-directory: ./eth-bridge/contracts/
+        run: |
+          forge fmt --check
+        id: fmt_solidity
 
       - name: Analyze with Slither
         uses: crytic/slither-action@v0.3.0
