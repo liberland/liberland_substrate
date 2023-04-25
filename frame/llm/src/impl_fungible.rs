@@ -41,7 +41,10 @@ impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
 		}
 	}
 
-	fn can_withdraw(who: &T::AccountId, amount: Self::Balance) -> WithdrawConsequence<Self::Balance> {
+	fn can_withdraw(
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> WithdrawConsequence<Self::Balance> {
 		if <Self as Inspect<T::AccountId>>::balance(who) < amount {
 			WithdrawConsequence::NoFunds
 		} else {

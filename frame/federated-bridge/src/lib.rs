@@ -307,16 +307,7 @@ pub mod pallet {
 		/// Bridge state was changed by watcher, admin or superadmin
 		StateChanged(BridgeState),
 		/// Bridge was stopped by watcher after detecting invalid vote by relay
-		EmergencyStop {
-			/// watcher that detected problem
-			watcher: T::AccountId,
-			/// substrate block number of invalid vote
-			block_number: T::BlockNumber,
-			/// relay that submitted invalid vote
-			voter: T::AccountId,
-			/// receipt_id for which vote was casted
-			receipt_id: ReceiptId,
-		},
+		EmergencyStop,
 	}
 
 	#[pallet::storage]
@@ -354,8 +345,13 @@ pub mod pallet {
 
 	#[pallet::storage]
 	/// Status of incoming receipts - eth -> substrate transfers
-	pub(super) type StatusOf<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, ReceiptId, IncomingReceiptStatus<T::BlockNumber>, ValueQuery>;
+	pub(super) type StatusOf<T: Config<I>, I: 'static = ()> = StorageMap<
+		_,
+		Blake2_128Concat,
+		ReceiptId,
+		IncomingReceiptStatus<T::BlockNumber>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	/// List of relays that voted for approval of given receipt
@@ -446,8 +442,7 @@ pub mod pallet {
 
 			ensure!(State::<T, I>::get() == BridgeState::Active, Error::<T, I>::BridgeStopped);
 
-			let total_locked =
-				<T::Token as Inspect<T::AccountId>>::balance(&Self::account_id());
+			let total_locked = <T::Token as Inspect<T::AccountId>>::balance(&Self::account_id());
 			ensure!(
 				total_locked.saturating_add(amount) <= T::MaxTotalLocked::get(),
 				Error::<T, I>::TooMuchLocked
@@ -497,7 +492,8 @@ pub mod pallet {
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
 			ensure!(relays.contains(&relay), Error::<T, I>::Unauthorized);
 			ensure!(
-				status == IncomingReceiptStatus::Voting || matches!(status, IncomingReceiptStatus::Approved(_)),
+				status == IncomingReceiptStatus::Voting ||
+					matches!(status, IncomingReceiptStatus::Approved(_)),
 				Error::<T, I>::AlreadyProcessed
 			);
 
@@ -522,7 +518,10 @@ pub mod pallet {
 					let votes_required = VotesRequired::<T, I>::get();
 					if votes.len() >= votes_required as usize {
 						let block_number = frame_system::Pallet::<T>::block_number();
-						StatusOf::<T, I>::insert(receipt_id, IncomingReceiptStatus::Approved(block_number));
+						StatusOf::<T, I>::insert(
+							receipt_id,
+							IncomingReceiptStatus::Approved(block_number),
+						);
 						Self::deposit_event(Event::Approved(receipt_id))
 					}
 				}
@@ -709,31 +708,16 @@ pub mod pallet {
 		///
 		/// Can be called by Watchers.
 		///
-		/// Arguments:
-		/// * `block_number` - substrate block number in which invalid vote was cast
-		/// * `voter` - account of relay that cast invalid vote
-		/// * `receipt_id` - receipt for which invalid vote was cas
-		///
 		/// Deposits `EmergencyStop` and `StateChanged` events.
 		#[pallet::call_index(10)]
 		#[pallet::weight(10_000)]
-		pub fn emergency_stop(
-			origin: OriginFor<T>,
-			block_number: T::BlockNumber,
-			voter: T::AccountId,
-			receipt_id: ReceiptId,
-		) -> DispatchResult {
+		pub fn emergency_stop(origin: OriginFor<T>) -> DispatchResult {
 			let caller = ensure_signed(origin)?;
 			let watchers = Watchers::<T, I>::get();
 			ensure!(watchers.contains(&caller), Error::<T, I>::Unauthorized);
 
 			Self::do_set_state(BridgeState::Stopped);
-			Self::deposit_event(Event::<T, I>::EmergencyStop {
-				watcher: caller,
-				block_number,
-				voter,
-				receipt_id,
-			});
+			Self::deposit_event(Event::<T, I>::EmergencyStop);
 			Ok(())
 		}
 

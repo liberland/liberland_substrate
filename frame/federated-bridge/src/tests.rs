@@ -451,26 +451,21 @@ fn withdrawal_delay_is_enforced_correctly_with_votes_after_approval() {
 #[test]
 fn emergency_stop_checks_origin() {
 	new_test_ext().execute_with(|| {
-		let (receipt_id, _) = gen_receipt(0, 10);
 		assert_noop!(
-			Bridge::emergency_stop(RuntimeOrigin::signed(10), 0, 0, receipt_id),
+			Bridge::emergency_stop(RuntimeOrigin::signed(10)),
 			Error::<Test>::Unauthorized
 		);
-		assert_noop!(Bridge::emergency_stop(RuntimeOrigin::root(), 0, 0, receipt_id), BadOrigin);
-		assert_ok!(Bridge::emergency_stop(RuntimeOrigin::signed(0), 0, 0, receipt_id));
+		assert_noop!(Bridge::emergency_stop(RuntimeOrigin::root()), BadOrigin);
+		assert_ok!(Bridge::emergency_stop(RuntimeOrigin::signed(0)));
 	});
 }
 
 #[test]
 fn emergency_stop_deposits_both_events() {
 	new_test_ext().execute_with(|| {
-		let (receipt_id, _) = gen_receipt(0, 10);
-		assert_ok!(Bridge::emergency_stop(RuntimeOrigin::signed(0), 2, 3, receipt_id));
+		assert_ok!(Bridge::emergency_stop(RuntimeOrigin::signed(0)));
 		System::assert_has_event(Event::<Test>::StateChanged(BridgeState::Stopped).into());
-		System::assert_has_event(
-			Event::<Test>::EmergencyStop { watcher: 0, block_number: 2, voter: 3, receipt_id }
-				.into(),
-		);
+		System::assert_has_event(Event::<Test>::EmergencyStop.into());
 	});
 }
 
@@ -478,7 +473,7 @@ fn emergency_stop_deposits_both_events() {
 fn emergency_stop_works() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, receipt) = gen_receipt(0, 10);
-		assert_ok!(Bridge::emergency_stop(RuntimeOrigin::signed(0), 2, 3, receipt_id));
+		assert_ok!(Bridge::emergency_stop(RuntimeOrigin::signed(0)));
 		assert_noop!(
 			Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt),
 			Error::<Test>::BridgeStopped

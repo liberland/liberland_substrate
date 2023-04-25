@@ -144,8 +144,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod migrations;
 mod impl_fungible;
+pub mod migrations;
 
 /// Liberland Merit Pallet
 /*
@@ -565,7 +565,10 @@ pub mod pallet {
 
 		/// Transfer `amount` LLM to `to_account` from treasury
 		/// Used in liberland-initializer and in tests.
-		pub fn transfer_from_treasury(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
+		pub fn transfer_from_treasury(
+			to_account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
 			let treasury = Self::get_llm_treasury_account();
 			Self::transfer(treasury, to_account, amount)
 		}
