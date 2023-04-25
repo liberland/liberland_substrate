@@ -1,8 +1,9 @@
 #![cfg(test)]
 
 use crate::{
-	mock::*, Admin, BridgeState, Error, EthAddress, Event, Fee, Receipt, ReceiptId, ReceiptStatus,
-	Receipts, Relays, State, StatusOf, SuperAdmin, VotesRequired, Voting, Watchers,
+	mock::*, Admin, BridgeState, Error, EthAddress, Event, Fee, IncomingReceipt,
+	IncomingReceiptStatus, IncomingReceipts, ReceiptId, Relays, State, StatusOf, SuperAdmin,
+	VotesRequired, Voting, Watchers,
 };
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::{AccountIdConversion, BadOrigin};
@@ -13,11 +14,11 @@ fn eth_recipient(n: u8) -> EthAddress {
 	addr
 }
 
-fn gen_receipt(recipient: u64, amount: u64) -> (ReceiptId, Receipt<u64, u64>) {
+fn gen_receipt(recipient: u64, amount: u64) -> (ReceiptId, IncomingReceipt<u64, u64>) {
 	let mut id: ReceiptId = Default::default();
 	id[0] = recipient as u8;
 
-	(id, Receipt { eth_block_number: 0, substrate_recipient: recipient, amount })
+	(id, IncomingReceipt { eth_block_number: 0, substrate_recipient: recipient, amount })
 }
 
 fn bridge_wallet() -> u64 {
@@ -41,7 +42,7 @@ fn deposit_emits_receipt() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
 		System::assert_last_event(
-			Event::<Test>::Receipt { amount: 1, eth_recipient: eth_recipient(0) }.into(),
+			Event::<Test>::OutgoingReceipt { amount: 1, eth_recipient: eth_recipient(0) }.into(),
 		);
 	});
 }
@@ -162,11 +163,11 @@ fn vote_fails_on_processed_receipt() {
 fn vote_stores_receipt_details() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, receipt) = gen_receipt(0, 1);
-		assert_eq!(Receipts::<Test>::get(receipt_id), None);
+		assert_eq!(IncomingReceipts::<Test>::get(receipt_id), None);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
-		assert_eq!(Receipts::<Test>::get(receipt_id), Some(receipt.clone()));
+		assert_eq!(IncomingReceipts::<Test>::get(receipt_id), Some(receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
-		assert_eq!(Receipts::<Test>::get(receipt_id), Some(receipt));
+		assert_eq!(IncomingReceipts::<Test>::get(receipt_id), Some(receipt));
 	});
 }
 
@@ -242,15 +243,15 @@ fn voting_sets_approved_status() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, receipt) = gen_receipt(0, 1);
 
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Voting);
+		assert_eq!(StatusOf::<Test>::get(receipt_id), IncomingReceiptStatus::Voting);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Voting);
+		assert_eq!(StatusOf::<Test>::get(receipt_id), IncomingReceiptStatus::Voting);
 		System::set_block_number(2);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Approved(2));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), IncomingReceiptStatus::Approved(2));
 		System::set_block_number(3);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(2), receipt_id, receipt.clone()));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Approved(2));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), IncomingReceiptStatus::Approved(2));
 	});
 }
 
@@ -384,10 +385,10 @@ fn withdraw_updates_receipt_status() {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(4), 10, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Approved(1));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), IncomingReceiptStatus::Approved(1));
 		System::set_block_number(11);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(4), receipt_id));
-		assert_eq!(StatusOf::<Test>::get(receipt_id), ReceiptStatus::Processed(11));
+		assert_eq!(StatusOf::<Test>::get(receipt_id), IncomingReceiptStatus::Processed(11));
 	});
 }
 

@@ -139,7 +139,7 @@ pub type EthBlockNumber = u64;
 
 #[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 /// Struct holding information about ETH -> Substrate transfer
-pub struct Receipt<AccountId, Balance> {
+pub struct IncomingReceipt<AccountId, Balance> {
 	/// Eth block number at which Receipt event was emitted
 	pub eth_block_number: EthBlockNumber,
 	/// Account on Substrate side that should receive tokens
@@ -150,7 +150,7 @@ pub struct Receipt<AccountId, Balance> {
 
 #[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 /// Status of ETH -> Substrate transfer being handled
-pub enum ReceiptStatus<BlockNumber> {
+pub enum IncomingReceiptStatus<BlockNumber> {
 	/// Relays can vote on releasing this to recipient
 	Voting,
 	/// Relays casted required number of votes on block number
@@ -159,7 +159,7 @@ pub enum ReceiptStatus<BlockNumber> {
 	Processed(BlockNumber),
 }
 
-impl<T> Default for ReceiptStatus<T> {
+impl<T> Default for IncomingReceiptStatus<T> {
 	fn default() -> Self {
 		Self::Voting
 	}
@@ -255,17 +255,17 @@ pub mod pallet {
 	pub enum Error<T, I = ()> {
 		/// Relay/Watcher already exists
 		AlreadyExists,
-		/// Receipt already processed and funds withdrawn
+		/// Incoming Receipt already processed and funds withdrawn
 		AlreadyProcessed,
 		/// Bridge is stopped
 		BridgeStopped,
-		/// This receipt id is unknown
+		/// This incoming receipt id is unknown
 		UnknownReceiptId,
 		/// Invalid relay
 		InvalidRelay,
 		/// Invalid watcher
 		InvalidWatcher,
-		/// Receipt not approved for processing yet
+		/// Incoming receipt not approved for processing yet
 		NotApproved,
 		/// Too many votes
 		TooManyVotes,
@@ -275,7 +275,7 @@ pub mod pallet {
 		TooManyRelays,
 		/// Caller is unauthorized for this action
 		Unauthorized,
-		/// Not enough time passed since Receipt approval
+		/// Not enough time passed since incoming receipt approval
 		TooSoon,
 		/// Too many tokens withdrawn in short time from bridge, try again later
 		RateLimited,
@@ -287,7 +287,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// Receipt for substrate -> eth transfer
-		Receipt {
+		OutgoingReceipt {
 			/// amount transferred
 			amount: BalanceOfToken<T, I>,
 			/// recipient on eth side
@@ -297,12 +297,12 @@ pub mod pallet {
 		Vote {
 			/// voter
 			relay: T::AccountId,
-			/// Receipt ID
+			/// Incoming Receipt ID
 			receipt_id: ReceiptId,
 		},
-		/// Receipt got approved for withdrawal
+		/// Incoming Receipt got approved for withdrawal
 		Approved(ReceiptId),
-		/// Receipt was processed, eth -> substrate transfer complete
+		/// Incoming Receipt was processed, eth -> substrate transfer complete
 		Processed(ReceiptId),
 		/// Bridge state was changed by watcher, admin or superadmin
 		StateChanged(BridgeState),
@@ -343,19 +343,19 @@ pub mod pallet {
 	pub(super) type State<T: Config<I>, I: 'static = ()> = StorageValue<_, BridgeState, ValueQuery>;
 
 	#[pallet::storage]
-	/// Receipts - details on eth -> substrate transfers
-	pub(super) type Receipts<T: Config<I>, I: 'static = ()> = StorageMap<
+	/// Incoming Receipts - details on eth -> substrate transfers
+	pub(super) type IncomingReceipts<T: Config<I>, I: 'static = ()> = StorageMap<
 		_,
 		Blake2_128Concat,
 		ReceiptId,
-		Receipt<T::AccountId, BalanceOfToken<T, I>>,
+		IncomingReceipt<T::AccountId, BalanceOfToken<T, I>>,
 		OptionQuery,
 	>;
 
 	#[pallet::storage]
-	/// Status of receipts - eth -> substrate transfers
+	/// Status of incoming receipts - eth -> substrate transfers
 	pub(super) type StatusOf<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, ReceiptId, ReceiptStatus<T::BlockNumber>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, ReceiptId, IncomingReceiptStatus<T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
 	/// List of relays that voted for approval of given receipt
@@ -428,7 +428,7 @@ pub mod pallet {
 		/// Takes `amount` of tokens (`T::Token`) from caller and issues a receipt for
 		/// transferring them to `eth_recipient` on ETH side.
 		///
-		/// Deposits `Receipt` event on success.
+		/// Deposits `OutgoingReceipt` event on success.
 		///
 		/// No fees other than transaction fees are taken at this point.
 		///
@@ -459,7 +459,7 @@ pub mod pallet {
 				amount,
 				false,
 			)?;
-			Self::deposit_event(Event::Receipt { amount, eth_recipient });
+			Self::deposit_event(Event::OutgoingReceipt { amount, eth_recipient });
 
 			Ok(())
 		}
@@ -487,7 +487,7 @@ pub mod pallet {
 		pub fn vote_withdraw(
 			origin: OriginFor<T>,
 			receipt_id: ReceiptId,
-			receipt: Receipt<T::AccountId, BalanceOfToken<T, I>>,
+			receipt: IncomingReceipt<T::AccountId, BalanceOfToken<T, I>>,
 		) -> DispatchResult {
 			let relay = ensure_signed(origin)?;
 
@@ -497,11 +497,11 @@ pub mod pallet {
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
 			ensure!(relays.contains(&relay), Error::<T, I>::Unauthorized);
 			ensure!(
-				status == ReceiptStatus::Voting || matches!(status, ReceiptStatus::Approved(_)),
+				status == IncomingReceiptStatus::Voting || matches!(status, IncomingReceiptStatus::Approved(_)),
 				Error::<T, I>::AlreadyProcessed
 			);
 
-			if let Some(stored_receipt) = Receipts::<T, I>::get(receipt_id) {
+			if let Some(stored_receipt) = IncomingReceipts::<T, I>::get(receipt_id) {
 				// verify that this relay has the same receipt for this id as previous one
 				if stored_receipt != receipt {
 					// someone lied, stop the bridge
@@ -511,18 +511,18 @@ pub mod pallet {
 				}
 			} else {
 				// first vote
-				Receipts::<T, I>::insert(receipt_id, &receipt);
+				IncomingReceipts::<T, I>::insert(receipt_id, &receipt);
 			}
 
 			let mut votes = Voting::<T, I>::get(receipt_id);
 			if !votes.contains(&relay) {
 				votes.try_push(relay.clone()).map_err(|_| Error::<T, I>::TooManyVotes)?;
 				Voting::<T, I>::insert(receipt_id, &votes);
-				if status == ReceiptStatus::Voting {
+				if status == IncomingReceiptStatus::Voting {
 					let votes_required = VotesRequired::<T, I>::get();
 					if votes.len() >= votes_required as usize {
 						let block_number = frame_system::Pallet::<T>::block_number();
-						StatusOf::<T, I>::insert(receipt_id, ReceiptStatus::Approved(block_number));
+						StatusOf::<T, I>::insert(receipt_id, IncomingReceiptStatus::Approved(block_number));
 						Self::deposit_event(Event::Approved(receipt_id))
 					}
 				}
@@ -535,7 +535,7 @@ pub mod pallet {
 		/// Claim tokens (`T::Token`) from approved ETH -> Substrate transfer.
 		///
 		/// Any Signed origin can call this, tokens will always be transferred
-		/// to recipient specified by Ethereum side in Receipt.
+		/// to recipient specified by Ethereum side in Incoming Receipt.
 		///
 		/// Takes fee (in `T::Currency`) from caller and proportionally distributes to relays that
 		/// casted vote on this receipt.
@@ -557,12 +557,12 @@ pub mod pallet {
 
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
 			ensure!(
-				!matches!(status, ReceiptStatus::Processed(_)),
+				!matches!(status, IncomingReceiptStatus::Processed(_)),
 				Error::<T, I>::AlreadyProcessed
 			);
 
-			if let Some(receipt) = Receipts::<T, I>::get(receipt_id) {
-				if let ReceiptStatus::Approved(approved_on) = status {
+			if let Some(receipt) = IncomingReceipts::<T, I>::get(receipt_id) {
+				if let IncomingReceiptStatus::Approved(approved_on) = status {
 					let current_block_number = frame_system::Pallet::<T>::block_number();
 					ensure!(
 						current_block_number >= approved_on + T::WithdrawalDelay::get(),
@@ -578,7 +578,7 @@ pub mod pallet {
 					)?;
 					StatusOf::<T, I>::insert(
 						receipt_id,
-						ReceiptStatus::Processed(frame_system::Pallet::<T>::block_number()),
+						IncomingReceiptStatus::Processed(frame_system::Pallet::<T>::block_number()),
 					);
 					Self::deposit_event(Event::<T, I>::Processed(receipt_id));
 					Ok(())
