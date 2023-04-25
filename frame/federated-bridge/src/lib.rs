@@ -228,6 +228,11 @@ pub mod pallet {
 		type MaxWatchers: Get<u32>;
 
 		#[pallet::constant]
+		/// Maximum number of tokens that can be locked in pallet (a.k.a.
+		/// bridged to ETH)
+		type MaxTotalLocked: Get<BalanceOfToken<Self, I>>;
+
+		#[pallet::constant]
 		/// Delay between getting approval from relays and actually unlocking
 		/// withdrawal for eth -> substrate transfer.
 		/// Gives watchers time to stop bridge.
@@ -274,6 +279,8 @@ pub mod pallet {
 		TooSoon,
 		/// Too many tokens withdrawn in short time from bridge, try again later
 		RateLimited,
+		/// Too much locked in pallet already
+		TooMuchLocked,
 	}
 
 	#[pallet::event]
@@ -438,6 +445,14 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(State::<T, I>::get() == BridgeState::Active, Error::<T, I>::BridgeStopped);
+
+			let total_locked =
+				<T::Token as Inspect<T::AccountId>>::balance(&Self::account_id());
+			ensure!(
+				total_locked.saturating_add(amount) <= T::MaxTotalLocked::get(),
+				Error::<T, I>::TooMuchLocked
+			);
+
 			<T::Token as Transfer<T::AccountId>>::transfer(
 				&who,
 				&Self::account_id(),

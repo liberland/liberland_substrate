@@ -89,12 +89,13 @@ impl pallet_federated_bridge::Config for Test {
 	type WithdrawalDelay = ConstU64<10>;
 	type WithdrawalRateLimit = RateLimit;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type MaxTotalLocked = ConstU64<10000>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let balances =
-		vec![(0, 100), (1, 100), (2, 100), (3, 100), (4, 100), (5, 100), (6, 100), (200, 10000)];
+		vec![(0, 100), (1, 100), (2, 100), (3, 100), (4, 100), (5, 100), (6, 100), (200, 20000)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
 		.assimilate_storage(&mut t)
 		.unwrap();

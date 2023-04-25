@@ -83,6 +83,22 @@ fn deposit_failes_on_nonsiged_origin() {
 	});
 }
 
+#[test]
+fn deposit_respects_max_total_locked() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Bridge::deposit(RuntimeOrigin::signed(200), 10001, eth_recipient(0)),
+			Error::<Test>::TooMuchLocked
+		);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 9999, eth_recipient(0)));
+		assert_noop!(
+			Bridge::deposit(RuntimeOrigin::signed(200), 2, eth_recipient(0)),
+			Error::<Test>::TooMuchLocked
+		);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 1, eth_recipient(0)));
+	});
+}
+
 /* VOTING */
 
 #[test]
@@ -893,5 +909,29 @@ fn rate_limit_respects_decay() {
 			Error::<Test>::RateLimited
 		);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id2));
+	});
+}
+
+/* OTHER */
+#[test]
+fn max_total_locked_is_respected_after_withdrawals() {
+	new_test_ext().execute_with(|| {
+		let (receipt_id, receipt) = gen_receipt(200, 1000);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 1000, eth_recipient(0)));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
+		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
+
+		System::set_block_number(200);
+		assert_noop!(
+			Bridge::deposit(RuntimeOrigin::signed(0), 9001, eth_recipient(0)),
+			Error::<Test>::TooMuchLocked
+		);
+		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 9001, eth_recipient(0)));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 999, eth_recipient(0)));
+		assert_noop!(
+			Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)),
+			Error::<Test>::TooMuchLocked
+		);
 	});
 }
