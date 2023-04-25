@@ -1,0 +1,36 @@
+name: test solidity contracts
+
+on: workflow_dispatch
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        working-directory: ./eth-bridge/contracts/
+        run: |
+          forge --version
+          forge build --sizes
+        id: build_solidity
+
+      - name: Run Forge tests
+        working-directory: ./eth-bridge/contracts/
+        run: |
+          forge test -vvv
+        id: test_solidity
