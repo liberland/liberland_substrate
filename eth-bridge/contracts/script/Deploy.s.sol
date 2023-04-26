@@ -8,6 +8,8 @@ import "../src/Bridge.sol";
 
 contract Deploy is Script {
     function run() external {
+        vm.startBroadcast();
+
         uint256 fee = (101411 + 7 * 29958) * 11 / uint256(10);
         uint256 delay = 300; // * 12 sec = 1h;
         uint32 votesRequired = 2;
@@ -38,7 +40,7 @@ contract Deploy is Script {
             abi.encodeCall(
                 Bridge.initialize,
                 (
-                    lld,
+                    llm,
                     votesRequired,
                     delay,
                     fee,
@@ -49,11 +51,6 @@ contract Deploy is Script {
             )
         );
         llm.transferOwnership(address(llmBridge));
-
-        console.log("BridgeImpl: ", address(bridgeImpl));
-        console.log("LLM: ", address(llm));
-        console.log("LLD: ", address(lld));
-        console.log("llmBridge: ", address(llmBridge));
-        console.log("lldBridge: ", address(lldBridge));
+        vm.stopBroadcast();
     }
 }
