@@ -59,17 +59,17 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     // 189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    WrappedToken public token;
+    bool public bridgeActive;
     uint32 public votesRequired;
     uint256 public fee;
-    bool public bridgeActive;
+    uint256 public mintDelay;
+    uint256 public supplyLimit;
+    WrappedToken public token;
     mapping(bytes32 => IncomingReceiptStruct) public incomingReceipts;
     mapping(bytes32 => address[]) public votes;
-    RateLimitCounter public mintCounter;
-    RateLimitParameters public rateLimit;
-    uint256 public mintDelay;
     mapping(address => uint256) public pendingRewards;
-    uint256 public supplyLimit;
+    RateLimitCounter public mintCounter; // 2x uint256
+    RateLimitParameters public rateLimit; // 2x uint256
 
     constructor() {
         _disableInitializers();
@@ -168,7 +168,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
 
         votes[receiptId].push(msg.sender);
 
-        if (incomingReceipts[receiptId].approvedOn == 0 && votes[receiptId].length > votesRequired - 1) {
+
+        if (incomingReceipts[receiptId].approvedOn == 0 && votes[receiptId].length >= votesRequired) {
             incomingReceipts[receiptId].approvedOn = block.number;
             emit Approved(receiptId);
         }
@@ -272,6 +273,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     function _takeFee(address[] storage receiptVotes) internal {
         if (msg.value < fee) revert InsufficientEther();
 
+        uint256 votesCount = receiptVotes.length;
+
         // first vote costs ~110k gas
         // standard vote costs ~30k gas
         // approving vote costs ~50k gas
@@ -281,7 +284,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         uint256 approverWeight = 2; // + standardWeight = 5
         uint256 standardWeight = 3;
 
-        uint256 totalWeight = firstWeight + approverWeight + receiptVotes.length * standardWeight;
+        uint256 totalWeight = firstWeight + approverWeight + votesCount * standardWeight;
 
         // disabling slither rule as we're specifically adjusting for the
         // precision loss here
@@ -291,7 +294,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         // slither-disable-end divide-before-multiply
 
         uint256 totalPaid = 0;
-        for (uint256 i = 0; i < receiptVotes.length; i++) {
+        for (uint256 i = 0; i < votesCount;) {
             uint256 weight = standardWeight;
             if (i == 0) weight += firstWeight;
             if (i == votesRequired - 1) weight += approverWeight;
@@ -300,6 +303,9 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
             if (i == 0) reward += remainder;
 
             totalPaid += _giveReward(receiptVotes[i], reward);
+            unchecked{
+                ++i;
+            }
         }
 
         assert(totalPaid == msg.value);
@@ -323,8 +329,12 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     }
 
     function _arrayContains(address[] storage arr, address needle) internal view returns (bool) {
-        for (uint256 i = 0; i < arr.length; i++) {
+        uint256 len = arr.length;
+        for (uint256 i = 0; i < len;) {
             if (arr[i] == needle) return true;
+            unchecked{
+                ++i;
+            }
         }
         return false;
     }
