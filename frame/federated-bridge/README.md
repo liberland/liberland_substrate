@@ -7,15 +7,16 @@ bridging LLM and LLD tokens to Ethereum network.
 
 ## Terminology
 
-* Bridge - complete system for transferring LLD/LLM to/from ETH, consisting
-  of the bridge pallet, relays, watchers and bridge contract.
+* Bridge - complete system for transferring LLD/LLM to/from ETH, consisting of the bridge
+  pallet, relays, watchers and bridge contract.
 * Bridge pallet - part of Substrate chain - handles locking and unlocking
-* Bridge contract - contract deployed on ETH - handles minting and burning 
+* Bridge contract - contract deployed on ETH - handles minting and burning
 * Mint/burn - create/destroy wrapped token on ETH side
 * Lock/unlock - lock LLD/LLM on substrate side while it's wrapped in tokens on ETH side.
 * Stop - state in which bridge stops all actions
 * Federation - set of relays, capable of minting and unlocking.
-* Relay - offchain software that monitors locks on substrate and burns on eth and relays them to the other chain
+* Relay - offchain software that monitors locks on substrate and burns on eth and relays them to
+  the other chain
 * Watcher - monitors if relays don't misbehave - has right to stop bridge at any time
 * Admin - someone with rights to stop/resume bridge
 * Superadmin - account with rights to add/remove relay rights
@@ -35,6 +36,7 @@ If you're chain is running, but you have some trusted chain authority (like sudo
 * using SuperAdmin call `add_relay` for all your relays
 * using SuperAdmin call `set_votes_required`
 * using SuperAdmin or Admin call `add_watcher` for all your watchers
+* using SuperAdmin or Admin call `set_fee`
 * using SuperAdmin or Admin call `set_state(Active)`
 
 ### Option 3: migration
@@ -72,23 +74,27 @@ transfer.
 ## Security
 
 Following security features are implemented substrate-side:
-* bridge is stopped if 2 relays claim different details about given Receipt
-  (different amount, recipient etc)
+* bridge is stopped if 2 relays claim different details about given Receipt (different amount,
+  recipient etc)
 * bridge can be stopped by a watcher at any time
-* bridge doesn't mint any new funds - only funds stored in bridge (a.k.a.
-  existing as wrapped tokens on Eth side) are at risk
+* bridge doesn't mint any new funds - only funds stored in bridge (a.k.a. existing as wrapped
+  tokens on Eth side) are at risk
 * bridge enforces rate-limit on withdrawals
+* bridge limits how many tokens can be locked (bridged) at the same time
 * there's a delay between approval of withdrawal and actually allowing it
 
 ## Pallet Config
 
-* `Currency` - Currency in which Fee will be charged (should be the same as
-   curreny of fees for extrinsics)
-* `Token` - fungible implementing Transfer trait that is bridged between
-   networks
+* `Currency` - Currency in which Fee will be charged (should be the same as curreny of fees for
+  extrinsics)
+* `Token` - fungible implementing Transfer trait that is bridged between networks
 * `PalletId` - used to derive AccountId for bridge wallet
 * `MaxRelays`
 * `MaxWatchers`
+* `MaxTotalLocked` - maximum amount of tokens that can be stored in bridges wallet. Deposits
+  will start failing after this is reached.
+* `WithdrawalDelay` - number of blocks between transfer approval and actually allowing it
+* `WithdrawalRateLimit` - rate limit parameters
 * `ForceOrigin` - origin that's authorized to set admin and super admin
 
 

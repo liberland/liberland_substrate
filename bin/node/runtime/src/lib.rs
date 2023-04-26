@@ -1331,7 +1331,6 @@ parameter_types! {
 
 impl pallet_liberland_initializer::Config for Runtime {}
 
-
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1537,6 +1536,7 @@ parameter_types! {
 		// 60 LLD * 600 blocks/h = max avg 36k LLD per hour
 		60 * DOLLARS
 	);
+	pub const LLDMaxTotalLocked: Balance = 300_000 * DOLLARS;
 
 	// * 22k LLM in single hour (1 burst + hour avg)
 	// * 298k LLM in single day (1 burst + 24*hour avg)
@@ -1547,6 +1547,7 @@ parameter_types! {
 		// 20 LLM * 600 blocks/h = max avg 12k LLM per hour
 		20 * GRAINS_IN_LLM
 	);
+	pub const LLMMaxTotalLocked: Balance = 100_000 * GRAINS_IN_LLM;
 }
 
 type LLDBridgeInstance = pallet_federated_bridge::Instance1;
@@ -1560,6 +1561,7 @@ impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type WithdrawalDelay = WithdrawalDelay;
 	type WithdrawalRateLimit = LLDRateLimit;
+	type MaxTotalLocked = LLDMaxTotalLocked;
 }
 
 type LLMBridgeInstance = pallet_federated_bridge::Instance2;
@@ -1573,6 +1575,7 @@ impl pallet_federated_bridge::Config<LLMBridgeInstance> for Runtime {
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type WithdrawalDelay = WithdrawalDelay;
 	type WithdrawalRateLimit = LLMRateLimit;
+	type MaxTotalLocked = LLMMaxTotalLocked;
 }
 
 construct_runtime!(

@@ -80,6 +80,7 @@
 //! * bridge doesn't mint any new funds - only funds stored in bridge (a.k.a. existing as wrapped
 //!   tokens on Eth side) are at risk
 //! * bridge enforces rate-limit on withdrawals
+//! * bridge limits how many tokens can be locked (bridged) at the same time
 //! * there's a delay between approval of withdrawal and actually allowing it
 //!
 //! ## Pallet Config
@@ -90,6 +91,10 @@
 //! * `PalletId` - used to derive AccountId for bridge wallet
 //! * `MaxRelays`
 //! * `MaxWatchers`
+//! * `MaxTotalLocked` - maximum amount of tokens that can be stored in bridges wallet. Deposits
+//!   will start failing after this is reached.
+//! * `WithdrawalDelay` - number of blocks between transfer approval and actually allowing it
+//! * `WithdrawalRateLimit` - rate limit parameters
 //! * `ForceOrigin` - origin that's authorized to set admin and super admin
 //!
 //!
