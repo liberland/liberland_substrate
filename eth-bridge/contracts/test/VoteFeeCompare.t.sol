@@ -41,29 +41,35 @@ contract BridgeTest is Test, BridgeEvents {
 
     function testGas() public {
         uint256 gas;
+        uint256 first;
+        uint256 standard;
+        uint256 approve;
 
         vm.prank(alice);
         gas = gasleft();
         bridge.voteMint(receipt1, 1, 100, alice);
-        console.log("First vote: ", gas - gasleft());
+        first = gas - gasleft();
 
         vm.prank(bob);
         gas = gasleft();
         bridge.voteMint(receipt1, 1, 100, alice);
-        console.log("Second vote: ", gas - gasleft());
+        standard = gas - gasleft();
 
         vm.prank(charlie);
         gas = gasleft();
         bridge.voteMint(receipt1, 1, 100, alice);
-        console.log("Third vote: ", gas - gasleft());
+        approve = gas - gasleft();
 
-        vm.prank(dave);
-        gas = gasleft();
-        bridge.voteMint(receipt1, 1, 100, alice);
-        console.log("Fourth vote: ", gas - gasleft());
+        assert(standard < first);
+        assert(standard < approve);
 
-        gas = gasleft();
-        bridge.voteMint(receipt1, 1, 100, alice);
-        console.log("Fifth vote: ", gas - gasleft());
+        console.log("Standard vote: ", standard);
+        console.log("First vote premium: ", first - standard);
+        console.log("Approving vote premium: ", approve - standard);
+        console.log("");
+        console.log("Avg gas per vote (with N relays): ");
+        console.log(standard, "+", first + approve - 2 * standard, "/ N");
+        console.log("Avg total gas per transfer (with N relays): ");
+        console.log(first + approve - 2 * standard, "+ N *", standard);
     }
 }
