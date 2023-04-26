@@ -786,4 +786,24 @@ contract BridgeTest is Test, BridgeEvents {
         vm.expectCall(address(impl2), "");
         bridge.fee();
     }
+
+    function testOnlySuperAdminCanTransferTokenOwnership() public {
+        vm.prank(alice);
+        vm.expectRevert("AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x7613a25ecc738585a232ad50a301178f12b3ba8887d13e138b523c4269c47689");
+        bridge.transferTokenOwnership(alice);
+    }
+
+    function testTokenOwnershipIsTransferable() public {
+        bridge.transferTokenOwnership(address(this));
+        assertEq(token.owner(), address(this));
+    }
+
+    function testTokenTransferBricksBridge() public {
+        bridge.transferTokenOwnership(address(this));
+        assertEq(bridge.bridgeActive(), false);
+
+        vm.prank(dave);
+        vm.expectRevert(InvalidConfiguration.selector);
+        bridge.setActive(true);
+    }
 }

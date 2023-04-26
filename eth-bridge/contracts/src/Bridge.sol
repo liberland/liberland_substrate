@@ -243,9 +243,17 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         supplyLimit = supplyLimit_;
     }
 
+    function transferTokenOwnership(address newOwner) public onlyRole(SUPER_ADMIN_ROLE) {
+        WrappedToken token_ = token;
+        token = WrappedToken(address(0));
+        _setActive(false);
+        token_.transferOwnership(newOwner);
+    }
+
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 
     function _setActive(bool active) internal {
+        if (active && address(token) == address(0)) revert InvalidConfiguration();
         if (active != bridgeActive) emit StateChanged(active);
         bridgeActive = active;
     }
