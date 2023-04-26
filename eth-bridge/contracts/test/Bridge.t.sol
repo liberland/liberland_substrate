@@ -27,9 +27,11 @@ contract BridgeTest is Test, BridgeEvents {
     function setUp() public {
         Bridge impl = new Bridge();
         token = new WrappedToken("Liberland Merits", "LLM");
-        bridge = Bridge(address(new ERC1967Proxy(
-            address(impl),
-            abi.encodeCall(
+        bridge = Bridge(
+            address(
+                new ERC1967Proxy(
+                address(impl),
+                abi.encodeCall(
                 Bridge.initialize,
                 (
                     token,
@@ -40,8 +42,10 @@ contract BridgeTest is Test, BridgeEvents {
                     10,
                     650
                 )
+                )
+                )
             )
-        )));
+        );
         bridge.grantRole(bridge.ADMIN_ROLE(), dave);
         bridge.grantRole(bridge.RELAY_ROLE(), alice);
         bridge.grantRole(bridge.RELAY_ROLE(), bob);
@@ -759,7 +763,9 @@ contract BridgeTest is Test, BridgeEvents {
     function testOnlyUpgraderCanUpgrade() public {
         Bridge impl2 = new Bridge();
 
-        vm.expectRevert("AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3");
+        vm.expectRevert(
+            "AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3"
+        );
         bridge.upgradeTo(address(impl2));
 
         bridge.grantRole(bridge.UPGRADER_ROLE(), address(this));

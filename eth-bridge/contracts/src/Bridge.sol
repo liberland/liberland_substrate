@@ -3,7 +3,8 @@ pragma solidity ^0.8.18;
 
 import {Initializable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
+import {AccessControlUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
 import {WrappedToken} from "./WrappedToken.sol";
 
 struct IncomingReceiptStruct {
@@ -62,12 +63,12 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     uint32 public votesRequired;
     uint256 public fee;
     bool public bridgeActive;
-    mapping(bytes32 receiptId => IncomingReceiptStruct receipt) public incomingReceipts;
-    mapping(bytes32 receiptId => address[] voters) public votes;
+    mapping(bytes32 => IncomingReceiptStruct) public incomingReceipts;
+    mapping(bytes32 => address[]) public votes;
     RateLimitCounter public mintCounter;
     RateLimitParameters public rateLimit;
-    uint public mintDelay;
-    mapping(address voter => uint256 pendingReward) public pendingRewards;
+    uint256 public mintDelay;
+    mapping(address => uint256) public pendingRewards;
     uint256 public supplyLimit;
 
     constructor() {
@@ -77,12 +78,12 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     function initialize(
         WrappedToken token_,
         uint32 votesRequired_,
-        uint mintDelay_,
+        uint256 mintDelay_,
         uint256 fee_,
         uint256 counterLimit,
         uint256 decayRate,
         uint256 supplyLimit_
-    ) initializer public {
+    ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
 
@@ -167,7 +168,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
 
         votes[receiptId].push(msg.sender);
 
-        if (incomingReceipts[receiptId].approvedOn == 0 && votes[receiptId].length >= votesRequired) {
+        if (incomingReceipts[receiptId].approvedOn == 0 && votes[receiptId].length > votesRequired - 1) {
             incomingReceipts[receiptId].approvedOn = block.number;
             emit Approved(receiptId);
         }
@@ -241,11 +242,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         supplyLimit = supplyLimit_;
     }
 
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        onlyRole(UPGRADER_ROLE)
-        override
-    {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 
     function _setActive(bool active) internal {
         if (active != bridgeActive) emit StateChanged(active);

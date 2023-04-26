@@ -27,9 +27,11 @@ contract BridgeTest is Test, BridgeEvents {
     function setUp() public {
         Bridge impl = new Bridge();
         token = new WrappedToken("Liberland Merits", "LLM");
-        bridge = Bridge(address(new ERC1967Proxy(
-            address(impl),
-            abi.encodeCall(
+        bridge = Bridge(
+            address(
+                new ERC1967Proxy(
+                address(impl),
+                abi.encodeCall(
                 Bridge.initialize,
                 (
                     token,
@@ -40,8 +42,10 @@ contract BridgeTest is Test, BridgeEvents {
                     0,
                     100
                 )
+                )
+                )
             )
-        )));
+        );
         bridge.grantRole(bridge.ADMIN_ROLE(), address(this));
         bridge.grantRole(bridge.RELAY_ROLE(), alice);
         bridge.grantRole(bridge.RELAY_ROLE(), bob);
