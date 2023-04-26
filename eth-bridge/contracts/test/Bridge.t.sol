@@ -822,4 +822,36 @@ contract BridgeTest is Test, BridgeEvents {
         vm.expectRevert(InvalidConfiguration.selector);
         bridge.setActive(true);
     }
+
+    function testClaimRewardWorks() public {
+        vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, dave);
+        vm.prank(bob);
+        bridge.voteMint(receipt1, 1, 100, dave);
+        vm.prank(charlie);
+        bridge.voteMint(receipt1, 1, 100, dave);
+
+        vm.roll(11);
+        bridge.mint{value: 19}(receipt1);
+
+        assertEq(alice.balance, 100);
+
+        vm.prank(alice);
+        bridge.claimReward();
+        assertEq(alice.balance, 111);
+        assertEq(bob.balance, 0);
+        assertEq(charlie.balance, 0);
+
+        vm.prank(bob);
+        bridge.claimReward();
+        assertEq(alice.balance, 111);
+        assertEq(bob.balance, 5);
+        assertEq(charlie.balance, 0);
+
+        vm.prank(charlie);
+        bridge.claimReward();
+        assertEq(alice.balance, 111);
+        assertEq(bob.balance, 5);
+        assertEq(charlie.balance, 3);
+    }
 }
