@@ -4,6 +4,9 @@
 [submodule "eth-bridge/contracts/lib/forge-std"]
 	path = eth-bridge/contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "eth-bridge/contracts/lib/openzeppelin-contracts-upgradeable"]
+	path = eth-bridge/contracts/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
 [submodule "eth-bridge/contracts/lib/openzeppelin-contracts"]
 	path = eth-bridge/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/Test.sol";
+import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/WrappedToken.sol";
 import "../src/Bridge.sol";
 
@@ -24,15 +25,23 @@ contract BridgeTest is Test, BridgeEvents {
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     function setUp() public {
+        Bridge impl = new Bridge();
         token = new WrappedToken("Liberland Merits", "LLM");
-        bridge = new Bridge(
-            token,
-            3,
-            0,
-            0,
-            0,
-            0,
-            100);
+        bridge = Bridge(address(new ERC1967Proxy(
+            address(impl),
+            abi.encodeCall(
+                Bridge.initialize,
+                (
+                    token,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    100
+                )
+            )
+        )));
         bridge.grantRole(bridge.ADMIN_ROLE(), address(this));
         bridge.grantRole(bridge.RELAY_ROLE(), alice);
         bridge.grantRole(bridge.RELAY_ROLE(), bob);

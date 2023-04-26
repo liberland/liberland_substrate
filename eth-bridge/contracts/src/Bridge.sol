@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import {Initializable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
 import {WrappedToken} from "./WrappedToken.sol";
 
 struct IncomingReceiptStruct {
@@ -44,7 +46,7 @@ interface BridgeEvents {
     event EmergencyStop();
 }
 
-contract Bridge is AccessControl, BridgeEvents {
+contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, BridgeEvents {
     // 7613a25ecc738585a232ad50a301178f12b3ba8887d13e138b523c4269c47689
     bytes32 public constant SUPER_ADMIN_ROLE = keccak256("SUPER_ADMIN_ROLE");
     // a49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775
@@ -56,7 +58,7 @@ contract Bridge is AccessControl, BridgeEvents {
     // 189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    WrappedToken public immutable token;
+    WrappedToken public token;
     uint32 public votesRequired;
     uint256 public fee;
     bool public bridgeActive;
@@ -68,7 +70,11 @@ contract Bridge is AccessControl, BridgeEvents {
     mapping(address voter => uint256 pendingReward) public pendingRewards;
     uint256 public supplyLimit;
 
-    constructor(
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         WrappedToken token_,
         uint32 votesRequired_,
         uint mintDelay_,
@@ -76,7 +82,10 @@ contract Bridge is AccessControl, BridgeEvents {
         uint256 counterLimit,
         uint256 decayRate,
         uint256 supplyLimit_
-    ) {
+    ) initializer public {
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
         token = token_;
         votesRequired = votesRequired_;
         fee = fee_;
@@ -231,6 +240,12 @@ contract Bridge is AccessControl, BridgeEvents {
     function setSupplyLimit(uint256 supplyLimit_) public onlyRole(SUPER_ADMIN_ROLE) {
         supplyLimit = supplyLimit_;
     }
+
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        onlyRole(UPGRADER_ROLE)
+        override
+    {}
 
     function _setActive(bool active) internal {
         if (active != bridgeActive) emit StateChanged(active);
