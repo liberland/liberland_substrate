@@ -129,7 +129,7 @@ contract BridgeTest is Test, BridgeEvents {
         vm.prank(alice);
         bridge.voteMint(receipt1, 1, 100, alice);
 
-        (uint64 substrateBlockNumber, address ethRecipient, uint256 amount,,) = bridge.receipts(receipt1);
+        (uint64 substrateBlockNumber, address ethRecipient, uint256 amount,,) = bridge.incomingReceipts(receipt1);
         assertEq(substrateBlockNumber, 1);
         assertEq(ethRecipient, alice);
         assertEq(amount, 100);
@@ -179,7 +179,7 @@ contract BridgeTest is Test, BridgeEvents {
         vm.prank(bob);
         bridge.voteMint(receipt1, 1, 100, alice);
 
-        (,,, uint256 approvedOn,) = bridge.receipts(receipt1);
+        (,,, uint256 approvedOn,) = bridge.incomingReceipts(receipt1);
         assertEq(approvedOn, block.number);
     }
 
@@ -311,7 +311,7 @@ contract BridgeTest is Test, BridgeEvents {
         vm.roll(11);
         bridge.mint{value: 4}(receipt1);
 
-        (,,,, uint256 processedOn) = bridge.receipts(receipt1);
+        (,,,, uint256 processedOn) = bridge.incomingReceipts(receipt1);
         assertEq(processedOn, block.number);
     }
 

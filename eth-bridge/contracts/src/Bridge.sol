@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 import {WrappedToken} from "./WrappedToken.sol";
 
-struct ReceiptStruct {
+struct IncomingReceiptStruct {
     uint64 substrateBlockNumber;
     address ethRecipient;
     uint256 amount;
@@ -59,7 +59,7 @@ contract Bridge is AccessControl, BridgeEvents {
     uint32 public votesRequired;
     uint256 public fee;
     bool public bridgeActive;
-    mapping(bytes32 receiptId => ReceiptStruct receipt) public receipts;
+    mapping(bytes32 receiptId => IncomingReceiptStruct receipt) public incomingReceipts;
     mapping(bytes32 receiptId => address[] voters) public votes;
     RateLimitCounter public mintCounter;
     RateLimitParameters public rateLimit;
@@ -124,19 +124,19 @@ contract Bridge is AccessControl, BridgeEvents {
     {
         if (!bridgeActive) revert BridgeInactive();
         if (substrateBlockNumber == 0) revert InvalidArgument();
-        if (receipts[receiptId].processedOn > 0) revert AlreadyProcessed();
+        if (incomingReceipts[receiptId].processedOn > 0) revert AlreadyProcessed();
 
         // checks if already exists
-        if (receipts[receiptId].substrateBlockNumber != 0) {
+        if (incomingReceipts[receiptId].substrateBlockNumber != 0) {
             if (!_checkReceiptMatches(receiptId, substrateBlockNumber, ethRecipient, amount)) {
                 // someone lied, stop the bridge
                 _setActive(false);
                 return;
             }
         } else {
-            receipts[receiptId].substrateBlockNumber = substrateBlockNumber;
-            receipts[receiptId].ethRecipient = ethRecipient;
-            receipts[receiptId].amount = amount;
+            incomingReceipts[receiptId].substrateBlockNumber = substrateBlockNumber;
+            incomingReceipts[receiptId].ethRecipient = ethRecipient;
+            incomingReceipts[receiptId].amount = amount;
         }
 
         // check if already voted
@@ -144,8 +144,8 @@ contract Bridge is AccessControl, BridgeEvents {
 
         votes[receiptId].push(msg.sender);
 
-        if (receipts[receiptId].approvedOn == 0 && votes[receiptId].length >= votesRequired) {
-            receipts[receiptId].approvedOn = block.number;
+        if (incomingReceipts[receiptId].approvedOn == 0 && votes[receiptId].length >= votesRequired) {
+            incomingReceipts[receiptId].approvedOn = block.number;
             emit Approved(receiptId);
         }
 
@@ -156,14 +156,16 @@ contract Bridge is AccessControl, BridgeEvents {
         // CHECKS
         if (!bridgeActive) revert BridgeInactive();
 
-        ReceiptStruct storage receipt = receipts[receiptId];
+        IncomingReceiptStruct storage receipt = incomingReceipts[receiptId];
         if (receipt.approvedOn == 0) revert NotApproved();
 
         if (receipt.processedOn != 0) revert AlreadyProcessed();
 
         if (block.number < receipt.approvedOn + mintDelay) revert TooSoon();
 
-        if (token.totalSupply() + receipt.amount > supplyLimit) revert TooMuchSupply();
+        if (token.totalSupply() + receipt.amount > supplyLimit) {
+            revert TooMuchSupply();
+        }
 
         // EFFECTS
         _takeFee(votes[receiptId]);
@@ -268,7 +270,7 @@ contract Bridge is AccessControl, BridgeEvents {
         view
         returns (bool)
     {
-        ReceiptStruct storage r = receipts[receiptId];
+        IncomingReceiptStruct storage r = incomingReceipts[receiptId];
         if (r.substrateBlockNumber != substrateBlockNumber) return false;
         if (r.ethRecipient != ethRecipient) return false;
         if (r.amount != amount) return false;
