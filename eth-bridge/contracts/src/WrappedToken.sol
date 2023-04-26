@@ -18,10 +18,6 @@ contract WrappedToken is ERC20, Pausable, Ownable, ERC20Permit {
         _unpause();
     }
 
-    function decimals() public pure override returns (uint8) {
-        return 12;
-    }
-
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
@@ -29,6 +25,10 @@ contract WrappedToken is ERC20, Pausable, Ownable, ERC20Permit {
     function burn(address account, uint256 amount) public onlyOwner {
         _spendAllowance(account, _msgSender(), amount);
         _burn(account, amount);
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 12;
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override whenNotPaused {
