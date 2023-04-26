@@ -755,4 +755,29 @@ contract BridgeTest is Test, BridgeEvents {
 
         bridge.setVotesRequired(1);
     }
+
+    function testOnlyUpgraderCanUpgrade() public {
+        Bridge impl2 = new Bridge();
+
+        vm.expectRevert("AccessControl: account 0x7fa9385be102ac3eac297483dd6233d62b3e1496 is missing role 0x189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3");
+        bridge.upgradeTo(address(impl2));
+
+        bridge.grantRole(bridge.UPGRADER_ROLE(), address(this));
+        bridge.upgradeTo(address(impl2));
+    }
+
+    function testOnlyUpgradesToUUPSCompatible() public {
+        bridge.grantRole(bridge.UPGRADER_ROLE(), address(this));
+        vm.expectRevert("ERC1967Upgrade: new implementation is not UUPS");
+        bridge.upgradeTo(address(token));
+    }
+
+    function testIsUpgradeable() public {
+        Bridge impl2 = new Bridge();
+        bridge.grantRole(bridge.UPGRADER_ROLE(), address(this));
+        bridge.upgradeTo(address(impl2));
+
+        vm.expectCall(address(impl2), "");
+        bridge.fee();
+    }
 }
