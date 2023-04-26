@@ -64,15 +64,27 @@ contract Bridge is AccessControl, BridgeEvents {
     mapping(bytes32 receiptId => address[] voters) public votes;
     RateLimitCounter public mintCounter;
     RateLimitParameters public rateLimit;
-    uint256 public mintDelay;
+    uint public mintDelay;
     mapping(address voter => uint256 pendingReward) public pendingRewards;
     uint256 public supplyLimit;
 
-    constructor(WrappedToken token_, address superAdmin) {
+    constructor(
+        WrappedToken token_,
+        uint32 votesRequired_,
+        uint mintDelay_,
+        uint256 fee_,
+        uint256 counterLimit,
+        uint256 decayRate,
+        uint256 supplyLimit_
+    ) {
         token = token_;
-        votesRequired = 1;
-
-        _grantRole(SUPER_ADMIN_ROLE, superAdmin);
+        votesRequired = votesRequired_;
+        fee = fee_;
+        rateLimit.counterLimit = counterLimit;
+        rateLimit.decayRate = decayRate;
+        mintDelay = mintDelay_;
+        supplyLimit = supplyLimit_;
+        _grantRole(SUPER_ADMIN_ROLE, msg.sender);
     }
 
     function grantRole(bytes32 role, address account) public override {

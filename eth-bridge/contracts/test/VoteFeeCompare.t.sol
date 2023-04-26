@@ -25,15 +25,20 @@ contract BridgeTest is Test, BridgeEvents {
 
     function setUp() public {
         token = new WrappedToken("Liberland Merits", "LLM");
-        bridge = new Bridge(token, address(this));
+        bridge = new Bridge(
+            token,
+            3,
+            0,
+            0,
+            0,
+            0,
+            100);
         bridge.grantRole(bridge.ADMIN_ROLE(), address(this));
         bridge.grantRole(bridge.RELAY_ROLE(), alice);
         bridge.grantRole(bridge.RELAY_ROLE(), bob);
         bridge.grantRole(bridge.RELAY_ROLE(), charlie);
         bridge.grantRole(bridge.RELAY_ROLE(), dave);
         bridge.grantRole(bridge.RELAY_ROLE(), address(this));
-        bridge.setSupplyLimit(100);
-        bridge.setVotesRequired(3);
         bridge.setActive(true);
         token.transferOwnership(address(bridge));
         token.approve(address(bridge), 9999999);
