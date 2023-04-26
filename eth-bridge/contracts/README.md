@@ -1,5 +1,64 @@
 # Federated Bridge EVM Contracts
 
+## Overview
+
+This project is a part of Substrate <-> ETH bridge designed for bridging LLM and
+LLD tokens to Ethereum network.
+
+## Terminology
+
+* Bridge - complete system for transferring LLD/LLM to/from ETH, consisting of the bridge
+  pallet, relays, watchers and bridge contract.
+* Bridge pallet - part of Substrate chain - handles locking and unlocking
+* Bridge contract - contract deployed on ETH - handles minting and burning
+* Mint/burn - create/destroy wrapped token on ETH side
+* Lock/unlock - lock LLD/LLM on substrate side while it's wrapped in tokens on ETH side.
+* Stop - state in which bridge stops all actions
+* Federation - set of relays, capable of minting and unlocking.
+* Relay - offchain software that monitors locks on substrate and burns on eth and relays them to
+  the other chain
+* Watcher - monitors if relays don't misbehave - has right to stop bridge at any time
+* Admin - someone with rights to stop/resume bridge
+* Superadmin - account with rights to add/remove relay rights
+
+## Typical Substrate -> Eth transfer flow
+
+1. User deposits native tokens to bridge pallet, a Receipt is issued as an event
+2. Relays see the Receipt event and relay it to bridge contract using `voteMint` call
+3. User waits until `votesRequired` votes are cast
+4. User calls `mint` on the bridge contract and gets tokens.
+
+## Typical Eth -> Substrate transfer flow
+
+1. User burns wrapped LLM/LLD using `burn` call on bridge contract, a Receipt is
+   issued as an event
+2. Relays see the Receipt event and relay it to Substrate bridge pallet
+3. User waits until required number of votes are cast by relays on substrate side
+4. User calls `withdraw` on the substrate side.
+
+## Economics
+
+Running relays requires paying for resource use (CPU, storage, network) and
+both Substrate and Ethereum network fees. As such, they're rewarded on each
+successful withdrawal by user.
+
+The fee charged to user on withdrawal is set with `setFee` call and can be
+queried using `fee()` call.
+
+This fee is divided relays that actually cast vote on given transfer. First
+voter and voter that caused final approval of receipt get a bigger share, as
+these actions use more gas.
+
+## Security
+
+Following security features are implemented in the contract:
+* bridge is stopped if 2 relays claim different details about given Receipt (different amount,
+  recipient etc)
+* bridge can be stopped by a watcher at any time
+* bridge enforces rate-limit on mints
+* bridge limits how many wrapped tokens can in circulation
+* there's a delay between approval of mint and actually allowing it
+
 ## Getting started
 
 ### Install foundry
@@ -116,3 +175,5 @@ Take the Proxy addresses and check which tokens they use:
 > cast call 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 'token()'
 0x000000000000000000000000Dc64a140Aa3E981100a9becA4E685f962f0cF6C9 # LLM Token address
 ```
+
+License: MIT
