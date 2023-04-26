@@ -52,8 +52,6 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.grantRole(bridge.RELAY_ROLE(), charlie);
         bridge.grantRole(bridge.WATCHER_ROLE(), alice);
         bridge.grantRole(bridge.WATCHER_ROLE(), dave);
-        vm.prank(dave);
-        bridge.setActive(true);
         vm.deal(alice, 100);
         token.mint(alice, 100);
         token.mint(bob, 100);
@@ -62,6 +60,9 @@ contract BridgeTest is Test, BridgeEvents {
         token.mint(address(this), 100);
         token.transferOwnership(address(bridge));
         token.approve(address(bridge), 9999999);
+
+        vm.prank(dave);
+        bridge.setActive(true);
     }
 
     function testBurnRevertsOnStoppedBridge() public {
@@ -163,11 +164,10 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.voteMint(receipt1, 1, 100, alice);
     }
 
-    function testVotingIsIdempotent() public {
+    function testVotingRevertsOnDoubleVote() public {
         vm.startPrank(alice);
         bridge.voteMint(receipt1, 1, 100, alice);
-        bridge.voteMint(receipt1, 1, 100, alice);
-        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.expectRevert(AlreadyVoted.selector);
         bridge.voteMint(receipt1, 1, 100, alice);
         vm.stopPrank();
 
@@ -494,6 +494,22 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.setActive(false);
     }
 
+    function testSetActivePausesToken() public {
+        vm.startPrank(dave);
+
+        bridge.setActive(false);
+        assertEq(token.paused(), true);
+
+        bridge.setActive(false);
+        assertEq(token.paused(), true);
+
+        bridge.setActive(true);
+        assertEq(token.paused(), false);
+
+        bridge.setActive(true);
+        assertEq(token.paused(), false);
+    }
+
     function testSetActiveWorks() public {
         vm.startPrank(dave);
         bridge.setActive(false);
@@ -754,7 +770,7 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testVotesRequiredCantBeZero() public {
-        vm.expectRevert(InvalidConfiguration.selector);
+        vm.expectRevert(InvalidArgument.selector);
         bridge.setVotesRequired(0);
 
         bridge.setVotesRequired(1);

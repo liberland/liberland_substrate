@@ -52,9 +52,9 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.grantRole(bridge.RELAY_ROLE(), charlie);
         bridge.grantRole(bridge.RELAY_ROLE(), dave);
         bridge.grantRole(bridge.RELAY_ROLE(), address(this));
-        bridge.setActive(true);
         token.transferOwnership(address(bridge));
         token.approve(address(bridge), 9999999);
+        bridge.setActive(true);
     }
 
     function testGas() public {
