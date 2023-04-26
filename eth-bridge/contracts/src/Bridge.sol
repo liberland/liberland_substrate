@@ -169,12 +169,14 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         __UUPSUpgradeable_init();
 
         token = token_;
-        votesRequired = votesRequired_;
-        fee = fee_;
         rateLimit.counterLimit = counterLimit;
         rateLimit.decayRate = decayRate;
+        // slither-disable-start events-maths
+        votesRequired = votesRequired_;
+        fee = fee_;
         mintDelay = mintDelay_;
         supplyLimit = supplyLimit_;
+        // slither-disable-end events-maths
         _grantRole(SUPER_ADMIN_ROLE, msg.sender);
     }
 
