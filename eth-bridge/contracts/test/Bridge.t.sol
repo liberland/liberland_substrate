@@ -279,10 +279,10 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.voteMint(receipt1, 1, 100, alice);
 
         vm.roll(11);
-        bridge.mint{value: 4}(receipt1);
+        bridge.mint{value: 16}(receipt1);
 
-        assertEq(bridge.pendingRewards(alice), 2);
-        assertEq(bridge.pendingRewards(bob), 2);
+        assertEq(bridge.pendingRewards(alice), 11);
+        assertEq(bridge.pendingRewards(bob), 5);
         assertEq(bridge.pendingRewards(charlie), 0);
     }
 
@@ -295,11 +295,11 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.voteMint(receipt1, 1, 100, alice);
 
         vm.roll(11);
-        bridge.mint{value: 4}(receipt1);
+        bridge.mint{value: 19}(receipt1);
 
-        assertEq(bridge.pendingRewards(alice), 2);
-        assertEq(bridge.pendingRewards(bob), 1);
-        assertEq(bridge.pendingRewards(charlie), 1);
+        assertEq(bridge.pendingRewards(alice), 11);
+        assertEq(bridge.pendingRewards(bob), 5);
+        assertEq(bridge.pendingRewards(charlie), 3);
     }
 
     function testMintUpdatesReceiptStatus() public {
@@ -737,5 +737,12 @@ contract BridgeTest is Test, BridgeEvents {
 
         bridge.burn(100, substrate1);
         bridge.mint{value: 4}(receipt1);
+    }
+
+    function testVotesRequiredCantBeZero() public {
+        vm.expectRevert(InvalidConfiguration.selector);
+        bridge.setVotesRequired(0);
+
+        bridge.setVotesRequired(1);
     }
 }

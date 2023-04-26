@@ -33,6 +33,7 @@ error EthTransferFailed();
 error Unauthorized();
 error TooMuchSupply();
 error InvalidArgument();
+error InvalidConfiguration();
 
 interface BridgeEvents {
     event OutgoingReceipt(uint256 amount, bytes32 substrateRecipient);
@@ -69,6 +70,7 @@ contract Bridge is AccessControl, BridgeEvents {
 
     constructor(WrappedToken token_, address superAdmin) {
         token = token_;
+        votesRequired = 1;
 
         _grantRole(SUPER_ADMIN_ROLE, superAdmin);
     }
@@ -182,6 +184,7 @@ contract Bridge is AccessControl, BridgeEvents {
     }
 
     function setVotesRequired(uint32 votesRequired_) public onlyRole(SUPER_ADMIN_ROLE) {
+        if (votesRequired_ == 0) revert InvalidConfiguration();
         votesRequired = votesRequired_;
     }
 
@@ -244,17 +247,35 @@ contract Bridge is AccessControl, BridgeEvents {
 
     function _takeFee(address[] storage receiptVotes) internal {
         if (msg.value < fee) revert InsufficientEther();
+
+        // first vote costs ~110k gas
+        // standard vote costs ~30k gas
+        // approving vote costs ~50k gas
+        // this assumes that hw/transfer cost is negligible in comparison to
+        // network fees
+        uint256 firstWeight = 8; // + standardWeight = 11
+        uint256 approverWeight = 2; // + standardWeight = 5
+        uint256 standardWeight = 3;
+
+        uint256 totalWeight = firstWeight + approverWeight + receiptVotes.length * standardWeight;
+
         // disabling slither rule as we're specifically adjusting for the
         // precision loss here
         // slither-disable-start divide-before-multiply
-        uint256 perVoterFee = msg.value / receiptVotes.length;
-        uint256 remainder = msg.value - perVoterFee * receiptVotes.length;
+        uint256 perWeightFee = msg.value / totalWeight;
+        uint256 remainder = msg.value - perWeightFee * totalWeight;
         // slither-disable-end divide-before-multiply
 
         uint256 totalPaid = 0;
-        totalPaid += _giveReward(receiptVotes[0], perVoterFee + remainder);
-        for (uint256 i = 1; i < receiptVotes.length; i++) {
-            totalPaid += _giveReward(receiptVotes[i], perVoterFee);
+        for (uint256 i = 0; i < receiptVotes.length; i++) {
+            uint256 weight = standardWeight;
+            if (i == 0) weight += firstWeight;
+            if (i == votesRequired - 1) weight += approverWeight;
+
+            uint256 reward = perWeightFee * weight;
+            if (i == 0) reward += remainder;
+
+            totalPaid += _giveReward(receiptVotes[i], reward);
         }
 
         assert(totalPaid == msg.value);
