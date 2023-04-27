@@ -1,0 +1,7 @@
+db_path = "/data/sqlite.db"
+substrate_ws_url = "ws://liberland-node:9944/"
+ethereum_ws_url = "ws://eth-node:8545/"
+lld_bridge_contract = "0xA9024CC0c34170D8E0e0f0c70957ee515D4badd7"
+llm_bridge_contract = "0xB0E2099c659d90438777BD38DDD15947a2C829DC"
+relays = []
+watchers = []

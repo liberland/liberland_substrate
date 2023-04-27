@@ -1,0 +1,31 @@
+services:
+  eth-node:
+    image: thorax/erigon:stable
+    ports:
+      - 30303:30303
+    command: --internalcl --chain sepolia --http.addr 0.0.0.0
+    volumes:
+      - erigon:/home/erigon
+    restart: always
+
+  liberland-node:
+    image: liberland/blockchain-node:latest
+    ports:
+      - 30333:30333
+    command: -d /data --chain /specs/bastiat.raw.json --state-pruning archive --ws-external --rpc-methods safe --rpc-cors all --rpc-external
+    volumes:
+      - liberland:/data
+    restart: always
+  
+  relay:
+    image: liberland/blockchain-bridge-relay:latest
+    command: --config /config.toml run
+    volumes:
+      - relay:/data
+      - ./config.toml:/config.toml:ro
+    restart: always
+
+volumes:
+  erigon:
+  liberland:
+  relay:

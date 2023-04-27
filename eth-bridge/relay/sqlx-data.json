@@ -1,0 +1,257 @@
+{
+  "db": "SQLite",
+  "0514c8d514fc07d315e5a8e56c7855da1244c8855ca85f3faf375177635feab1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete from eth_transactions where hash = ?1"
+  },
+  "202425cdd159645ee907c733dcc3aa194cac9b61b8ab153aebc9525bc3ae237c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "delete from eth_transactions where eth_call_id = ?1"
+  },
+  "215a3a6a35497961b7ac3b4e19cb415369a7c8f1d905aac0f9b2021831658748": {
+    "describe": {
+      "columns": [
+        {
+          "name": "genesis",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select genesis from networks where network = 'substrate';"
+  },
+  "588f3aece12045b28d40ff1258f0a07e31fea4ea90a338f8a8423ab6f8c95abb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "update eth_calls set finished_tx = ?2 where id = ?1"
+  },
+  "664a7b1bb0548ef88eb3aff7f775415ca4010cb95a30a705a07941bb92905ee0": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "\n\t\tinsert into sub_calls\n\t\t\t(id, task_id, bridge, block_number, amount, substrate_recipient)\n\t\tvalues\n\t\t\t(?1, ?2, ?3, ?4, ?5, ?6)\n\t\ton conflict do nothing\n\t\t"
+  },
+  "70182e08c61b8efafebce073ffdf920ae9c79959837949d3f2ea60b46cba9fcc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "synced_block!: i64",
+          "ordinal": 0,
+          "type_info": "Null"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select synced_block as \"synced_block!: i64\" from syncstate where task_id = ?1"
+  },
+  "7ce59a62281ced7dcb3e27e3f436ae8964304e084377612d29d14e2a351706cc": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "insert into eth_calls (id, signer_address, request) values (?1, ?2, ?3);"
+  },
+  "7df25c2b67ef0db9be72b18fd95205777b58e2dfad1760dbc8d1d98f8fc272ce": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "update sub_calls set finished = true where id = ?1"
+  },
+  "85ba62465f10042d5470749dde3db78a137cc2beabb902347486fe0905315894": {
+    "describe": {
+      "columns": [
+        {
+          "name": "call_id: DBCallId",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "request",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select id as \"call_id: DBCallId\", request from eth_calls where signer_address = ?1 and finished_tx is null"
+  },
+  "88143734ddf1ff0c506b44fb98523adec188869a17c2e5dea21dbe17e90eb1c1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "call_id: DBCallId",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "bridge_id: DBBridgeId",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "block_number!: i64",
+          "ordinal": 2,
+          "type_info": "Null"
+        },
+        {
+          "name": "amount: DBAmount",
+          "ordinal": 3,
+          "type_info": "Blob"
+        },
+        {
+          "name": "substrate_recipient: DBAccountId32",
+          "ordinal": 4,
+          "type_info": "Blob"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n\t\t\tselect\n\t\t\t\tid as \"call_id: DBCallId\",\n\t\t\t\tbridge as \"bridge_id: DBBridgeId\",\n\t\t\t\tblock_number as \"block_number!: i64\",\n\t\t\t\tamount as \"amount: DBAmount\",\n\t\t\t\tsubstrate_recipient as \"substrate_recipient: DBAccountId32\"\n\t\t\tfrom sub_calls\n\t\t\twhere task_id = ?1 and finished = false\n\t\t"
+  },
+  "a692abafba98e43a278fed5f876a806a48f69115339c415e94daf42913f30d69": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "insert into syncstate (task_id, synced_block) values (?1, ?2) on conflict(task_id) do update set synced_block = excluded.synced_block"
+  },
+  "c5fedfef2ef3e46f429bae8f1f1b18ed3f6ec3c6824b556303330487f196d109": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hash: DBEthTxId",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "max_fee_per_gas!: i64",
+          "ordinal": 1,
+          "type_info": "Null"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "select hash as \"hash: DBEthTxId\", max_fee_per_gas as \"max_fee_per_gas!: i64\" from eth_transactions where eth_call_id = ?1"
+  },
+  "c8308ad01b207882abb3f152bb8768a699dd59a39ae867f42cbb865873079ccc": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "insert into eth_transactions (eth_call_id, hash, max_fee_per_gas) values (?1, ?2, ?3);"
+  },
+  "e8ead2db98ddfc1edf59220a42dfe9f2ba776b1fed0f4bc9da6884debc1d37eb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "insert into networks (network, genesis) values ('substrate', ?1);"
+  },
+  "f0119e06a34203bba4391992be45ece3e5d2ad174ae1764a59ca337c3b52c017": {
+    "describe": {
+      "columns": [
+        {
+          "name": "genesis",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "select genesis from networks where network = 'ethereum';"
+  },
+  "f7f8dd88fd2b98e872ea27a615db0ddef33085985787df16cebd4191e70c5c76": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "update eth_calls set request = ?1 where id = ?2;"
+  },
+  "fabf420da7fc6aa1eab633b51e18182ae044515fc7a159b752fdb05306f0cf5f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "insert into networks (network, genesis) values ('ethereum', ?1);"
+  }
+}

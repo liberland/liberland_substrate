@@ -1,0 +1,17 @@
+db_path = "/data/sqlite.db"
+substrate_ws_url = "ws://liberland-node:9944/"
+ethereum_ws_url = "ws://eth-node:8545/"
+lld_bridge_contract = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+llm_bridge_contract = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+
+[[relays]]
+substrate_secret_seed = "0x398f0c28f98885e046333d4a41c19cee4c37368a9832c6502f6cfd182e2aef89"
+ethereum_private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+minimum_balance = "0.1"
+claim_rewards_threshold = "0.1"
+withdraw_rewards_threshold = "0.2"
+rewards_address = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+
+[[watchers]]
+substrate_secret_seed = "0x398f0c28f98885e046333d4a41c19cee4c37368a9832c6502f6cfd182e2aef89"
+ethereum_private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"

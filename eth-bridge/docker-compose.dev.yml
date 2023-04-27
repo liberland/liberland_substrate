@@ -1,0 +1,21 @@
+services:
+  eth-node:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: ["anvil --host 0.0.0.0 -b 5"]
+    restart: always
+
+  liberland-node:
+    image: liberland/blockchain-node:latest
+    command: --dev --state-pruning archive --ws-external --rpc-methods safe --rpc-cors all --rpc-external
+    restart: always
+  
+  relay:
+    build: ./relay
+    command: --config /config.toml -v run
+    volumes:
+      - /data
+      - ./config_dev_docker.toml:/config.toml:ro
+    restart: always
+
+volumes:
+  relay:
