@@ -284,7 +284,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         }
 
         // check if already voted
-        if (_arrayContains(votes[receiptId], msg.sender)) revert AlreadyVoted();
+        if (voted(receiptId, msg.sender)) revert AlreadyVoted();
 
         votes[receiptId].push(msg.sender);
 
@@ -520,5 +520,9 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
             }
         }
         return false;
+    }
+
+    function voted(bytes32 receiptId, address voter) public view returns (bool) {
+        return _arrayContains(votes[receiptId], voter);
     }
 }
