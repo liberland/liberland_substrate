@@ -144,6 +144,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod impl_fungible;
 pub mod migrations;
 
 /// Liberland Merit Pallet
@@ -514,7 +515,7 @@ pub mod pallet {
 			init_account
 		}
 
-		fn balance(account: T::AccountId) -> T::Balance {
+		pub fn balance(account: T::AccountId) -> T::Balance {
 			Assets::<T>::balance(Self::llm_id().into(), account)
 		}
 
@@ -525,7 +526,7 @@ pub mod pallet {
 			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
 
-		fn transfer(
+		pub(super) fn transfer(
 			from_account: T::AccountId,
 			to_account: T::AccountId,
 			amount: T::Balance,
@@ -564,7 +565,10 @@ pub mod pallet {
 
 		/// Transfer `amount` LLM to `to_account` from treasury
 		/// Used in liberland-initializer and in tests.
-		pub fn transfer_from_treasury(to_account: T::AccountId, amount: T::Balance) -> DispatchResult {
+		pub fn transfer_from_treasury(
+			to_account: T::AccountId,
+			amount: T::Balance,
+		) -> DispatchResult {
 			let treasury = Self::get_llm_treasury_account();
 			Self::transfer(treasury, to_account, amount)
 		}

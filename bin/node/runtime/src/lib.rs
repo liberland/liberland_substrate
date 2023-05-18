@@ -1331,7 +1331,6 @@ parameter_types! {
 
 impl pallet_liberland_initializer::Config for Runtime {}
 
-
 impl pallet_llm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1521,6 +1520,64 @@ impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const LLDBridgePalletId: PalletId = PalletId(*b"lldbridg");
+	pub const LLMBridgePalletId: PalletId = PalletId(*b"llmbridg");
+	pub const MaxRelays: u32 = 20;
+	pub const MaxWatchers: u32 = 20;
+	pub const WithdrawalDelay: BlockNumber = 60 * MINUTES;
+
+	// * 66k LLD in single hour (1 burst + hour avg)
+	// * 894k LLD in single day (1 burst + 24*hour avg)
+	pub const LLDRateLimit: (Balance, Balance) = (
+		// max burst and max single withdrawal
+		30_000 * DOLLARS,
+		// decay per block (max average withdrawal rate over infinite time)
+		// 60 LLD * 600 blocks/h = max avg 36k LLD per hour
+		60 * DOLLARS
+	);
+	pub const LLDMaxTotalLocked: Balance = 300_000 * DOLLARS;
+
+	// * 22k LLM in single hour (1 burst + hour avg)
+	// * 298k LLM in single day (1 burst + 24*hour avg)
+	pub const LLMRateLimit: (Balance, Balance) = (
+		// max burst and max single withdrawal
+		10_000 * GRAINS_IN_LLM,
+		// decay per block (max average withdrawal rate over infinite time)
+		// 20 LLM * 600 blocks/h = max avg 12k LLM per hour
+		20 * GRAINS_IN_LLM
+	);
+	pub const LLMMaxTotalLocked: Balance = 100_000 * GRAINS_IN_LLM;
+}
+
+type LLDBridgeInstance = pallet_federated_bridge::Instance1;
+impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Token = Balances;
+	type PalletId = LLDBridgePalletId;
+	type MaxRelays = MaxRelays;
+	type MaxWatchers = MaxWatchers;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type WithdrawalDelay = WithdrawalDelay;
+	type WithdrawalRateLimit = LLDRateLimit;
+	type MaxTotalLocked = LLDMaxTotalLocked;
+}
+
+type LLMBridgeInstance = pallet_federated_bridge::Instance2;
+impl pallet_federated_bridge::Config<LLMBridgeInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Token = LLM;
+	type PalletId = LLMBridgePalletId;
+	type MaxRelays = MaxRelays;
+	type MaxWatchers = MaxWatchers;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type WithdrawalDelay = WithdrawalDelay;
+	type WithdrawalRateLimit = LLMRateLimit;
+	type MaxTotalLocked = LLMMaxTotalLocked;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1580,6 +1637,8 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
+		LLDBridge: pallet_federated_bridge::<Instance1> = 59,
+		LLMBridge: pallet_federated_bridge::<Instance2> = 60,
 	}
 );
 

@@ -35,7 +35,7 @@ use kitchensink_runtime::{
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, LLM,
+	SenateConfig, LLM, LLDBridgeConfig, LLMBridgeConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -271,6 +271,8 @@ fn mainnet_config_genesis() -> GenesisConfig {
 		land_registry_office: Default::default(),
 		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
+		lld_bridge: Default::default(),
+		llm_bridge: Default::default(),
 	}
 }
 
@@ -451,6 +453,8 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		land_registry_office: Default::default(),
 		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
+		lld_bridge: Default::default(),
+		llm_bridge: Default::default(),
 	}
 }
 
@@ -766,7 +770,7 @@ pub fn testnet_genesis(
 			members: technical_committee,
 			phantom: Default::default(),
 		},
-		sudo: SudoConfig { key: Some(root_key) },
+		sudo: SudoConfig { key: Some(root_key.clone()) },
 		babe: BabeConfig {
 			authorities: vec![],
 			epoch_config: Some(kitchensink_runtime::BABE_GENESIS_EPOCH_CONFIG),
@@ -825,6 +829,16 @@ pub fn testnet_genesis(
 		asset_registry_office: AssetRegistryOfficeConfig {
 			admin: offices_admin,
 			clerks: nfts_clerks,
+		},
+		lld_bridge: LLDBridgeConfig {
+			admin: Some(root_key.clone()),
+			super_admin: Some(root_key.clone()),
+			..Default::default()
+		},
+		llm_bridge: LLMBridgeConfig {
+			admin: Some(root_key.clone()),
+			super_admin: Some(root_key),
+			..Default::default()
 		},
 	}
 }

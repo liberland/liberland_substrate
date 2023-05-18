@@ -519,8 +519,17 @@ fn treasury_lld_transfer_calls_balances() {
 		let treasury = LLM::get_llm_treasury_account();
 		assert_ok!(LLM::treasury_lld_transfer(approved.clone(), 1, 10));
 		System::assert_has_event(
-			pallet_balances::Event::Transfer { from: treasury, to: 1, amount: 10 }
-				.into(),
+			pallet_balances::Event::Transfer { from: treasury, to: 1, amount: 10 }.into(),
 		);
+	});
+}
+
+#[test]
+fn transfer_trait_works() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(LLM::transfer(1, 2, 6001), AssetsError::<Test>::BalanceLow);
+		assert_ok!(LLM::transfer(1, 2, 6000));
+		assert_eq!(LLM::balance(1), 0);
+		assert_eq!(LLM::balance(2), 12000);
 	});
 }
