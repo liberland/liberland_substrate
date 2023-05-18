@@ -109,6 +109,7 @@ substrate-wasm-builder = { version = "5.0.0-dev", branch = "polkadot-v0.9.37", g
 
 [features]
 default = ["std"]
+testnet-runtime = []
 with-tracing = ["frame-executive/with-tracing"]
 std = [
 	"pallet-whitelist/std",

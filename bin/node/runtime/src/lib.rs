@@ -126,6 +126,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 }
 
 /// Runtime version.
+#[cfg(not(feature = "testnet-runtime"))]
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("Liberland"),
@@ -135,7 +136,24 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 8,
+	spec_version: 9,
+	impl_version: 0,
+	apis: RUNTIME_API_VERSIONS,
+	transaction_version: 1,
+	state_version: 1,
+};
+
+#[cfg(feature = "testnet-runtime")]
+#[sp_version::runtime_version]
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+	spec_name: create_runtime_str!("Liberland_testnet"),
+	impl_name: create_runtime_str!("liberland-node"),
+	authoring_version: 10,
+	// Per convention: if the runtime behavior changes, increment spec_version
+	// and set impl_version to 0. If only runtime
+	// implementation changes and behavior does not, then leave spec_version as
+	// is and increment impl_version.
+	spec_version: 9,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -235,6 +253,24 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = ConstU16<42>;
 	type OnSetCode = ();
 	type MaxConsumers = ConstU32<16>;
+}
+
+#[cfg(not(feature = "testnet-runtime"))]
+parameter_types! {
+	pub const LaunchPeriod: BlockNumber = 36 * DAYS;
+	pub const TermDuration: BlockNumber = 168 * DAYS;
+	pub const AssetName: &'static str = "Liberland Merit";
+	pub const AssetSymbol: &'static str = "LLM";
+	pub const SpendPeriod: BlockNumber = 168 * DAYS;
+}
+
+#[cfg(feature = "testnet-runtime")]
+parameter_types! {
+	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
+	pub const TermDuration: BlockNumber = 14 * DAYS;
+	pub const AssetName: &'static str = "Liberland Kuna";
+	pub const AssetSymbol: &'static str = "LKN";
+	pub const SpendPeriod: BlockNumber = 60 * DAYS;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -751,7 +787,6 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 36 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 7 * DAYS;
 	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
@@ -849,7 +884,6 @@ parameter_types! {
 	pub const VotingBondBase: Balance = deposit(1, 64);
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = deposit(0, 32);
-	pub const TermDuration: BlockNumber = 168 * DAYS;
 	pub const DesiredMembers: u32 = 4;
 	pub const DesiredRunnersUp: u32 = 3;
 	pub const MaxVoters: u32 = 10 * 1000;
@@ -944,7 +978,6 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 168 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -1324,8 +1357,6 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const AssetName: &'static str = "Liberland Merit";
-	pub const AssetSymbol: &'static str = "LLM";
 	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
 }
 
