@@ -10,7 +10,7 @@ contract Deploy is Script {
     function run() external {
         vm.startBroadcast();
 
-        uint256 fee = (101411 + 7 * 29958) * 11 / uint256(10);
+        uint256 fee = (101411 + 7 * 29958) * 11 * 50000000000 / uint256(10);
         uint256 delay = 300; // * 12 sec = 1h;
         uint32 votesRequired = 2;
 
