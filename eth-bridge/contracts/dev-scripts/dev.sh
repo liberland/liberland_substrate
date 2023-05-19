@@ -9,5 +9,5 @@ cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --private-key=0xac0974bec39
 cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --private-key=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 'grantRole(bytes32,address)' 0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
 cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --private-key=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 'setActive(bool)' 1
 cast rpc evm_setAutomine false
-cast rpc evm_setIntervalMining 10
+cast rpc evm_setIntervalMining 5
 wait
