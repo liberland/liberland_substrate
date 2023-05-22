@@ -69,7 +69,11 @@ LDN Bridge: 0xA9024CC0c34170D8E0e0f0c70957ee515D4badd7
 
 LKN ERC-20 token: 0xF113dda63436C39d401b7064B06e3E008bA0C87f
 LKN Bridge: 0xB0E2099c659d90438777BD38DDD15947a2C829DC
+
+Common bridge implementation: 0xf99e2a453fa65c495c5f7f1dec6c047515ac2d27
 ```
+
+All contracts are verified on [sourcify.eth](https://sourcify.dev/)
 
 ## Getting started
 
