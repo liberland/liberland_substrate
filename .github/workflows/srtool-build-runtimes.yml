@@ -11,19 +11,38 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Srtool build
+      - name: Srtool build mainnet runtime
         id: srtool_build
         uses: chevdor/srtool-actions@v0.6.0
         with:
           chain: liberland
           package: kitchensink-runtime
           runtime_dir: ./bin/node/runtime
+          tag: "1.66.1"
 
-      - name: Summary
+      - name: Mainnet Summary
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq . > liberland-srtool-digest.json
-          cat liberland-srtool-digest.json
-          cp "${{ steps.srtool_build.outputs.wasm_compressed }}" ./mainnet-${{github.ref_name}}.compact.compressed.wasm
+          echo '${{ steps.srtool_build.outputs.json }}' | jq . > liberland-srtool-digest.mainnet.json
+          cat liberland-srtool-digest.mainnet.json
+          cp "${{ steps.srtool_build.outputs.wasm_compressed }}" ./mainnet-${{github.ref_name}}.wasm
+          ls
+
+      - name: Srtool build bastiat runtime
+        id: srtool_build_bastiat
+        uses: chevdor/srtool-actions@v0.6.0
+        env:
+          BUILD_OPTS: "--features testnet-runtime"
+        with:
+          chain: liberland
+          package: kitchensink-runtime
+          runtime_dir: ./bin/node/runtime
+          tag: "1.66.1"
+
+      - name: Bastiat Summary
+        run: |
+          echo '${{ steps.srtool_build_bastiat.outputs.json }}' | jq . > liberland-srtool-digest.bastiat.json
+          cat liberland-srtool-digest.bastiat.json
+          cp "${{ steps.srtool_build_bastiat.outputs.wasm_compressed }}" ./bastiat-${{github.ref_name}}.wasm
           ls
       
       - name: Release
@@ -31,4 +50,6 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          files: mainnet-${{github.ref_name}}.compact.compressed.wasm
+          files: |
+            mainnet-${{github.ref_name}}.wasm
+            bastiat-${{github.ref_name}}.wasm
