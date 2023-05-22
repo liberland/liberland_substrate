@@ -59,6 +59,18 @@ Following security features are implemented in the contract:
 * bridge limits how many wrapped tokens can in circulation
 * there's a delay between approval of mint and actually allowing it
 
+## Official deployments
+
+Sepolia testnet (meant to be used with Liberland Bastiat testnet):
+
+```
+LDN ERC-20 token: 0x1120Ce29725Bdd06699fbbc838E43D0f858d0aeE
+LDN Bridge: 0xA9024CC0c34170D8E0e0f0c70957ee515D4badd7
+
+LKN ERC-20 token: 0xF113dda63436C39d401b7064B06e3E008bA0C87f
+LKN Bridge: 0xB0E2099c659d90438777BD38DDD15947a2C829DC
+```
+
 ## Getting started
 
 ### Install foundry
