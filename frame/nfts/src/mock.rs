@@ -27,6 +27,7 @@ use liberland_traits::MockCitizenshipChecker;
 
 use frame_support::{
 	construct_runtime, parameter_types,
+	BoundedVec,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64},
 };
 use sp_core::H256;
@@ -34,6 +35,14 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+
+pub struct DummyMetadataValidator;
+
+impl<StringLimit> crate::traits::MetadataValidator<u32, u32, StringLimit> for DummyMetadataValidator {
+    fn validate_metadata(_: u32, i: u32, _: &BoundedVec<u8, StringLimit>) -> bool {
+		i != 9991999
+    }
+}
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -118,6 +127,7 @@ impl Config for Test {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
 	type Citizenship = MockCitizenshipChecker<u64, ConstU64<100>, ConstU64<101>>;
+	type MetadataValidator = DummyMetadataValidator;
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {

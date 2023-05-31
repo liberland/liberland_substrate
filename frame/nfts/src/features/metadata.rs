@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::*;
+use crate::{traits::MetadataValidator, *};
 use frame_support::pallet_prelude::*;
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -40,6 +40,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		}
 
 		let collection_config = Self::get_collection_config(&collection)?;
+
+		if !T::MetadataValidator::validate_metadata(collection, item, &data) {
+			return Err(Error::<T, I>::IncorrectData.into())
+		}
 
 		ItemMetadataOf::<T, I>::try_mutate_exists(collection, item, |metadata| {
 			if metadata.is_none() {
