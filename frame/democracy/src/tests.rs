@@ -206,6 +206,7 @@ impl pallet_nfts::Config for Test {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
 	type Citizenship = ();
+	type MetadataValidator = ();
 }
 parameter_types! {
 	pub static PreimageByteDeposit: u64 = 0;

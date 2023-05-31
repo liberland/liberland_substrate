@@ -168,6 +168,7 @@ impl pallet_nfts::Config for Test {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
 	type Citizenship = ();
+	type MetadataValidator = ();
 }
 
 impl pallet_assets::Config for Test {

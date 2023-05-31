@@ -2546,3 +2546,23 @@ fn citizenship_is_checked_when_set() {
 		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(2), 0, 43, 3));
 	})
 }
+
+#[test]
+fn metadata_validator_works() {
+	new_test_ext().execute_with(|| {
+		Balances::make_free_balance_be(&1, 30);
+
+		assert_ok!(Nfts::force_create(
+			RuntimeOrigin::root(),
+			1,
+			collection_config_with_all_settings_enabled()
+		));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 42, 1, None));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 9991999, 1, None));
+		assert_noop!(
+			Nfts::set_metadata(RuntimeOrigin::signed(1), 0, 9991999, bvec![0u8; 20]),
+			Error::<Test>::IncorrectData,
+		);
+		assert_ok!(Nfts::set_metadata(RuntimeOrigin::signed(1), 0, 42, bvec![0u8; 20]));
+	})
+}

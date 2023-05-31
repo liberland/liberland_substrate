@@ -1417,6 +1417,7 @@ impl pallet_nfts::Config for Runtime {
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
 	type Locker = ();
 	type Citizenship = LLM;
+	type MetadataValidator = impls::LandMetadataValidator;
 }
 
 impl pallet_transaction_storage::Config for Runtime {

@@ -46,6 +46,7 @@ mod types;
 
 pub mod macros;
 pub mod weights;
+pub mod traits;
 
 use codec::{Decode, Encode};
 use frame_support::traits::{
@@ -186,6 +187,13 @@ pub mod pallet {
 		/// Liberland Citizenship - optionally used for restricting item
 		/// ownership to Citizens only
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
+
+		/// Liberland Metadata Validator - optionally used for restricting item
+		/// metadata
+		type MetadataValidator: traits::MetadataValidator<
+			Self::CollectionId,
+			Self::ItemId,
+			Self::StringLimit>;
 	}
 
 	/// Details of a collection.
