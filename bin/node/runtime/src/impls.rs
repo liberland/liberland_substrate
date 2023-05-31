@@ -295,8 +295,8 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Coords {
-	lat: u64,
-	long: u64,
+	pub lat: u64,
+	pub long: u64,
 }
 
 #[derive(
@@ -314,10 +314,11 @@ pub struct Metadata<MaxCoords: Get<u32>, MaxString: Get<u32>> {
 	status: BoundedVec<u8, MaxString>,
 }
 
-pub struct LandMetadataValidator;
+pub struct LandMetadataValidator<CoordsBounds: Get<(Coords, Coords)>>(PhantomData<CoordsBounds>);
 
-impl<StringLimit> pallet_nfts::traits::MetadataValidator<u32, u32, StringLimit>
-	for LandMetadataValidator
+impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
+	pallet_nfts::traits::MetadataValidator<u32, u32, StringLimit>
+	for LandMetadataValidator<CoordsBounds>
 {
 	fn validate_metadata(collection: u32, _: u32, data: &BoundedVec<u8, StringLimit>) -> bool {
 		// https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
@@ -325,47 +326,51 @@ impl<StringLimit> pallet_nfts::traits::MetadataValidator<u32, u32, StringLimit>
 			fn ccw(a: Coords, b: Coords, c: Coords) -> bool {
 				(b.long - a.long) * (c.lat - b.lat) > (b.lat - a.lat) * (c.long - b.long)
 			}
-			ccw(a,c,d) != ccw(b,c,d) && ccw(a,b,c) != ccw(a,b,d)
+			ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d)
 		}
 
-		if collection != 1 { return true; }
+		if collection != 0 && collection != 1 {
+			return true
+		}
 
 		let data = data.clone();
-		let data = Metadata::<ConstU32<100>, ConstU32<100>>::decode(&mut TrailingZeroInput::new(&data[..]));
+		let data = Metadata::<ConstU32<100>, ConstU32<100>>::decode(&mut TrailingZeroInput::new(
+			&data[..],
+		));
 		if data.is_err() {
-			return false;
+			return false
 		}
 
 		let data = data.unwrap();
 
 		// does it have at least 3 points
 		if data.demarcation.len() < 3 {
-			return false;
+			return false
 		}
 
 		// is it roughly in the good place
+		let (a, b) = CoordsBounds::get();
 		for c in data.demarcation.iter() {
-			if c.lat  < 45_7686480 ||
-			   c.lat  > 45_7785989 ||
-			   c.long < 18_8821180 ||
-			   c.long > 18_8892809 {
-				return false;
+			if c.lat < a.lat || c.lat > b.lat || c.long < a.long || c.long > b.long {
+				return false
 			}
 		}
 
+		// check self intersection. we do it by checking if any of line segments
+		// intersect with any other non-neighboring segment in the plot
 		let mut lines = vec![];
 		for i in 1..data.demarcation.len() {
-			lines.push((data.demarcation[i-1].clone(), data.demarcation[i].clone()))
+			lines.push((data.demarcation[i - 1].clone(), data.demarcation[i].clone()))
 		}
-		lines.push((data.demarcation[data.demarcation.len()-1],data.demarcation[0]));
+		lines.push((data.demarcation[data.demarcation.len() - 1], data.demarcation[0]));
 
 		for i in 0..lines.len() {
 			let a = lines[i];
-			for j in i+2..lines.len()+i-1 {
-				let j = j%lines.len();
+			for j in i + 2..lines.len() + i - 1 {
+				let j = j % lines.len();
 				let b = lines[j];
 				if intersection(a.0, a.1, b.0, b.1) {
-					return false;
+					return false
 				}
 			}
 		}
@@ -715,11 +720,24 @@ mod multiplier_tests {
 		});
 	}
 
-	use super::{Coords, Metadata, LandMetadataValidator};
-	use pallet_nfts::traits::MetadataValidator;
+	use super::{Coords, LandMetadataValidator, Metadata};
 	use codec::Encode;
-	use frame_support::BoundedVec;
+	use frame_support::{parameter_types, BoundedVec};
+	use pallet_nfts::traits::MetadataValidator;
 	use sp_core::ConstU32;
+
+	parameter_types! {
+		pub const TestCoords: (Coords, Coords) = (
+			Coords {
+				lat: 45_7686480,
+				long: 18_8821180,
+			},
+			Coords {
+				lat: 45_7785989,
+				long: 18_8892809,
+			},
+		);
+	}
 	#[test]
 	fn land_metadata_validator_is_sane() {
 		let good: BoundedVec<u8, ConstU32<1000>> = Metadata::<ConstU32<10>, ConstU32<10>> {
@@ -732,40 +750,64 @@ mod multiplier_tests {
 				Coords { lat: 45_7724976, long: 18_8876859 },
 				Coords { lat: 45_7725234, long: 18_8876738 },
 				Coords { lat: 45_7723532, long: 18_8870918 },
-			].try_into().unwrap()
-		}.encode().try_into().unwrap();
-		let not_enough_coords: BoundedVec<u8, ConstU32<1000>> = Metadata::<ConstU32<10>, ConstU32<10>> {
-			r#type: Default::default(),
-			status: Default::default(),
-			demarcation: vec![
-				Coords { lat: 45_7723532, long: 18_8870918 },
-				Coords { lat: 45_7721717, long: 18_8871917 },
-			].try_into().unwrap()
-		}.encode().try_into().unwrap();
-		let invalid_coord: BoundedVec<u8, ConstU32<1000>> = Metadata::<ConstU32<10>, ConstU32<10>> {
-			r#type: Default::default(),
-			status: Default::default(),
-			demarcation: vec![
-				Coords { lat: 45_7723532, long: 18_8870918 },
-				Coords { lat: 45_7721717, long: 18_8871917 },
-				Coords { lat:  5_7723330, long: 18_8877504 },
-			].try_into().unwrap()
-		}.encode().try_into().unwrap();
-		let self_intersecting: BoundedVec<u8, ConstU32<1000>> = Metadata::<ConstU32<10>, ConstU32<10>> {
-			r#type: Default::default(),
-			status: Default::default(),
-			demarcation: vec![
-				Coords { lat: 45_7723532, long: 18_8870918 },
-				Coords { lat: 45_7723330, long: 18_8877504 },
-				Coords { lat: 45_7721717, long: 18_8871917 },
-				Coords { lat: 45_7724976, long: 18_8876859 },
-			].try_into().unwrap()
-		}.encode().try_into().unwrap();
+			]
+			.try_into()
+			.unwrap(),
+		}
+		.encode()
+		.try_into()
+		.unwrap();
+		let not_enough_coords: BoundedVec<u8, ConstU32<1000>> =
+			Metadata::<ConstU32<10>, ConstU32<10>> {
+				r#type: Default::default(),
+				status: Default::default(),
+				demarcation: vec![
+					Coords { lat: 45_7723532, long: 18_8870918 },
+					Coords { lat: 45_7721717, long: 18_8871917 },
+				]
+				.try_into()
+				.unwrap(),
+			}
+			.encode()
+			.try_into()
+			.unwrap();
+		let invalid_coord: BoundedVec<u8, ConstU32<1000>> =
+			Metadata::<ConstU32<10>, ConstU32<10>> {
+				r#type: Default::default(),
+				status: Default::default(),
+				demarcation: vec![
+					Coords { lat: 45_7723532, long: 18_8870918 },
+					Coords { lat: 45_7721717, long: 18_8871917 },
+					Coords { lat: 5_7723330, long: 18_8877504 },
+				]
+				.try_into()
+				.unwrap(),
+			}
+			.encode()
+			.try_into()
+			.unwrap();
+		let self_intersecting: BoundedVec<u8, ConstU32<1000>> =
+			Metadata::<ConstU32<10>, ConstU32<10>> {
+				r#type: Default::default(),
+				status: Default::default(),
+				demarcation: vec![
+					Coords { lat: 45_7723532, long: 18_8870918 },
+					Coords { lat: 45_7723330, long: 18_8877504 },
+					Coords { lat: 45_7721717, long: 18_8871917 },
+					Coords { lat: 45_7724976, long: 18_8876859 },
+				]
+				.try_into()
+				.unwrap(),
+			}
+			.encode()
+			.try_into()
+			.unwrap();
 
-		assert!(LandMetadataValidator::validate_metadata(1, 1, &good));
-		assert!(LandMetadataValidator::validate_metadata(0, 0, &not_enough_coords));
-		assert!(!LandMetadataValidator::validate_metadata(1, 1, &not_enough_coords));
-		assert!(!LandMetadataValidator::validate_metadata(1, 1, &invalid_coord));
-		assert!(!LandMetadataValidator::validate_metadata(1, 1, &self_intersecting));
+		assert!(LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &good));
+		assert!(LandMetadataValidator::<TestCoords>::validate_metadata(99, 0, &not_enough_coords));
+		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(0, 1, &not_enough_coords));
+		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &not_enough_coords));
+		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &invalid_coord));
+		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &self_intersecting));
 	}
 }

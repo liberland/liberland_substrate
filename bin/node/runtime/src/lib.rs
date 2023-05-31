@@ -1390,6 +1390,16 @@ parameter_types! {
 	pub const MaxTips: u32 = 10;
 	pub const MaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
 	pub Features: PalletFeatures = PalletFeatures::all_enabled();
+	pub const LLCoords: (impls::Coords, impls::Coords) = (
+		impls::Coords {
+			lat: 45_7686480,
+			long: 18_8821180,
+		},
+		impls::Coords {
+			lat: 45_7785989,
+			long: 18_8892809,
+		},
+	);
 }
 
 impl pallet_nfts::Config for Runtime {
@@ -1417,7 +1427,7 @@ impl pallet_nfts::Config for Runtime {
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
 	type Locker = ();
 	type Citizenship = LLM;
-	type MetadataValidator = impls::LandMetadataValidator;
+	type MetadataValidator = impls::LandMetadataValidator<LLCoords>;
 }
 
 impl pallet_transaction_storage::Config for Runtime {
