@@ -19,7 +19,6 @@ export ORIG_CHAIN WS_ENDPOINT
 [ ! -e "$(dirname "$0")/fork-off-substrate/package.json" ] && git submodule update --init
 cd "$(dirname "$0")/fork-off-substrate"
 npm install
-cargo build --release
 mkdir -p data
 cp "$BINARY" data/binary
 cp "$RUNTIME" data/runtime.wasm
