@@ -1,6 +1,12 @@
 name: test solidity contracts
 
-on: workflow_dispatch
+on:
+  push:
+    paths:
+      - 'eth-bridge/contracts/**'
+  pull_request:
+    paths:
+      - 'eth-bridge/contracts/**'
 
 env:
   FOUNDRY_PROFILE: ci
