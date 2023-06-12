@@ -76,7 +76,7 @@ interface BridgeEvents {
     /// Vote was cast to approve IncomingReceipt
     /// @param receiptId subject Receipt
     /// @param relay Relay that cast the vote
-    event Vote(bytes32 receiptId, address relay);
+    event Vote(bytes32 receiptId, address relay, uint64 substrateBlockNumber);
 
     /// IncomingReceipt was completely processed - tokens were minted
     /// @param receiptId subject Receipt
@@ -293,7 +293,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
             emit Approved(receiptId);
         }
 
-        emit Vote(receiptId, msg.sender);
+        emit Vote(receiptId, msg.sender, incomingReceipts[receiptId].substrateBlockNumber);
     }
 
     /// Mint tokens according to the receipt.

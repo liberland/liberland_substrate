@@ -183,7 +183,7 @@ contract BridgeTest is Test, BridgeEvents {
     function testVotingEmitsEvent() public {
         vm.prank(alice);
         vm.expectEmit(false, false, false, true);
-        emit Vote(receipt1, alice);
+        emit Vote(receipt1, alice, 1);
         bridge.voteMint(receipt1, 1, 100, alice);
     }
 
