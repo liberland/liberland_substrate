@@ -423,6 +423,14 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         token_.transferOwnership(newOwner);
     }
 
+    /// Check if given receiptId was already voted on by given voter
+    /// @param receiptId ReceiptId to check
+    /// @param voter Voter to check
+    /// @return voted_ true if voter voted for receipt
+    function voted(bytes32 receiptId, address voter) public view returns (bool voted_) {
+        return _arrayContains(votes[receiptId], voter);
+    }
+
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 
@@ -520,9 +528,5 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
             }
         }
         return false;
-    }
-
-    function voted(bytes32 receiptId, address voter) public view returns (bool) {
-        return _arrayContains(votes[receiptId], voter);
     }
 }
