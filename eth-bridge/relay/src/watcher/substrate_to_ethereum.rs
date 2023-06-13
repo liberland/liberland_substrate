@@ -87,7 +87,7 @@ impl SubstrateToEthereum {
 			.number
 			.into();
 
-		tracing::info!("Relay {relay} voted for {receipt_id:?} at {receipt_substrate_block_number} now is {latest_substrate_block}");
+		tracing::info!(%relay, ?receipt_id, receipt_substrate_block_number, latest_substrate_block, "Relay voted");
 
 		let bridge_id = self.get_bridge_id(contract);
 
@@ -107,14 +107,14 @@ impl SubstrateToEthereum {
 		let is_receipt_valid = self.block_has_valid_receipt_event(
 			bridge_id,
 			block_events,
-			receipt_id,
+			receipt_id.clone(),
 			receipt_block_hash,
 		);
 		if !is_receipt_valid? {
-			tracing::error!("Receipt is not valid");
+			tracing::error!(?receipt_id, "Receipt is not valid");
 			return self.emergency_stop_bridges(bridge_id).await
 		}
-		tracing::info!("Receipt is valid");
+		tracing::info!(?receipt_id, "Receipt is valid");
 
 		Ok(())
 	}
@@ -267,7 +267,6 @@ impl SubstrateToEthereum {
 		let subscription = sync_manager.sync();
 		pin_mut!(subscription);
 
-		tracing::info!("Synced, starting realtime monitoring");
 		while let Some(log) = subscription.next().await {
 			let log = log?;
 			self.process_log(log).await?;

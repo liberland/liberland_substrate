@@ -4,7 +4,7 @@ use std::{env, path::Path};
 fn main() {
 	let out_dir = env::var_os("OUT_DIR").unwrap();
 	let dest_path = Path::new(&out_dir).join("bridge_abi.rs");
-	Abigen::new("BridgeABI", "Bridge.json")
+	Abigen::new("BridgeABI", "contracts/Bridge.json")
 		.unwrap()
 		.generate()
 		.unwrap()
@@ -12,5 +12,5 @@ fn main() {
 		.unwrap();
 
 	println!("cargo:rerun-if-changed=build.rs");
-	println!("cargo:rerun-if-changed=Bridge.json");
+	println!("cargo:rerun-if-changed=contracts/Bridge.json");
 }

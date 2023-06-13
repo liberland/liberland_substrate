@@ -28,8 +28,17 @@ serde_json = "1.0.96"
 sp-core = { version = "20.0.0", default-features = false }
 sqlx = { version = "0.6.3", features = ["sqlite", "runtime-tokio-rustls", "offline"] }
 subxt = "0.28.0"
-tokio = { version = "1.28.0", features = ["macros", "rt", "signal"] }
+tokio = { version = "1.28.0", features = ["macros", "rt", "signal", "process"] }
 toml = { version = "0.7.3", default-features = false }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = { version = "2.3.1", features = ["serde"] }
+
+[dev-dependencies]
+assert_cmd = "2.0.11"
+strip-ansi-escapes = "0.1.1"
+#sp-keyring = { branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate" }
+substrate-rpc-client = "0.26.0"
+tempfile = "3.6.0"
+tokio-test = "0.4.2"
+wait-timeout = "0.2.0"
