@@ -3,7 +3,7 @@ use super::*;
 use crate::{
 	bridge_abi::BridgeABI,
 	sync_managers::{Substrate as SubstrateSyncManager, SubstrateSyncTarget},
-	utils::try_to_decode_err,
+	utils::{substrate_receipt_id, try_to_decode_err},
 };
 use ethers::{
 	middleware::SignerMiddleware,
@@ -213,7 +213,7 @@ impl SubstrateToEthereum {
 		amount: Amount,
 		eth_recipient: EthAddress,
 	) -> Result<()> {
-		let receipt_id = self.receipt_id(block_hash, idx, amount, &eth_recipient);
+		let receipt_id = substrate_receipt_id(block_hash, idx, amount, &eth_recipient);
 		if self.should_vote(bridge, &receipt_id).await? {
 			self.vote(bridge, &receipt_id, block_number, amount, eth_recipient).await?;
 		} else {
@@ -259,21 +259,5 @@ impl SubstrateToEthereum {
 		tracing::debug!("Queuing tx...");
 		self.tx_manager_send.send((receipt_id.clone().into(), tx.tx.into())).await?;
 		Ok(())
-	}
-
-	fn receipt_id(
-		&self,
-		block: <SubstrateConfig as subxt::config::Config>::Hash,
-		idx: u32,
-		amount: Amount,
-		recipient: &EthAddress,
-	) -> ReceiptId {
-		let mut amount_bytes: [u8; 32] = Default::default();
-		amount.to_big_endian(&mut amount_bytes);
-
-		BlakeTwo256::hash(
-			&[block.as_bytes(), &idx.to_be_bytes(), &amount_bytes, recipient.as_bytes()].concat(),
-		)
-		.into()
 	}
 }

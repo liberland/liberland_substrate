@@ -311,7 +311,6 @@ pub async fn get_unfinished_eth_calls<T: Into<DBEthAddress>>(
 	.fetch(&mut conn);
 
 	let mut calls = Vec::new();
-	// FIXME replace loop with and_then?
 	while let Some(row) = call_stream.next().await {
 		let row = row?;
 		let transactions = sqlx::query!(

@@ -162,7 +162,9 @@ async fn start_ethereum(bridge_instance: &mut BridgeInstance) {
 }
 
 async fn start_liberland(bridge_instance: &mut BridgeInstance) {
-	let path = "../../target/release/substrate"; // FIXME make it smarter and overridable
+	let path = std::env::var("RELAY_TEST_SUBSTRATE_PATH")
+		.unwrap_or("../../target/release/substrate".into());
+
 	let mut cmd = substrate::KillChildOnDrop(
 		Command::new(path)
 			.stdout(process::Stdio::piped())
@@ -469,7 +471,7 @@ async fn watcher_to_eth_works_for_bad() {
 			.encode(),
 		BridgeState::Stopped.encode()
 	);
-    // FIXME check if eth stopped too
+	// FIXME check if eth stopped too
 	assert!(relay.try_wait().unwrap().is_none(), "the process should still be running");
 }
 
@@ -533,6 +535,6 @@ async fn watcher_to_sub_works_for_bad() {
 			.encode(),
 		BridgeState::Stopped.encode()
 	);
-    // FIXME check if eth stopped too
+	// FIXME check if eth stopped too
 	assert!(relay.try_wait().unwrap().is_none(), "the process should still be running");
 }

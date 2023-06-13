@@ -3,14 +3,13 @@ use super::*;
 use crate::{
 	bridge_abi::OutgoingReceiptFilter,
 	sync_managers::{Ethereum as EthereumSyncManager, EthereumSyncTarget},
+	utils::eth_receipt_id,
 };
 use ethers::{contract::EthEvent, types::Log};
 use liberland::runtime_types::pallet_federated_bridge::IncomingReceiptStatus;
 use sp_core::sr25519::Pair as SubstratePair;
-use subxt::{config::Hasher as HasherT, tx::PairSigner, utils::AccountId32};
+use subxt::{tx::PairSigner, utils::AccountId32};
 use tracing::{span, Instrument, Level};
-
-type AccountId = <SubstrateConfig as subxt::config::Config>::AccountId;
 
 pub struct EthereumToSubstrate {
 	id: RelayId,
@@ -118,7 +117,7 @@ impl EthereumToSubstrate {
 		let amount = event.amount;
 		let substrate_recipient: AccountId32 = event.substrate_recipient.into();
 
-		let receipt_id = Self::receipt_id(&block_hash, &index, &amount, &substrate_recipient);
+		let receipt_id = eth_receipt_id(&block_hash, &index, &amount, &substrate_recipient);
 		let bridge_id = match contract {
 			x if x == self.lld_bridge_contract => BridgeId::LLD,
 			x if x == self.llm_bridge_contract => BridgeId::LLM,
@@ -229,19 +228,5 @@ impl EthereumToSubstrate {
 		tracing::info!("Vote finalized!");
 
 		Ok(())
-	}
-
-	fn receipt_id(
-		block_hash: &H256,
-		log_index: &u64,
-		amount: &Amount,
-		recipient: &AccountId,
-	) -> ReceiptId {
-		let log_index: [u8; 8] = log_index.to_be_bytes();
-		let mut amount_bytes: [u8; 32] = Default::default();
-		amount.to_big_endian(&mut amount_bytes);
-		let recipient: &[u8; 32] = recipient.as_ref();
-		BlakeTwo256::hash(&[block_hash.as_bytes(), &log_index, &amount_bytes, recipient].concat())
-			.into()
 	}
 }

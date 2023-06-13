@@ -7,6 +7,7 @@ use crate::{
 		llm_bridge::events::OutgoingReceipt as LLMOutgoingReceipt,
 	},
 	sync_managers::{Ethereum as EthereumSyncManager, EthereumSyncTarget},
+	utils::substrate_receipt_id,
 };
 use ethers::{
 	abi::Address,
@@ -18,7 +19,6 @@ use ethers::{
 use primitive_types::H160;
 use sp_core::sr25519::Pair as SubstratePair;
 use subxt::{
-	config::Hasher as HasherT,
 	events::{EventDetails, Events},
 	tx::PairSigner,
 };
@@ -153,7 +153,7 @@ impl SubstrateToEthereum {
 		let idx = event.index();
 		if let Ok(Some(event)) = event.as_event::<LLMOutgoingReceipt>() {
 			let receipt_id =
-				self.receipt_id(block, idx, event.amount.into(), &event.eth_recipient.into());
+				substrate_receipt_id(block, idx, event.amount.into(), &event.eth_recipient.into());
 			return receipt_id == incoming_receipt
 		}
 		return false
@@ -168,7 +168,7 @@ impl SubstrateToEthereum {
 		let idx = event.index();
 		if let Ok(Some(event)) = event.as_event::<LLDOutgoingReceipt>() {
 			let receipt_id =
-				self.receipt_id(block, idx, event.amount.into(), &event.eth_recipient.into());
+				substrate_receipt_id(block, idx, event.amount.into(), &event.eth_recipient.into());
 			return receipt_id == incoming_receipt
 		}
 		return false
@@ -235,22 +235,6 @@ impl SubstrateToEthereum {
 		stop_tx.send().await?;
 		tracing::info!("Ethereum LLM bridge successfully stopped!");
 		Ok(())
-	}
-
-	fn receipt_id(
-		&self,
-		block: <SubstrateConfig as subxt::config::Config>::Hash,
-		idx: u32,
-		amount: Amount,
-		recipient: &EthAddress,
-	) -> ReceiptId {
-		let mut amount_bytes: [u8; 32] = Default::default();
-		amount.to_big_endian(&mut amount_bytes);
-
-		BlakeTwo256::hash(
-			&[block.as_bytes(), &idx.to_be_bytes(), &amount_bytes, recipient.as_bytes()].concat(),
-		)
-		.into()
 	}
 
 	pub async fn sync(&self) -> Result<()> {

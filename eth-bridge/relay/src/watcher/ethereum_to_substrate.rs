@@ -3,7 +3,7 @@ use super::*;
 use crate::{
 	bridge_abi::{BridgeABI, OutgoingReceiptFilter},
 	sync_managers::{Substrate as SubstrateSyncManager, SubstrateSyncTarget},
-	utils::try_to_decode_err,
+	utils::{eth_receipt_id, try_to_decode_err},
 };
 use ethers::{
 	contract::EthEvent, middleware::SignerMiddleware, prelude::LocalWallet, signers::Signer,
@@ -149,7 +149,7 @@ impl EthereumToSubstrate {
 					let substrate_recipient: AccountId32 = event.substrate_recipient.into();
 
 					let log_receipt_id =
-						Self::receipt_id(&block_hash, &index, &amount, &substrate_recipient);
+						eth_receipt_id(&block_hash, &index, &amount, &substrate_recipient);
 
 					&log_receipt_id == receipt_id &&
 						amount == substrate_receipt.amount.into() &&
@@ -198,20 +198,5 @@ impl EthereumToSubstrate {
 			.await?;
 
 		Ok(())
-	}
-
-	// FIXME extract this, as this is copied from relay
-	fn receipt_id(
-		block_hash: &H256,
-		log_index: &u64,
-		amount: &Amount,
-		recipient: &AccountId,
-	) -> ReceiptId {
-		let log_index: [u8; 8] = log_index.to_be_bytes();
-		let mut amount_bytes: [u8; 32] = Default::default();
-		amount.to_big_endian(&mut amount_bytes);
-		let recipient: &[u8; 32] = recipient.as_ref();
-		BlakeTwo256::hash(&[block_hash.as_bytes(), &log_index, &amount_bytes, recipient].concat())
-			.into()
 	}
 }

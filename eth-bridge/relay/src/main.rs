@@ -7,11 +7,11 @@ mod liberland_api;
 mod relay;
 mod settings;
 mod sync_managers;
+mod test;
 mod tx_managers;
 mod types;
 mod utils;
 mod watcher;
-mod test;
 pub use liberland_api::api as liberland;
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 

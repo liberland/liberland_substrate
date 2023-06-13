@@ -12,12 +12,7 @@ use futures::{pin_mut, StreamExt};
 use sp_core::sr25519::Pair as SubstratePair;
 use sqlx::sqlite::SqlitePool;
 use std::sync::Arc;
-use subxt::{
-	config::{substrate::BlakeTwo256, Hasher},
-	tx::PairSigner,
-	utils::AccountId32,
-	OnlineClient, SubstrateConfig,
-};
+use subxt::{tx::PairSigner, utils::AccountId32, OnlineClient, SubstrateConfig};
 type AccountId = <SubstrateConfig as subxt::config::Config>::AccountId;
 
 pub use ethereum_to_substrate::EthereumToSubstrate;

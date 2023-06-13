@@ -10,10 +10,7 @@ use ethers::{
 use futures::{pin_mut, StreamExt};
 use sqlx::sqlite::SqlitePool;
 use std::sync::Arc;
-use subxt::{
-	config::{substrate::BlakeTwo256, Hasher},
-	OnlineClient, SubstrateConfig,
-};
+use subxt::{OnlineClient, SubstrateConfig};
 
 pub use ethereum_to_substrate::EthereumToSubstrate;
 pub use substrate_to_ethereum::SubstrateToEthereum;
