@@ -230,8 +230,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @param substrateRecipient AccountId on substrate side that will receive
     ///                           funds
     /// @dev Reverts with `BridgeInactive` if bridge is inactive
-    /// @dev Reverts with if bridge is not approved to manage funds or if caller has
-    ///      insufficient balance
+    /// @dev Reverts with underlying token's error if bridge is not approved to
+    ///      manage funds or if caller has insufficient balance
     /// @dev Emits `OutgoingReceipt(amount, substrateRecipient)` on success
     /// @dev Interacts with `token` contract
     function burn(uint256 amount, bytes32 substrateRecipient) public {
