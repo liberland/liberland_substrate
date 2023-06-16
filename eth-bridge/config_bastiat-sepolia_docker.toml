@@ -1,7 +1,7 @@
 db_path = "/data/sqlite.db"
 substrate_ws_url = "ws://liberland-node:9944/"
 ethereum_ws_url = "ws://eth-node:8545/"
-lld_bridge_contract = "0xA9024CC0c34170D8E0e0f0c70957ee515D4badd7"
-llm_bridge_contract = "0xB0E2099c659d90438777BD38DDD15947a2C829DC"
+lld_bridge_contract = "0xC8af0C3E0e4FC787D9e657b2A68ce6ED9cedB5DA"
+llm_bridge_contract = "0x7E1E09c0B41b22EB1fA04145cdf21cea01560c99"
 relays = []
 watchers = []
