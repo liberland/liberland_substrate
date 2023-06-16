@@ -304,6 +304,8 @@ pub mod pallet {
 			relay: T::AccountId,
 			/// Incoming Receipt ID
 			receipt_id: ReceiptId,
+			/// Ethereum block number at which receipt was created
+			block_number: EthBlockNumber,
 		},
 		/// Incoming Receipt got approved for withdrawal
 		Approved(ReceiptId),
@@ -519,10 +521,10 @@ pub mod pallet {
 			if !votes.contains(&relay) {
 				votes.try_push(relay.clone()).map_err(|_| Error::<T, I>::TooManyVotes)?;
 				Voting::<T, I>::insert(receipt_id, &votes);
+				let block_number = frame_system::Pallet::<T>::block_number();
 				if status == IncomingReceiptStatus::Voting {
 					let votes_required = VotesRequired::<T, I>::get();
 					if votes.len() >= votes_required as usize {
-						let block_number = frame_system::Pallet::<T>::block_number();
 						StatusOf::<T, I>::insert(
 							receipt_id,
 							IncomingReceiptStatus::Approved(block_number),
@@ -531,7 +533,11 @@ pub mod pallet {
 					}
 				}
 
-				Self::deposit_event(Event::Vote { relay, receipt_id })
+				Self::deposit_event(Event::Vote {
+					relay,
+					receipt_id,
+					block_number: receipt.eth_block_number,
+				})
 			}
 			Ok(())
 		}
