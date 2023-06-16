@@ -6,9 +6,10 @@ use crate::{
 		lld_bridge::events::OutgoingReceipt as LLDOutgoingReceipt,
 		llm_bridge::events::OutgoingReceipt as LLMOutgoingReceipt,
 	},
+	liberland_utils,
 	sync_managers::{Ethereum as EthereumSyncManager, EthereumSyncTarget},
 	tx_managers,
-	utils::substrate_receipt_id,
+	utils::{substrate_receipt_id, try_to_decode_err},
 };
 use ethers::{
 	abi::Address,
@@ -33,6 +34,7 @@ pub struct SubstrateToEthereum {
 	lld_bridge_contract: EthAddress,
 	eth_signer: Arc<SignerMiddleware<Arc<Provider<Ws>>, LocalWallet>>,
 	sub_signer: PairSigner<SubstrateConfig, SubstratePair>,
+	tx_manager_send: mpsc::Sender<(CallId, Eip1559TransactionRequest)>,
 	sub_tx_manager: Arc<tx_managers::Substrate>,
 }
 
@@ -46,6 +48,7 @@ impl SubstrateToEthereum {
 		sub_api: Arc<OnlineClient<SubstrateConfig>>,
 		llm_bridge_contract: EthAddress,
 		lld_bridge_contract: EthAddress,
+		tx_manager_send: mpsc::Sender<(CallId, Eip1559TransactionRequest)>,
 		sub_tx_manager: &Arc<tx_managers::Substrate>,
 	) -> Result<Self> {
 		let eth_wallet = eth_wallet.with_chain_id(eth_provider.get_chainid().await?.as_u64());
@@ -60,6 +63,7 @@ impl SubstrateToEthereum {
 			llm_bridge_contract,
 			lld_bridge_contract,
 			sub_signer,
+			tx_manager_send,
 			sub_tx_manager,
 		})
 	}
@@ -96,11 +100,11 @@ impl SubstrateToEthereum {
 
 		let bridge_id = self.get_bridge_id(contract);
 
-		// TODO: WEE NEED TO CHECK HOW FAR AWAY IS LIBERLAND NODE BEHIND
 		if receipt_substrate_block_number > latest_substrate_block + 50 {
 			tracing::error!("Receipt comes from a non-existent block");
-			return self.emergency_stop_bridges(bridge_id).await
+			return self.emergency_stop(bridge_id).await
 		}
+
 		let receipt_block_hash = self
 			.sub_api
 			.rpc()
@@ -117,7 +121,7 @@ impl SubstrateToEthereum {
 		);
 		if !is_receipt_valid? {
 			tracing::error!(?receipt_id, "Receipt is not valid");
-			return self.emergency_stop_bridges(bridge_id).await
+			return self.emergency_stop(bridge_id).await
 		}
 		tracing::info!(?receipt_id, "Receipt is valid");
 
@@ -193,36 +197,25 @@ impl SubstrateToEthereum {
 		}
 	}
 
-	async fn emergency_stop_bridges(&self, bridge_id: BridgeId) -> Result<()> {
-		match bridge_id {
-			BridgeId::LLD => self.emergency_stop_lld_bridge().await,
-			BridgeId::LLM => self.emergency_stop_llm_bridge().await,
-		}
-	}
+	#[tracing::instrument(skip(self))]
+	// this is likely the same for both watchers, extract it somewhere?
+	async fn emergency_stop(&self, bridge: BridgeId) -> Result<()> {
+		tracing::debug!("Emergency stop contract...");
+		let contract = match bridge {
+			BridgeId::LLM => self.llm_bridge_contract,
+			BridgeId::LLD => self.lld_bridge_contract,
+		};
+		let contract = BridgeABI::new(contract, self.eth_signer.clone());
+		let eth_tx = contract.emergency_stop();
+		eth_tx.call().await.map_err(try_to_decode_err)?;
+		tracing::debug!("Queuing tx...");
+		self.tx_manager_send.send((CallId::random(), eth_tx.tx.into())).await?;
 
-	async fn emergency_stop_lld_bridge(&self) -> Result<()> {
-		let stop_tx = liberland::tx().lld_bridge().emergency_stop();
-		self.sub_tx_manager.add(&stop_tx).await?;
-		tracing::info!("Substrate LLD bridge stop tx send!");
+		tracing::debug!("Emergency stop pallet...");
+		let sub_tx =
+			liberland_utils::tx::emergency_stop(&self.sub_api, &self.sub_signer, bridge).await?;
+		self.sub_tx_manager.add(sub_tx).await?;
 
-		let bridge = BridgeABI::new(self.lld_bridge_contract, self.eth_signer.clone());
-		tracing::info!("Ethereum emergency LLD bridge stop transactions were sent!");
-		let stop_tx = bridge.emergency_stop();
-		stop_tx.call().await?;
-		tracing::info!("Ethereum LLD bridge successfully stopped!");
-		Ok(())
-	}
-
-	async fn emergency_stop_llm_bridge(&self) -> Result<()> {
-		let stop_tx = liberland::tx().llm_bridge().emergency_stop();
-		self.sub_tx_manager.add(&stop_tx).await?;
-		tracing::info!("Substrate LLD bridge stop tx send!");
-
-		let bridge = BridgeABI::new(self.llm_bridge_contract, self.eth_signer.clone());
-		tracing::info!("Ethereum emergency LLM bridge stop transactions were sent!");
-		let stop_tx = bridge.emergency_stop();
-		stop_tx.send().await?;
-		tracing::info!("Ethereum LLM bridge successfully stopped!");
 		Ok(())
 	}
 

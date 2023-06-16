@@ -2,6 +2,7 @@ use super::*;
 
 use crate::{
 	bridge_abi::OutgoingReceiptFilter,
+	liberland_utils,
 	sync_managers::{Ethereum as EthereumSyncManager, EthereumSyncTarget},
 	tx_managers,
 	utils::eth_receipt_id,
@@ -153,17 +154,8 @@ impl EthereumToSubstrate {
 	}
 
 	async fn should_vote(&self, receipt: &EthReceipt) -> Result<bool> {
-		let receipt_id: [u8; 32] = receipt.data().id.clone().into();
-		let (status, voting) = match receipt {
-			EthReceipt::LLM(_) => (
-				liberland::storage().llm_bridge().status_of(receipt_id),
-				liberland::storage().llm_bridge().voting(receipt_id),
-			),
-			EthReceipt::LLD(_) => (
-				liberland::storage().lld_bridge().status_of(receipt_id),
-				liberland::storage().lld_bridge().voting(receipt_id),
-			),
-		};
+		let status = liberland_utils::storage::status_of(receipt);
+		let voting = liberland_utils::storage::voting(receipt);
 
 		let status = self.sub_api.storage().at_latest().await?.fetch(&status).await?;
 		if let Some(status) = status {
@@ -185,32 +177,14 @@ impl EthereumToSubstrate {
 	}
 
 	async fn vote_on_receipt(&self, receipt: &EthReceipt) -> Result<()> {
-		let receipt_id = receipt.data().id.clone();
-		match receipt {
-			EthReceipt::LLM(_) => {
-				let tx = liberland::tx()
-					.llm_bridge()
-					.vote_withdraw(receipt_id.into(), receipt.data().into());
-				self.submit_vote(&receipt, tx).await
-			},
-			EthReceipt::LLD(_) => {
-				let tx = liberland::tx()
-					.lld_bridge()
-					.vote_withdraw(receipt_id.into(), receipt.data().into());
-				self.submit_vote(&receipt, tx).await
-			},
-		}
-	}
+		let tx = liberland_utils::tx::vote_withdraw(&self.sub_api, &self.sub_signer, receipt)
+			.await?;
 
-	async fn submit_vote<Extrinsic>(&self, receipt: &EthReceipt, tx: Extrinsic) -> Result<()>
-	where
-		Extrinsic: subxt::tx::TxPayload,
-	{
-		// FIXME we lack concurrency here - we can handle 1 transfer per block only
 		tracing::info!("Submitting vote");
 		let mut conn = self.db.acquire().await?;
 		let data = receipt.data();
 
+		// FIXME do we still need this...?
 		db::insert_sub_call(
 			&mut conn,
 			data.id.clone(),
@@ -222,7 +196,7 @@ impl EthereumToSubstrate {
 		)
 		.await?;
 
-		self.sub_tx_manager.add(&tx).await?;
+		self.sub_tx_manager.add(tx).await?;
 		tracing::info!("Submitted vote, waiting for finalization");
 		Ok(())
 	}

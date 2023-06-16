@@ -2,13 +2,14 @@ use super::*;
 
 use crate::{
 	bridge_abi::{BridgeABI, OutgoingReceiptFilter},
+	liberland_utils,
 	sync_managers::{Substrate as SubstrateSyncManager, SubstrateSyncTarget},
 	tx_managers,
 	utils::{eth_receipt_id, try_to_decode_err},
 };
 use ethers::{
 	contract::EthEvent, middleware::SignerMiddleware, prelude::LocalWallet, signers::Signer,
-	types::Eip1559TransactionRequest, utils::to_checksum,
+	utils::to_checksum,
 };
 use subxt::events::EventDetails;
 
@@ -124,11 +125,7 @@ impl EthereumToSubstrate {
 		receipt_id: &ReceiptId,
 	) -> Result<bool> {
 		// get details of receipt from substrate
-		let receipt_id_bytes: [u8; 32] = receipt_id.into();
-		let substrate_receipt = match bridge {
-			BridgeId::LLM => liberland::storage().llm_bridge().incoming_receipts(receipt_id_bytes),
-			BridgeId::LLD => liberland::storage().lld_bridge().incoming_receipts(receipt_id_bytes),
-		};
+		let substrate_receipt = liberland_utils::storage::incoming_receipts(bridge, receipt_id);
 
 		let substrate_receipt =
 			self.sub_api.storage().at_latest().await?.fetch(&substrate_receipt).await?;
@@ -167,37 +164,21 @@ impl EthereumToSubstrate {
 	#[tracing::instrument(skip(self))]
 	// this is likely the same for both watchers, extract it somewhere?
 	async fn emergency_stop(&self, bridge: BridgeId) -> Result<()> {
-		match bridge {
-			BridgeId::LLM =>
-				self._emergency_stop(
-					self.llm_bridge_contract,
-					liberland::tx().llm_bridge().emergency_stop(),
-				)
-				.await,
-			BridgeId::LLD =>
-				self._emergency_stop(
-					self.lld_bridge_contract,
-					liberland::tx().lld_bridge().emergency_stop(),
-				)
-				.await,
-		}
-	}
-
-	async fn _emergency_stop<T>(&self, contract: EthAddress, sub_tx: T) -> Result<()>
-	where
-		T: subxt::tx::TxPayload,
-	{
 		tracing::debug!("Emergency stop contract...");
+		let contract = match bridge {
+			BridgeId::LLM => self.llm_bridge_contract,
+			BridgeId::LLD => self.lld_bridge_contract,
+		};
 		let contract = BridgeABI::new(contract, self.eth_signer.clone());
 		let eth_tx = contract.emergency_stop();
-
 		eth_tx.call().await.map_err(try_to_decode_err)?;
-
 		tracing::debug!("Queuing tx...");
 		self.tx_manager_send.send((CallId::random(), eth_tx.tx.into())).await?;
 
 		tracing::debug!("Emergency stop pallet...");
-		self.sub_tx_manager.add(&sub_tx).await?;
+		let sub_tx =
+			liberland_utils::tx::emergency_stop(&self.sub_api, &self.sub_signer, bridge).await?;
+		self.sub_tx_manager.add(sub_tx).await?;
 
 		Ok(())
 	}

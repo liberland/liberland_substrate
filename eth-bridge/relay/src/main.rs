@@ -12,7 +12,8 @@ mod tx_managers;
 mod types;
 mod utils;
 mod watcher;
-pub use liberland_api::api as liberland;
+mod liberland_utils;
+use liberland_api::api as liberland;
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 
 pub use eyre::{bail, ensure, eyre, Result};

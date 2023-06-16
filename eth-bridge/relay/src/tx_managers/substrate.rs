@@ -2,10 +2,9 @@ use crate::Result;
 use std::sync::Arc;
 
 use futures::{stream::FuturesUnordered, StreamExt};
-use sp_core::sr25519::Pair as SubstratePair;
 use subxt::{
 	config::Hasher,
-	tx::{PairSigner, TxPayload, TxProgress},
+	tx::{SubmittableExtrinsic, TxProgress},
 	utils::Encoded,
 	OnlineClient, SubstrateConfig,
 };
@@ -13,7 +12,6 @@ use tokio::sync::{mpsc, Mutex as TokioMutex};
 
 pub struct Substrate {
 	sub_api: Arc<OnlineClient<SubstrateConfig>>,
-	sub_signer: PairSigner<SubstrateConfig, SubstratePair>,
 	new_tx_recv: TokioMutex<mpsc::Receiver<Vec<u8>>>,
 	pub new_tx_send: mpsc::Sender<Vec<u8>>,
 }
@@ -21,10 +19,9 @@ pub struct Substrate {
 impl Substrate {
 	pub async fn new(
 		sub_api: Arc<OnlineClient<SubstrateConfig>>,
-		sub_signer: PairSigner<SubstrateConfig, SubstratePair>,
 	) -> Result<Self> {
 		let (new_tx_send, new_tx_recv) = mpsc::channel(11);
-		Ok(Self { sub_api, sub_signer, new_tx_send, new_tx_recv: new_tx_recv.into() })
+		Ok(Self { sub_api, new_tx_send, new_tx_recv: new_tx_recv.into() })
 	}
 
 	pub async fn execute_and_watch_encoded(
@@ -38,17 +35,14 @@ impl Substrate {
 		Ok(TxProgress::new(sub, sub_api, tx_hash))
 	}
 
-	#[tracing::instrument(skip(self, call))]
-	pub async fn add<Call: TxPayload>(&self, call: &Call) -> Result<()> {
+	#[tracing::instrument(skip_all)]
+	pub async fn add(
+		&self,
+		extrinsic: SubmittableExtrinsic<SubstrateConfig, OnlineClient<SubstrateConfig>>,
+	) -> Result<()> {
 		tracing::info!("Submitted transaction");
-		let signed_tx = self
-			.sub_api
-			.tx()
-			.create_signed(call, &self.sub_signer, Default::default())
-			.await?
-			.into_encoded();
-
-		self.new_tx_send.send(signed_tx).await?;
+		let encoded = extrinsic.into_encoded();
+		self.new_tx_send.send(encoded).await?;
 		Ok(())
 	}
 
