@@ -3,6 +3,7 @@ use super::*;
 use crate::{
 	bridge_abi::OutgoingReceiptFilter,
 	sync_managers::{Ethereum as EthereumSyncManager, EthereumSyncTarget},
+	tx_managers,
 	utils::eth_receipt_id,
 };
 use ethers::{contract::EthEvent, types::Log};
@@ -19,6 +20,7 @@ pub struct EthereumToSubstrate {
 	eth_provider: Arc<Provider<Ws>>,
 	llm_bridge_contract: EthAddress,
 	lld_bridge_contract: EthAddress,
+	sub_tx_manager: Arc<tx_managers::Substrate>,
 	unsafe_fast_mode: bool,
 }
 
@@ -31,12 +33,14 @@ impl EthereumToSubstrate {
 		sub_api: Arc<OnlineClient<SubstrateConfig>>,
 		llm_bridge_contract: EthAddress,
 		lld_bridge_contract: EthAddress,
+		sub_tx_manager: &Arc<tx_managers::Substrate>,
 	) -> Result<Self> {
 		let unsafe_fast_mode = cfg!(debug_assertions);
 
 		if unsafe_fast_mode {
 			tracing::error!("Running relay with UNSAFE fast mode enabled! Transactions will be voted on ASAP, without waiting for finalization. DO NOT RUN THIS IN REAL SYSTEM!");
 		}
+		let sub_tx_manager = sub_tx_manager.clone();
 
 		Ok(Self {
 			id,
@@ -47,6 +51,7 @@ impl EthereumToSubstrate {
 			llm_bridge_contract,
 			lld_bridge_contract,
 			unsafe_fast_mode,
+			sub_tx_manager,
 		})
 	}
 
@@ -217,16 +222,8 @@ impl EthereumToSubstrate {
 		)
 		.await?;
 
-		let sub = self
-			.sub_api
-			.tx()
-			.sign_and_submit_then_watch_default(&tx, &self.sub_signer)
-			.await?;
+		self.sub_tx_manager.add(&tx).await?;
 		tracing::info!("Submitted vote, waiting for finalization");
-		sub.wait_for_finalized_success().await?;
-
-		tracing::info!("Vote finalized!");
-
 		Ok(())
 	}
 }

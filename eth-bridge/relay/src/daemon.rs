@@ -124,10 +124,21 @@ async fn init_eth_tx_manager(
 	Ok((handle, sender))
 }
 
+async fn init_sub_tx_manager(
+	sub_api: Arc<OnlineClient<SubstrateConfig>>,
+	sub_signer: PairSigner<SubstrateConfig, SubstratePair>,
+) -> Result<(JoinHandle<Result<()>>, Arc<tx_managers::Substrate>)> {
+	let arc_tx_manager = Arc::new(tx_managers::Substrate::new(sub_api, sub_signer).await?);
+	let arc_tx_manager_2 = arc_tx_manager.clone();
+	let handle = tokio::spawn(async move { arc_tx_manager_2.process().await });
+	Ok((handle, Arc::clone(&arc_tx_manager)))
+}
+
 pub async fn run(cli: cmdline::Args) -> Result<()> {
 	let config = settings::parse(&cli.config)?;
 	let mut tasks = FuturesUnordered::new();
 	let mut eth_tx_managers = HashMap::new();
+	let mut sub_tx_managers = HashMap::new();
 
 	let db_file = std::fs::OpenOptions::new()
 		.write(true)
@@ -189,6 +200,19 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 		}
 	}
 
+	for keys in config.relays.iter().map(|x| &x.keys).chain(config.watchers.iter()) {
+		let sub_api = sub_api.clone();
+		let sub_signer = get_substrate_signer(&keys.substrate_secret_seed)?;
+
+		let substrate_secret_seed = &keys.substrate_secret_seed;
+		if !sub_tx_managers.contains_key(substrate_secret_seed) {
+			let (tx_manager_handle, tx_manager_channel) =
+				init_sub_tx_manager(sub_api, sub_signer).await?;
+			tasks.push(tx_manager_handle);
+			sub_tx_managers.insert(substrate_secret_seed, tx_manager_channel);
+		}
+	}
+
 	for watcher_keys in config.watchers.iter() {
 		let eth_wallet = watcher_keys.ethereum_private_key.parse()?;
 		let sub_signer = get_substrate_signer(&watcher_keys.substrate_secret_seed)?;
@@ -196,6 +220,10 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 		let sub_api = sub_api.clone();
 		let eth_provider = eth_provider.clone();
 		let id = get_id(b"watcher::sub_to_eth", &watcher_keys, &lld_bridge, &llm_bridge);
+		let sub_tx_manager = sub_tx_managers
+			.get(&watcher_keys.substrate_secret_seed)
+			.expect("Missing sub tx manager");
+
 		let watcher = watcher::SubstrateToEthereum::new(
 			id.into(),
 			db,
@@ -205,6 +233,7 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 			sub_api,
 			llm_bridge,
 			lld_bridge,
+			sub_tx_manager,
 		)
 		.await?;
 		tasks.push(tokio::spawn(async move { watcher.run().await }));
@@ -245,6 +274,10 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 		let sub_api = sub_api.clone();
 		let eth_provider = eth_provider.clone();
 		let id = get_id(b"relay::substrate", &relay_config.keys, &lld_bridge, &llm_bridge);
+		let sub_tx_manager = sub_tx_managers
+			.get(&relay_config.keys.substrate_secret_seed)
+			.expect("Missing sub tx manager");
+
 		let relay = relay::EthereumToSubstrate::new(
 			id.into(),
 			db,
@@ -253,6 +286,7 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 			sub_api,
 			llm_bridge,
 			lld_bridge,
+			sub_tx_manager,
 		)
 		.await?;
 		tasks.push(tokio::spawn(async move { relay.run().await }));
@@ -268,6 +302,10 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 		let tx_manager_channel = eth_tx_managers
 			.get(&watcher_keys.ethereum_private_key)
 			.expect("Missing eth tx manager");
+		let sub_tx_manager = sub_tx_managers
+			.get(&watcher_keys.substrate_secret_seed)
+			.expect("Missing sub tx manager");
+
 		let watcher = watcher::EthereumToSubstrate::new(
 			id.into(),
 			db,
@@ -278,6 +316,7 @@ pub async fn run(cli: cmdline::Args) -> Result<()> {
 			llm_bridge,
 			lld_bridge,
 			tx_manager_channel.clone(),
+			sub_tx_manager,
 		)
 		.await?;
 		tasks.push(tokio::spawn(async move { watcher.run().await }));

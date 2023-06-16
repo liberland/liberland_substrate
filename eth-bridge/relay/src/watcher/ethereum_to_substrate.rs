@@ -3,6 +3,7 @@ use super::*;
 use crate::{
 	bridge_abi::{BridgeABI, OutgoingReceiptFilter},
 	sync_managers::{Substrate as SubstrateSyncManager, SubstrateSyncTarget},
+	tx_managers,
 	utils::{eth_receipt_id, try_to_decode_err},
 };
 use ethers::{
@@ -24,6 +25,7 @@ pub struct EthereumToSubstrate {
 	llm_bridge_contract: EthAddress,
 	lld_bridge_contract: EthAddress,
 	tx_manager_send: mpsc::Sender<(CallId, Eip1559TransactionRequest)>,
+	sub_tx_manager: Arc<tx_managers::Substrate>,
 }
 
 impl EthereumToSubstrate {
@@ -37,9 +39,11 @@ impl EthereumToSubstrate {
 		llm_bridge_contract: EthAddress,
 		lld_bridge_contract: EthAddress,
 		tx_manager_send: mpsc::Sender<(CallId, Eip1559TransactionRequest)>,
+		sub_tx_manager: &Arc<tx_managers::Substrate>,
 	) -> Result<Self> {
 		let eth_wallet = eth_wallet.with_chain_id(eth_provider.get_chainid().await?.as_u64());
 		let eth_signer = Arc::new(SignerMiddleware::new(eth_provider, eth_wallet));
+		let sub_tx_manager = sub_tx_manager.clone();
 
 		Ok(Self {
 			id,
@@ -50,6 +54,7 @@ impl EthereumToSubstrate {
 			llm_bridge_contract,
 			lld_bridge_contract,
 			tx_manager_send,
+			sub_tx_manager,
 		})
 	}
 
@@ -192,10 +197,7 @@ impl EthereumToSubstrate {
 		self.tx_manager_send.send((CallId::random(), eth_tx.tx.into())).await?;
 
 		tracing::debug!("Emergency stop pallet...");
-		self.sub_api
-			.tx()
-			.sign_and_submit_then_watch_default(&sub_tx, &self.sub_signer)
-			.await?;
+		self.sub_tx_manager.add(&sub_tx).await?;
 
 		Ok(())
 	}

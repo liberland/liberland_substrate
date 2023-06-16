@@ -7,6 +7,7 @@ use crate::{
 		llm_bridge::events::OutgoingReceipt as LLMOutgoingReceipt,
 	},
 	sync_managers::{Ethereum as EthereumSyncManager, EthereumSyncTarget},
+	tx_managers,
 	utils::substrate_receipt_id,
 };
 use ethers::{
@@ -32,6 +33,7 @@ pub struct SubstrateToEthereum {
 	lld_bridge_contract: EthAddress,
 	eth_signer: Arc<SignerMiddleware<Arc<Provider<Ws>>, LocalWallet>>,
 	sub_signer: PairSigner<SubstrateConfig, SubstratePair>,
+	sub_tx_manager: Arc<tx_managers::Substrate>,
 }
 
 impl SubstrateToEthereum {
@@ -44,9 +46,11 @@ impl SubstrateToEthereum {
 		sub_api: Arc<OnlineClient<SubstrateConfig>>,
 		llm_bridge_contract: EthAddress,
 		lld_bridge_contract: EthAddress,
+		sub_tx_manager: &Arc<tx_managers::Substrate>,
 	) -> Result<Self> {
 		let eth_wallet = eth_wallet.with_chain_id(eth_provider.get_chainid().await?.as_u64());
 		let eth_signer = Arc::new(SignerMiddleware::new(eth_provider.clone(), eth_wallet));
+		let sub_tx_manager = sub_tx_manager.clone();
 		Ok(Self {
 			id,
 			db,
@@ -56,6 +60,7 @@ impl SubstrateToEthereum {
 			llm_bridge_contract,
 			lld_bridge_contract,
 			sub_signer,
+			sub_tx_manager,
 		})
 	}
 
@@ -197,37 +202,21 @@ impl SubstrateToEthereum {
 
 	async fn emergency_stop_lld_bridge(&self) -> Result<()> {
 		let stop_tx = liberland::tx().lld_bridge().emergency_stop();
-		let sub = self
-			.sub_api
-			.tx()
-			.sign_and_submit_then_watch_default(&stop_tx, &self.sub_signer)
-			.await?;
-
-		tracing::info!("Substrate emergency LLD bridge stop transactions were sent!");
-		let stop_sub_tx = sub.wait_for_finalized_success();
-		tracing::info!("Substrate LLD bridge successfully stopped!");
+		self.sub_tx_manager.add(&stop_tx).await?;
+		tracing::info!("Substrate LLD bridge stop tx send!");
 
 		let bridge = BridgeABI::new(self.lld_bridge_contract, self.eth_signer.clone());
 		tracing::info!("Ethereum emergency LLD bridge stop transactions were sent!");
 		let stop_tx = bridge.emergency_stop();
 		stop_tx.call().await?;
 		tracing::info!("Ethereum LLD bridge successfully stopped!");
-		stop_sub_tx.await?;
-		tracing::info!("Substrate LLD bridge successfully stopped!");
 		Ok(())
 	}
 
 	async fn emergency_stop_llm_bridge(&self) -> Result<()> {
 		let stop_tx = liberland::tx().llm_bridge().emergency_stop();
-		let sub = self
-			.sub_api
-			.tx()
-			.sign_and_submit_then_watch_default(&stop_tx, &self.sub_signer)
-			.await?;
-
-		tracing::info!("Substrate emergency LLM bridge stop transactions were sent!");
-		sub.wait_for_finalized_success().await?;
-		tracing::info!("Substrate LLM bridge successfully stopped!");
+		self.sub_tx_manager.add(&stop_tx).await?;
+		tracing::info!("Substrate LLD bridge stop tx send!");
 
 		let bridge = BridgeABI::new(self.llm_bridge_contract, self.eth_signer.clone());
 		tracing::info!("Ethereum emergency LLM bridge stop transactions were sent!");
