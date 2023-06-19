@@ -18,7 +18,7 @@ fn gen_receipt(recipient: u64, amount: u64) -> (ReceiptId, IncomingReceipt<u64, 
 	let mut id: ReceiptId = Default::default();
 	id[0] = recipient as u8;
 
-	(id, IncomingReceipt { eth_block_number: 0, substrate_recipient: recipient, amount })
+	(id, IncomingReceipt { eth_block_number: 10, substrate_recipient: recipient, amount })
 }
 
 fn bridge_wallet() -> u64 {
@@ -208,7 +208,9 @@ fn voting_deposits_event() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, receipt) = gen_receipt(0, 1);
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
-		System::assert_last_event(Event::<Test>::Vote { relay: 0, receipt_id }.into());
+		System::assert_last_event(
+			Event::<Test>::Vote { relay: 0, receipt_id, block_number: 10 }.into(),
+		);
 	});
 }
 
