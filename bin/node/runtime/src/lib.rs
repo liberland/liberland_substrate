@@ -1592,8 +1592,8 @@ parameter_types! {
 	pub const LLMMaxTotalLocked: Balance = 100_000 * GRAINS_IN_LLM;
 }
 
-type LLDBridgeInstance = pallet_federated_bridge::Instance1;
-impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
+type EthLLDBridgeInstance = pallet_federated_bridge::Instance1;
+impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Token = Balances;
@@ -1606,8 +1606,8 @@ impl pallet_federated_bridge::Config<LLDBridgeInstance> for Runtime {
 	type MaxTotalLocked = LLDMaxTotalLocked;
 }
 
-type LLMBridgeInstance = pallet_federated_bridge::Instance2;
-impl pallet_federated_bridge::Config<LLMBridgeInstance> for Runtime {
+type EthLLMBridgeInstance = pallet_federated_bridge::Instance2;
+impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Token = LLM;
@@ -1679,8 +1679,8 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
-		LLDBridge: pallet_federated_bridge::<Instance1> = 59,
-		LLMBridge: pallet_federated_bridge::<Instance2> = 60,
+		EthLLDBridge: pallet_federated_bridge::<Instance1> = 59,
+		EthLLMBridge: pallet_federated_bridge::<Instance2> = 60,
 	}
 );
 
