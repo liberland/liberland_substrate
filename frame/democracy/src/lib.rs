@@ -1807,6 +1807,19 @@ impl<
 	> EnsureOrigin<O> for EnsureReferendumProportionAtLeast<T, N, D>
 {
 	type Success = ();
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<O, ()> {
+		let tally = Tally::<BalanceOf<T>> {
+			ayes: 1u8.into(),
+			nays: 0u8.into(),
+			aye_voters: 1,
+			nay_voters: 0,
+			turnout: 1u8.into(),
+		};
+		Ok(O::from(RawOrigin::Referendum(tally, 1u8.into())))
+	}
+
 	fn try_origin(o: O) -> Result<Self::Success, O> {
 		let n: BalanceOf<T> = N.into();
 		let d: BalanceOf<T> = D.into();

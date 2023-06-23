@@ -230,7 +230,7 @@ benchmarks! {
 		let stash = create_funded_user::<T>("stash", USER_SEED, 100);
 		let reward_destination = RewardDestination::Staked;
 		let amount = T::Currency::minimum_balance() * 10u32.into();
-		T::LLInitializer::make_test_citizen(&controller);
+		T::LLInitializer::make_test_citizen(&stash);
 		whitelist_account!(stash);
 	}: _(RawOrigin::Signed(stash.clone()), amount, reward_destination)
 	verify {
