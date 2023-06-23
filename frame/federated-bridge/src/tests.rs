@@ -6,7 +6,7 @@ use crate::{
 	VotesRequired, Voting, Watchers,
 };
 use frame_support::{assert_noop, assert_ok};
-use sp_runtime::traits::{AccountIdConversion, BadOrigin};
+use sp_runtime::{TokenError, traits::{AccountIdConversion, BadOrigin}};
 
 fn eth_recipient(n: u8) -> EthAddress {
 	let mut addr: EthAddress = Default::default();
@@ -72,7 +72,7 @@ fn deposit_fails_on_insufficient_funds() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			Bridge::deposit(RuntimeOrigin::signed(0), 101, eth_recipient(0)),
-			pallet_balances::Error::<Test>::InsufficientBalance
+			TokenError::FundsUnavailable,
 		);
 	});
 }
@@ -347,7 +347,7 @@ fn withdraw_fails_on_broke_caller() {
 		System::set_block_number(11);
 		assert_noop!(
 			Bridge::withdraw(RuntimeOrigin::signed(50), receipt_id),
-			pallet_balances::Error::<Test>::InsufficientBalance
+			TokenError::FundsUnavailable,
 		);
 	});
 }
