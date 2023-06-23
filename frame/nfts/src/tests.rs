@@ -3652,15 +3652,15 @@ fn pre_signed_attributes_should_work() {
 #[test]
 fn set_citizenship_required_should_work() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), 1, default_collection_config()));
+		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), account(1), default_collection_config()));
 		assert_eq!(CitizenshipRequired::<Test>::get(0), false);
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, false));
 		assert_eq!(CitizenshipRequired::<Test>::get(0), false);
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, true));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, true));
 		assert_eq!(CitizenshipRequired::<Test>::get(0), true);
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, true));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, true));
 		assert_eq!(CitizenshipRequired::<Test>::get(0), true);
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, false));
 		assert_eq!(CitizenshipRequired::<Test>::get(0), false);
 	})
 }
@@ -3668,10 +3668,10 @@ fn set_citizenship_required_should_work() {
 #[test]
 fn set_citizenship_required_verifies_origin() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), 1, default_collection_config()));
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
+		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), account(1), default_collection_config()));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, false));
 		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::root(), 0, false));
-		assert_noop!(Nfts::set_citizenship_required(RuntimeOrigin::signed(2), 0, false), Error::<Test>::NoPermission);
+		assert_noop!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(2)), 0, false), Error::<Test>::NoPermission);
 	})
 }
 
@@ -3679,35 +3679,35 @@ fn set_citizenship_required_verifies_origin() {
 fn citizenship_is_checked_when_set() {
 	new_test_ext().execute_with(|| {
 		// Only 100 and 101 are considered citizens
-		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), 1, default_collection_config()));
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, true));
-		assert_noop!(Nfts::mint(RuntimeOrigin::signed(1), 0, 42, 1, None), DispatchError::Other("NotCitizen"));
-		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 42, 100, None));
-		assert_noop!(Nfts::transfer(RuntimeOrigin::signed(100), 0, 42, 1), DispatchError::Other("NotCitizen"));
-		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(100), 0, 42, 101));
+		assert_ok!(Nfts::force_create(RuntimeOrigin::root(), account(1), default_collection_config()));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, true));
+		assert_noop!(Nfts::mint(RuntimeOrigin::signed(account(1)), 0, 42, account(1), None), DispatchError::Other("NotCitizen"));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(account(1)), 0, 42, account(100), None));
+		assert_noop!(Nfts::transfer(RuntimeOrigin::signed(account(100)), 0, 42, account(1)), DispatchError::Other("NotCitizen"));
+		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(account(100)), 0, 42, account(101)));
 
-		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(1), 0, false));
-		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 43, 2, None));
-		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(2), 0, 43, 3));
+		assert_ok!(Nfts::set_citizenship_required(RuntimeOrigin::signed(account(1)), 0, false));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(account(1)), 0, 43, account(2), None));
+		assert_ok!(Nfts::transfer(RuntimeOrigin::signed(account(2)), 0, 43, account(3)));
 	})
 }
 
 #[test]
 fn metadata_validator_works() {
 	new_test_ext().execute_with(|| {
-		Balances::make_free_balance_be(&1, 30);
+		Balances::make_free_balance_be(&account(1), 30);
 
 		assert_ok!(Nfts::force_create(
 			RuntimeOrigin::root(),
-			1,
+			account(1),
 			collection_config_with_all_settings_enabled()
 		));
-		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 42, 1, None));
-		assert_ok!(Nfts::mint(RuntimeOrigin::signed(1), 0, 9991999, 1, None));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(account(1)), 0, 42, account(1), None));
+		assert_ok!(Nfts::mint(RuntimeOrigin::signed(account(1)), 0, 9991999, account(1), None));
 		assert_noop!(
-			Nfts::set_metadata(RuntimeOrigin::signed(1), 0, 9991999, bvec![0u8; 20]),
+			Nfts::set_metadata(RuntimeOrigin::signed(account(1)), 0, 9991999, bvec![0u8; 20]),
 			Error::<Test>::IncorrectData,
 		);
-		assert_ok!(Nfts::set_metadata(RuntimeOrigin::signed(1), 0, 42, bvec![0u8; 20]));
+		assert_ok!(Nfts::set_metadata(RuntimeOrigin::signed(account(1)), 0, 42, bvec![0u8; 20]));
 	})
 }

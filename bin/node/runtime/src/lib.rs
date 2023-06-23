@@ -457,17 +457,6 @@ parameter_types! {
 	pub const MaxReserves: u32 = 50;
 }
 
-/// A reason for placing a hold on funds.
-#[derive(
-	Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, MaxEncodedLen, Debug, TypeInfo,
-)]
-pub enum HoldReason {
-	/// The NIS Pallet has reserved it for a non-fungible receipt.
-	Nis,
-	/// Used by the NFT Fractionalization Pallet.
-	NftFractionalization,
-}
-
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = MaxLocks;
 	type MaxReserves = MaxReserves;
@@ -480,8 +469,8 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
-	type HoldIdentifier = HoldReason;
-	type MaxHolds = ConstU32<2>;
+	type HoldIdentifier = ();
+	type MaxHolds = ();
 }
 
 parameter_types! {
@@ -1338,21 +1327,6 @@ impl pallet_assets::Config for Runtime {
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
-}
-
-parameter_types! {
-	pub const QueueCount: u32 = 300;
-	pub const MaxQueueLen: u32 = 1000;
-	pub const FifoQueueLen: u32 = 500;
-	pub const NisBasePeriod: BlockNumber = 3 * DAYS;
-	pub const MinBid: Balance = 100 * DOLLARS;
-	pub const MinReceipt: Perquintill = Perquintill::from_percent(1);
-	pub const IntakePeriod: BlockNumber = 10;
-	pub MaxIntakeWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
-	pub const ThawThrottle: (Perquintill, BlockNumber) = (Perquintill::from_percent(25), 5);
-	pub Target: Perquintill = Perquintill::zero();
-	pub const NisPalletId: PalletId = PalletId(*b"py/nis  ");
-	pub const NisHoldReason: HoldReason = HoldReason::Nis;
 }
 
 parameter_types! {

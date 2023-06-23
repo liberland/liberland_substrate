@@ -36,7 +36,7 @@ use sp_core::H256;
 use sp_io;
 use sp_runtime::{
 	curve::PiecewiseLinear,
-	testing::{Header, UintAuthorityId},
+	testing::{TestSignature, Header, UintAuthorityId},
 	traits::{IdentityLookup, Zero},
 	Permill,
 };
@@ -238,6 +238,7 @@ impl pallet_llm::Config for Test {
 use pallet_nfts::PalletFeatures;
 parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+	pub const MaxAttributesPerCall: u32 = 10;
 }
 impl pallet_nfts::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -265,6 +266,9 @@ impl pallet_nfts::Config for Test {
 	type Helper = ();
 	type Citizenship = ();
 	type MetadataValidator = ();
+	type MaxAttributesPerCall = MaxAttributesPerCall;
+	type OffchainSignature = TestSignature;
+	type OffchainPublic = <TestSignature as sp_runtime::traits::Verify>::Signer;
 }
 
 parameter_types! {
@@ -715,7 +719,7 @@ pub(crate) fn bond(who: AccountId, val: Balance) {
 }
 
 pub(crate) fn bond_validator(who: AccountId, val: Balance) {
-	LiberlandInitializer::make_test_citizen(&ctrl);
+	LiberlandInitializer::make_test_citizen(&who);
 	bond(who, val);
 	assert_ok!(Staking::validate(RuntimeOrigin::signed(who), ValidatorPrefs::default()));
 	assert_ok!(Session::set_keys(

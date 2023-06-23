@@ -15,6 +15,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Morph},
 	BoundedVec,
+	Perbill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -79,6 +80,10 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type HoldIdentifier = ();
+	type MaxHolds = ();
 }
 
 parameter_types! {
@@ -115,6 +120,10 @@ impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub MaxCollectivesProposalWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
+}
+  
 impl pallet_collective::Config for Test {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Proposal = RuntimeCall;
@@ -124,7 +133,10 @@ impl pallet_collective::Config for Test {
 	type MaxMembers = ConstU32<1>;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Test>;
+	type SetMembersOrigin = EnsureRoot<Self::AccountId>;
+	type MaxProposalWeight = MaxCollectivesProposalWeight;
 }
+
 pub struct MapCollective<T, R> {
 	_phantom: PhantomData<T>,
 	_phantom2: PhantomData<R>,

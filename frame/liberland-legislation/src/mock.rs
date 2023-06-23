@@ -14,7 +14,7 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
-	testing::Header,
+	testing::{TestSignature, Header},
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill, Permill,
 };
@@ -125,6 +125,7 @@ impl pallet_democracy::Config for Test {
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
 	type DelegateeFilter = Everything;
+	type SubmitOrigin = EnsureSigned<Self::AccountId>;
 }
 
 impl pallet_balances::Config for Test {
@@ -137,11 +138,16 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type HoldIdentifier = ();
+	type MaxHolds = ();
 }
 
 use pallet_nfts::PalletFeatures;
 parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+	pub const MaxAttributesPerCall: u32 = 10;
 }
 impl pallet_nfts::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -169,6 +175,10 @@ impl pallet_nfts::Config for Test {
 	type Helper = ();
 	type Citizenship = ();
 	type MetadataValidator = ();
+
+	type MaxAttributesPerCall = MaxAttributesPerCall;
+	type OffchainSignature = TestSignature;
+	type OffchainPublic = <TestSignature as sp_runtime::traits::Verify>::Signer;
 }
 
 impl pallet_assets::Config for Test {

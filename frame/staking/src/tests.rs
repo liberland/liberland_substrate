@@ -4775,7 +4775,8 @@ fn chill_other_works() {
 				Balances::make_free_balance_be(&a, 100_000);
 				Balances::make_free_balance_be(&b, 100_000);
 				Balances::make_free_balance_be(&c, 100_000);
-				LiberlandInitializer::make_test_citizen(&d);
+				LiberlandInitializer::make_test_citizen(&a);
+				LiberlandInitializer::make_test_citizen(&b);
 
 				// Nominator
 				assert_ok!(Staking::bond(

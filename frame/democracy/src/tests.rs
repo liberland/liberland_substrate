@@ -35,7 +35,7 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{
-	testing::Header,
+	testing::{TestSignature, Header},
 	traits::{BadOrigin, BlakeTwo256, Hash, IdentityLookup},
 	Perbill,
 	Permill,
@@ -186,6 +186,7 @@ impl pallet_balances::Config for Test {
 use pallet_nfts::PalletFeatures;
 parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+	pub const MaxAttributesPerCall: u32 = 10;
 }
 impl pallet_nfts::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -213,6 +214,9 @@ impl pallet_nfts::Config for Test {
 	type Helper = ();
 	type Citizenship = ();
 	type MetadataValidator = ();
+	type MaxAttributesPerCall = MaxAttributesPerCall;
+	type OffchainSignature = TestSignature;
+	type OffchainPublic = <TestSignature as sp_runtime::traits::Verify>::Signer;
 }
 parameter_types! {
 	pub static PreimageByteDeposit: u64 = 0;

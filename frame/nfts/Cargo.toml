@@ -31,6 +31,7 @@ pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "h
 sp-core = { version = "7.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 sp-io = { version = "7.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 sp-std = { version = "5.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-keystore = { version = "0.13.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 
 [features]
 default = ["std"]

@@ -112,6 +112,11 @@ parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
 }
 
+parameter_types! {
+	pub MockCitizenOne: AccountId = [1u8; 32].into();
+	pub MockCitizenTwo: AccountId = [2u8; 32].into();
+}
+
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type CollectionId = u32;
@@ -142,7 +147,7 @@ impl Config for Test {
 	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
-	type Citizenship = MockCitizenshipChecker<u64, ConstU64<100>, ConstU64<101>>;
+	type Citizenship = MockCitizenshipChecker<Self::AccountId, MockCitizenOne, MockCitizenTwo>;
 	type MetadataValidator = DummyMetadataValidator;
 }
 

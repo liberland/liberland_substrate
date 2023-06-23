@@ -1266,7 +1266,7 @@ mod tests {
 	use frame_system::ensure_signed;
 	use sp_runtime::{
 		Permill,
-		testing::{Header, H256},
+		testing::{TestSignature, Header, H256},
 		traits::{BlakeTwo256, IdentityLookup},
 		BuildStorage,
 	};
@@ -1346,6 +1346,7 @@ mod tests {
 	use pallet_nfts::PalletFeatures;
 	parameter_types! {
 		pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+		pub const MaxAttributesPerCall: u32 = 10;
 	}
 	impl pallet_nfts::Config for Test {
 		type RuntimeEvent = RuntimeEvent;
@@ -1373,6 +1374,9 @@ mod tests {
 		type Helper = ();
 		type Citizenship = ();
 		type MetadataValidator = ();
+		type MaxAttributesPerCall = MaxAttributesPerCall;
+		type OffchainSignature = TestSignature;
+		type OffchainPublic = <TestSignature as sp_runtime::traits::Verify>::Signer;
 	}
 
 	impl pallet_assets::Config for Test {
