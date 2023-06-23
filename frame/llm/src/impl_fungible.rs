@@ -2,10 +2,11 @@ use super::*;
 use frame_support::{
 	pallet_prelude::*,
 	traits::tokens::{
-		Preservation, Fortitude, Provenance,
-		fungible::{Inspect, Mutate, Unbalanced, Dust},
-		fungibles::{Inspect as FungiblesInspect, Unbalanced as FungiblesUnbalanced, Dust as FungiblesDust},
-		DepositConsequence, WithdrawConsequence,
+		fungible::{Dust, Inspect, Mutate, Unbalanced},
+		fungibles::{
+			Dust as FungiblesDust, Inspect as FungiblesInspect, Unbalanced as FungiblesUnbalanced,
+		},
+		DepositConsequence, Fortitude, Preservation, Provenance, WithdrawConsequence,
 	},
 };
 
@@ -32,12 +33,20 @@ impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
 		Assets::<T>::balance(id, who)
 	}
 
-	fn reducible_balance(who: &T::AccountId, preservation: Preservation, force: Fortitude) -> Self::Balance {
+	fn reducible_balance(
+		who: &T::AccountId,
+		preservation: Preservation,
+		force: Fortitude,
+	) -> Self::Balance {
 		let id = Self::llm_id();
 		Assets::<T>::reducible_balance(id, who, preservation, force)
 	}
 
-	fn can_deposit(who: &T::AccountId, amount: Self::Balance, provenance: Provenance) -> DepositConsequence {
+	fn can_deposit(
+		who: &T::AccountId,
+		amount: Self::Balance,
+		provenance: Provenance,
+	) -> DepositConsequence {
 		let id = Self::llm_id();
 		Assets::<T>::can_deposit(id, who, amount, provenance)
 	}
@@ -58,18 +67,17 @@ impl<T: Config> Unbalanced<T::AccountId> for Pallet<T> {
 		Assets::<T>::handle_dust(dust);
 	}
 
-    fn write_balance(
-        who: &T::AccountId,
-        amount: Self::Balance
-    ) -> Result<Option<Self::Balance>, DispatchError> {
+	fn write_balance(
+		who: &T::AccountId,
+		amount: Self::Balance,
+	) -> Result<Option<Self::Balance>, DispatchError> {
 		let asset_id = Self::llm_id().into();
 		Assets::<T>::write_balance(asset_id, who, amount)
 	}
 
-    fn set_total_issuance(amount: Self::Balance) {
+	fn set_total_issuance(amount: Self::Balance) {
 		let asset_id = Self::llm_id().into();
 		Assets::<T>::set_total_issuance(asset_id, amount)
-
 	}
 }
 

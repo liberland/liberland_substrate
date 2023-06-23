@@ -14,8 +14,7 @@ use sp_core::{ConstU16, Get, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Morph},
-	BoundedVec,
-	Perbill,
+	BoundedVec, Perbill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -123,7 +122,7 @@ impl pallet_registry::Config<pallet_registry::Instance2> for Test {
 parameter_types! {
 	pub MaxCollectivesProposalWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
 }
-  
+
 impl pallet_collective::Config for Test {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Proposal = RuntimeCall;

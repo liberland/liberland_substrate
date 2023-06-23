@@ -14,7 +14,7 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
-	testing::{TestSignature, Header},
+	testing::{Header, TestSignature},
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill, Permill,
 };
