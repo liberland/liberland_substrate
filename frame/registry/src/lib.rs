@@ -149,7 +149,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::{DispatchResult, *};
 	use frame_system::pallet_prelude::*;
-	use scale_info::prelude::vec;
+	use scale_info::prelude::vec::Vec;
 	use sp_runtime::{
 		traits::{AtLeast32BitUnsigned, CheckedAdd, Hash, MaybeSerializeDeserialize},
 		Saturating,

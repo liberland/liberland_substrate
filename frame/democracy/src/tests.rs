@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BadOrigin, BlakeTwo256, IdentityLookup},
+	traits::{BadOrigin, BlakeTwo256, Hash, IdentityLookup},
 	Perbill,
 	Permill,
 };
@@ -47,6 +47,7 @@ mod delegation;
 mod external_proposing;
 mod fast_tracking;
 mod lock_voting;
+mod metadata;
 mod public_proposals;
 mod scheduling;
 mod voting;
@@ -104,7 +105,7 @@ impl pallet_assets::Config for Test {
 pub struct BaseFilter;
 impl Contains<RuntimeCall> for BaseFilter {
 	fn contains(call: &RuntimeCall) -> bool {
-		!matches!(call, &RuntimeCall::Balances(pallet_balances::Call::set_balance { .. }))
+		!matches!(call, &RuntimeCall::Balances(pallet_balances::Call::force_set_balance { .. }))
 	}
 }
 
@@ -176,7 +177,12 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type HoldIdentifier = ();
+	type MaxHolds = ();
 }
+
 use pallet_nfts::PalletFeatures;
 parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
@@ -291,6 +297,7 @@ impl Config for Test {
 	type MinimumDeposit = ConstU64<1>;
 	type MaxDeposits = ConstU32<1000>;
 	type MaxBlacklisted = ConstU32<5>;
+	type SubmitOrigin = EnsureSigned<Self::AccountId>;
 	type ExternalOrigin = EnsureSignedBy<Two, u64>;
 	type ExternalMajorityOrigin = EnsureSignedBy<Three, u64>;
 	type ExternalDefaultOrigin = EnsureSignedBy<One, u64>;
@@ -351,7 +358,7 @@ fn params_should_work() {
 }
 
 fn set_balance_proposal(value: u64) -> BoundedCallOf<Test> {
-	let inner = pallet_balances::Call::set_balance { who: 42, new_free: value, new_reserved: 0 };
+	let inner = pallet_balances::Call::force_set_balance { who: 42, new_free: value };
 	let outer = RuntimeCall::Balances(inner);
 	Preimage::bound(outer).unwrap()
 }
@@ -417,4 +424,16 @@ fn vote_nay(balance: u64) -> AccountVote<u64> {
 
 fn tally(r: ReferendumIndex) -> Tally<u64> {
 	Democracy::referendum_status(r).unwrap().tally
+}
+
+/// note a new preimage without registering.
+fn note_preimage(who: u64) -> PreimageHash {
+	use std::sync::atomic::{AtomicU8, Ordering};
+	// note a new preimage on every function invoke.
+	static COUNTER: AtomicU8 = AtomicU8::new(0);
+	let data = vec![COUNTER.fetch_add(1, Ordering::Relaxed)];
+	assert_ok!(Preimage::note_preimage(RuntimeOrigin::signed(who), data.clone()));
+	let hash = BlakeTwo256::hash(&data);
+	assert!(!Preimage::is_requested(&hash));
+	hash
 }

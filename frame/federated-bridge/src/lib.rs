@@ -192,7 +192,7 @@ pub mod pallet {
 	use frame_support::{
 		sp_runtime::{traits::AccountIdConversion, Saturating},
 		traits::{
-			tokens::fungible::{Inspect, Transfer},
+			tokens::{Preservation, fungible::{Inspect, Mutate}},
 			ExistenceRequirement,
 		},
 	};
@@ -218,7 +218,7 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 
 		/// Type that is actually bridged
-		type Token: Transfer<Self::AccountId>;
+		type Token: Mutate<Self::AccountId>;
 
 		#[pallet::constant]
 		/// PalletId used to derive bridge's AccountId (wallet)
@@ -455,11 +455,11 @@ pub mod pallet {
 				Error::<T, I>::TooMuchLocked
 			);
 
-			<T::Token as Transfer<T::AccountId>>::transfer(
+			<T::Token as Mutate<T::AccountId>>::transfer(
 				&who,
 				&Self::account_id(),
 				amount,
-				false,
+				Preservation::Expendable,
 			)?;
 			Self::deposit_event(Event::OutgoingReceipt { amount, eth_recipient });
 
@@ -584,7 +584,7 @@ pub mod pallet {
 						&Self::account_id(),
 						&receipt.substrate_recipient,
 						receipt.amount,
-						false,
+						Preservation::Expendable,
 					)?;
 					StatusOf::<T, I>::insert(
 						receipt_id,
