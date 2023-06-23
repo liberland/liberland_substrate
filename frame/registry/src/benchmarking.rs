@@ -28,11 +28,12 @@ fn get_data<T: Config<I>, I: 'static>(b: u8, s: usize) -> T::EntityData {
 
 benchmarks_instance_pallet! {
   add_registry {
-	let r in 1 .. T::MaxRegistrars::get() - 1 => add_registries::<T, I>(r)?;
+	let r in 1 .. T::MaxRegistrars::get() - 2 => add_registries::<T, I>(r)?;
 	let acc = account("registrar", r, SEED);
+	let registrars_before = Registry::<T, I>::registrars().len();
   }: _<T::RuntimeOrigin>(RawOrigin::Root.into(), acc)
   verify {
-	assert_eq!(Registry::<T, I>::registrars().len(),  (r + 1) as usize);
+	assert_eq!(Registry::<T, I>::registrars().len(),  (registrars_before + 1) as usize);
   }
 
   request_entity {
@@ -97,10 +98,10 @@ benchmarks_instance_pallet! {
   */
 
   unregister {
-	let r in 1 .. T::MaxRegistrars::get() => add_registries::<T, I>(r)?;
+	let r in 1 .. T::MaxRegistrars::get() - 2 => add_registries::<T, I>(r)?;
 
 	let registrar: T::RuntimeOrigin = RawOrigin::Signed(account("registrar", r, SEED)).into();
-	let reg_idx = r - 1;
+	let reg_idx: u32 = Registry::<T, I>::registrars().len() as u32 - 1;
 	let acc: T::AccountId = account("owner", 0, SEED);
 	let origin: T::RuntimeOrigin = RawOrigin::Signed(acc.clone()).into();
 	let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value() / 2u32.into());
@@ -121,11 +122,11 @@ benchmarks_instance_pallet! {
   }
 
   register_entity {
-	let r in 1 .. T::MaxRegistrars::get() => add_registries::<T, I>(r)?;
+	let r in 1 .. T::MaxRegistrars::get() - 2 => add_registries::<T, I>(r)?;
 	let s in 2 .. T::EntityData::max_encoded_len() as u32;
 
 	let registrar: T::RuntimeOrigin = RawOrigin::Signed(account("registrar", r, SEED)).into();
-	let reg_idx = r - 1;
+	let reg_idx: u32 = Registry::<T, I>::registrars().len() as u32 - 1;
 	let acc: T::AccountId = account("owner", 0, SEED);
 	let origin: T::RuntimeOrigin = RawOrigin::Signed(acc.clone()).into();
 	let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value() / 2u32.into());
@@ -157,11 +158,11 @@ benchmarks_instance_pallet! {
   }
 
   set_registered_entity {
-	let r in 1 .. T::MaxRegistrars::get() => add_registries::<T, I>(r)?;
+	let r in 1 .. T::MaxRegistrars::get() - 2 => add_registries::<T, I>(r)?;
 	let s in 2 .. T::EntityData::max_encoded_len() as u32;
 
 	let registrar: T::RuntimeOrigin = RawOrigin::Signed(account("registrar", r, SEED)).into();
-	let reg_idx = r - 1;
+	let reg_idx: u32 = Registry::<T, I>::registrars().len() as u32 - 1;
 	let acc: T::AccountId = account("owner", 0, SEED);
 	let origin: T::RuntimeOrigin = RawOrigin::Signed(acc.clone()).into();
 	let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value() / 2u32.into());
