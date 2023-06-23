@@ -1745,7 +1745,7 @@ mod staking_v12 {
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			frame_support::ensure!(
                 StorageVersion::<T>::get() == ObsoleteReleases::V7_0_0,
                 "Expected v7 before upgrading to v12"
@@ -1761,7 +1761,7 @@ mod staking_v12 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 			frame_support::ensure!(
                 StorageVersion::<T>::get() == ObsoleteReleases::V12_0_0,
                 "Failed to upgrade to v12"
