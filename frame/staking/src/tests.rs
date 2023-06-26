@@ -42,7 +42,6 @@ use sp_staking::{
 };
 use sp_std::prelude::*;
 use substrate_test_utils::assert_eq_uvec;
-use liberland_traits::LLInitializer;
 
 #[test]
 fn set_staking_configs_works() {
@@ -4775,8 +4774,6 @@ fn chill_other_works() {
 				Balances::make_free_balance_be(&a, 100_000);
 				Balances::make_free_balance_be(&b, 100_000);
 				Balances::make_free_balance_be(&c, 100_000);
-				LiberlandInitializer::make_test_citizen(&a);
-				LiberlandInitializer::make_test_citizen(&b);
 
 				// Nominator
 				assert_ok!(Staking::bond(
@@ -5848,4 +5845,18 @@ mod staking_interface {
 			assert!(Staking::status(&42).is_err());
 		})
 	}
+}
+
+#[test]
+fn citizenship_checks_works() {
+	ExtBuilder::default().build_and_execute(|| {
+		assert_ok!(Staking::set_citizenship_required(RuntimeOrigin::root(), true));
+		bond(49, 100);
+		bond(50, 100);
+		assert_noop!(
+			Staking::validate(RuntimeOrigin::signed(49), ValidatorPrefs::default()),
+			pallet_llm::Error::<Test>::NonCitizen,
+		);
+		assert_ok!(Staking::validate(RuntimeOrigin::signed(50), ValidatorPrefs::default()));
+	})
 }

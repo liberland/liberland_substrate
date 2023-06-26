@@ -43,7 +43,6 @@ pub use frame_benchmarking::v1::{
 	account, benchmarks, impl_benchmark_test_suite, whitelist_account, whitelisted_caller,
 };
 use frame_system::RawOrigin;
-use liberland_traits::LLInitializer;
 
 const SEED: u32 = 0;
 const MAX_SPANS: u32 = 100;
@@ -230,7 +229,6 @@ benchmarks! {
 		let stash = create_funded_user::<T>("stash", USER_SEED, 100);
 		let reward_destination = RewardDestination::Staked;
 		let amount = T::Currency::minimum_balance() * 10u32.into();
-		T::LLInitializer::make_test_citizen(&stash);
 		whitelist_account!(stash);
 	}: _(RawOrigin::Signed(stash.clone()), amount, reward_destination)
 	verify {

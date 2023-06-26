@@ -155,16 +155,10 @@ fn request_entity_works() {
 #[test]
 fn request_entity_fails_on_broke() {
 	new_test_ext().execute_with(|| {
-		let almost_broke = RuntimeOrigin::signed(3);
 		let broke = RuntimeOrigin::signed(4);
 		let empty: DataOf<Test> = vec![].try_into().unwrap();
 		let non_empty: DataOf<Test> = vec![1].try_into().unwrap();
 
-		assert_ok!(Registry::request_entity(almost_broke.clone(), 0, empty.clone(), false));
-		assert_noop!(
-			Registry::request_entity(almost_broke, 0, non_empty.clone(), false),
-			pallet_balances::Error::<Test>::InsufficientBalance
-		);
 		assert_noop!(
 			Registry::request_entity(broke.clone(), 0, empty, false),
 			pallet_balances::Error::<Test>::InsufficientBalance

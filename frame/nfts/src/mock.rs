@@ -113,8 +113,8 @@ parameter_types! {
 }
 
 parameter_types! {
-	pub MockCitizenOne: AccountId = [1u8; 32].into();
-	pub MockCitizenTwo: AccountId = [2u8; 32].into();
+	pub MockCitizenOne: AccountId = [100u8; 32].into();
+	pub MockCitizenTwo: AccountId = [101u8; 32].into();
 }
 
 impl Config for Test {

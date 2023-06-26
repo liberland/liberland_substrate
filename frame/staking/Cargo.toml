@@ -87,5 +87,6 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"pallet-liberland-initializer/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
+	"pallet-nfts/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime", "frame-election-provider-support/try-runtime"]

@@ -41,7 +41,6 @@ use sp_runtime::{
 	Permill,
 };
 use sp_staking::offence::{DisableStrategy, OffenceDetails, OnOffenceHandler};
-use liberland_traits::LLInitializer;
 
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
@@ -658,7 +657,7 @@ impl ExtBuilder {
 			slash_reward_fraction: Perbill::from_percent(10),
 			min_nominator_bond: self.min_nominator_bond,
 			min_validator_bond: self.min_validator_bond,
-			citizenship_required: true,
+			citizenship_required: false,
 			..Default::default()
 		}
 		.assimilate_storage(&mut storage);
@@ -719,7 +718,6 @@ pub(crate) fn bond(who: AccountId, val: Balance) {
 }
 
 pub(crate) fn bond_validator(who: AccountId, val: Balance) {
-	LiberlandInitializer::make_test_citizen(&who);
 	bond(who, val);
 	assert_ok!(Staking::validate(RuntimeOrigin::signed(who), ValidatorPrefs::default()));
 	assert_ok!(Session::set_keys(

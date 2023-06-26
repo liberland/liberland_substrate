@@ -36,8 +36,6 @@ use frame_support::{pallet_prelude::*, traits::Currency};
 use sp_runtime::{traits::StaticLookup, Perbill};
 use sp_std::prelude::*;
 
-use liberland_traits::LLInitializer;
-
 const SEED: u32 = 0;
 
 /// This function removes all validators and nominators from storage.
@@ -111,7 +109,6 @@ pub fn create_unique_stash_controller<T: Config>(
 	}
 	// update bonded account to be unique controller
 	<Bonded<T>>::insert(&stash, &controller);
-	T::LLInitializer::make_test_citizen(&controller);
 
 	Ok((stash, controller))
 }
