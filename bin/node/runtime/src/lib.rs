@@ -1775,6 +1775,8 @@ mod staking_v12 {
 // `OnRuntimeUpgrade`.
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
+	pallet_nfts::migration::v1::MigrateToV1<Runtime>,
+	pallet_offences::migration::v1::MigrateToV1<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
