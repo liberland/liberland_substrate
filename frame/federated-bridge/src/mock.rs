@@ -94,6 +94,7 @@ impl pallet_federated_bridge::Config for Test {
 	type WithdrawalRateLimit = RateLimit;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type MaxTotalLocked = ConstU64<10000>;
+	type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

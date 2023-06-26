@@ -1586,6 +1586,7 @@ impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
 	type WithdrawalDelay = WithdrawalDelay;
 	type WithdrawalRateLimit = LLDRateLimit;
 	type MaxTotalLocked = LLDMaxTotalLocked;
+	type WeightInfo = ();
 }
 
 type EthLLMBridgeInstance = pallet_federated_bridge::Instance2;
@@ -1600,6 +1601,7 @@ impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
 	type WithdrawalDelay = WithdrawalDelay;
 	type WithdrawalRateLimit = LLMRateLimit;
 	type MaxTotalLocked = LLMMaxTotalLocked;
+	type WeightInfo = ();
 }
 
 construct_runtime!(
@@ -1835,6 +1837,7 @@ mod benches {
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
+		[pallet_federated_bridge, EthLLDBridge]
 	);
 }
 

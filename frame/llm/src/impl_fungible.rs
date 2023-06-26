@@ -6,7 +6,7 @@ use frame_support::{
 		fungibles::{
 			Dust as FungiblesDust, Inspect as FungiblesInspect, Unbalanced as FungiblesUnbalanced,
 		},
-		DepositConsequence, Fortitude, Preservation, Provenance, WithdrawConsequence,
+		DepositConsequence, Fortitude, Preservation, Provenance, WithdrawConsequence, Precision,
 	},
 };
 
@@ -79,6 +79,26 @@ impl<T: Config> Unbalanced<T::AccountId> for Pallet<T> {
 		let asset_id = Self::llm_id().into();
 		Assets::<T>::set_total_issuance(asset_id, amount)
 	}
+
+	fn decrease_balance(
+        who: &T::AccountId,
+        amount: Self::Balance,
+        precision: Precision,
+        preservation: Preservation,
+        fortitude: Fortitude,
+    ) -> Result<Self::Balance, DispatchError> {
+		let asset_id = Self::llm_id().into();
+		Assets::<T>::decrease_balance(asset_id, who, amount, precision, preservation, fortitude)
+    }
+
+    fn increase_balance(
+        who: &T::AccountId,
+        amount: Self::Balance,
+        precision: Precision,
+    ) -> Result<Self::Balance, DispatchError> {
+		let asset_id = Self::llm_id().into();
+		Assets::<T>::increase_balance(asset_id, who, amount, precision)
+    }
 }
 
 impl<T: Config> Mutate<T::AccountId> for Pallet<T> {}
