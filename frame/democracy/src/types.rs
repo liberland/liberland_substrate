@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,12 +29,17 @@ use sp_runtime::{
 	RuntimeDebug,
 };
 
+/// A proposal index.
+pub type PropIndex = u32;
+
+/// A referendum index.
+pub type ReferendumIndex = u32;
+
 #[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
 pub enum DispatchOrigin {
 	Root, // Dispatches as pallet_system::RawOrigin::Root
 	Rich, // Dispatches as crate::RawOrigin::Referendum(tally, electorate)
 }
-
 
 /// Info regarding an ongoing referendum.
 #[derive(Encode, MaxEncodedLen, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -269,4 +274,15 @@ pub enum UnvoteScope {
 	Any,
 	/// Permitted to do only the changes that do not need the owner's permission.
 	OnlyExpired,
+}
+
+/// Identifies an owner of a metadata.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum MetadataOwner {
+	/// External proposal.
+	External,
+	/// Public proposal of the index.
+	Proposal(PropIndex),
+	/// Referendum of the index.
+	Referendum(ReferendumIndex),
 }

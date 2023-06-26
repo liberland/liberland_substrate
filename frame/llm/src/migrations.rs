@@ -3,6 +3,9 @@ use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 use liberland_traits::CitizenshipChecker;
 use pallet_identity::Registration;
 
+#[cfg(feature = "try-runtime")]
+use sp_runtime::TryRuntimeError;
+
 /// The log target.
 const TARGET: &'static str = "runtime::llm::migration::v1";
 
@@ -26,7 +29,7 @@ pub mod v1 {
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 0, "can only upgrade from version 0");
 
 			Ok(().encode())
@@ -78,7 +81,7 @@ pub mod v1 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 1, "must upgrade");
 			log::info!(target: TARGET, "Counted {} citizens", Citizens::<T>::get(),);
 			Ok(())
@@ -95,7 +98,7 @@ pub mod ltm_to_lkn {
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
 			Ok(().encode())
 		}
 
@@ -123,7 +126,7 @@ pub mod ltm_to_lkn {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			Ok(())
 		}
 	}
@@ -152,7 +155,7 @@ pub mod v2 {
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 1, "can only upgrade from version 1");
 			Ok(().encode())
 		}
@@ -222,7 +225,7 @@ pub mod v2 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "must upgrade");
 			Ok(())
 		}

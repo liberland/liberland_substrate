@@ -138,11 +138,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
-#[cfg(test)]
+mod benchmarking;
 mod mock;
-
-#[cfg(test)]
 mod tests;
+pub mod weights;
+pub use weights::WeightInfo;
 
 mod impl_fungible;
 pub mod migrations;
@@ -296,6 +296,7 @@ pub mod pallet {
 		type AssetSymbol: Get<Vec<u8>>;
 		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
 		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
+		type WeightInfo: WeightInfo;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -323,7 +324,6 @@ pub mod pallet {
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
@@ -346,7 +346,7 @@ pub mod pallet {
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::politics_lock())]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			Self::do_politics_lock(sender, amount)?;
@@ -363,7 +363,7 @@ pub mod pallet {
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::politics_unlock())]
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
 			// check if we have political locked LLM
@@ -397,7 +397,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_llm_transfer())]
 		pub fn treasury_llm_transfer(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -415,7 +415,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_llm_transfer_to_politipool())]
 		pub fn treasury_llm_transfer_to_politipool(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -434,7 +434,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(4)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::send_llm_to_politipool())]
 		pub fn send_llm_to_politipool(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -454,7 +454,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(5)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::send_llm())]
 		pub fn send_llm(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -472,7 +472,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transfer` from `pallet-balances`
 		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_lld_transfer())]
 		pub fn treasury_lld_transfer(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -574,25 +574,25 @@ pub mod pallet {
 		}
 
 		fn create_llm(origin: OriginFor<T>) -> DispatchResult {
-			let assetid = Self::llm_id();
+			let asset_id: <T as pallet_assets::Config>::AssetId = Self::llm_id().into();
 			let treasury = Self::get_llm_treasury_account();
 			let challenger_lookup: <T::Lookup as StaticLookup>::Source =
 				T::Lookup::unlookup(treasury.clone());
-			let asset_supply = Assets::<T>::total_supply(assetid.into());
+			let asset_supply = Assets::<T>::total_supply(asset_id.clone());
 			ensure!(asset_supply == 0u8.into(), Error::<T>::AssetExists); // if the asset supply is zero == that means it is not been created and we can create
 
 			let min_balance: T::Balance = 1u8.into();
 			let decimals: u8 = 12u8;
 			Assets::<T>::force_create(
 				origin.clone(),
-				assetid.into(),
+				asset_id.clone().into(),
 				challenger_lookup,
 				true,
 				min_balance,
 			)?;
 			Assets::<T>::force_set_metadata(
 				origin.clone(),
-				assetid.into(),
+				asset_id.clone().into(),
 				T::AssetName::get(),
 				T::AssetSymbol::get(),
 				decimals,
@@ -603,7 +603,7 @@ pub mod pallet {
 			// Mint tokens into the llm/vault
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
 			let supply = T::TotalSupply::get().try_into().map_err(|_| Error::<T>::InvalidAmount)?;
-			Assets::<T>::mint_into(assetid, &vaultac, supply)?;
+			Assets::<T>::mint_into(asset_id, &vaultac, supply)?;
 
 			let nextblock = Self::get_future_block();
 			NextRelease::<T>::put(nextblock);

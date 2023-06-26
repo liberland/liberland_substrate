@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,12 +106,12 @@ pub mod v1 {
 
 	impl<T: Config + frame_system::Config<Hash = H256>> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-			assert_eq!(StorageVersion::get::<Pallet<T>>(), 0, "can only upgrade from version 0");
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			ensure!(StorageVersion::get::<Pallet<T>>() == 0, "can only upgrade from version 0");
 
 			let props_count = v0::PublicProps::<T>::get().len();
 			log::info!(target: TARGET, "{} public proposals will be migrated.", props_count,);
-			ensure!(props_count <= T::MaxProposals::get() as usize, "too many proposals");
+			ensure!(props_count <= T::MaxProposals::get() as usize, Error::<T>::TooMany);
 
 			let referenda_count = v0::ReferendumInfoOf::<T>::iter().count();
 			log::info!(target: TARGET, "{} referenda will be migrated.", referenda_count);
@@ -178,8 +178,8 @@ pub mod v1 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
-			assert_eq!(StorageVersion::get::<Pallet<T>>(), 1, "must upgrade");
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			ensure!(StorageVersion::get::<Pallet<T>>() == 1, "must upgrade");
 
 			let (old_props_count, old_ref_count): (u32, u32) =
 				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state; qed");
@@ -240,7 +240,7 @@ pub mod v2 {
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 1, "can only upgrade from version 1");
 
 			let props_count = v0::PublicProps::<T>::get().len();
@@ -312,7 +312,7 @@ pub mod v2 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "must upgrade");
 
 			let (old_props_count, old_ref_count): (u32, u32) =
@@ -339,7 +339,7 @@ pub mod v3 {
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "can only upgrade from version 2");
 
 			let voting_of_count = v2::VotingOf::<T>::iter().count();
@@ -397,7 +397,7 @@ pub mod v3 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 3, "must upgrade");
 
 			let old_votings: u32 =

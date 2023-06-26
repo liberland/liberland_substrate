@@ -68,7 +68,7 @@ benchmarks! {
 	}
 
 	trigger_headcount_veto {
-		let c in 16 .. 5000 => add_vetos::<T>(c);
+		let c in 16 .. 1000 => add_vetos::<T>(c);
 		let acc: T::AccountId = account("a", 0, SEED);
 		let origin: T::RuntimeOrigin = RawOrigin::Signed(acc.clone()).into();
 	}: _<T::RuntimeOrigin>(origin, 2, 0)

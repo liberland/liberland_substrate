@@ -137,6 +137,9 @@ use serde::{Deserialize, Serialize};
 
 mod mock;
 mod tests;
+mod benchmarking;
+pub mod weights;
+pub use weights::WeightInfo;
 
 pub type EthAddress = [u8; 20];
 pub type ReceiptId = [u8; 32];
@@ -192,7 +195,7 @@ pub mod pallet {
 	use frame_support::{
 		sp_runtime::{traits::AccountIdConversion, Saturating},
 		traits::{
-			tokens::fungible::{Inspect, Transfer},
+			tokens::{Preservation, fungible::{Inspect, Mutate}},
 			ExistenceRequirement,
 		},
 	};
@@ -204,7 +207,6 @@ pub mod pallet {
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T, I = ()>(_);
 
@@ -218,7 +220,7 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId>;
 
 		/// Type that is actually bridged
-		type Token: Transfer<Self::AccountId>;
+		type Token: Mutate<Self::AccountId>;
 
 		#[pallet::constant]
 		/// PalletId used to derive bridge's AccountId (wallet)
@@ -254,6 +256,9 @@ pub mod pallet {
 
 		/// Origin that's authorized to set Admin and SuperAdmin
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
+		/// Weight information for extrinsics in this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::error]
@@ -439,7 +444,7 @@ pub mod pallet {
 		///
 		/// Fails if bridge is stopped or caller has insufficient funds.
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::deposit())]
 		pub fn deposit(
 			origin: OriginFor<T>,
 			amount: BalanceOfToken<T, I>,
@@ -455,11 +460,11 @@ pub mod pallet {
 				Error::<T, I>::TooMuchLocked
 			);
 
-			<T::Token as Transfer<T::AccountId>>::transfer(
+			<T::Token as Mutate<T::AccountId>>::transfer(
 				&who,
 				&Self::account_id(),
 				amount,
-				false,
+				Preservation::Expendable,
 			)?;
 			Self::deposit_event(Event::OutgoingReceipt { amount, eth_recipient });
 
@@ -485,7 +490,7 @@ pub mod pallet {
 		///
 		/// Deposits `Vote` event on successful vote.
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::vote_withdraw(T::MaxRelays::get()))]
 		pub fn vote_withdraw(
 			origin: OriginFor<T>,
 			receipt_id: ReceiptId,
@@ -557,7 +562,7 @@ pub mod pallet {
 		/// * receipt is unknown on substrate yet
 		/// * caller has insufficient funds to cover the fee
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::withdraw(T::MaxRelays::get()))]
 		pub fn withdraw(origin: OriginFor<T>, receipt_id: ReceiptId) -> DispatchResult {
 			// FIXME do we want rate-limiting on substrate side?
 			let caller = ensure_signed(origin)?;
@@ -584,7 +589,7 @@ pub mod pallet {
 						&Self::account_id(),
 						&receipt.substrate_recipient,
 						receipt.amount,
-						false,
+						Preservation::Expendable,
 					)?;
 					StatusOf::<T, I>::insert(
 						receipt_id,
@@ -606,7 +611,7 @@ pub mod pallet {
 		///
 		/// Should be set high enough to cover running costs for all relays.
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_fee())]
 		pub fn set_fee(origin: OriginFor<T>, amount: BalanceOf<T, I>) -> DispatchResult {
 			Self::ensure_admin(origin)?;
 			Fee::<T, I>::set(amount);
@@ -618,7 +623,7 @@ pub mod pallet {
 		///
 		/// Can be called by SuperAdmin.
 		#[pallet::call_index(4)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_votes_required())]
 		pub fn set_votes_required(origin: OriginFor<T>, votes_required: u32) -> DispatchResult {
 			Self::ensure_super_admin(origin)?;
 			VotesRequired::<T, I>::set(votes_required);
@@ -633,7 +638,7 @@ pub mod pallet {
 		/// * relay already exists
 		/// * there's already `T::MaxRelays` relays
 		#[pallet::call_index(5)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::add_relay(T::MaxRelays::get()))]
 		pub fn add_relay(origin: OriginFor<T>, relay: T::AccountId) -> DispatchResult {
 			Self::ensure_super_admin(origin)?;
 			Relays::<T, I>::try_mutate(|relays| -> Result<(), DispatchError> {
@@ -650,7 +655,7 @@ pub mod pallet {
 		///
 		/// Will fail if watcher doesn't exists.
 		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::remove_watcher(T::MaxWatchers::get()))]
 		pub fn remove_watcher(origin: OriginFor<T>, watcher: T::AccountId) -> DispatchResult {
 			Self::ensure_super_admin(origin)?;
 			Watchers::<T, I>::try_mutate(|watchers| -> Result<(), DispatchError> {
@@ -670,7 +675,7 @@ pub mod pallet {
 		///
 		/// Will fail if relay doesn't exists.
 		#[pallet::call_index(7)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::remove_relay(T::MaxRelays::get()))]
 		pub fn remove_relay(origin: OriginFor<T>, relay: T::AccountId) -> DispatchResult {
 			Self::ensure_admin(origin)?;
 			Relays::<T, I>::try_mutate(|relays| -> Result<(), DispatchError> {
@@ -690,7 +695,7 @@ pub mod pallet {
 		/// * watcher already exists
 		/// * there's already `T::MaxWatchers` relays
 		#[pallet::call_index(8)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::add_watcher(T::MaxWatchers::get()))]
 		pub fn add_watcher(origin: OriginFor<T>, watcher: T::AccountId) -> DispatchResult {
 			Self::ensure_admin(origin)?;
 			Watchers::<T, I>::try_mutate(|watchers| -> Result<(), DispatchError> {
@@ -707,7 +712,7 @@ pub mod pallet {
 		///
 		/// Deposits `StateChanged` event.
 		#[pallet::call_index(9)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_state())]
 		pub fn set_state(origin: OriginFor<T>, state: BridgeState) -> DispatchResult {
 			Self::ensure_admin(origin)?;
 			Self::do_set_state(state);
@@ -721,7 +726,7 @@ pub mod pallet {
 		///
 		/// Deposits `EmergencyStop` and `StateChanged` events.
 		#[pallet::call_index(10)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::emergency_stop(T::MaxWatchers::get()))]
 		pub fn emergency_stop(origin: OriginFor<T>) -> DispatchResult {
 			let caller = ensure_signed(origin)?;
 			let watchers = Watchers::<T, I>::get();
@@ -743,7 +748,7 @@ pub mod pallet {
 		///
 		/// Can be called by ForceOrigin, SuperAdmin and Admin
 		#[pallet::call_index(11)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_admin())]
 		pub fn set_admin(origin: OriginFor<T>, admin: T::AccountId) -> DispatchResult {
 			if let Err(_) = T::ForceOrigin::ensure_origin(origin.clone()) {
 				Self::ensure_admin(origin)?;
@@ -763,7 +768,7 @@ pub mod pallet {
 		///
 		/// Can be called by ForceOrigin and SuperAdmin
 		#[pallet::call_index(12)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_super_admin())]
 		pub fn set_super_admin(origin: OriginFor<T>, super_admin: T::AccountId) -> DispatchResult {
 			if let Err(_) = T::ForceOrigin::ensure_origin(origin.clone()) {
 				Self::ensure_super_admin(origin)?;

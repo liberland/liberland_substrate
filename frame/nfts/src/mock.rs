@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2019-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,9 +31,11 @@ use frame_support::{
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64},
 };
 use sp_core::H256;
+use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup},
+	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
+	MultiSignature,
 };
 
 pub struct DummyMetadataValidator;
@@ -59,6 +61,10 @@ construct_runtime!(
 	}
 );
 
+pub type Signature = MultiSignature;
+pub type AccountPublic = <Signature as Verify>::Signer;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
+
 impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
@@ -69,7 +75,7 @@ impl frame_system::Config for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
@@ -96,10 +102,19 @@ impl pallet_balances::Config for Test {
 	type MaxLocks = ();
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type HoldIdentifier = ();
+	type MaxHolds = ();
 }
 
 parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
+}
+
+parameter_types! {
+	pub MockCitizenOne: AccountId = [100u8; 32].into();
+	pub MockCitizenTwo: AccountId = [101u8; 32].into();
 }
 
 impl Config for Test {
@@ -107,8 +122,8 @@ impl Config for Test {
 	type CollectionId = u32;
 	type ItemId = u32;
 	type Currency = Balances;
-	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
-	type ForceOrigin = frame_system::EnsureRoot<u64>;
+	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<Self::AccountId>>;
+	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Locker = ();
 	type CollectionDeposit = ConstU64<2>;
 	type ItemDeposit = ConstU64<1>;
@@ -122,11 +137,17 @@ impl Config for Test {
 	type ItemAttributesApprovalsLimit = ConstU32<2>;
 	type MaxTips = ConstU32<10>;
 	type MaxDeadlineDuration = ConstU64<10000>;
+	type MaxAttributesPerCall = ConstU32<2>;
 	type Features = Features;
+	/// Off-chain = signature On-chain - therefore no conversion needed.
+	/// It needs to be From<MultiSignature> for benchmarking.
+	type OffchainSignature = Signature;
+	/// Using `AccountPublic` here makes it trivial to convert to `AccountId` via `into_account()`.
+	type OffchainPublic = AccountPublic;
 	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
-	type Citizenship = MockCitizenshipChecker<u64, ConstU64<100>, ConstU64<101>>;
+	type Citizenship = MockCitizenshipChecker<Self::AccountId, MockCitizenOne, MockCitizenTwo>;
 	type MetadataValidator = DummyMetadataValidator;
 }
 
@@ -134,6 +155,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 	let t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
+	ext.register_extension(KeystoreExt::new(MemoryKeystore::new()));
 	ext.execute_with(|| System::set_block_number(1));
 	ext
 }

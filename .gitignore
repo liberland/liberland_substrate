@@ -25,6 +25,7 @@ rls*.log
 .cargo-remote.toml
 *.bin
 *.iml
-.maintain/node-template-release/Cargo.lock
-scripts/session_keys/*4
-scripts/ci/node-template-release/Cargo.lock
+bin/node-template/Cargo.lock
+substrate.code-workspace
+.direnv/
+/.envrc

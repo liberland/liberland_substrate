@@ -1,9 +1,21 @@
+#![cfg(test)]
+
 use crate::{
 	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease,
 	Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
-use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::OnInitialize};
+use frame_support::{
+	assert_noop, assert_ok,
+	error::BadOrigin,
+	traits::{
+		tokens::{
+			fungible::{Inspect, Mutate},
+			Preservation,
+		},
+		OnInitialize,
+	},
+};
 use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -531,5 +543,34 @@ fn transfer_trait_works() {
 		assert_ok!(LLM::transfer(1, 2, 6000));
 		assert_eq!(LLM::balance(1), 0);
 		assert_eq!(LLM::balance(2), 12000);
+	});
+}
+
+#[test]
+fn fungible_traits_work() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(
+			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&99),
+			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(0u8)
+		);
+		<LLM as Mutate<<Test as frame_system::Config>::AccountId>>::set_balance(&99, 100u8.into());
+		assert_eq!(
+			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&99),
+			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(100u8)
+		);
+		assert_ok!(<LLM as Mutate<<Test as frame_system::Config>::AccountId>>::transfer(
+			&99,
+			&999,
+			100u8.into(),
+			Preservation::Expendable
+		));
+		assert_eq!(
+			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&99),
+			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(0u8)
+		);
+		assert_eq!(
+			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&999),
+			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(100u8)
+		);
 	});
 }

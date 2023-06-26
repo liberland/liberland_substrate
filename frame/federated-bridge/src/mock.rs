@@ -72,6 +72,10 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type HoldIdentifier = ();
+	type MaxHolds = ();
 }
 
 parameter_types! {
@@ -90,6 +94,7 @@ impl pallet_federated_bridge::Config for Test {
 	type WithdrawalRateLimit = RateLimit;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type MaxTotalLocked = ConstU64<10000>;
+	type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
