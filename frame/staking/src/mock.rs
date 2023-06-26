@@ -232,6 +232,7 @@ impl pallet_llm::Config for Test {
 	type InflationEventInterval = InflationEventInterval;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
+	type WeightInfo = ();
 }
 
 use pallet_nfts::PalletFeatures;

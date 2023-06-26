@@ -138,11 +138,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
-#[cfg(test)]
 mod mock;
-
-#[cfg(test)]
 mod tests;
+mod benchmarking;
+pub mod weights;
+pub use weights::WeightInfo;
 
 mod impl_fungible;
 pub mod migrations;
@@ -296,6 +296,7 @@ pub mod pallet {
 		type AssetSymbol: Get<Vec<u8>>;
 		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
 		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
+		type WeightInfo: WeightInfo;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -345,7 +346,7 @@ pub mod pallet {
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::politics_lock())]
 		pub fn politics_lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResult {
 			let sender = ensure_signed(origin.clone())?;
 			Self::do_politics_lock(sender, amount)?;
@@ -362,7 +363,7 @@ pub mod pallet {
 		/// * `LLMPoliticsLocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::politics_unlock())]
 		pub fn politics_unlock(origin: OriginFor<T>) -> DispatchResult {
 			let sender: T::AccountId = ensure_signed(origin.clone())?;
 			// check if we have political locked LLM
@@ -396,7 +397,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_llm_transfer())]
 		pub fn treasury_llm_transfer(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -414,7 +415,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_llm_transfer_to_politipool())]
 		pub fn treasury_llm_transfer_to_politipool(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -433,7 +434,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(4)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::send_llm_to_politipool())]
 		pub fn send_llm_to_politipool(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -453,7 +454,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transferred` from `pallet-assets`
 		#[pallet::call_index(5)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::send_llm())]
 		pub fn send_llm(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,
@@ -471,7 +472,7 @@ pub mod pallet {
 		///
 		/// Emits: `Transfer` from `pallet-balances`
 		#[pallet::call_index(6)]
-		#[pallet::weight(10_000)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_lld_transfer())]
 		pub fn treasury_lld_transfer(
 			origin: OriginFor<T>,
 			to_account: T::AccountId,

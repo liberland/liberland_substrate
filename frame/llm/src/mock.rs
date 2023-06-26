@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use crate as pallet_llm;
 use frame_support::{
 	ord_parameter_types, parameter_types,
@@ -125,6 +127,7 @@ impl pallet_llm::Config for Test {
 	type InflationEventInterval = InflationEventInterval;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
+	type WeightInfo = ();
 }
 
 parameter_types! {

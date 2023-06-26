@@ -1,0 +1,108 @@
+/*
+Copyright © 2023 Liberland
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
+
+#![cfg(feature = "runtime-benchmarks")]
+
+use super::*;
+use crate::{
+	Pallet as LLM,
+	LLMPolitics,
+};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
+use frame_system::RawOrigin;
+use sp_runtime::Saturating;
+use sp_std::prelude::*;
+
+const SEED: u32 = 0;
+
+benchmarks! {
+	politics_lock {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount: T::Balance = 100u8.into();
+		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
+		let origin = RawOrigin::Signed(user.clone());
+		assert_eq!(LLMPolitics::<T>::get(&user), 0u8.into());
+	}: _(origin, amount.clone())
+	verify {
+		assert_eq!(LLMPolitics::<T>::get(&user), amount);
+	}
+
+	politics_unlock {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount: T::Balance = 10000u32.into();
+		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
+		let origin = RawOrigin::Signed(user.clone());
+		LLM::<T>::politics_lock(origin.clone().into(), amount.clone()).unwrap();
+		assert_eq!(LLMPolitics::<T>::get(&user), amount.clone());
+	}: _(origin)
+	verify {
+		assert!(LLMPolitics::<T>::get(&user) < amount);
+	}
+
+	treasury_llm_transfer {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount: T::Balance = 100u32.into();
+		assert_eq!(LLM::<T>::balance(user.clone()), 0u8.into());
+	}: _(RawOrigin::Root, user.clone(), amount.clone())
+	verify {
+		assert_eq!(LLM::<T>::balance(user), amount);
+	}
+
+	treasury_llm_transfer_to_politipool {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount: T::Balance = 100u32.into();
+		assert_eq!(LLMPolitics::<T>::get(&user), 0u8.into());
+	}: _(RawOrigin::Root, user.clone(), amount.clone())
+	verify {
+		assert_eq!(LLMPolitics::<T>::get(&user), amount);
+	}
+
+	send_llm_to_politipool {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount: T::Balance = 100u8.into();
+		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
+		let origin = RawOrigin::Signed(user.clone());
+
+		let user2: T::AccountId = account("user", 1, SEED);
+		assert_eq!(LLMPolitics::<T>::get(&user2), 0u8.into());
+	}: _(origin, user2.clone(), amount.clone())
+	verify {
+		assert_eq!(LLMPolitics::<T>::get(&user2), amount);
+	}
+
+	send_llm {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount: T::Balance = 100u8.into();
+		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
+		let origin = RawOrigin::Signed(user.clone());
+
+		let user2: T::AccountId = account("user", 1, SEED);
+		assert_eq!(LLM::<T>::balance(user2.clone()), 0u8.into());
+		assert_eq!(LLM::<T>::balance(user.clone()), amount.clone());
+	}: _(origin, user2.clone(), amount.clone())
+	verify {
+		assert_eq!(LLM::<T>::balance(user), 0u8.into());
+		assert_eq!(LLM::<T>::balance(user2), amount);
+	}
+
+	treasury_lld_transfer {
+		let user: T::AccountId = account("user", 0, SEED);
+		let amount = <<T as Config>::Currency as Currency<T::AccountId>>::minimum_balance();
+		<<T as Config>::Currency as Currency<T::AccountId>>::make_free_balance_be(
+			&LLM::<T>::get_llm_treasury_account(),
+			amount.saturating_mul(2u8.into()),
+		);
+		assert_eq!(<<T as Config>::Currency as Currency<T::AccountId>>::total_balance(&user), 0u8.into());
+	}: _(RawOrigin::Root, user.clone(), amount.clone())
+	verify {
+		assert_eq!(<<T as Config>::Currency as Currency<T::AccountId>>::total_balance(&user), amount);
+	}
+}
+
+impl_benchmark_test_suite!(LLM, crate::mock::new_test_ext(), crate::mock::Test,);

@@ -257,6 +257,7 @@ impl pallet_llm::Config for Test {
 	type InflationEventInterval = InflationEventInterval;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
+	type WeightInfo = ();
 }
 
 impl pallet_liberland_legislation::Config for Test {

@@ -1356,6 +1356,7 @@ impl pallet_llm::Config for Runtime {
 		HalfSenateOrigin
 	>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -1838,6 +1839,7 @@ mod benches {
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
 		[pallet_federated_bridge, EthLLDBridge]
+		[pallet_llm, LLM]
 	);
 }
 

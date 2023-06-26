@@ -1455,6 +1455,7 @@ mod tests {
 		type InflationEventInterval = InflationEventInterval;
 		type OnLLMPoliticsUnlock = ();
 		type SenateOrigin = EnsureRoot<u64>;
+		type WeightInfo = ();
 	}
 
 	pub struct TestChangeMembers;

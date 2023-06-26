@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use crate::{
 	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease,
 	Withdrawlock, WithdrawlockDuration,
