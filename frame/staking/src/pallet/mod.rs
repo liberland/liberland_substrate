@@ -1778,7 +1778,7 @@ pub mod pallet {
 
 		/// Enable or disable citizenship requirement for validators. Root only
 		#[pallet::call_index(100)]
-		#[pallet::weight(10_000)] // FIXME weight
+		#[pallet::weight(T::WeightInfo::set_citizenship_required())]
 		pub fn set_citizenship_required(
 			origin: OriginFor<T>,
 			citizenship_required: bool,

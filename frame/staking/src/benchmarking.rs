@@ -942,6 +942,12 @@ benchmarks! {
 		assert_eq!(MinCommission::<T>::get(), Perbill::from_percent(100));
 	}
 
+	set_citizenship_required {
+	}: _(RawOrigin::Root, true)
+	verify {
+		assert_eq!(CitizenshipRequired::<T>::get(), true);
+	}
+
 	impl_benchmark_test_suite!(
 		Staking,
 		crate::mock::ExtBuilder::default().has_stakers(true),
