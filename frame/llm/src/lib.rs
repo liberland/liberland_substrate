@@ -138,9 +138,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
+mod benchmarking;
 mod mock;
 mod tests;
-mod benchmarking;
 pub mod weights;
 pub use weights::WeightInfo;
 

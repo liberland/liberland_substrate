@@ -10,10 +10,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
-use crate::{
-	Pallet as LLM,
-	LLMPolitics,
-};
+use crate::{LLMPolitics, Pallet as LLM};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_system::RawOrigin;
 use sp_runtime::Saturating;

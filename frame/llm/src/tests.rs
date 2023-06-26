@@ -5,11 +5,20 @@ use crate::{
 	Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
-use frame_support::{assert_noop, assert_ok, error::BadOrigin, traits::OnInitialize};
+use frame_support::{
+	assert_noop, assert_ok,
+	error::BadOrigin,
+	traits::{
+		tokens::{
+			fungible::{Inspect, Mutate},
+			Preservation,
+		},
+		OnInitialize,
+	},
+};
 use liberland_traits::{CitizenshipChecker, LLM as LLMTrait};
 use pallet_identity::{Data, IdentityInfo};
 use sp_runtime::traits::{BlakeTwo256, Hash};
-use frame_support::traits::tokens::{Preservation, fungible::{Inspect, Mutate}};
 
 type AssetsError<T> = pallet_assets::Error<T>;
 
@@ -549,7 +558,12 @@ fn fungible_traits_work() {
 			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&99),
 			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(100u8)
 		);
-		assert_ok!(<LLM as Mutate<<Test as frame_system::Config>::AccountId>>::transfer(&99, &999, 100u8.into(), Preservation::Expendable));
+		assert_ok!(<LLM as Mutate<<Test as frame_system::Config>::AccountId>>::transfer(
+			&99,
+			&999,
+			100u8.into(),
+			Preservation::Expendable
+		));
 		assert_eq!(
 			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&99),
 			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(0u8)
