@@ -57,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: linux_x86_build
-          path: target/production/substrate
+          path: target/release/substrate
 
   build_runtimes:
     runs-on: ubuntu-latest
