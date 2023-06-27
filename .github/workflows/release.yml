@@ -83,6 +83,7 @@ jobs:
       - name: Upload mainnet runtime
         uses: actions/upload-artifact@v3
         with:
+          name: mainnet-${{github.ref_name}}.wasm
           path: mainnet-${{github.ref_name}}.wasm
 
       - name: Srtool build bastiat runtime
@@ -106,6 +107,7 @@ jobs:
       - name: Upload Bastiat runtime
         uses: actions/upload-artifact@v3
         with:
+          name: bastiat-${{github.ref_name}}.wasm
           path: bastiat-${{github.ref_name}}.wasm
 
   release:
