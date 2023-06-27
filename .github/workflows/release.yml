@@ -1,0 +1,145 @@
+name: Build runtimes & draft release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build_binary:
+    # use old ubuntu for GLIBC compatibility
+    runs-on: ubuntu-20.04
+    env:
+      RUSTFLAGS: "-D warnings"
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2023-01-01
+          default: true
+          target: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      # this is needed to make sure that cargo uses the cached target files,
+      # which will have an older date than the checked out source code.
+      - name: Restore files timestamps
+        run: |
+          # set all dirs and files mtime to the fixed timestamp, this one was chosen
+          # symbolically as polkadot genesis block date
+          find . -exec touch -t 202005260100 {} +
+          # restore mtime based on git commit log
+          git restore-mtime
+
+      - name: Setup caching for rust/cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-rust-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux_x86_build
+          path: target/production/substrate
+
+  build_runtimes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Srtool build mainnet runtime
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.6.0
+        with:
+          chain: liberland
+          package: kitchensink-runtime
+          runtime_dir: ./bin/node/runtime
+          tag: "1.66.1"
+
+      - name: Mainnet Summary
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq . > liberland-srtool-digest.mainnet.json
+          cat liberland-srtool-digest.mainnet.json
+          cp "${{ steps.srtool_build.outputs.wasm_compressed }}" ./mainnet-${{github.ref_name}}.wasm
+          ls
+
+      - name: Upload mainnet runtime
+        uses: actions/upload-artifact@v3
+        with:
+          path: mainnet-${{github.ref_name}}.wasm
+
+      - name: Srtool build bastiat runtime
+        id: srtool_build_bastiat
+        uses: chevdor/srtool-actions@v0.6.0
+        env:
+          BUILD_OPTS: "--features testnet-runtime"
+        with:
+          chain: liberland
+          package: kitchensink-runtime
+          runtime_dir: ./bin/node/runtime
+          tag: "1.66.1"
+
+      - name: Bastiat Summary
+        run: |
+          echo '${{ steps.srtool_build_bastiat.outputs.json }}' | jq . > liberland-srtool-digest.bastiat.json
+          cat liberland-srtool-digest.bastiat.json
+          cp "${{ steps.srtool_build_bastiat.outputs.wasm_compressed }}" ./bastiat-${{github.ref_name}}.wasm
+          ls
+
+      - name: Upload Bastiat runtime
+        uses: actions/upload-artifact@v3
+        with:
+          path: bastiat-${{github.ref_name}}.wasm
+
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build_runtimes
+      - build_binary
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download binary
+        uses: actions/download-artifact@v3
+        with:
+          name: relay
+
+      - name: Download Bastiat runtime
+        uses: actions/download-artifact@v3
+        with:
+          name: bastiat-${{github.ref_name}}.wasm
+
+      - name: Download mainnet runtime
+        uses: actions/download-artifact@v3
+        with:
+          name: mainnet-${{github.ref_name}}.wasm
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            linux_x86_build
+            mainnet-${{github.ref_name}}.wasm
+            bastiat-${{github.ref_name}}.wasm
+            specs/bastiat.raw.json
+            specs/mainnet.raw.json
