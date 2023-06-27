@@ -53,11 +53,14 @@ jobs:
       - name: Build
         run: cargo build --release
 
+      - name: Rename binary
+        run: cp target/release/substrate linux_x86_build
+
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
           name: linux_x86_build
-          path: target/release/substrate
+          path: linux_x86_build
 
   build_runtimes:
     runs-on: ubuntu-latest
