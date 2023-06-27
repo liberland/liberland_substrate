@@ -120,7 +120,7 @@ jobs:
       - name: Download binary
         uses: actions/download-artifact@v3
         with:
-          name: relay
+          name: linux_x86_build
 
       - name: Download Bastiat runtime
         uses: actions/download-artifact@v3
