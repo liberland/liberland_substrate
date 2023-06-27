@@ -1,7 +1,8 @@
 [toolchain]
 # we're enforcing specific nightly due to https://github.com/paritytech/substrate/issues/13636
 # we can change this back to nightly after updating to polkadot-v0.9.39
-# make sure you update README.md and GitBook docs as well!
+# make sure you update README.md, GitHub Actions workflows (including srtool
+# tag) and GitBook docs as well!
 channel = "nightly-2023-01-01"
 components = [ "rustfmt" ]
 targets = [ "wasm32-unknown-unknown" ]
