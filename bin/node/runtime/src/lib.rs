@@ -1774,12 +1774,48 @@ mod staking_v12 {
 	}
 }
 
+// see commit 9957da3cbb027f9b754c453a4d58a62665e532ef for details
+mod bounties_v4 {
+	use super::*;
+	use frame_support::{traits::OnRuntimeUpgrade, pallet_prelude::*};
+
+	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
+	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			frame_support::ensure!(
+				Bounties::on_chain_storage_version() == 0,
+                "Expected v0 before upgrading to v4"
+            );
+
+            Ok(Default::default())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			log::info!("Migrated pallet-bounties PalletVersion to 4");
+			Bounties::current_storage_version().put::<Bounties>();
+			T::DbWeight::get().reads_writes(1, 1)
+
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			frame_support::ensure!(
+				Bounties::on_chain_storage_version() == 4,
+                "Failed to update to v4"
+            );
+			Ok(())
+		}
+	}
+}
+
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 type Migrations = (
-	pallet_contracts::Migration<Runtime>,
 	pallet_nfts::migration::v1::MigrateToV1<Runtime>,
+	pallet_scheduler::migration::v3::MigrateToV4<Runtime>,
 	pallet_offences::migration::v1::MigrateToV1<Runtime>,
+	bounties_v4::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
