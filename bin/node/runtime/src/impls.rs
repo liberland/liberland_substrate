@@ -295,8 +295,8 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Coords {
-	pub lat: u64,
-	pub long: u64,
+	pub lat: i64,
+	pub long: i64,
 }
 
 #[derive(
