@@ -48,14 +48,16 @@ fi
 if ! command -v jq &>/dev/null || \
 ! command -v curl &>/dev/null || \
 ! command -v grep &>/dev/null || \
-! command -v cut &>/dev/null
+! command -v cut &>/dev/null || \
+! command -v wscat &>/dev/null
 then
 	echo
 	echo "We need to install some dependencies before continuing:"
-	echo "  jq curl grep coreutils"
+	echo "  jq curl grep coreutils node-ws"
 	echo "Press Enter to confirm or Ctrl-C to cancel"
 	read < /dev/tty
-	$sudo_cmd apt-get install -y jq curl grep coreutils
+	$sudo_cmd apt-get update
+	$sudo_cmd apt-get install -y jq curl grep coreutils node-ws
 	echo
 fi
 
@@ -156,7 +158,7 @@ if [ $keychain_exists -eq 0 ]; then
 			exit 1
 		fi
 		set +e
-		session_keys=$(curl -sSL -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' http://127.0.0.1:9933 2>/dev/null | jq -r .result)
+		session_keys=$(wscat -c ws://127.0.0.1:9944 -x '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' 2>/dev/null | jq -r .result)
 		(( i++ ))
 		set -e
 	done
