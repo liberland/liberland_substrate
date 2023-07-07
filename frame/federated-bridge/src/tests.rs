@@ -42,7 +42,7 @@ fn deposit_emits_receipt() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
 		System::assert_last_event(
-			Event::<Test>::OutgoingReceipt { amount: 1, eth_recipient: eth_recipient(0) }.into(),
+			Event::<Test>::OutgoingReceipt { from: 0, amount: 1, eth_recipient: eth_recipient(0) }.into(),
 		);
 	});
 }

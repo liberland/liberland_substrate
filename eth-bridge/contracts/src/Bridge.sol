@@ -60,9 +60,10 @@ error AlreadyVoted();
 /// @title Interface with events emitted by the bridge
 interface BridgeEvents {
     /// Emitted after burn, notifies relays that transfer is happening
-    /// @param amount Amount of token burned
+    /// @param from Account that burned its tokens
     /// @param substrateRecipient Who should get tokens on substrate
-    event OutgoingReceipt(uint256 amount, bytes32 substrateRecipient);
+    /// @param amount Amount of token burned
+    event OutgoingReceipt(address indexed from, bytes32 indexed substrateRecipient, uint256 amount);
 
     /// Bridge get activated or deactivated
     /// @param newBridgeState New bridge state
@@ -76,11 +77,11 @@ interface BridgeEvents {
     /// Vote was cast to approve IncomingReceipt
     /// @param receiptId subject Receipt
     /// @param relay Relay that cast the vote
-    event Vote(bytes32 receiptId, address relay, uint64 substrateBlockNumber);
+    event Vote(bytes32 indexed receiptId, address indexed relay, uint64 substrateBlockNumber);
 
     /// IncomingReceipt was completely processed - tokens were minted
     /// @param receiptId subject Receipt
-    event Processed(bytes32 receiptId);
+    event Processed(bytes32 indexed receiptId);
 
     /// Bridge was emergency stopped by watcher - misbehavior by relay was
     /// detected
@@ -232,14 +233,14 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @dev Reverts with `BridgeInactive` if bridge is inactive
     /// @dev Reverts with underlying token's error if bridge is not approved to
     ///      manage funds or if caller has insufficient balance
-    /// @dev Emits `OutgoingReceipt(amount, substrateRecipient)` on success
+    /// @dev Emits `OutgoingReceipt(sender, amount, substrateRecipient)` on success
     /// @dev Interacts with `token` contract
     function burn(uint256 amount, bytes32 substrateRecipient) public {
         // CHECKS
         if (!bridgeActive) revert BridgeInactive();
 
         // EFFECTS
-        emit OutgoingReceipt(amount, substrateRecipient);
+        emit OutgoingReceipt(msg.sender, substrateRecipient, amount);
 
         // INTERACTIONS
         token.burn(msg.sender, amount);

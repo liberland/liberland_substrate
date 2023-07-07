@@ -298,10 +298,12 @@ pub mod pallet {
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// Receipt for substrate -> eth transfer
 		OutgoingReceipt {
-			/// amount transferred
-			amount: BalanceOfToken<T, I>,
+			/// account that deposited funds
+			from: T::AccountId,
 			/// recipient on eth side
 			eth_recipient: EthAddress,
+			/// amount transferred
+			amount: BalanceOfToken<T, I>,
 		},
 		/// Relay voted on approving given eth -> substrate receipt for processing
 		Vote {
@@ -466,7 +468,7 @@ pub mod pallet {
 				amount,
 				Preservation::Expendable,
 			)?;
-			Self::deposit_event(Event::OutgoingReceipt { amount, eth_recipient });
+			Self::deposit_event(Event::OutgoingReceipt { from: who, amount, eth_recipient });
 
 			Ok(())
 		}
