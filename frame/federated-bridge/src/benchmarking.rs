@@ -108,7 +108,7 @@ benchmarks_instance_pallet! {
 	}: _(origin, amount.clone(), eth_recipient.clone())
 	verify {
 		let ev: <T as Config<I>>::RuntimeEvent =
-			Event::<T, I>::OutgoingReceipt { amount, eth_recipient }.into();
+			Event::<T, I>::OutgoingReceipt { from: acc.clone(), amount, eth_recipient }.into();
 		frame_system::Pallet::<T>::assert_last_event(ev.into());
 	}
 

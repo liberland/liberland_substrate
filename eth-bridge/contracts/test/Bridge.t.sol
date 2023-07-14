@@ -75,7 +75,7 @@ contract BridgeTest is Test, BridgeEvents {
 
     function testBurnEmitsReceipt() public {
         vm.expectEmit(false, false, false, false);
-        emit OutgoingReceipt(100, substrate1);
+        emit OutgoingReceipt(address(this), substrate1, 100);
         bridge.burn(100, substrate1);
     }
 
