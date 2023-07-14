@@ -132,6 +132,7 @@ After=network.target
 Type=simple
 ExecStart=/usr/local/bin/liberland-node -d /opt/liberland/data --chain /opt/liberland/chain_spec.raw.json --validator
 Restart=on-failure
+RestartSec=5m
 
 [Install]
 WantedBy=multi-user.target
