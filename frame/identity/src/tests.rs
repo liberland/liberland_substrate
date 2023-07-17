@@ -625,3 +625,22 @@ fn test_has_identity() {
 		));
 	});
 }
+
+#[test]
+fn liberland_long_fields_work() {
+	new_test_ext().execute_with(|| {
+		let bytes: BoundedVec<u8, ConstU32<256>> =
+			b"This is a very long string used to test if we can now store >32 bytes of data successfully"
+			.to_vec().try_into().unwrap();
+		let data = Data::Raw(bytes.clone());
+		assert!(matches!(data.clone(), Data::Raw(x) if x == bytes));
+
+		let info = IdentityInfo {
+			display: data.clone(),
+			..Default::default()
+		};
+		assert_ok!(Identity::set_identity(RuntimeOrigin::signed(10), Box::new(info)));
+		assert!(Identity::has_identity(&10, IdentityField::Display as u64));
+		assert_eq!(Identity::identity(&10).unwrap().info.display, data);
+	});
+}

@@ -81,6 +81,7 @@ mod benchmarking;
 mod tests;
 pub mod types;
 pub mod weights;
+pub mod migration;
 
 use frame_support::traits::{BalanceStatus, Currency, OnUnbalanced, ReservableCurrency};
 use sp_runtime::traits::{AppendZerosInput, Hash, Saturating, StaticLookup, Zero};
@@ -158,7 +159,10 @@ pub mod pallet {
 		type Citizenship: CitizenshipChecker<Self::AccountId>;
 	}
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
 	#[pallet::pallet]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	/// Information that is pertinent to identify the entity behind an account.

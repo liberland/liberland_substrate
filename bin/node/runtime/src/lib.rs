@@ -1816,6 +1816,7 @@ type Migrations = (
 	pallet_scheduler::migration::v3::MigrateToV4<Runtime>,
 	pallet_offences::migration::v1::MigrateToV1<Runtime>,
 	bounties_v4::Migration<Runtime>,
+	pallet_identity::migration::v1::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<

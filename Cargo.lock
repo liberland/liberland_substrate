@@ -5464,6 +5464,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "liberland-traits",
+ "log",
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
