@@ -71,7 +71,7 @@ LDN Bridge (proxy): 0xC8af0C3E0e4FC787D9e657b2A68ce6ED9cedB5DA
 LKN ERC-20 token: 0x023A1D6C9f4b792399804DF2AaFaA2Df2bdd8a12
 LKN Bridge (proxy): 0x7E1E09c0B41b22EB1fA04145cdf21cea01560c99
 
-Common bridge implementation: 0x14cb6EDb15c156272B59e7Fd688a1F0b09C999d4
+Common bridge implementation: 0x3dF5907e08f803c5e2eEAa5e8cb83Aa6CD61f002
 ```
 
 All contracts are verified on [sourcify.eth](https://sourcify.dev/) and [Etherscan](https://sepolia.etherscan.io/).
