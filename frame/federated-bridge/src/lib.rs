@@ -80,6 +80,7 @@
 //! * bridge doesn't mint any new funds - only funds stored in bridge (a.k.a. existing as wrapped
 //!   tokens on Eth side) are at risk
 //! * bridge enforces rate-limit on withdrawals
+//! * bridge enforces minimum transfer amount
 //! * bridge limits how many tokens can be locked (bridged) at the same time
 //! * there's a delay between approval of withdrawal and actually allowing it
 //!
@@ -95,6 +96,7 @@
 //!   will start failing after this is reached.
 //! * `WithdrawalDelay` - number of blocks between transfer approval and actually allowing it
 //! * `WithdrawalRateLimit` - rate limit parameters
+//! * `MinimumTransfer` - minimum amount that can be deposited in single call
 //! * `ForceOrigin` - origin that's authorized to set admin and super admin
 //!
 //!
@@ -254,6 +256,11 @@ pub mod pallet {
 		/// much can be withdrawn per block)
 		type WithdrawalRateLimit: Get<(BalanceOfToken<Self, I>, BalanceOfToken<Self, I>)>;
 
+		#[pallet::constant]
+		/// Minimum amount that has to be bridged in a single transfer. Only
+		/// enforced on deposits.
+		type MinimumTransfer: Get<BalanceOfToken<Self, I>>;
+
 		/// Origin that's authorized to set Admin and SuperAdmin
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
@@ -291,6 +298,8 @@ pub mod pallet {
 		RateLimited,
 		/// Too much locked in pallet already
 		TooMuchLocked,
+		/// Amount smaller than MinimumTransfer
+		TooSmallAmount,
 	}
 
 	#[pallet::event]
@@ -445,6 +454,7 @@ pub mod pallet {
 		/// Can be called by any Signed origin.
 		///
 		/// Fails if bridge is stopped or caller has insufficient funds.
+		/// Fails with `TooSmallAmount` amount is smaller than MinimumTransfer.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::deposit())]
 		pub fn deposit(
@@ -455,6 +465,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(State::<T, I>::get() == BridgeState::Active, Error::<T, I>::BridgeStopped);
+			ensure!(amount >= T::MinimumTransfer::get(), Error::<T, I>::TooSmallAmount);
 
 			let total_locked = <T::Token as Inspect<T::AccountId>>::balance(&Self::account_id());
 			ensure!(

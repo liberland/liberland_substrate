@@ -56,6 +56,8 @@ error InvalidArgument();
 error InvalidConfiguration();
 /// This relay already voted for this ReceiptId
 error AlreadyVoted();
+/// Transferred amount is less than configured minimum
+error TooSmallAmount();
 
 /// @title Interface with events emitted by the bridge
 interface BridgeEvents {
@@ -144,6 +146,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     RateLimitCounter public mintCounter; // 2x uint256
     /// Rate limit configuration
     RateLimitParameters public rateLimit; // 2x uint256
+    /// Minimum transfer - only applied for burns
+    uint256 public minTransfer;
 
     constructor() {
         _disableInitializers();
@@ -157,6 +161,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @param counterLimit initial `rateLimit.counterLimit`
     /// @param decayRate initial `rateLimit.decayRate`
     /// @param supplyLimit_ initial `supplyLimit`
+    /// @param minTransfer_ initial `minTransfer`
     function initialize(
         WrappedToken token_,
         uint32 votesRequired_,
@@ -164,7 +169,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         uint256 fee_,
         uint256 counterLimit,
         uint256 decayRate,
-        uint256 supplyLimit_
+        uint256 supplyLimit_,
+        uint256 minTransfer_
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -177,6 +183,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         fee = fee_;
         mintDelay = mintDelay_;
         supplyLimit = supplyLimit_;
+        minTransfer = minTransfer_;
         // slither-disable-end events-maths
         _grantRole(SUPER_ADMIN_ROLE, msg.sender);
     }
@@ -238,6 +245,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     function burn(uint256 amount, bytes32 substrateRecipient) public {
         // CHECKS
         if (!bridgeActive) revert BridgeInactive();
+        if (amount < minTransfer) revert TooSmallAmount();
 
         // EFFECTS
         emit OutgoingReceipt(msg.sender, substrateRecipient, amount);
@@ -409,6 +417,13 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @dev Only addresses with SUPER_ADMIN_ROLE can call this
     function setSupplyLimit(uint256 supplyLimit_) public onlyRole(SUPER_ADMIN_ROLE) {
         supplyLimit = supplyLimit_;
+    }
+
+    /// Set minimum transfer amount
+    /// @param minTransfer_ New minimum transfer amount
+    /// @dev Only addresses with ADMIN_ROLE can call this
+    function setMinTransfer(uint256 minTransfer_) public onlyRole(ADMIN_ROLE) {
+        minTransfer = minTransfer_;
     }
 
     /// Transfer ownership of underlying token contract.
