@@ -40,7 +40,8 @@ contract BridgeTest is Test, BridgeEvents {
                     0,
                     0,
                     0,
-                    100
+                    100,
+                    0
                 )
                 )
                 )

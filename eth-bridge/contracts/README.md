@@ -56,7 +56,8 @@ Following security features are implemented in the contract:
   recipient etc)
 * bridge can be stopped by a watcher at any time
 * bridge enforces rate-limit on mints
-* bridge limits how many wrapped tokens can in circulation
+* bridge enforces minimum transfer amount
+* bridge limits how many wrapped tokens can be in circulation
 * there's a delay between approval of mint and actually allowing it
 
 ## Official deployments
@@ -64,10 +65,10 @@ Following security features are implemented in the contract:
 Sepolia testnet (meant to be used with Liberland Bastiat testnet):
 
 ```
-LDN ERC-20 token: 0x195E89cdE9475e18DB594A24FC2954235d7F4e92
+LDN ERC-20 token: 0x0f018D7e0B8f5D5cCc88c0B23d931AaAA13B0C42
 LDN Bridge (proxy): 0xC8af0C3E0e4FC787D9e657b2A68ce6ED9cedB5DA
 
-LKN ERC-20 token: 0x023A1D6C9f4b792399804DF2AaFaA2Df2bdd8a12
+LKN ERC-20 token: 0x7134B5DF53D7A276849a1A64a76f6D8972508747
 LKN Bridge (proxy): 0x7E1E09c0B41b22EB1fA04145cdf21cea01560c99
 
 Common bridge implementation: 0x14cb6EDb15c156272B59e7Fd688a1F0b09C999d4

@@ -40,9 +40,9 @@ fn deposit_fails_on_stopped_bridge() {
 #[test]
 fn deposit_emits_receipt() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 2, eth_recipient(0)));
 		System::assert_last_event(
-			Event::<Test>::OutgoingReceipt { from: 0, amount: 1, eth_recipient: eth_recipient(0) }.into(),
+			Event::<Test>::OutgoingReceipt { from: 0, amount: 2, eth_recipient: eth_recipient(0) }.into(),
 		);
 	});
 }
@@ -50,20 +50,20 @@ fn deposit_emits_receipt() {
 #[test]
 fn deposit_takes_token_from_caller() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
-		assert_eq!(Balances::free_balance(0), 99);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 2, eth_recipient(0)));
+		assert_eq!(Balances::free_balance(0), 98);
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 90, eth_recipient(0)));
-		assert_eq!(Balances::free_balance(0), 9);
+		assert_eq!(Balances::free_balance(0), 8);
 	});
 }
 
 #[test]
 fn deposit_stores_token_in_bridge() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
-		assert_eq!(Balances::free_balance(bridge_wallet()), 1);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 2, eth_recipient(0)));
+		assert_eq!(Balances::free_balance(bridge_wallet()), 2);
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 90, eth_recipient(0)));
-		assert_eq!(Balances::free_balance(bridge_wallet()), 91);
+		assert_eq!(Balances::free_balance(bridge_wallet()), 92);
 	});
 }
 
@@ -91,12 +91,23 @@ fn deposit_respects_max_total_locked() {
 			Bridge::deposit(RuntimeOrigin::signed(200), 10001, eth_recipient(0)),
 			Error::<Test>::TooMuchLocked
 		);
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 9999, eth_recipient(0)));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 9998, eth_recipient(0)));
 		assert_noop!(
-			Bridge::deposit(RuntimeOrigin::signed(200), 2, eth_recipient(0)),
+			Bridge::deposit(RuntimeOrigin::signed(200), 3, eth_recipient(0)),
 			Error::<Test>::TooMuchLocked
 		);
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 1, eth_recipient(0)));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 2, eth_recipient(0)));
+	});
+}
+
+#[test]
+fn deposit_respects_minimum_transfer() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Bridge::deposit(RuntimeOrigin::signed(200), 1, eth_recipient(0)),
+			Error::<Test>::TooSmallAmount
+		);
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 2, eth_recipient(0)));
 	});
 }
 
@@ -147,7 +158,7 @@ fn vote_succeeds_even_after_reaching_required_votes() {
 fn vote_fails_on_processed_receipt() {
 	new_test_ext().execute_with(|| {
 		let (receipt_id, receipt) = gen_receipt(0, 1);
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 2, eth_recipient(0)));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(0), receipt_id, receipt.clone()));
 		assert_ok!(Bridge::vote_withdraw(RuntimeOrigin::signed(1), receipt_id, receipt.clone()));
 		System::set_block_number(11);
@@ -926,9 +937,9 @@ fn max_total_locked_is_respected_after_withdrawals() {
 		);
 		assert_ok!(Bridge::withdraw(RuntimeOrigin::signed(0), receipt_id));
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 9001, eth_recipient(0)));
-		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 999, eth_recipient(0)));
+		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(200), 998, eth_recipient(0)));
 		assert_noop!(
-			Bridge::deposit(RuntimeOrigin::signed(0), 1, eth_recipient(0)),
+			Bridge::deposit(RuntimeOrigin::signed(0), 2, eth_recipient(0)),
 			Error::<Test>::TooMuchLocked
 		);
 	});

@@ -80,6 +80,7 @@ Following security features are implemented substrate-side:
 * bridge doesn't mint any new funds - only funds stored in bridge (a.k.a. existing as wrapped
   tokens on Eth side) are at risk
 * bridge enforces rate-limit on withdrawals
+* bridge enforces minimum transfer amount
 * bridge limits how many tokens can be locked (bridged) at the same time
 * there's a delay between approval of withdrawal and actually allowing it
 
@@ -95,6 +96,7 @@ Following security features are implemented substrate-side:
   will start failing after this is reached.
 * `WithdrawalDelay` - number of blocks between transfer approval and actually allowing it
 * `WithdrawalRateLimit` - rate limit parameters
+* `MinimumTransfer` - minimum amount that can be deposited in single call
 * `ForceOrigin` - origin that's authorized to set admin and super admin
 
 

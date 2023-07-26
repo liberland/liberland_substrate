@@ -1562,6 +1562,7 @@ parameter_types! {
 		60 * DOLLARS
 	);
 	pub const LLDMaxTotalLocked: Balance = 300_000 * DOLLARS;
+	pub const LLDMinimumTransfer: Balance = 30 * DOLLARS;
 
 	// * 22k LLM in single hour (1 burst + hour avg)
 	// * 298k LLM in single day (1 burst + 24*hour avg)
@@ -1573,6 +1574,7 @@ parameter_types! {
 		20 * GRAINS_IN_LLM
 	);
 	pub const LLMMaxTotalLocked: Balance = 100_000 * GRAINS_IN_LLM;
+	pub const LLMMinimumTransfer: Balance = 10 * GRAINS_IN_LLM;
 }
 
 type EthLLDBridgeInstance = pallet_federated_bridge::Instance1;
@@ -1587,6 +1589,7 @@ impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
 	type WithdrawalDelay = WithdrawalDelay;
 	type WithdrawalRateLimit = LLDRateLimit;
 	type MaxTotalLocked = LLDMaxTotalLocked;
+	type MinimumTransfer = LLDMinimumTransfer;
 	type WeightInfo = ();
 }
 
@@ -1602,6 +1605,7 @@ impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
 	type WithdrawalDelay = WithdrawalDelay;
 	type WithdrawalRateLimit = LLMRateLimit;
 	type MaxTotalLocked = LLMMaxTotalLocked;
+	type MinimumTransfer = LLMMinimumTransfer;
 	type WeightInfo = ();
 }
 

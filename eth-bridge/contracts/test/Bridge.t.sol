@@ -40,7 +40,8 @@ contract BridgeTest is Test, BridgeEvents {
                     4,
                     1000,
                     10,
-                    650
+                    650,
+                    0
                 )
                 )
                 )
@@ -855,5 +856,16 @@ contract BridgeTest is Test, BridgeEvents {
         assertEq(alice.balance, 111);
         assertEq(bob.balance, 5);
         assertEq(charlie.balance, 3);
+    }
+
+    function testMinTransferIsRespected() public {
+        vm.startPrank(dave);
+        bridge.setMinTransfer(10);
+
+        vm.expectRevert(TooSmallAmount.selector);
+        bridge.burn(9, substrate1);
+
+        bridge.setMinTransfer(9);
+        bridge.burn(9, substrate1);
     }
 }
