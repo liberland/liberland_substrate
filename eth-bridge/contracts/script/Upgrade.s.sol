@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 import "forge-std/Script.sol";
 import "../src/Bridge.sol";
 
-contract Deploy is Script {
+contract Upgrade is Script {
     function run() external {
         vm.startBroadcast();
         Bridge lldProxy = Bridge(vm.envAddress("LLDProxy"));
