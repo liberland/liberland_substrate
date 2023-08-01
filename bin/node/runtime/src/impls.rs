@@ -35,7 +35,7 @@ use frame_support::{
 use sp_runtime::{AccountId32, DispatchError, traits::{TrailingZeroInput, Morph}};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
-use sp_std::{vec, collections::btree_map::BTreeMap};
+use sp_std::{vec, collections::btree_map::BTreeMap, cmp::{max, min}};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -295,8 +295,8 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Coords {
-	pub lat: u64,
-	pub long: u64,
+	pub lat: i64,
+	pub long: i64,
 }
 
 #[derive(
@@ -322,11 +322,48 @@ impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
 {
 	fn validate_metadata(collection: u32, _: u32, data: &BoundedVec<u8, StringLimit>) -> bool {
 		// https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
-		fn intersection(a: Coords, b: Coords, c: Coords, d: Coords) -> bool {
-			fn ccw(a: Coords, b: Coords, c: Coords) -> bool {
-				(b.long - a.long) * (c.lat - b.lat) > (b.lat - a.lat) * (c.long - b.long)
+		#[derive(PartialEq, Eq)]
+		enum PointsOrientation {
+			Clockwise,
+			Counterclockwise,
+			Collinear,
+		}
+		fn intersection(p1: Coords, q1: Coords, p2: Coords, q2: Coords) -> bool {
+			fn on_segment(p: Coords, q: Coords, r: Coords) -> bool {
+				q.long <= max(p.long, r.long) &&
+				   q.long >= min(p.long, r.long) &&
+				   q.lat <= max(p.lat, r.lat) &&
+				   q.lat >= min(p.lat, r.lat)
 			}
-			ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d)
+			fn orientation(p: Coords, q: Coords, r: Coords) -> PointsOrientation {
+				let val = ((q.lat - p.lat) * (r.long - q.long)) - ((q.long - p.long) * (r.lat - q.lat));
+				match val {
+					val if val > 0 => {
+						PointsOrientation::Clockwise
+					}
+					val if val < 0 => {
+						PointsOrientation::Counterclockwise
+					}
+					_ => {
+						PointsOrientation::Collinear
+					}
+				}
+			}
+
+			let o1 = orientation(p1, q1, p2);
+			let o2 = orientation(p1, q1, q2);
+			let o3 = orientation(p2, q2, p1);
+			let o4 = orientation(p2, q2, q1);
+			if (o1 != o2 && o3 != o4) ||
+			   (o1 == PointsOrientation::Collinear && on_segment(p1, p2, q1)) ||
+			   (o2 == PointsOrientation::Collinear && on_segment(p1, q2, q1)) ||
+			   (o3 == PointsOrientation::Collinear && on_segment(p2, p1, q2)) ||
+			   (o4 == PointsOrientation::Collinear && on_segment(p2, q1, q2))
+			{
+				return true
+			}
+
+			false
 		}
 
 		if collection != 0 && collection != 1 {
@@ -341,7 +378,14 @@ impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
 			return false
 		}
 
-		let data = data.unwrap();
+		let mut data = data.unwrap();
+
+		// pop last point if it's the same as first
+		if data.demarcation.len() > 1 &&
+		   data.demarcation.first() == data.demarcation.last()
+		{
+			data.demarcation.pop();
+		}
 
 		// does it have at least 3 points
 		if data.demarcation.len() < 3 {
@@ -366,7 +410,7 @@ impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
 
 		for i in 0..lines.len() {
 			let a = lines[i];
-			for j in i + 2..lines.len() + i - 1 {
+			for j in (i + 2)..=(lines.len() + i - 2) {
 				let j = j % lines.len();
 				let b = lines[j];
 				if intersection(a.0, a.1, b.0, b.1) {
