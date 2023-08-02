@@ -84,19 +84,23 @@ where
 	}
 }
 
+fn batch_filter<F>(c: &RuntimeCall, f: F) -> bool
+where
+	F: Fn(&RuntimeCall) -> bool,
+{
+	match c {
+		RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) => calls.iter().all(f),
+		RuntimeCall::Utility(pallet_utility::Call::batch { calls }) => calls.iter().all(f),
+		c => f(c),
+	}
+}
+
 #[derive(
-	Clone,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
+	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum IdentityCallFilter {
-	Manager, // set_fee, set_account_id, set_fields, provide_judgement
+	Manager,   // set_fee, set_account_id, set_fields, provide_judgement
 	Judgement, // provide_judgement
 }
 
@@ -109,18 +113,22 @@ impl Default for IdentityCallFilter {
 impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
-			IdentityCallFilter::Manager =>
-				matches!(c,
+			IdentityCallFilter::Manager => batch_filter(c, |c| {
+				matches!(
+					c,
 					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
-				),
-			IdentityCallFilter::Judgement =>
-				matches!(c,
-					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
-					RuntimeCall::System(frame_system::Call::remark { .. }) // for benchmarking
+						RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
+						RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
+						RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
 				)
+			}),
+			IdentityCallFilter::Judgement => batch_filter(c, |c| {
+				matches!(
+					c,
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
+						RuntimeCall::System(frame_system::Call::remark { .. }) // for benchmarking
+				)
+			}),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -134,18 +142,11 @@ impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 }
 
 #[derive(
-	Clone,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
+	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum RegistryCallFilter {
-	All, // registry_entity, set_registered_entity, unregister
+	All,          // registry_entity, set_registered_entity, unregister
 	RegisterOnly, // register_entity
 }
 
@@ -158,14 +159,21 @@ impl Default for RegistryCallFilter {
 impl InstanceFilter<RuntimeCall> for RegistryCallFilter {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
-			RegistryCallFilter::All =>
-				matches!(c,
+			RegistryCallFilter::All => batch_filter(c, |c| {
+				matches!(
+					c,
 					RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }) |
-					RuntimeCall::CompanyRegistry(pallet_registry::Call::set_registered_entity { .. }) |
-					RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister { .. })
-				),
-			RegistryCallFilter::RegisterOnly =>
-				matches!(c, RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }))
+						RuntimeCall::CompanyRegistry(
+							pallet_registry::Call::set_registered_entity { .. }
+						) | RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister { .. })
+				)
+			}),
+			RegistryCallFilter::RegisterOnly => batch_filter(c, |c| {
+				matches!(
+					c,
+					RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. })
+				)
+			}),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -179,14 +187,7 @@ impl InstanceFilter<RuntimeCall> for RegistryCallFilter {
 }
 
 #[derive(
-	Clone,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
+	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum NftsCallFilter {
@@ -201,25 +202,29 @@ impl Default for NftsCallFilter {
 }
 
 impl InstanceFilter<RuntimeCall> for NftsCallFilter {
-	fn filter(&self, c: &RuntimeCall) -> bool {	
-		let matches_manage_items = matches!(c, 
-			RuntimeCall::Nfts(pallet_nfts::Call::mint { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::burn { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::approve_transfer { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::cancel_approval { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::clear_all_transfer_approvals { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::set_attribute { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::clear_attribute { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::approve_item_attributes { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::cancel_item_attributes_approval { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
-		);
-		match self {
-			NftsCallFilter::Manager => matches_manage_items || matches!(c,
-					RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		fn matches_manage_items(c: &RuntimeCall) -> bool {
+			matches!(
+				c,
+				RuntimeCall::Nfts(pallet_nfts::Call::mint { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::burn { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::approve_transfer { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::cancel_approval { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::clear_all_transfer_approvals { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_attribute { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::clear_attribute { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::approve_item_attributes { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::cancel_item_attributes_approval { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. }) |
+					RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
+			)
+		}
+		fn matches_manager(c: &RuntimeCall) -> bool {
+			matches!(
+				c,
+				RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::lock_collection { .. }) |
@@ -232,8 +237,12 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_max_supply { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::update_mint_settings { .. }) |
 					RuntimeCall::Nfts(pallet_nfts::Call::set_citizenship_required { .. })
-				),
-			NftsCallFilter::ManageItems => matches_manage_items,
+			)
+		}
+		match self {
+			NftsCallFilter::Manager =>
+				batch_filter(c, |c| matches_manager(c) || matches_manage_items(c)),
+			NftsCallFilter::ManageItems => batch_filter(c, matches_manage_items),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -380,7 +389,8 @@ impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
 }
 
 #[cfg(test)]
-mod multiplier_tests {
+mod tests {
+	use super::*;
 	use pallet_transaction_payment::{Multiplier, TargetedFeeAdjustment};
 	use sp_runtime::{
 		assert_eq_error_rate,
@@ -809,5 +819,104 @@ mod multiplier_tests {
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &not_enough_coords));
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &invalid_coord));
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &self_intersecting));
+	}
+
+	#[test]
+	fn identity_filter_allows_batching_good_calls() {
+		let good_calls = vec![
+			RuntimeCall::System(frame_system::Call::remark { remark: (*b"remark").into() }),
+			RuntimeCall::System(frame_system::Call::remark { remark: (*b"remark2").into() }),
+		];
+
+		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: good_calls.clone() });
+		let batch_all = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: good_calls });
+
+		assert!(IdentityCallFilter::Judgement.filter(&batch));
+		assert!(IdentityCallFilter::Judgement.filter(&batch_all));
+	}
+
+	#[test]
+	fn identity_filter_prevents_bad_calls_in_batch() {
+		let bad_calls = vec![
+			RuntimeCall::System(frame_system::Call::remark { remark: (*b"remark").into() }),
+			RuntimeCall::System(frame_system::Call::set_heap_pages { pages: 10 }),
+		];
+
+		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: bad_calls.clone() });
+		let batch_all = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: bad_calls });
+
+		assert!(!IdentityCallFilter::Judgement.filter(&batch));
+		assert!(!IdentityCallFilter::Judgement.filter(&batch_all));
+	}
+
+	#[test]
+	fn registry_filter_allows_batching_good_calls() {
+		let good_calls = vec![
+			RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister {
+				registry_index: 0,
+				entity_id: 10u8.into(),
+			}),
+			RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister {
+				registry_index: 0,
+				entity_id: 10u8.into(),
+			}),
+		];
+
+		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: good_calls.clone() });
+		let batch_all = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: good_calls });
+
+		assert!(RegistryCallFilter::All.filter(&batch));
+		assert!(RegistryCallFilter::All.filter(&batch_all));
+	}
+
+	#[test]
+	fn registry_filter_prevents_bad_calls_in_batch() {
+		let bad_calls = vec![
+			RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister {
+				registry_index: 0,
+				entity_id: 10u8.into(),
+			}),
+			RuntimeCall::System(frame_system::Call::remark { remark: (*b"remark").into() }),
+		];
+
+		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: bad_calls.clone() });
+		let batch_all = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: bad_calls });
+
+		assert!(!RegistryCallFilter::All.filter(&batch));
+		assert!(!RegistryCallFilter::All.filter(&batch_all));
+	}
+
+	#[test]
+	fn nfts_filter_allows_batching_good_calls() {
+		let good_calls = vec![
+			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership {
+				maybe_collection: None
+			}),
+			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership {
+				maybe_collection: None
+			}),
+		];
+
+		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: good_calls.clone() });
+		let batch_all = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: good_calls });
+
+		assert!(NftsCallFilter::Manager.filter(&batch));
+		assert!(NftsCallFilter::Manager.filter(&batch_all));
+	}
+
+	#[test]
+	fn nfts_filter_prevents_bad_calls_in_batch() {
+		let bad_calls = vec![
+			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership {
+				maybe_collection: None
+			}),
+			RuntimeCall::System(frame_system::Call::remark { remark: (*b"remark").into() }),
+		];
+
+		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: bad_calls.clone() });
+		let batch_all = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: bad_calls });
+
+		assert!(!NftsCallFilter::Manager.filter(&batch));
+		assert!(!NftsCallFilter::Manager.filter(&batch_all));
 	}
 }
