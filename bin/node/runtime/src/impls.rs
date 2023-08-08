@@ -18,24 +18,25 @@
 //! Some configurable implementations as associated type for the substrate runtime.
 
 use crate::{
-	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance, RuntimeCall,
-	Democracy, RuntimeOrigin,
+	AccountId, Assets, Authorship, Balance, Balances, Democracy, NegativeImbalance, Runtime,
+	RuntimeCall, RuntimeOrigin,
 };
-use codec::{Encode, Decode};
+use codec::{Decode, Encode};
 use frame_support::{
-	BoundedVec,
-	pallet_prelude::{ConstU32, PhantomData, Get, MaxEncodedLen},
-	RuntimeDebug,
+	pallet_prelude::{ConstU32, Get, MaxEncodedLen, PhantomData},
 	traits::{
 		fungibles::{Balanced, Credit},
-		Currency, OnUnbalanced, InstanceFilter,
-		Contains,
+		Contains, Currency, InstanceFilter, OnUnbalanced,
 	},
+	BoundedVec, RuntimeDebug,
 };
-use sp_runtime::{AccountId32, DispatchError, traits::{TrailingZeroInput, Morph}};
 use pallet_asset_tx_payment::HandleCredit;
+use sp_runtime::{
+	traits::{Morph, TrailingZeroInput},
+	AccountId32, DispatchError,
+};
 use sp_staking::{EraIndex, OnStakerSlash};
-use sp_std::{vec, collections::btree_map::BTreeMap};
+use sp_std::{collections::btree_map::BTreeMap, vec};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -63,7 +64,11 @@ impl HandleCredit<AccountId, Assets> for CreditToBlockAuthor {
 
 pub struct OnStakerSlashNoop;
 impl OnStakerSlash<AccountId, Balance> for OnStakerSlashNoop {
-	fn on_slash(_stash: &AccountId, _slashed_active: Balance, _slashed_ongoing: &BTreeMap<EraIndex, Balance>) {
+	fn on_slash(
+		_stash: &AccountId,
+		_slashed_active: Balance,
+		_slashed_ongoing: &BTreeMap<EraIndex, Balance>,
+	) {
 		// do nothing
 	}
 }
@@ -255,14 +260,12 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 	}
 }
 
-pub struct ContainsMember<T, I>(
-    PhantomData<(T, I)>,
-);
+pub struct ContainsMember<T, I>(PhantomData<(T, I)>);
 
 impl<T, I> Contains<T::AccountId> for ContainsMember<T, I>
 where
 	T: frame_system::Config + pallet_collective::Config<I>,
-	I: 'static
+	I: 'static,
 {
 	fn contains(a: &T::AccountId) -> bool {
 		pallet_collective::Pallet::<T, I>::members().contains(a)
@@ -271,20 +274,18 @@ where
 
 use pallet_democracy::Voting;
 pub struct OnLLMPoliticsUnlock;
-impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
-{
+impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock {
 	fn on_llm_politics_unlock(account_id: &AccountId32) -> Result<(), DispatchError> {
 		let origin = RuntimeOrigin::signed(account_id.clone());
 
 		match Democracy::voting_of(account_id.clone()) {
-			Voting::Direct { votes, .. } => {
+			Voting::Direct { votes, .. } =>
 				for (index, _) in votes {
 					Democracy::remove_vote(origin.clone(), index)?;
-				}
-			},
+				},
 			Voting::Delegating { .. } => {
 				Democracy::undelegate(origin.clone()).map_err(|e| e.error)?;
-			}
+			},
 		};
 
 		Ok(())
@@ -292,15 +293,7 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 }
 
 #[derive(
-	Clone,
-	Copy,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
+	Clone, Copy, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Coords {
@@ -308,14 +301,7 @@ pub struct Coords {
 	pub long: u64,
 }
 
-#[derive(
-	Clone,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
-)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Metadata<MaxCoords: Get<u32>, MaxString: Get<u32>> {
 	demarcation: BoundedVec<Coords, MaxCoords>,
@@ -549,7 +535,7 @@ mod tests {
 			// See the example in the doc of `TargetedFeeAdjustment`. are at least 0.234, hence
 			// `fm > 1.234`.
 			// we use 2 days, as our avg block time is 6sec instead of default 3 sec
-			for _ in 0..(2*DAYS) {
+			for _ in 0..(2 * DAYS) {
 				let next = runtime_multiplier_update(fm);
 				fm = next;
 			}
@@ -889,12 +875,8 @@ mod tests {
 	#[test]
 	fn nfts_filter_allows_batching_good_calls() {
 		let good_calls = vec![
-			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership {
-				maybe_collection: None
-			}),
-			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership {
-				maybe_collection: None
-			}),
+			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership { maybe_collection: None }),
+			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership { maybe_collection: None }),
 		];
 
 		let batch = RuntimeCall::Utility(pallet_utility::Call::batch { calls: good_calls.clone() });
@@ -907,9 +889,7 @@ mod tests {
 	#[test]
 	fn nfts_filter_prevents_bad_calls_in_batch() {
 		let bad_calls = vec![
-			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership {
-				maybe_collection: None
-			}),
+			RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership { maybe_collection: None }),
 			RuntimeCall::System(frame_system::Call::remark { remark: (*b"remark").into() }),
 		];
 
