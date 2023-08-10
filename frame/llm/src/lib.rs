@@ -283,17 +283,21 @@ pub mod pallet {
 		type PreReleasedAmount: Get<u128>; // Pre defined the total supply in runtime
 
 		/// Minimum amount of LLM Accounts needs politipooled to have citizenship rights
+		#[pallet::constant]
 		type CitizenshipMinimumPooledLLM: Get<u128>; // Pre defined the total supply in runtime
 
 		/// How much funds unlock on politics_unlock
+		#[pallet::constant]
 		type UnlockFactor: Get<Permill>;
 
 		/// Senate origin - can transfer from treasury
 		type SenateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
+		#[pallet::constant]
 		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
 		type AssetName: Get<Vec<u8>>;
 		type AssetSymbol: Get<Vec<u8>>;
+		#[pallet::constant]
 		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
 		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
 		type WeightInfo: WeightInfo;
