@@ -37,7 +37,7 @@
 //!     * gets `PreReleasedAmount` LLM on genesis and 10% of **Vault** balance periodically (_LLM
 //!       Release Event_)
 //!     * may hold LLD
-//!     * derived from PalletID `py/trsry`: `5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z`
+//!     * derived from PalletID `lltreasu`: `5EYCAe5hveooUENA5d7dwq3caqM4LLBzktNumMKmhNRXu4JE`
 //!
 //! * **Vault**:
 //!     * gets initial supply of LLM on genesis
