@@ -111,6 +111,8 @@ impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 		match self {
 			IdentityCallFilter::Manager =>
 				matches!(c,
+					RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) |
+					RuntimeCall::Balances(pallet_balances::Call::transfer { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
@@ -118,6 +120,8 @@ impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
 				),
 			IdentityCallFilter::Judgement =>
 				matches!(c,
+					RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) |
+					RuntimeCall::Balances(pallet_balances::Call::transfer { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
 					RuntimeCall::System(frame_system::Call::remark { .. }) // for benchmarking
 				)

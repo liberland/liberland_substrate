@@ -257,22 +257,22 @@ pub mod pallet {
 		) -> DispatchResult {
 			let clerk = ensure_signed(origin)?;
 			let call_filter = Self::clerks(&clerk).ok_or(Error::<T, I>::NoPermission)?;
-			Self::do_execute(*call, call_filter);
-			Ok(())
+			Self::do_execute(*call, call_filter)
 		}
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		fn do_execute(call: <T as Config<I>>::RuntimeCall, call_filter: T::CallFilter) {
+		fn do_execute(call: <T as Config<I>>::RuntimeCall, call_filter: T::CallFilter) -> DispatchResult {
 			let call_account_id = T::PalletId::get().into_account_truncating();
 			let mut origin: T::RuntimeOrigin = RawOrigin::Signed(call_account_id).into();
 			origin.add_filter(move |call| {
 				call_filter.filter(<T as Config<I>>::RuntimeCall::from_ref(call))
 			});
-			let res = call.dispatch(origin);
+			let res = call.dispatch(origin).map(|_| ()).map_err(|e| e.error);
 			Self::deposit_event(Event::CallExecuted {
-				result: res.map(|_| ()).map_err(|e| e.error),
+				result: res
 			});
+			res
 		}
 	}
 }
