@@ -262,16 +262,17 @@ pub mod pallet {
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		fn do_execute(call: <T as Config<I>>::RuntimeCall, call_filter: T::CallFilter) -> DispatchResult {
+		fn do_execute(
+			call: <T as Config<I>>::RuntimeCall,
+			call_filter: T::CallFilter,
+		) -> DispatchResult {
 			let call_account_id = T::PalletId::get().into_account_truncating();
 			let mut origin: T::RuntimeOrigin = RawOrigin::Signed(call_account_id).into();
 			origin.add_filter(move |call| {
 				call_filter.filter(<T as Config<I>>::RuntimeCall::from_ref(call))
 			});
 			let res = call.dispatch(origin).map(|_| ()).map_err(|e| e.error);
-			Self::deposit_event(Event::CallExecuted {
-				result: res
-			});
+			Self::deposit_event(Event::CallExecuted { result: res });
 			res
 		}
 	}
