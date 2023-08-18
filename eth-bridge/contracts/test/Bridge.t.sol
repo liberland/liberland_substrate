@@ -25,25 +25,36 @@ contract BridgeTest is Test, BridgeEvents {
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     function setUp() public {
-        Bridge impl = new Bridge();
-        token = new WrappedToken("Liberland Merits", "LLM");
+        Bridge bridgeImpl = new Bridge();
+        WrappedToken tokenImpl = new WrappedToken();
+        token = WrappedToken(
+            address(
+                new ERC1967Proxy(
+                    address(tokenImpl),
+                    abi.encodeCall(
+                        WrappedToken.initialize,
+                        ("Liberland Merits", "LLM")
+                    )
+                )
+            )
+        );
         bridge = Bridge(
             address(
                 new ERC1967Proxy(
-                address(impl),
-                abi.encodeCall(
-                Bridge.initialize,
-                (
-                    token,
-                    2,
-                    10,
-                    4,
-                    1000,
-                    10,
-                    650,
-                    0
-                )
-                )
+                    address(bridgeImpl),
+                    abi.encodeCall(
+                        Bridge.initialize,
+                        (
+                            token,
+                            2,
+                            10,
+                            4,
+                            1000,
+                            10,
+                            650,
+                            0
+                        )
+                    )
                 )
             )
         );
@@ -54,13 +65,15 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.grantRole(bridge.WATCHER_ROLE(), alice);
         bridge.grantRole(bridge.WATCHER_ROLE(), dave);
         vm.deal(alice, 100);
+        token.grantRole(token.MINTER_ROLE(), address(bridge));
+        token.grantRole(token.PAUSER_ROLE(), address(bridge));
+        vm.startPrank(address(bridge));
         token.mint(alice, 100);
         token.mint(bob, 100);
         token.mint(charlie, 100);
         token.mint(dave, 100);
         token.mint(address(this), 100);
-        token.transferOwnership(address(bridge));
-        token.approve(address(bridge), 9999999);
+        vm.stopPrank();
 
         vm.prank(dave);
         bridge.setActive(true);
@@ -802,28 +815,6 @@ contract BridgeTest is Test, BridgeEvents {
 
         vm.expectCall(address(impl2), "");
         bridge.fee();
-    }
-
-    function testOnlySuperAdminCanTransferTokenOwnership() public {
-        vm.prank(alice);
-        vm.expectRevert(
-            "AccessControl: account 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf is missing role 0x7613a25ecc738585a232ad50a301178f12b3ba8887d13e138b523c4269c47689"
-        );
-        bridge.transferTokenOwnership(alice);
-    }
-
-    function testTokenOwnershipIsTransferable() public {
-        bridge.transferTokenOwnership(address(this));
-        assertEq(token.owner(), address(this));
-    }
-
-    function testTokenTransferBricksBridge() public {
-        bridge.transferTokenOwnership(address(this));
-        assertEq(bridge.bridgeActive(), false);
-
-        vm.prank(dave);
-        vm.expectRevert(InvalidConfiguration.selector);
-        bridge.setActive(true);
     }
 
     function testClaimRewardWorks() public {

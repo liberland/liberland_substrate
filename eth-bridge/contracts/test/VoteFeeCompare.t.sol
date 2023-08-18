@@ -25,25 +25,36 @@ contract BridgeTest is Test, BridgeEvents {
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     function setUp() public {
-        Bridge impl = new Bridge();
-        token = new WrappedToken("Liberland Merits", "LLM");
+        Bridge bridgeImpl = new Bridge();
+        WrappedToken tokenImpl = new WrappedToken();
+        token = WrappedToken(
+            address(
+                new ERC1967Proxy(
+                    address(tokenImpl),
+                    abi.encodeCall(
+                        WrappedToken.initialize,
+                        ("Liberland Merits", "LLM")
+                    )
+                )
+            )
+        );
         bridge = Bridge(
             address(
                 new ERC1967Proxy(
-                address(impl),
-                abi.encodeCall(
-                Bridge.initialize,
-                (
-                    token,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    100,
-                    0
-                )
-                )
+                    address(bridgeImpl),
+                    abi.encodeCall(
+                        Bridge.initialize,
+                        (
+                            token,
+                            3,
+                            10,
+                            4,
+                            1000,
+                            10,
+                            650,
+                            0
+                        )
+                    )
                 )
             )
         );
@@ -53,8 +64,8 @@ contract BridgeTest is Test, BridgeEvents {
         bridge.grantRole(bridge.RELAY_ROLE(), charlie);
         bridge.grantRole(bridge.RELAY_ROLE(), dave);
         bridge.grantRole(bridge.RELAY_ROLE(), address(this));
-        token.transferOwnership(address(bridge));
-        token.approve(address(bridge), 9999999);
+        token.grantRole(token.MINTER_ROLE(), address(bridge));
+        token.grantRole(token.PAUSER_ROLE(), address(bridge));
         bridge.setActive(true);
     }
 

@@ -1,34 +1,61 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {Pausable} from "openzeppelin-contracts/contracts/security/Pausable.sol";
-import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
-import {ERC20Permit} from "openzeppelin-contracts/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import {Initializable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {AccessControlUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
+import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
+import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol";
+import {ERC20PermitUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 
-contract WrappedToken is ERC20, Pausable, Ownable, ERC20Permit {
-    // solhint-disable-next-line no-empty-blocks
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) ERC20Permit(name) {}
+/// @dev Must be used with ERC1967Proxy
+contract WrappedToken is
+    Initializable,
+    ERC20Upgradeable,
+    PausableUpgradeable,
+    AccessControlUpgradeable,
+    ERC20PermitUpgradeable,
+    UUPSUpgradeable
+{
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    function pause() public onlyOwner {
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(string memory name, string memory symbol) public initializer {
+        __ERC20_init(name, symbol);
+        __Pausable_init();
+        __AccessControl_init();
+        __ERC20Permit_init(name);
+        __UUPSUpgradeable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 
-    function burn(address account, uint256 amount) public onlyOwner {
+    function burn(address account, uint256 amount) public onlyRole(MINTER_ROLE) {
         _spendAllowance(account, _msgSender(), amount);
         _burn(account, amount);
     }
 
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        if (spender == super.owner()) {
+        if (hasRole(MINTER_ROLE, spender)) {
             return type(uint256).max;
         }
         return super.allowance(owner, spender);
@@ -41,4 +68,7 @@ contract WrappedToken is ERC20, Pausable, Ownable, ERC20Permit {
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override whenNotPaused {
         super._beforeTokenTransfer(from, to, amount);
     }
+
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 }

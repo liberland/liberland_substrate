@@ -163,34 +163,44 @@ Get contract addresses (replace path):
 > jq '.transactions | map(select(.transactionType == "CREATE")) | map(.contractName, .contractAddress)' broadcast/Deploy.s.sol/31337/run-latest.json
 [
   "Bridge",
-  "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35",
   "WrappedToken",
-  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "0xA15BB66138824a1c7167f5E85b957d04Dd34E468",
   "ERC1967Proxy",
-  "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  "WrappedToken",
-  "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "0xb19b36b1456E65E3A6D514D3F715f204BD59f431",
   "ERC1967Proxy",
-  "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+  "0x8ce361602B935680E8DeC218b820ff5056BeB7af",
+  "ERC1967Proxy",
+  "0x0C8E79F3534B00D9a3D4a856B665Bf4eBC22f2ba",
+  "ERC1967Proxy",
+  "0xeD1DB453C3156Ff3155a97AD217b3087D5Dc5f6E"
 ]
 ```
-Note that `Bridge` is underlying implementation and you should interact with Proxies.
+Note that `Bridge` and `WrappedToken` are underlying implementation and you can't use it directly - you must interact with Proxies.
 
-Take the WrappedToken addresses and check which is which:
+Take addresses of proxies and check which are tokens:
 ```
-> cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 'name()' | cast --to-ascii
- Liberland Dollars
-> cast call 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9 'name()' | cast --to-ascii
+> cast call 0xeD1DB453C3156Ff3155a97AD217b3087D5Dc5f6E 'name()' | cast --to-ascii
+Error: 
+(code: 3, message: execution reverted, data: Some(String("0x")))
+
+> cast call 0x0C8E79F3534B00D9a3D4a856B665Bf4eBC22f2ba 'name()' | cast --to-ascii
  Liberland Merits
+> cast call 0x8ce361602B935680E8DeC218b820ff5056BeB7af 'name()' | cast --to-ascii
+Error: 
+(code: 3, message: execution reverted, data: Some(String("0x")))
+
+> cast call 0xb19b36b1456E65E3A6D514D3F715f204BD59f431 'name()' | cast --to-ascii
+ Liberland Dollars
 ```
 
-Take the Proxy addresses and check which tokens they use:
+Take the proxy addresses that failed - these are bridge proxies - and check which tokens they use:
 ```
-> cast call 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 'token()'
-0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512 # LLD Token address
+> cast call 0x8ce361602B935680E8DeC218b820ff5056BeB7af 'token()'
+0x000000000000000000000000b19b36b1456e65e3a6d514d3f715f204bd59f431 # LLD Token address
 
-> cast call 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 'token()'
-0x000000000000000000000000Dc64a140Aa3E981100a9becA4E685f962f0cF6C9 # LLM Token address
+> cast call 0xeD1DB453C3156Ff3155a97AD217b3087D5Dc5f6E 'token()'
+0x0000000000000000000000000c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba # LLM Token address
 ```
 
 License: MIT

@@ -19,8 +19,16 @@ contract Deploy is Script {
         uint32 votesRequired = 5;
 
         Bridge bridgeImpl = new Bridge();
+        WrappedToken tokenImpl = new WrappedToken();
 
-        WrappedToken lld = new WrappedToken("Liberland Dollars", "LLD");
+        WrappedToken lld = WrappedToken(
+            address(
+                new ERC1967Proxy(
+                address(tokenImpl),
+                abi.encodeCall(WrappedToken.initialize, ("Liberland Dollars", "LLD"))
+                )
+            )
+        );
         ERC1967Proxy lldBridge = new ERC1967Proxy(
             address(bridgeImpl),
             abi.encodeCall(
@@ -37,9 +45,17 @@ contract Deploy is Script {
                 )
             )
         );
-        lld.transferOwnership(address(lldBridge));
+        lld.grantRole(lld.MINTER_ROLE(), address(lldBridge));
+        lld.grantRole(lld.PAUSER_ROLE(), address(lldBridge));
 
-        WrappedToken llm = new WrappedToken("Liberland Merits", "LLM");
+        WrappedToken llm = WrappedToken(
+            address(
+                new ERC1967Proxy(
+                address(tokenImpl),
+                abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
+                )
+            )
+        );
         ERC1967Proxy llmBridge = new ERC1967Proxy(
             address(bridgeImpl),
             abi.encodeCall(
@@ -56,7 +72,9 @@ contract Deploy is Script {
                 )
             )
         );
-        llm.transferOwnership(address(llmBridge));
+        llm.grantRole(llm.MINTER_ROLE(), address(llmBridge));
+        llm.grantRole(llm.PAUSER_ROLE(), address(llmBridge));
+
         vm.stopBroadcast();
     }
 }
