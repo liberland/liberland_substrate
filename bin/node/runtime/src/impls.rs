@@ -250,6 +250,21 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 	}
 }
 
+#[derive(
+	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct CouncilAccountCallFilter;
+impl Contains<RuntimeCall> for CouncilAccountCallFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c,
+			RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) | 
+			RuntimeCall::LLM(pallet_llm::Call::send_llm { .. }) |
+			RuntimeCall::System(frame_system::Call::remark_with_event { .. }) // for benchmarking
+		)
+	}
+}
+
 pub struct ContainsMember<T, I>(
     PhantomData<(T, I)>,
 );

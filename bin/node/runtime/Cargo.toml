@@ -107,6 +107,7 @@ liberland-traits = { path = "../../../frame/liberland-traits", default-features 
 pallet-registry = { path = "../../../frame/registry", default-features = false }
 pallet-office = { path = "../../../frame/office", default-features = false }
 pallet-federated-bridge = { path = "../../../frame/federated-bridge", default-features = false }
+pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate", optional = true}
@@ -195,6 +196,7 @@ std = [
 	"pallet-registry/std",
 	"pallet-office/std",
 	"pallet-federated-bridge/std",
+	"pallet-custom-account/std",
 	"substrate-wasm-builder",
 	"serde",
 ]
@@ -240,6 +242,7 @@ runtime-benchmarks = [
 	"pallet-registry/runtime-benchmarks",
 	"pallet-office/runtime-benchmarks",
 	"pallet-federated-bridge/runtime-benchmarks",
+	"pallet-custom-account/runtime-benchmarks",
 	"pallet-liberland-legislation/runtime-benchmarks",
 	"pallet-llm/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
@@ -293,4 +296,5 @@ try-runtime = [
 	"pallet-registry/try-runtime",
 	"pallet-office/try-runtime",
 	"pallet-federated-bridge/try-runtime",
+	"pallet-custom-account/try-runtime",
 ]
