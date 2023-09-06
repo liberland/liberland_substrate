@@ -1022,7 +1022,14 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = Bounties;
 	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 	type MaxApprovals = MaxApprovals;
-	type SpendOrigin = EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxBalance>;
+	type SpendOrigin = EnsureWithSuccess<
+		EitherOfDiverse<
+			EnsureRoot<AccountId>,
+			pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>
+		>,
+		AccountId,
+		MaxBalance
+	>;
 }
 
 parameter_types! {
