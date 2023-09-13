@@ -14,6 +14,7 @@ members = [
 	"frame/nfts",
 	"frame/office",
 	"frame/federated-bridge",
+	"frame/custom-account",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates

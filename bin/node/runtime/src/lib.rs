@@ -99,7 +99,7 @@ pub mod impls;
 use impls::{
 	Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember
+	ContainsMember, CouncilAccountCallFilter,
 };
 
 /// Constant values used within the runtime.
@@ -1609,6 +1609,19 @@ impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const CouncilAccountPalletId: PalletId = PalletId(*b"councilc");
+}
+
+impl pallet_custom_account::Config<pallet_custom_account::Instance1> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = CouncilAccountPalletId;
+	type ExecuteOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+	type CallFilter = CouncilAccountCallFilter;
+	type WeightInfo = ();
+}
+
 construct_runtime!(
 	pub struct Runtime where
 		Block = Block,
@@ -1670,6 +1683,7 @@ construct_runtime!(
 		Senate: pallet_collective::<Instance3> = 58,
 		EthLLDBridge: pallet_federated_bridge::<Instance1> = 59,
 		EthLLMBridge: pallet_federated_bridge::<Instance2> = 60,
+		CouncilAccount: pallet_custom_account::<Instance1> = 61,
 	}
 );
 
@@ -1880,6 +1894,7 @@ mod benches {
 		[pallet_liberland_legislation, LiberlandLegislation]
 		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
+		[pallet_custom_account, CouncilAccount]
 	);
 }
 
