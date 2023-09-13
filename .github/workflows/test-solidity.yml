@@ -53,7 +53,7 @@ jobs:
         working-directory: ./eth-bridge/contracts/
         run: |
           forge --version
-          forge build --sizes
+          forge build --build-info --sizes
         id: build_solidity
 
       - name: Run Forge tests
@@ -73,4 +73,4 @@ jobs:
         with:
           target: ./eth-bridge/contracts/
           slither-config: ./eth-bridge/contracts/slither.config.json
-          ignore-compilation: true
+          ignore-compile: true

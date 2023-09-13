@@ -6,31 +6,8 @@ import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/prox
 import {AccessControlUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
 import {WrappedToken} from "./WrappedToken.sol";
-
-/// Struct for representing Substrate -> ETH transfer
-struct IncomingReceiptStruct {
-    uint64 substrateBlockNumber;
-    address ethRecipient;
-    uint256 amount;
-    uint256 approvedOn;
-    uint256 processedOn;
-}
-
-/// Rate limit parameters. Limit how fast can tokens be minted.This is
-/// implemented as The Leaky Bucket as a Meter algorithm -
-/// https://en.wikipedia.org/wiki/Leaky_bucket.
-/// `counterLimit` is the max counter (a.k.a. max burst, max single withdrawal)
-/// `decayRate` is after reaching max, how much can be minted per block.
-struct RateLimitParameters {
-    uint256 counterLimit;
-    uint256 decayRate;
-}
-
-/// Struct for keeping track of counters required to enforce rate limits
-struct RateLimitCounter {
-    uint256 counter;
-    uint256 lastUpdate;
-}
+import {IncomingReceiptStruct, RateLimitParameters, RateLimitCounter} from "./BridgeTypes.sol";
+import {BridgeEvents} from "./BridgeEvents.sol";
 
 /// Bridge is deactivated - see `bridgeActive()` and `setActive(bool)`
 error BridgeInactive();
@@ -58,37 +35,6 @@ error InvalidConfiguration();
 error AlreadyVoted();
 /// Transferred amount is less than configured minimum
 error TooSmallAmount();
-
-/// @title Interface with events emitted by the bridge
-interface BridgeEvents {
-    /// Emitted after burn, notifies relays that transfer is happening
-    /// @param from Account that burned its tokens
-    /// @param substrateRecipient Who should get tokens on substrate
-    /// @param amount Amount of token burned
-    event OutgoingReceipt(address indexed from, bytes32 indexed substrateRecipient, uint256 amount);
-
-    /// Bridge get activated or deactivated
-    /// @param newBridgeState New bridge state
-    event StateChanged(bool newBridgeState);
-
-    /// An IncomingReceipt was approved for transfer. `mint(bytes32)`
-    /// can now be called for this receipt after `mintDelay` blocks pass.
-    /// @param receiptId Receipt that got approved
-    event Approved(bytes32 indexed receiptId);
-
-    /// Vote was cast to approve IncomingReceipt
-    /// @param receiptId subject Receipt
-    /// @param relay Relay that cast the vote
-    event Vote(bytes32 indexed receiptId, address indexed relay, uint64 substrateBlockNumber);
-
-    /// IncomingReceipt was completely processed - tokens were minted
-    /// @param receiptId subject Receipt
-    event Processed(bytes32 indexed receiptId);
-
-    /// Bridge was emergency stopped by watcher - misbehavior by relay was
-    /// detected
-    event EmergencyStop();
-}
 
 /// @title Substrate <-> ETH bridge for Liberland
 /// @dev Must be used with ERC1967Proxy
@@ -424,19 +370,6 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @dev Only addresses with ADMIN_ROLE can call this
     function setMinTransfer(uint256 minTransfer_) public onlyRole(ADMIN_ROLE) {
         minTransfer = minTransfer_;
-    }
-
-    /// Transfer ownership of underlying token contract.
-    /// Will stop the bridge and set the token address to 0, effectively
-    /// bricking the bridge.
-    /// @param newOwner new owner
-    /// @dev Only addresses with SUPER_ADMIN_ROLE can call this
-    /// @dev Interacts with `token` contract
-    function transferTokenOwnership(address newOwner) public onlyRole(SUPER_ADMIN_ROLE) {
-        WrappedToken token_ = token;
-        token = WrappedToken(address(0));
-        _setActive(false);
-        token_.transferOwnership(newOwner);
     }
 
     /// Check if given receiptId was already voted on by given voter
