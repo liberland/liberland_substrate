@@ -787,7 +787,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 
 parameter_types! {
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
-	pub const FastTrackVotingPeriod: BlockNumber = 7 * DAYS;
+	pub const FastTrackVotingPeriod: BlockNumber = 3 * DAYS;
 	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
 	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * DAYS;
@@ -807,7 +807,7 @@ impl pallet_democracy::Config for Runtime {
 		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
 	type ExternalMajorityOrigin =
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
+		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
 
 	type MaxAdditionalFields = MaxAdditionalFields;
 	type MaxRegistrars = MaxRegistrars;
@@ -821,7 +821,10 @@ impl pallet_democracy::Config for Runtime {
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
 	type FastTrackOrigin =
-		pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>;
+		EitherOfDiverse<
+			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>,
+			pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
+		>;
 	type InstantOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
 	type InstantAllowed = frame_support::traits::ConstBool<true>;
