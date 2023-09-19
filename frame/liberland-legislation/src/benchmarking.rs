@@ -12,12 +12,12 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 use super::*;
 use crate::{types::*, Pallet as Legislation};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
+use frame_support::BoundedVec;
 use frame_system::RawOrigin;
 use liberland_traits::LLInitializer;
-use sp_runtime::{traits::ConstU32};
+use sp_runtime::traits::ConstU32;
 use sp_std::prelude::*;
 use LegislationTier::*;
-use frame_support::BoundedVec;
 
 const SEED: u32 = 0;
 const ZERO_ID: LegislationId = LegislationId { year: 0u32, index: 0u32 };

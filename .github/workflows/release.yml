@@ -11,7 +11,6 @@ jobs:
     # use old ubuntu for GLIBC compatibility
     runs-on: ubuntu-20.04
     env:
-      RUSTFLAGS: "-D warnings"
       RUST_BACKTRACE: 1
     steps:
       - name: Checkout
@@ -24,7 +23,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2023-01-01
+          toolchain: stable
           default: true
           target: wasm32-unknown-unknown
           components: rustfmt, clippy

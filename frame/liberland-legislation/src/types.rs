@@ -1,7 +1,7 @@
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::BoundedVec;
 use scale_info::TypeInfo;
 use sp_core::ConstU32;
-use frame_support::BoundedVec;
 
 pub type LegislationSection = u32;
 pub type LegislationContent = BoundedVec<u8, ConstU32<20480>>;

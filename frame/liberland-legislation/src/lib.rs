@@ -1,29 +1,29 @@
 //! # Liberland Legislation Pallet
-//! 
+//!
 //! ## Overview
-//! 
+//!
 //! The Liberland Legislation pallet handles adding and removing legislations.
-//! 
+//!
 //! ### Terminology
-//! 
+//!
 //! - **Tier:** Lower tier legislations are more important then higher tiers.
 //! - **Id:** Unique identifier of a legislation inside a tier. Composed of:
 //!     - **Year**
 //!     - **Index**
 //! - **Section:** Part of legislation that can be amended, repealed or referenced directly.
 //! - **Headcount veto:** Process of legislation repeal driven by citizens.
-//! 
+//!
 //! ### Headcount Veto
-//! 
+//!
 //! Legislation pallet allows citizens to submit their veto for given legislation.
 //! After the required percentage of vetos (different for each tier) of vetos is
 //! collected, it's possible to trigger the headcount veto which removes given
 //! legislation.
-//! 
+//!
 //! ## Interface
-//! 
+//!
 //! ### Dispatchable Functions
-//! 
+//!
 //! - `add_legislation` - Adds a new legislation.
 //! - `amend_legislation` - Change existing section or add a new section to existing legislation.
 //! - `repeal_legislation` - Repeals whole legislation (all sections).
@@ -32,8 +32,8 @@
 //! - `revert_veto` - Removes veto for given legislation (or its specific section) for the signer.
 //! - `trigger_headcount_veto` - Repeals legislation (all sections) if veto count requirements are met for it.
 //! - `trigger_section_headcount_veto` - Repeals legislation section if veto count requirements are met for it.
-//! 
-//! 
+//!
+//!
 //! License: MIT
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -54,7 +54,7 @@ pub mod pallet {
 	use frame_support::{pallet_prelude::*, Blake2_128Concat};
 	use frame_system::pallet_prelude::*;
 	use liberland_traits::CitizenshipChecker;
-	use types::{LegislationId, LegislationTier, LegislationSection, LegislationContent};
+	use types::{LegislationContent, LegislationId, LegislationSection, LegislationTier};
 	use LegislationTier::*;
 
 	type Citizenship<T> = <T as Config>::Citizenship;
@@ -89,13 +89,31 @@ pub mod pallet {
 		/// A legislation was amended.
 		LegislationAmended { tier: LegislationTier, id: LegislationId, section: LegislationSection },
 		/// A legislation was removed.
-		LegislationRepealed { tier: LegislationTier, id: LegislationId, section: Option<LegislationSection> },
+		LegislationRepealed {
+			tier: LegislationTier,
+			id: LegislationId,
+			section: Option<LegislationSection>,
+		},
 		/// Citizen submitted a veto for a legislation.
-		VetoSubmitted { tier: LegislationTier, id: LegislationId, section: Option<LegislationSection>, account: T::AccountId },
+		VetoSubmitted {
+			tier: LegislationTier,
+			id: LegislationId,
+			section: Option<LegislationSection>,
+			account: T::AccountId,
+		},
 		/// Citizen reverted their veto for a legislation.
-		VetoReverted { tier: LegislationTier, id: LegislationId, section: Option<LegislationSection>, account: T::AccountId },
+		VetoReverted {
+			tier: LegislationTier,
+			id: LegislationId,
+			section: Option<LegislationSection>,
+			account: T::AccountId,
+		},
 		/// Legislation was removed by headcount veto process.
-		LegislationRepealedByHeadcountVeto { tier: LegislationTier, section: Option<LegislationSection>, id: LegislationId },
+		LegislationRepealedByHeadcountVeto {
+			tier: LegislationTier,
+			section: Option<LegislationSection>,
+			id: LegislationId,
+		},
 	}
 
 	#[pallet::error]
@@ -122,7 +140,7 @@ pub mod pallet {
 	}
 
 	/// Registered legislations.
-	/// 
+	///
 	/// If it doesn't exist, then it never existed.
 	/// If it exists but is None, then it was repealed.
 	/// If it exists and is Some, it's in legal force.
@@ -150,7 +168,7 @@ pub mod pallet {
 			NMapKey<Blake2_128Concat, Option<LegislationSection>>,
 		),
 		u64,
-		ValueQuery
+		ValueQuery,
 	>;
 
 	/// Registered vetos per legislation.
@@ -224,7 +242,10 @@ pub mod pallet {
 				},
 			}
 
-			ensure!(!Legislation::<T>::contains_key((&tier, &id, 0)), Error::<T>::LegislationAlreadyExists);
+			ensure!(
+				!Legislation::<T>::contains_key((&tier, &id, 0)),
+				Error::<T>::LegislationAlreadyExists
+			);
 
 			for (idx, content) in sections.iter().enumerate() {
 				let idx = idx as LegislationSection;
@@ -257,7 +278,7 @@ pub mod pallet {
 		/// * `BadOrigin` if `origin` is invalid for given `tier`,
 		/// * `InvalidWitness` if `witness` doesn't match current legislation version,
 		/// * `InvalidLegislation` if legislation with this `tier` and `id` doesn't exist,
-		/// 
+		///
 		/// Emits `LegislationRepealed`.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::repeal_legislation(
@@ -275,7 +296,7 @@ pub mod pallet {
 				Constitution => {
 					T::ConstitutionOrigin::ensure_origin(origin)?;
 					if id.year == 0 && id.index == 0 {
-						return Err(Error::<T>::ProtectedLegislation.into())
+						return Err(Error::<T>::ProtectedLegislation.into());
 					}
 				},
 				InternationalTreaty => {
@@ -289,13 +310,11 @@ pub mod pallet {
 				},
 			}
 
-			let current_version = LegislationVersion::<T>::get((tier, id, None::<LegislationSection>));
+			let current_version =
+				LegislationVersion::<T>::get((tier, id, None::<LegislationSection>));
 			ensure!(current_version == witness, Error::<T>::InvalidWitness);
 
-			ensure!(
-				Legislation::<T>::contains_key((tier, id, 0)),
-				Error::<T>::InvalidLegislation,
-			);
+			ensure!(Legislation::<T>::contains_key((tier, id, 0)), Error::<T>::InvalidLegislation,);
 
 			Self::do_repeal(tier, id, None);
 			Self::deposit_event(Event::LegislationRepealed { tier, id, section: None });
@@ -323,7 +342,7 @@ pub mod pallet {
 		/// * `BadOrigin` if `origin` is invalid for given `tier`,
 		/// * `InvalidWitness` if `witness` doesn't match current section version,
 		/// * `InvalidLegislation` if section with this `tier`, `id` and `section` doesn't exist,
-		/// 
+		///
 		/// Emits `LegislationRepealed`.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::WeightInfo::repeal_legislation_section())]
@@ -340,7 +359,7 @@ pub mod pallet {
 				Constitution => {
 					T::ConstitutionOrigin::ensure_origin(origin)?;
 					if id.year == 0 && id.index == 0 {
-						return Err(Error::<T>::ProtectedLegislation.into())
+						return Err(Error::<T>::ProtectedLegislation.into());
 					}
 				},
 				InternationalTreaty => {
@@ -422,7 +441,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			tier: LegislationTier,
 			id: LegislationId,
-			section: Option<LegislationSection>
+			section: Option<LegislationSection>,
 		) -> DispatchResult {
 			let account = ensure_signed(origin)?;
 			let key = (&tier, &id, &section, &account);
@@ -517,16 +536,13 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure!(tier < InvalidTier, Error::<T>::InvalidTier);
 
-			ensure!(
-				Legislation::<T>::contains_key((tier, id, 0)),
-				Error::<T>::InvalidLegislation,
-			);
+			ensure!(Legislation::<T>::contains_key((tier, id, 0)), Error::<T>::InvalidLegislation,);
 
 			match tier {
 				Constitution => {
 					T::ConstitutionOrigin::ensure_origin(origin)?;
 					if id.year == 0 && id.index == 0 {
-						return Err(Error::<T>::ProtectedLegislation.into())
+						return Err(Error::<T>::ProtectedLegislation.into());
 					}
 				},
 				InternationalTreaty => {
@@ -550,7 +566,11 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn do_headcount_veto(tier: LegislationTier, id: LegislationId, section: Option<LegislationSection>) -> DispatchResult {
+		fn do_headcount_veto(
+			tier: LegislationTier,
+			id: LegislationId,
+			section: Option<LegislationSection>,
+		) -> DispatchResult {
 			ensure!(tier != Constitution, Error::<T>::InvalidTier);
 
 			let citizens = Citizenship::<T>::citizens_count();
@@ -578,7 +598,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn do_repeal(tier: LegislationTier, id: LegislationId, section: Option<LegislationSection>) {
+		fn do_repeal(
+			tier: LegislationTier,
+			id: LegislationId,
+			section: Option<LegislationSection>,
+		) {
 			if let Some(section) = section {
 				Legislation::<T>::insert((&tier, &id, &section), None::<LegislationContent>);
 				LegislationVersion::<T>::mutate((&tier, &id, Some(section)), |v| *v += 1);
