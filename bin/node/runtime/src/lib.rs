@@ -1433,7 +1433,7 @@ impl pallet_whitelist::Config for Runtime {
 impl pallet_liberland_legislation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
-	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
+	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 2, 3>;
 	type InternationalTreatyOrigin = EnsureRootOrHalfCouncil;
 	type LowTierDeleteOrigin = EitherOf<
 		EnsureRoot<AccountId>,
