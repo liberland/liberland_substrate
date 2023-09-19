@@ -2,16 +2,15 @@
 
 set -exuo pipefail
 
-alice_api="polkadot-js-api --seed //Alice"
-
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
+. common.sh
 
 # make Bob a relay and watcher
-polkadot-js-api --seed "//Alice" tx.ethLLMBridge.addRelay 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
-polkadot-js-api --seed "//Alice" tx.ethLLMBridge.addWatcher 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
+$API_ALICE tx.ethLLMBridge.addRelay 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
+$API_ALICE tx.ethLLMBridge.addWatcher 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 
 # votes required = 1
-polkadot-js-api --seed "//Alice" tx.ethLLMBridge.setVotesRequired 1
+$API_ALICE tx.ethLLMBridge.setVotesRequired 1
 
 # start bridge
-polkadot-js-api --seed "//Alice" tx.ethLLMBridge.setState Active
+$API_ALICE tx.ethLLMBridge.setState Active
