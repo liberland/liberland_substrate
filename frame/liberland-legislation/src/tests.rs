@@ -2,7 +2,7 @@
 use crate::{
 	mock::*,
 	types::{LegislationTier::*, *},
-	Error, Legislation, VetosCount, LegislationVersion,
+	Error, Legislation, LegislationVersion, VetosCount,
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin, BoundedVec};
 use pallet_democracy::Tally;
@@ -21,11 +21,7 @@ fn constitution_origin(ayes: u64, nays: u64, aye_voters: u64, nay_voters: u64) -
 fn sample_legislation() -> BoundedVec<LegislationContent, ConstU32<1024>> {
 	let section: LegislationContent = vec![1, 2, 3].try_into().unwrap();
 
-	return vec![
-		section.clone(),
-		section.clone(),
-		section.clone(),
-	].try_into().unwrap();
+	return vec![section.clone(), section.clone(), section.clone()].try_into().unwrap();
 }
 
 #[test]
@@ -188,7 +184,12 @@ fn cannot_overwrite_legislation() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::add_legislation(RuntimeOrigin::root(), Law, ZERO_ID, sample_legislation()),
+			LiberlandLegislation::add_legislation(
+				RuntimeOrigin::root(),
+				Law,
+				ZERO_ID,
+				sample_legislation()
+			),
 			Error::<Test>::LegislationAlreadyExists
 		);
 	});
@@ -227,10 +228,7 @@ fn add_legislation_stores_correct_data() {
 #[test]
 fn repeal_constitution_legislation_requires_special_origin() {
 	new_test_ext().execute_with(|| {
-		let id = LegislationId {
-			year: 2023,
-			index: 1,
-		};
+		let id = LegislationId { year: 2023, index: 1 };
 		assert_ok!(LiberlandLegislation::add_legislation(
 			constitution_origin(75, 25, 3, 1),
 			Constitution,
@@ -241,7 +239,12 @@ fn repeal_constitution_legislation_requires_special_origin() {
 			LiberlandLegislation::repeal_legislation(RuntimeOrigin::signed(5), Constitution, id, 1),
 			BadOrigin
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation(constitution_origin(75, 25, 3, 1), Constitution, id, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			constitution_origin(75, 25, 3, 1),
+			Constitution,
+			id,
+			1
+		));
 	});
 }
 
@@ -255,7 +258,12 @@ fn cant_repeal_constitution_zero() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation(constitution_origin(75, 25, 3, 1), Constitution, ZERO_ID, 1),
+			LiberlandLegislation::repeal_legislation(
+				constitution_origin(75, 25, 3, 1),
+				Constitution,
+				ZERO_ID,
+				1
+			),
 			Error::<Test>::ProtectedLegislation,
 		);
 	});
@@ -271,10 +279,20 @@ fn repeal_treaty_legislation_requires_special_origin() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation(RuntimeOrigin::signed(5), InternationalTreaty, ZERO_ID, 1),
+			LiberlandLegislation::repeal_legislation(
+				RuntimeOrigin::signed(5),
+				InternationalTreaty,
+				ZERO_ID,
+				1
+			),
 			BadOrigin
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation(RuntimeOrigin::signed(1), InternationalTreaty, ZERO_ID, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			RuntimeOrigin::signed(1),
+			InternationalTreaty,
+			ZERO_ID,
+			1
+		));
 	});
 }
 
@@ -291,7 +309,12 @@ fn repeal_legislation_requires_root() {
 			LiberlandLegislation::repeal_legislation(RuntimeOrigin::signed(5), Law, ZERO_ID, 1),
 			BadOrigin
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1
+		));
 	});
 }
 
@@ -312,7 +335,12 @@ fn repeal_legislation_verifies_witness_data() {
 			LiberlandLegislation::repeal_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 2),
 			Error::<Test>::InvalidWitness
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1
+		));
 	});
 }
 
@@ -325,7 +353,12 @@ fn data_disappears_after_repeal() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::repeal_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1
+		));
 		assert_eq!(Legislation::<Test>::get((Law, ZERO_ID, 0)), Some(None));
 		assert_eq!(Legislation::<Test>::get((Law, ZERO_ID, 1)), Some(None));
 	});
@@ -350,8 +383,15 @@ fn repeal_deposits_event() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::repeal_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 1));
-		System::assert_last_event(super::Event::LegislationRepealed { tier: Law, id: ZERO_ID, section: None }.into());
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1
+		));
+		System::assert_last_event(
+			super::Event::LegislationRepealed { tier: Law, id: ZERO_ID, section: None }.into(),
+		);
 	});
 }
 
@@ -364,7 +404,12 @@ fn repeal_bumps_version() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::repeal_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1
+		));
 		assert_eq!(LegislationVersion::<Test>::get((Law, ZERO_ID, Some(0))), 2);
 		assert_eq!(LegislationVersion::<Test>::get((Law, ZERO_ID, Some(1))), 2);
 	});
@@ -373,10 +418,7 @@ fn repeal_bumps_version() {
 #[test]
 fn repeal_constitution_legislation_section_requires_special_origin() {
 	new_test_ext().execute_with(|| {
-		let id = LegislationId {
-			year: 2023,
-			index: 1,
-		};
+		let id = LegislationId { year: 2023, index: 1 };
 		assert_ok!(LiberlandLegislation::add_legislation(
 			constitution_origin(75, 25, 3, 1),
 			Constitution,
@@ -384,10 +426,22 @@ fn repeal_constitution_legislation_section_requires_special_origin() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::signed(5), Constitution, id, 0, 1),
+			LiberlandLegislation::repeal_legislation_section(
+				RuntimeOrigin::signed(5),
+				Constitution,
+				id,
+				0,
+				1
+			),
 			BadOrigin
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(constitution_origin(75, 25, 3, 1), Constitution, id, 0, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			constitution_origin(75, 25, 3, 1),
+			Constitution,
+			id,
+			0,
+			1
+		));
 	});
 }
 
@@ -401,7 +455,13 @@ fn cant_repeal_constitution_zero_sections() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(constitution_origin(75, 25, 3, 1), Constitution, ZERO_ID, 0, 1),
+			LiberlandLegislation::repeal_legislation_section(
+				constitution_origin(75, 25, 3, 1),
+				Constitution,
+				ZERO_ID,
+				0,
+				1
+			),
 			Error::<Test>::ProtectedLegislation,
 		);
 	});
@@ -417,10 +477,22 @@ fn repeal_treaty_legislation_section_requires_special_origin() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::signed(5), InternationalTreaty, ZERO_ID, 0, 1),
+			LiberlandLegislation::repeal_legislation_section(
+				RuntimeOrigin::signed(5),
+				InternationalTreaty,
+				ZERO_ID,
+				0,
+				1
+			),
 			BadOrigin
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::signed(1), InternationalTreaty, ZERO_ID, 0, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			RuntimeOrigin::signed(1),
+			InternationalTreaty,
+			ZERO_ID,
+			0,
+			1
+		));
 	});
 }
 
@@ -434,10 +506,22 @@ fn repeal_legislation_section_requires_root() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::signed(5), Law, ZERO_ID, 0, 1),
+			LiberlandLegislation::repeal_legislation_section(
+				RuntimeOrigin::signed(5),
+				Law,
+				ZERO_ID,
+				0,
+				1
+			),
 			BadOrigin
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 0, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			0,
+			1
+		));
 	});
 }
 
@@ -451,14 +535,32 @@ fn repeal_legislation_section_verifies_witness_data() {
 			sample_legislation(),
 		));
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 0, 0),
+			LiberlandLegislation::repeal_legislation_section(
+				RuntimeOrigin::root(),
+				Law,
+				ZERO_ID,
+				0,
+				0
+			),
 			Error::<Test>::InvalidWitness
 		);
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 0, 2),
+			LiberlandLegislation::repeal_legislation_section(
+				RuntimeOrigin::root(),
+				Law,
+				ZERO_ID,
+				0,
+				2
+			),
 			Error::<Test>::InvalidWitness
 		);
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 0, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			0,
+			1
+		));
 	});
 }
 
@@ -472,7 +574,13 @@ fn data_disappears_after_repeal_section() {
 			ZERO_ID,
 			sections.clone(),
 		));
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 1, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1,
+			1
+		));
 		assert_eq!(Legislation::<Test>::get((Law, ZERO_ID, 0)), Some(Some(sections[0].clone())));
 		assert_eq!(Legislation::<Test>::get((Law, ZERO_ID, 1)), Some(None));
 		assert_eq!(Legislation::<Test>::get((Law, ZERO_ID, 2)), Some(Some(sections[2].clone())));
@@ -483,7 +591,13 @@ fn data_disappears_after_repeal_section() {
 fn disallows_repeal_section_of_unexisting_law() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 0, 0),
+			LiberlandLegislation::repeal_legislation_section(
+				RuntimeOrigin::root(),
+				Law,
+				ZERO_ID,
+				0,
+				0
+			),
 			Error::<Test>::InvalidLegislation,
 		);
 	});
@@ -498,8 +612,16 @@ fn repeal_section_deposits_event() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 0, 1));
-		System::assert_last_event(super::Event::LegislationRepealed { tier: Law, id: ZERO_ID, section: Some(0) }.into());
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			0,
+			1
+		));
+		System::assert_last_event(
+			super::Event::LegislationRepealed { tier: Law, id: ZERO_ID, section: Some(0) }.into(),
+		);
 	});
 }
 
@@ -512,7 +634,13 @@ fn repeal_section_bumps_version() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::repeal_legislation_section(RuntimeOrigin::root(), Law, ZERO_ID, 1, 1));
+		assert_ok!(LiberlandLegislation::repeal_legislation_section(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1,
+			1
+		));
 		assert_eq!(LegislationVersion::<Test>::get((Law, ZERO_ID, Some(1))), 2);
 	});
 }
@@ -521,7 +649,12 @@ fn repeal_section_bumps_version() {
 fn cant_headcount_veto_low_tiers() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			LiberlandLegislation::submit_veto(RuntimeOrigin::signed(0), Constitution, ZERO_ID, None),
+			LiberlandLegislation::submit_veto(
+				RuntimeOrigin::signed(0),
+				Constitution,
+				ZERO_ID,
+				None
+			),
 			Error::<Test>::InvalidTier
 		);
 	});
@@ -541,21 +674,61 @@ fn cant_headcount_veto_as_noncitizen() {
 fn correctly_tracks_veto_count() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 0);
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 1);
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 1);
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 2);
-		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::revert_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 1);
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 2);
-		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::revert_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 1);
-		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::revert_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 0);
-		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None::<LegislationSection>));
+		assert_ok!(LiberlandLegislation::revert_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None::<LegislationSection>
+		));
 		assert_eq!(VetosCount::<Test>::get((Decision, ZERO_ID, None::<LegislationSection>)), 0);
 	});
 }
@@ -563,9 +736,15 @@ fn correctly_tracks_veto_count() {
 #[test]
 fn can_headcount_veto_as_citizen() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		System::assert_last_event(
-			super::Event::VetoSubmitted { tier: Decision, id: ZERO_ID, section: None, account: 1 }.into(),
+			super::Event::VetoSubmitted { tier: Decision, id: ZERO_ID, section: None, account: 1 }
+				.into(),
 		);
 	});
 }
@@ -573,10 +752,21 @@ fn can_headcount_veto_as_citizen() {
 #[test]
 fn can_revert_veto() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
-		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
+		assert_ok!(LiberlandLegislation::revert_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		System::assert_last_event(
-			super::Event::VetoReverted { tier: Decision, id: ZERO_ID, section: None, account: 1 }.into(),
+			super::Event::VetoReverted { tier: Decision, id: ZERO_ID, section: None, account: 1 }
+				.into(),
 		);
 	});
 }
@@ -584,8 +774,18 @@ fn can_revert_veto() {
 #[test]
 fn invalid_vetos_are_ignored() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		assert_ok!(Identity::clear_identity(RuntimeOrigin::signed(2)));
 		assert_noop!(
 			LiberlandLegislation::trigger_headcount_veto(
@@ -601,9 +801,24 @@ fn invalid_vetos_are_ignored() {
 #[test]
 fn reverted_vetos_are_ignored() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None));
-		assert_ok!(LiberlandLegislation::revert_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None
+		));
+		assert_ok!(LiberlandLegislation::revert_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		assert_noop!(
 			LiberlandLegislation::trigger_headcount_veto(
 				RuntimeOrigin::signed(0),
@@ -618,7 +833,12 @@ fn reverted_vetos_are_ignored() {
 #[test]
 fn can_trigger_with_enough_vetos() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		assert_noop!(
 			LiberlandLegislation::trigger_headcount_veto(
 				RuntimeOrigin::signed(0),
@@ -627,14 +847,24 @@ fn can_trigger_with_enough_vetos() {
 			),
 			Error::<Test>::InsufficientVetoCount
 		);
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		assert_ok!(LiberlandLegislation::trigger_headcount_veto(
 			RuntimeOrigin::signed(0),
 			Decision,
 			ZERO_ID,
 		));
 		System::assert_last_event(
-			super::Event::LegislationRepealedByHeadcountVeto { tier: Decision, id: ZERO_ID, section: None }.into(),
+			super::Event::LegislationRepealedByHeadcountVeto {
+				tier: Decision,
+				id: ZERO_ID,
+				section: None,
+			}
+			.into(),
 		);
 	});
 }
@@ -648,8 +878,18 @@ fn headcount_veto_actually_removes_law() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, None));
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, None));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			None
+		));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			None
+		));
 		assert_ok!(LiberlandLegislation::trigger_headcount_veto(
 			RuntimeOrigin::signed(0),
 			Decision,
@@ -663,7 +903,12 @@ fn headcount_veto_actually_removes_law() {
 #[test]
 fn can_trigger_section_veto_with_enough_vetos() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, Some(0)));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			Some(0)
+		));
 		assert_noop!(
 			LiberlandLegislation::trigger_section_headcount_veto(
 				RuntimeOrigin::signed(0),
@@ -673,7 +918,12 @@ fn can_trigger_section_veto_with_enough_vetos() {
 			),
 			Error::<Test>::InsufficientVetoCount
 		);
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, Some(0)));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			Some(0)
+		));
 		assert_ok!(LiberlandLegislation::trigger_section_headcount_veto(
 			RuntimeOrigin::signed(0),
 			Decision,
@@ -681,7 +931,12 @@ fn can_trigger_section_veto_with_enough_vetos() {
 			0,
 		));
 		System::assert_last_event(
-			super::Event::LegislationRepealedByHeadcountVeto { tier: Decision, id: ZERO_ID, section: Some(0) }.into(),
+			super::Event::LegislationRepealedByHeadcountVeto {
+				tier: Decision,
+				id: ZERO_ID,
+				section: Some(0),
+			}
+			.into(),
 		);
 	});
 }
@@ -696,8 +951,18 @@ fn section_headcount_veto_actually_removes_law() {
 			ZERO_ID,
 			sections.clone(),
 		));
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(1), Decision, ZERO_ID, Some(1)));
-		assert_ok!(LiberlandLegislation::submit_veto(RuntimeOrigin::signed(2), Decision, ZERO_ID, Some(1)));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(1),
+			Decision,
+			ZERO_ID,
+			Some(1)
+		));
+		assert_ok!(LiberlandLegislation::submit_veto(
+			RuntimeOrigin::signed(2),
+			Decision,
+			ZERO_ID,
+			Some(1)
+		));
 		assert_ok!(LiberlandLegislation::trigger_section_headcount_veto(
 			RuntimeOrigin::signed(0),
 			Decision,
@@ -705,9 +970,15 @@ fn section_headcount_veto_actually_removes_law() {
 			1,
 		));
 
-		assert_eq!(Legislation::<Test>::get((Decision, ZERO_ID, 0)), Some(Some(sections[0].clone())));
+		assert_eq!(
+			Legislation::<Test>::get((Decision, ZERO_ID, 0)),
+			Some(Some(sections[0].clone()))
+		);
 		assert_eq!(Legislation::<Test>::get((Decision, ZERO_ID, 1)), Some(None));
-		assert_eq!(Legislation::<Test>::get((Decision, ZERO_ID, 2)), Some(Some(sections[2].clone())));
+		assert_eq!(
+			Legislation::<Test>::get((Decision, ZERO_ID, 2)),
+			Some(Some(sections[2].clone()))
+		);
 	});
 }
 
@@ -720,22 +991,28 @@ fn amend_legislation_requires_special_origin_for_treaty() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_noop!(LiberlandLegislation::amend_legislation(
-			RuntimeOrigin::root(),
-			InternationalTreaty,
-			ZERO_ID,
-			0,
-			Default::default(),
-			1
-		), BadOrigin);
-		assert_noop!(LiberlandLegislation::amend_legislation(
-			RuntimeOrigin::signed(2),
-			InternationalTreaty,
-			ZERO_ID,
-			0,
-			Default::default(),
-			1
-		), BadOrigin);
+		assert_noop!(
+			LiberlandLegislation::amend_legislation(
+				RuntimeOrigin::root(),
+				InternationalTreaty,
+				ZERO_ID,
+				0,
+				Default::default(),
+				1
+			),
+			BadOrigin
+		);
+		assert_noop!(
+			LiberlandLegislation::amend_legislation(
+				RuntimeOrigin::signed(2),
+				InternationalTreaty,
+				ZERO_ID,
+				0,
+				Default::default(),
+				1
+			),
+			BadOrigin
+		);
 	});
 }
 
@@ -748,14 +1025,17 @@ fn amend_legislation_requires_referendum_origin_for_constitution() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_noop!(LiberlandLegislation::amend_legislation(
-			constitution_origin(75, 25, 3, 2),
-			Constitution,
-			ZERO_ID,
-			0,
-			Default::default(),
-			1,
-		), BadOrigin);
+		assert_noop!(
+			LiberlandLegislation::amend_legislation(
+				constitution_origin(75, 25, 3, 2),
+				Constitution,
+				ZERO_ID,
+				0,
+				Default::default(),
+				1,
+			),
+			BadOrigin
+		);
 	});
 }
 
@@ -768,14 +1048,17 @@ fn amend_legislation_requires_root() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_noop!(LiberlandLegislation::amend_legislation(
-			RuntimeOrigin::signed(1),
-			Decision,
-			ZERO_ID,
-			0,
-			Default::default(),
-			1,
-		), BadOrigin);
+		assert_noop!(
+			LiberlandLegislation::amend_legislation(
+				RuntimeOrigin::signed(1),
+				Decision,
+				ZERO_ID,
+				0,
+				Default::default(),
+				1,
+			),
+			BadOrigin
+		);
 	});
 }
 
@@ -799,16 +1082,14 @@ fn amend_legislation_needs_existing_legislation() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(
-			LiberlandLegislation::amend_legislation(
-				RuntimeOrigin::root(),
-				Law,
-				ZERO_ID,
-				10,
-				Default::default(),
-				0,
-			)
-		);
+		assert_ok!(LiberlandLegislation::amend_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			10,
+			Default::default(),
+			0,
+		));
 	});
 }
 
@@ -821,9 +1102,14 @@ fn amend_can_overwrite_legislation() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(
-			LiberlandLegislation::amend_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 0, Default::default(), 1),
-		);
+		assert_ok!(LiberlandLegislation::amend_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			0,
+			Default::default(),
+			1
+		),);
 		assert_eq!(Legislation::<Test>::get((Law, ZERO_ID, 0)).unwrap().unwrap().len(), 0);
 	});
 }
@@ -837,10 +1123,17 @@ fn amend_legislation_deposits_event() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(
-			LiberlandLegislation::amend_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 0, Default::default(), 1),
+		assert_ok!(LiberlandLegislation::amend_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			0,
+			Default::default(),
+			1
+		),);
+		System::assert_last_event(
+			super::Event::LegislationAmended { tier: Law, id: ZERO_ID, section: 0 }.into(),
 		);
-		System::assert_last_event(super::Event::LegislationAmended { tier: Law, id: ZERO_ID, section: 0 }.into());
 	});
 }
 
@@ -920,16 +1213,14 @@ fn amend_legislation_verifies_witness_data() {
 			),
 			Error::<Test>::InvalidWitness
 		);
-		assert_ok!(
-			LiberlandLegislation::amend_legislation(
-				RuntimeOrigin::root(),
-				Law,
-				ZERO_ID,
-				0,
-				Default::default(),
-				1,
-			)
-		);
+		assert_ok!(LiberlandLegislation::amend_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			0,
+			Default::default(),
+			1,
+		));
 	});
 }
 
@@ -942,7 +1233,14 @@ fn amend_bumps_version() {
 			ZERO_ID,
 			sample_legislation(),
 		));
-		assert_ok!(LiberlandLegislation::amend_legislation(RuntimeOrigin::root(), Law, ZERO_ID, 1, Default::default(), 1));
+		assert_ok!(LiberlandLegislation::amend_legislation(
+			RuntimeOrigin::root(),
+			Law,
+			ZERO_ID,
+			1,
+			Default::default(),
+			1
+		));
 		assert_eq!(LegislationVersion::<Test>::get((Law, ZERO_ID, Some(0))), 1);
 		assert_eq!(LegislationVersion::<Test>::get((Law, ZERO_ID, Some(1))), 2);
 	});

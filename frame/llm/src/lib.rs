@@ -659,7 +659,7 @@ pub mod pallet {
 
 		fn maybe_release(block: T::BlockNumber) -> bool {
 			if block < NextRelease::<T>::get() {
-				return false
+				return false;
 			}
 			NextRelease::<T>::put(Self::get_future_block());
 
@@ -693,7 +693,7 @@ pub mod pallet {
 			if Electionlock::<T>::contains_key(account) {
 				let current_block_number = frame_system::Pallet::<T>::block_number();
 				let unlocked_on_block = Electionlock::<T>::get(account);
-				return current_block_number > unlocked_on_block
+				return current_block_number > unlocked_on_block;
 			}
 			true
 		}

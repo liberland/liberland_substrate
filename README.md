@@ -35,7 +35,6 @@ This repository contains the substrate-based implementation of Liberland blockch
 sudo apt update
 sudo apt install build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup default nightly-2023-01-01
 rustup target add wasm32-unknown-unknown
 ```
 

@@ -64,7 +64,7 @@ pub mod v1 {
 			NMapKey<Blake2_128Concat, Option<LegislationSection>>,
 		),
 		u64,
-		ValueQuery
+		ValueQuery,
 	>;
 
 	#[storage_alias]
@@ -122,18 +122,14 @@ pub mod v1 {
 					"skipping on_runtime_upgrade: executed on wrong storage version.\
 				Expected version 0"
 				);
-				return weight
+				return weight;
 			}
 
 			let old_keys: Vec<_> = v0::Laws::<T>::iter_keys().collect();
 			for (old_tier, old_index) in old_keys {
 				let value = v0::Laws::<T>::take(old_tier, old_index);
 				Legislation::<T>::insert(
-					(
-						update_tier(old_tier),
-						LegislationId { year: 2023, index: old_index },
-						0,
-					),
+					(update_tier(old_tier), LegislationId { year: 2023, index: old_index }, 0),
 					Some(BoundedVec::truncate_from(value.to_vec())),
 				);
 				LegislationVersion::<T>::insert(
@@ -169,15 +165,12 @@ pub mod v1 {
 			let old_keys: Vec<_> = v0::VetosCount::<T>::iter_keys().collect();
 			for (old_tier, old_index) in old_keys {
 				let new_key = (
-						update_tier(old_tier),
-						LegislationId { year: 2023, index: old_index },
-						None::<LegislationSection>
+					update_tier(old_tier),
+					LegislationId { year: 2023, index: old_index },
+					None::<LegislationSection>,
 				);
 				let value = v0::VetosCount::<T>::take(old_tier, old_index);
-				VetosCount::<T>::insert(
-					new_key,
-					value,
-				);
+				VetosCount::<T>::insert(new_key, value);
 			}
 
 			StorageVersion::new(1).put::<Pallet<T>>();

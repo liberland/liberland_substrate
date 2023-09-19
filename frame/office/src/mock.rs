@@ -101,8 +101,9 @@ impl InstanceFilter<RuntimeCall> for OfficeCallFilter {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			OfficeCallFilter::Any => true,
-			OfficeCallFilter::Remark =>
-				matches!(c, RuntimeCall::System(frame_system::Call::remark { .. })),
+			OfficeCallFilter::Remark => {
+				matches!(c, RuntimeCall::System(frame_system::Call::remark { .. }))
+			},
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {

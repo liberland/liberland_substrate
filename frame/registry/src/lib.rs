@@ -463,7 +463,7 @@ pub mod pallet {
 				let owner = Self::entity_owner(&entity_id).ok_or(Error::<T, I>::InvalidEntity)?;
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &owner, deposit);
 			} else {
-				return Err(Error::<T, I>::InvalidEntity.into())
+				return Err(Error::<T, I>::InvalidEntity.into());
 			}
 			Requests::<T, I>::remove(&registry_index, &entity_id);
 
@@ -500,7 +500,7 @@ pub mod pallet {
 				let owner = Self::entity_owner(&entity_id).ok_or(Error::<T, I>::InvalidEntity)?;
 				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &owner, deposit);
 			} else {
-				return Err(Error::<T, I>::InvalidEntity.into())
+				return Err(Error::<T, I>::InvalidEntity.into());
 			}
 			Registries::<T, I>::remove(&registry_index, &entity_id);
 
