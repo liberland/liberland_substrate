@@ -546,8 +546,8 @@ pub mod pallet {
 		DuplicateProposal,
 		/// Proposal still blacklisted
 		ProposalBlacklisted,
-		/// Next external proposal not simple majority
-		NotSimpleMajority,
+		/// Fast-tracked external proposal not super majority
+		NotSuperMajority,
 		/// Invalid hash
 		InvalidHash,
 		/// No external proposal
@@ -826,8 +826,8 @@ pub mod pallet {
 			let (ext_proposal, threshold) =
 				<NextExternal<T>>::get().ok_or(Error::<T>::ProposalMissing)?;
 			ensure!(
-				threshold != VoteThreshold::SuperMajorityApprove,
-				Error::<T>::NotSimpleMajority,
+				threshold == VoteThreshold::SuperMajorityApprove,
+				Error::<T>::NotSuperMajority,
 			);
 			ensure!(proposal_hash == ext_proposal.hash(), Error::<T>::InvalidHash);
 
