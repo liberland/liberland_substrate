@@ -1843,10 +1843,7 @@ mod bounties_v4 {
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 type Migrations = (
-	pallet_nfts::migration::v1::MigrateToV1<Runtime>,
-	pallet_scheduler::migration::v3::MigrateToV4<Runtime>,
-	pallet_offences::migration::v1::MigrateToV1<Runtime>,
-	bounties_v4::Migration<Runtime>,
+	pallet_liberland_legislation::migrations::v1::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
