@@ -845,7 +845,11 @@ impl pallet_democracy::Config for Runtime {
 			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
 		>
 	>;
-	type BlacklistOrigin = EnsureRoot<AccountId>;
+	type BlacklistOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureSenateOrCouncilMajority
+	>;
+
 	// Any single technical committee member may veto a coming council proposal, however they can
 	// only do it once and it lasts only for the cool-off period.
 	type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
