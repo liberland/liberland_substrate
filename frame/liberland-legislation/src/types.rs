@@ -1,5 +1,10 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
+use sp_core::ConstU32;
+use frame_support::BoundedVec;
+
+pub type LegislationSection = u32;
+pub type LegislationContent = BoundedVec<u8, ConstU32<20480>>;
 
 #[derive(
 	Encode, MaxEncodedLen, Decode, TypeInfo, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug,

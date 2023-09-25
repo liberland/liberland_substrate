@@ -44,14 +44,27 @@ pub mod v1 {
 	use sp_std::vec::Vec;
 
 	#[storage_alias]
-	pub type Laws<T: Config> = StorageDoubleMap<
+	pub type Legislation<T: Config> = StorageNMap<
 		Pallet<T>,
-		Blake2_128Concat,
-		LegislationTier,
-		Blake2_128Concat,
-		LegislationId,
-		BoundedVec<u8, ConstU32<65536>>,
-		ValueQuery,
+		(
+			NMapKey<Blake2_128Concat, LegislationTier>,
+			NMapKey<Blake2_128Concat, LegislationId>,
+			NMapKey<Blake2_128Concat, LegislationSection>,
+		),
+		Option<LegislationContent>,
+		OptionQuery,
+	>;
+
+	#[storage_alias]
+	pub type LegislationVersion<T: Config> = StorageNMap<
+		Pallet<T>,
+		(
+			NMapKey<Blake2_128Concat, LegislationTier>,
+			NMapKey<Blake2_128Concat, LegislationId>,
+			NMapKey<Blake2_128Concat, Option<LegislationSection>>,
+		),
+		u64,
+		ValueQuery
 	>;
 
 	#[storage_alias]
@@ -60,18 +73,20 @@ pub mod v1 {
 		(
 			NMapKey<Blake2_128Concat, LegislationTier>,
 			NMapKey<Blake2_128Concat, LegislationId>,
+			NMapKey<Blake2_128Concat, Option<LegislationSection>>, // None is a veto for whole Id
 			NMapKey<Blake2_128Concat, <T as frame_system::Config>::AccountId>,
 		),
 		bool,
 	>;
 
 	#[storage_alias]
-	pub type VetosCount<T: Config> = StorageDoubleMap<
+	pub type VetosCount<T: Config> = StorageNMap<
 		Pallet<T>,
-		Blake2_128Concat,
-		LegislationTier,
-		Blake2_128Concat,
-		LegislationId,
+		(
+			NMapKey<Blake2_128Concat, LegislationTier>,
+			NMapKey<Blake2_128Concat, LegislationId>,
+			NMapKey<Blake2_128Concat, Option<LegislationSection>>,
+		),
 		u64,
 		ValueQuery,
 	>;
@@ -113,10 +128,29 @@ pub mod v1 {
 			let old_keys: Vec<_> = v0::Laws::<T>::iter_keys().collect();
 			for (old_tier, old_index) in old_keys {
 				let value = v0::Laws::<T>::take(old_tier, old_index);
-				Laws::<T>::insert(
-					update_tier(old_tier),
-					LegislationId { year: 2023, index: old_index },
-					value,
+				Legislation::<T>::insert(
+					(
+						update_tier(old_tier),
+						LegislationId { year: 2023, index: old_index },
+						0,
+					),
+					Some(BoundedVec::truncate_from(value.to_vec())),
+				);
+				LegislationVersion::<T>::insert(
+					(
+						update_tier(old_tier),
+						LegislationId { year: 2023, index: old_index },
+						None::<LegislationSection>,
+					),
+					1,
+				);
+				LegislationVersion::<T>::insert(
+					(
+						update_tier(old_tier),
+						LegislationId { year: 2023, index: old_index },
+						Some(0),
+					),
+					1,
 				);
 			}
 
@@ -125,6 +159,7 @@ pub mod v1 {
 				let new_key = (
 					update_tier(old_key.0),
 					LegislationId { year: 2023, index: old_key.1 },
+					None::<LegislationSection>,
 					old_key.2.clone(),
 				);
 				let value = v0::Vetos::<T>::take(old_key).unwrap_or(false);
@@ -133,10 +168,14 @@ pub mod v1 {
 
 			let old_keys: Vec<_> = v0::VetosCount::<T>::iter_keys().collect();
 			for (old_tier, old_index) in old_keys {
+				let new_key = (
+						update_tier(old_tier),
+						LegislationId { year: 2023, index: old_index },
+						None::<LegislationSection>
+				);
 				let value = v0::VetosCount::<T>::take(old_tier, old_index);
 				VetosCount::<T>::insert(
-					update_tier(old_tier),
-					LegislationId { year: 2023, index: old_index },
+					new_key,
 					value,
 				);
 			}
