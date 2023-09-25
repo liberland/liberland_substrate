@@ -65,13 +65,14 @@ Following security features are implemented in the contract:
 Sepolia testnet (meant to be used with Liberland Bastiat testnet):
 
 ```
-LDN ERC-20 token: 0x0f018D7e0B8f5D5cCc88c0B23d931AaAA13B0C42
-LDN Bridge (proxy): 0xC8af0C3E0e4FC787D9e657b2A68ce6ED9cedB5DA
+LDN ERC-20 token (proxy): 0xAB249B1c05905BCeD7a228dd8fC18fF4487B8eE1
+LDN Bridge (proxy): 0xC4217e86A64Ccec4Ac1Ac6ce04Acba709b9D912B
 
-LKN ERC-20 token: 0x7134B5DF53D7A276849a1A64a76f6D8972508747
-LKN Bridge (proxy): 0x7E1E09c0B41b22EB1fA04145cdf21cea01560c99
+LKN ERC-20 token (proxy): 0x42c096574aC5Efe204ccB73FfC86031e30DEcc7B
+LKN Bridge (proxy): 0x195afd36BD3d831F4C1195a150584D6A7ebF546f
 
-Common bridge implementation: 0x6BA58104312334ff71c4e4D6D34A1FD6cf02FC1d
+Common bridge implementation: 0x9598CDF255589C86F5ef6ff7A96Ce87D8E04F9e0
+Common token implementation: 0x70f5152D56132beFb503cCa1d6CCB6f5F49048a8
 ```
 
 All contracts are verified on [sourcify.eth](https://sourcify.dev/) and [Etherscan](https://sepolia.etherscan.io/).
