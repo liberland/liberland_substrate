@@ -73,7 +73,7 @@ fn single_proposal_should_work() {
 
 		// start of 2 => next referendum scheduled.
 		fast_forward_to(2);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, aye(1)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(2)));
 
 		assert_eq!(Democracy::referendum_count(), 1);
 		assert_eq!(
@@ -84,7 +84,7 @@ fn single_proposal_should_work() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  },
+				tally: Tally { ayes: 20, nays: 0, turnout: 20, aye_voters: 10000, nay_voters: 0  },
 			})
 		);
 
@@ -97,6 +97,7 @@ fn single_proposal_should_work() {
 		fast_forward_to(4);
 
 		assert_noop!(Democracy::referendum_status(0), Error::<Test>::ReferendumInvalid);
+
 		assert!(pallet_scheduler::Agenda::<Test>::get(6)[0].is_some());
 
 		// referendum passes and wait another two blocks for enactment.

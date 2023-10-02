@@ -166,7 +166,7 @@ use frame_support::{
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
 		Bounded, Currency, Get, Hash as PreimageHash, LockIdentifier, LockableCurrency, QueryPreimage,
 		ReservableCurrency, StorePreimage,
-		Contains,
+		Contains, OnUnbalanced
 	},
 	pallet_prelude::{MaxEncodedLen, TypeInfo},
 	BoundedVec,
@@ -322,6 +322,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxAdditionalFields: Get<u32>;
 
+		#[pallet::constant]
+		type ProposalFeeAmount: Get<BalanceOf<Self>>;
+
 		/// Origin from which the next tabled referendum may be forced; this allows for the tabling
 		/// of a negative-turnout-bias (default-carries) referendum.
 		type ExternalDefaultOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -360,6 +363,8 @@ pub mod pallet {
 		type LLM: LLM<Self::AccountId, BalanceOf<Self>>;
 		type DelegateeFilter: Contains<Self::AccountId>;
 		type LLInitializer: LLInitializer<Self::AccountId>;
+
+		type ProposalFee: OnUnbalanced<<<Self as Config>::Currency as Currency<<Self as frame_system::Config>::AccountId>>::NegativeImbalance>;
 	}
 
 	/// The number of (public) proposals that have been made so far.
@@ -1237,7 +1242,9 @@ impl<T: Config> Pallet<T> {
 	fn do_propose(who: T::AccountId, proposal: BoundedCallOf<T>, value: BalanceOf<T>, dispatch_origin: DispatchOrigin) -> DispatchResult {
 		T::Citizenship::ensure_politics_allowed(&who)?;
 
-		ensure!(value >= T::MinimumDeposit::get(), Error::<T>::ValueLow);
+		ensure!(T::Currency::can_slash(&who, T::ProposalFeeAmount::get()), Error::<T>::InsufficientFunds);
+
+		T::ProposalFee::on_unbalanced(T::Currency::slash(&who, T::ProposalFeeAmount::get()).0);
 
 		let index = Self::public_prop_count();
 		let real_prop_count = PublicProps::<T>::decode_len().unwrap_or(0) as u32;

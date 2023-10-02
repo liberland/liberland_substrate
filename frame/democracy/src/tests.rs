@@ -326,6 +326,8 @@ impl Config for Test {
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
 	type DelegateeFilter = Everything;
+	type ProposalFee = ();
+	type ProposalFeeAmount = ConstU64<10>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
