@@ -2,4 +2,7 @@
 
 set -exuo pipefail
 
-polkadot-js-api --seed "//Alice" tx.ethLLMBridge.deposit 1000000000000 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+cd "$(dirname "$0")"
+. common.sh
+
+$API_ALICE tx.ethLLMBridge.deposit 10000000000000 $WALLET_ADDRESS
