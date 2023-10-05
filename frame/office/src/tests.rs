@@ -140,15 +140,12 @@ fn execute_filters_calls() {
 			Box::new(frame_system::Call::remark { remark: vec![] }.into())
 		));
 		System::assert_last_event(Event::<Test>::CallExecuted { result: Ok(()) }.into());
-		assert_ok!(Office::execute(
-			RuntimeOrigin::signed(1),
-			Box::new(frame_system::Call::remark_with_event { remark: vec![] }.into())
-		));
-		System::assert_last_event(
-			Event::<Test>::CallExecuted {
-				result: Err(frame_system::Error::<Test>::CallFiltered.into()),
-			}
-			.into(),
+		assert_noop!(
+			Office::execute(
+				RuntimeOrigin::signed(1),
+				Box::new(frame_system::Call::remark_with_event { remark: vec![] }.into())
+			),
+			frame_system::Error::<Test>::CallFiltered,
 		);
 	});
 }
