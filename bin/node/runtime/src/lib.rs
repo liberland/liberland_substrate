@@ -267,6 +267,7 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 36 * DAYS;
 	pub const TermDuration: BlockNumber = 168 * DAYS;
+	pub const EnactmentPeriod: BlockNumber = 14 * DAYS;
 	pub const AssetName: &'static str = "Liberland Merit";
 	pub const AssetSymbol: &'static str = "LLM";
 	pub const SpendPeriod: BlockNumber = 168 * DAYS;
@@ -276,6 +277,7 @@ parameter_types! {
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
 	pub const TermDuration: BlockNumber = 14 * DAYS;
+	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const AssetName: &'static str = "Liberland Kuna";
 	pub const AssetSymbol: &'static str = "LKN";
 	pub const SpendPeriod: BlockNumber = 60 * DAYS;
@@ -789,7 +791,6 @@ parameter_types! {
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 3 * DAYS;
 	pub const MinimumDeposit: Balance = 10 * GRAINS_IN_LLM;
-	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * DAYS;
 	pub const MaxProposals: u32 = 100;
 }
