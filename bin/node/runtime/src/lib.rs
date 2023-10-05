@@ -584,6 +584,17 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 	type MaxValidators = ConstU32<1000>;
 }
 
+type EnsureCouncilMajority = pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
+type EnsureSenateMajority = pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
+type EnsureRootOrHalfCouncil = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureCouncilMajority,
+>;
+type EnsureSenateOrCouncilMajority = EitherOfDiverse<
+	EnsureSenateMajority,
+	EnsureCouncilMajority,
+>;
+
 impl pallet_staking::Config for Runtime {
 	type MaxNominations = MaxNominations;
 	type Currency = Balances;
@@ -597,11 +608,8 @@ impl pallet_staking::Config for Runtime {
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
 	type SlashDeferDuration = SlashDeferDuration;
-	/// A super-majority of the council can cancel the slash.
-	type AdminOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>,
-	>;
+	/// A majority of the council can cancel the slash.
+	type AdminOrigin = EnsureRootOrHalfCouncil;
 	type SessionInterface = Self;
 	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
 	type NextNewSession = Session;
@@ -804,12 +812,8 @@ impl pallet_democracy::Config for Runtime {
 	type VotingPeriod = VotingPeriod;
 	type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
 	type MinimumDeposit = MinimumDeposit;
-	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin =
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
-	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-	type ExternalMajorityOrigin =
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+	type ExternalOrigin = EnsureCouncilMajority;
+	type ExternalMajorityOrigin = EnsureCouncilMajority;
 
 	type MaxAdditionalFields = MaxAdditionalFields;
 	type MaxRegistrars = MaxRegistrars;
@@ -825,24 +829,19 @@ impl pallet_democracy::Config for Runtime {
 	type FastTrackOrigin =
 		EitherOfDiverse<
 			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>,
-			pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
+			EnsureCouncilMajority,
 		>;
 	type InstantOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
 	type InstantAllowed = frame_support::traits::ConstBool<true>;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
-	// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-	type CancellationOrigin =
-		EitherOf<
-			HalfSenateOrigin,
-			pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>
-		>;
+	type CancellationOrigin = EnsureSenateOrCouncilMajority;
 	// To cancel a proposal before it has been passed, the technical committee must be unanimous or
 	// Root must agree.
 	type CancelProposalOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOf<
-			HalfSenateOrigin,
+			EnsureSenateMajority,
 			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
 		>
 	>;
@@ -957,7 +956,6 @@ parameter_types! {
 	pub const SenateMaxMembers: u32 = 100;
 }
 type SenateCollective = pallet_collective::Instance3;
-type HalfSenateOrigin = pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
 impl pallet_collective::Config<SenateCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Proposal = RuntimeCall;
@@ -971,10 +969,6 @@ impl pallet_collective::Config<SenateCollective> for Runtime {
 	type MaxProposalWeight = MaxCollectivesProposalWeight;
 }
 
-type EnsureRootOrHalfCouncil = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
->;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AddOrigin = EnsureRootOrHalfCouncil;
@@ -1008,14 +1002,8 @@ parameter_types! {
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
-	type ApproveOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>,
-	>;
-	type RejectOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
-	>;
+	type ApproveOrigin = EnsureRootOrHalfCouncil;
+	type RejectOrigin = EnsureRootOrHalfCouncil;
 	type RuntimeEvent = RuntimeEvent;
 	type OnSlash = ();
 	type ProposalBond = ProposalBond;
@@ -1028,10 +1016,7 @@ impl pallet_treasury::Config for Runtime {
 	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 	type MaxApprovals = MaxApprovals;
 	type SpendOrigin = EnsureWithSuccess<
-		EitherOfDiverse<
-			EnsureRoot<AccountId>,
-			pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>
-		>,
+		EnsureRootOrHalfCouncil,
 		AccountId,
 		MaxBalance
 	>;
@@ -1294,8 +1279,7 @@ impl pallet_society::Config for Runtime {
 	type MembershipChanged = ();
 	type RotationPeriod = RotationPeriod;
 	type MaxLockDuration = MaxLockDuration;
-	type FounderSetOrigin =
-		pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
+	type FounderSetOrigin = EnsureCouncilMajority;
 	type SuspensionJudgementOrigin = pallet_society::EnsureFounder<Runtime>;
 	type MaxCandidateIntake = MaxCandidateIntake;
 	type ChallengePeriod = ChallengePeriod;
@@ -1365,7 +1349,7 @@ impl pallet_llm::Config for Runtime {
 	type InflationEventInterval = InflationEventInterval;
 	type SenateOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
-		HalfSenateOrigin
+		EnsureSenateMajority
 	>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 	type WeightInfo = ();
@@ -1450,13 +1434,10 @@ impl pallet_liberland_legislation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 3, 4>;
-	type InternationalTreatyOrigin = EitherOf<
-	 	EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
-	>;
+	type InternationalTreatyOrigin = EnsureRootOrHalfCouncil;
 	type LowTierDeleteOrigin = EitherOf<
 		EnsureRoot<AccountId>,
-		HalfSenateOrigin
+		EnsureSenateMajority
 	>;
 	type LLInitializer = LiberlandInitializer;
 	type WeightInfo = pallet_liberland_legislation::weights::SubstrateWeight<Runtime>;
@@ -1632,7 +1613,7 @@ impl pallet_custom_account::Config<pallet_custom_account::Instance1> for Runtime
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = CouncilAccountPalletId;
-	type ExecuteOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+	type ExecuteOrigin = EnsureCouncilMajority;
 	type CallFilter = CouncilAccountCallFilter;
 	type WeightInfo = ();
 }
