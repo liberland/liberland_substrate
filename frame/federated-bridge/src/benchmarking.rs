@@ -99,7 +99,7 @@ benchmarks_instance_pallet! {
 	deposit {
 		activate::<T, I>();
 		let acc: T::AccountId = account("a", 1, SEED);
-		let amount = T::Token::minimum_balance();
+		let amount = T::MinimumTransfer::get();
 		let eth_recipient: EthAddress = Default::default();
 		T::Token::set_balance(&acc, BalanceOfToken::<T, I>::max_value()/2u8.into());
 		T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value()/2u8.into());
