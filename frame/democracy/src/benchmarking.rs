@@ -294,11 +294,11 @@ benchmarks! {
 	}
 
 	fast_track {
-		let origin_propose = T::ExternalDefaultOrigin::try_successful_origin()
-			.expect("ExternalDefaultOrigin has no successful origin required for the benchmark");
+		let origin_propose = T::ExternalOrigin::try_successful_origin()
+			.expect("ExternalOrigin has no successful origin required for the benchmark");
 		let proposal = make_proposal::<T>(0);
 		let proposal_hash = proposal.hash();
-		Democracy::<T>::external_propose_default(origin_propose.clone(), proposal)?;
+		Democracy::<T>::external_propose(origin_propose.clone(), proposal)?;
 		// Set metadata to the external proposal.
 		let preimage_hash = note_preimage::<T>();
 		assert_ok!(Democracy::<T>::set_metadata(
