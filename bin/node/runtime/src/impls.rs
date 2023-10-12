@@ -17,25 +17,25 @@
 
 //! Some configurable implementations as associated type for the substrate runtime.
 
+use super::*;
 use crate::{
 	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, Balance, RuntimeCall,
 	Democracy, RuntimeOrigin,
 };
 use codec::{Encode, Decode};
 use frame_support::{
-	BoundedVec,
+	BoundedVec, RuntimeDebug,
 	pallet_prelude::{ConstU32, PhantomData, Get, MaxEncodedLen},
-	RuntimeDebug,
 	traits::{
 		fungibles::{Balanced, Credit},
 		Currency, OnUnbalanced, InstanceFilter,
-		Contains,
+		Contains, PrivilegeCmp, EnsureOrigin,
 	},
 };
 use sp_runtime::{AccountId32, DispatchError, traits::{TrailingZeroInput, Morph}};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
-use sp_std::{vec, collections::btree_map::BTreeMap, cmp::{max, min}};
+use sp_std::{vec, collections::btree_map::BTreeMap, cmp::{max, min, Ordering}};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -301,6 +301,19 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 	}
 }
 
+pub struct EnsureCmp<L>(sp_std::marker::PhantomData<L>);
+impl<L: EnsureOrigin<RuntimeOrigin>> PrivilegeCmp<OriginCaller> for EnsureCmp<L> {
+  fn cmp_privilege(left: &OriginCaller, _: &OriginCaller) -> Option<Ordering> {
+		if L::try_origin(
+			<OriginCaller as Into<RuntimeOrigin>>::into(left.clone())
+		).is_ok() {
+			Some(Ordering::Equal)
+		} else {
+			None
+		}
+	}
+}
+
 #[derive(
 	Clone,
 	Copy,
@@ -523,6 +536,27 @@ mod multiplier_tests {
 			System::set_block_consumed_resources(w, 0);
 			assertions()
 		});
+	}
+
+	pub use node_primitives::Signature;
+	use sp_core::{Public, Pair};
+	use sp_runtime::traits::{IdentifyAccount, Verify};
+
+	type AccountPublic = <Signature as Verify>::Signer;
+
+	/// Helper function to generate a crypto pair from seed
+	pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+		TPublic::Pair::from_string(&format!("//{}", seed), None)
+			.expect("static values are valid; qed")
+			.public()
+	}
+
+	/// Helper function to generate an account ID from seed
+	pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+	where
+		AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+	{
+		AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 	}
 
 	#[test]
@@ -872,5 +906,44 @@ mod multiplier_tests {
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &not_enough_coords));
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &invalid_coord));
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &self_intersecting));
+	}
+
+	use frame_support::traits::EitherOfDiverse;
+	use frame_system::{EnsureRoot, RawOrigin};
+	use node_primitives::AccountId;
+	use core::cmp::Ordering;
+	use sp_runtime::testing::sr25519;
+	use crate::{EnsureSenateMajority, EnsureCmp, OriginCaller, sp_api_hidden_includes_construct_runtime::hidden_include::traits::PrivilegeCmp};
+
+	#[test]
+	fn ensure_cmp_works_for_root() {
+		type OriginPrivilegeCmp = EnsureCmp<
+				EnsureRoot<AccountId>
+		>;
+
+		assert_eq!(
+			OriginPrivilegeCmp::cmp_privilege(
+				&OriginCaller::system(RawOrigin::Root), 
+				&OriginCaller::system(RawOrigin::Root)
+			),
+			Some(Ordering::Equal)
+		);
+	}
+
+	#[test]
+	fn ensure_cmp_do_not_works_for_account() {
+		let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
+
+		type OriginPrivilegeCmp = EnsureCmp<
+				EnsureRoot<AccountId>
+		>;
+
+		assert_eq!(
+			OriginPrivilegeCmp::cmp_privilege(
+				&OriginCaller::system(RawOrigin::Signed(alice)), 
+				&OriginCaller::system(RawOrigin::Root)
+			),
+			None
+		);
 	}
 }

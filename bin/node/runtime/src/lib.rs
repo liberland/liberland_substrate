@@ -37,8 +37,8 @@ use frame_support::{
 	traits::{
         tokens::nonfungibles_v2::Inspect,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32, MapSuccess,
-		Currency, EitherOf, EitherOfDiverse, EqualPrivilegeOnly, Everything, Imbalance, InstanceFilter,
-		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, U128CurrencyToVote,
+		Currency, EitherOf, EitherOfDiverse, Everything, Imbalance, InstanceFilter,
+		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced, U128CurrencyToVote
 	},
 	weights::{
 		constants::{
@@ -99,7 +99,7 @@ pub mod impls;
 use impls::{
 	Author, CreditToBlockAuthor, OnStakerSlashNoop, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember, CouncilAccountCallFilter,
+	ContainsMember, CouncilAccountCallFilter, EnsureCmp
 };
 
 /// Constant values used within the runtime.
@@ -394,6 +394,21 @@ impl pallet_proxy::Config for Runtime {
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
+type EnsureCouncilMajority = pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
+type EnsureSenateMajority = pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
+type EnsureRootOrHalfCouncil = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureCouncilMajority,
+>;
+type EnsureSenateOrCouncilMajority = EitherOfDiverse<
+	EnsureSenateMajority,
+	EnsureCouncilMajority,
+>;
+type EnsureRootOrHalfSenate = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureSenateMajority,
+>;
+
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
 		RuntimeBlockWeights::get().max_block;
@@ -405,13 +420,13 @@ impl pallet_scheduler::Config for Runtime {
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
-	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type ScheduleOrigin = EnsureRootOrHalfSenate;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxScheduledPerBlock = ConstU32<512>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxScheduledPerBlock = ConstU32<50>;
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
-	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+	type OriginPrivilegeCmp = EnsureCmp<EnsureRootOrHalfSenate>;
 	type Preimages = Preimage;
 }
 
@@ -583,17 +598,6 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 	type MaxNominators = ConstU32<1000>;
 	type MaxValidators = ConstU32<1000>;
 }
-
-type EnsureCouncilMajority = pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
-type EnsureSenateMajority = pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
-type EnsureRootOrHalfCouncil = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureCouncilMajority,
->;
-type EnsureSenateOrCouncilMajority = EitherOfDiverse<
-	EnsureSenateMajority,
-	EnsureCouncilMajority,
->;
 
 impl pallet_staking::Config for Runtime {
 	type MaxNominations = MaxNominations;
