@@ -3334,6 +3334,7 @@ name = "kitchensink-runtime"
 version = "3.0.0-dev"
 dependencies = [
  "bridge-data-signer",
+ "bridge-types",
  "dispatch",
  "frame-benchmarking",
  "frame-election-provider-support",

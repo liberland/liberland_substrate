@@ -73,7 +73,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
-		SaturatedConversion, StaticLookup, AccountIdConversion, AccountIdLookup,
+		SaturatedConversion, StaticLookup, AccountIdConversion, AccountIdLookup, Keccak256,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
@@ -1521,6 +1521,97 @@ impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const BridgeMaxMessagePayloadSize: u32 = 256;
+	pub const BridgeMaxMessagesPerCommit: u32 = 20;
+	pub const ThisNetworkId: bridge_types::GenericNetworkId = bridge_types::GenericNetworkId::Sub(bridge_types::SubNetworkId::Custom(1));
+}
+
+// Sora Bridge
+impl leaf_provider::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Hashing = Keccak256;
+    type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+    type Randomness = pallet_babe::RandomnessFromTwoEpochsAgo<Self>;
+}
+
+// Sora Bridge
+// impl substrate_bridge_app::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type OutboundChannel = SubstrateBridgeOutboundChannel;
+//     type CallOrigin =
+//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>>;
+//     type MessageStatusNotifier = impls::MessageStatusNotifier;
+//     type AssetRegistry = impls::MessageStatusNotifier;
+//     type AccountIdConverter = impls::LiberlandAccountIdConverter;
+//     type AssetIdConverter = impls::LiberlandAssetIdConverter;
+//     type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
+//     type BridgeAssetLocker = impls::BridgeAssetLocker;
+//     type WeightInfo = ();
+// }
+
+// // Sora Bridge
+// impl bridge_data_signer::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type OutboundChannel = SubstrateBridgeOutboundChannel;
+//     type CallOrigin =
+//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>>;
+//     type MaxPeers = BridgeMaxPeers;
+//     type UnsignedPriority = DataSignerPriority;
+//     type UnsignedLongevity = DataSignerLongevity;
+//     type WeightInfo = crate::weights::bridge_data_signer::WeightInfo<Runtime>;
+// }
+
+// Sora Bridge
+// impl multisig_verifier::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type CallOrigin =
+//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>>;
+//     type OutboundChannel = SubstrateBridgeOutboundChannel;
+//     type MaxPeers = BridgeMaxPeers;
+//     type WeightInfo = ();
+//     type ThisNetworkId = ThisNetworkId;
+// }
+
+// // Sora Bridge
+// impl dispatch::Config<dispatch::Instance2> for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type OriginOutput = bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>;
+//     type Origin = RuntimeOrigin;
+//     type MessageId = bridge_types::types::MessageId;
+//     type Hashing = Keccak256;
+//     type Call = DispatchableSubstrateBridgeCall;
+//     type CallFilter = SubstrateBridgeCallFilter;
+//     type WeightInfo = crate::weights::dispatch::WeightInfo<Runtime>;
+// }
+
+// // Sora Bridge
+// impl substrate_bridge_channel::inbound::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type Verifier = MultiVerifier;
+//     type MessageDispatch = SubstrateDispatch;
+//     type UnsignedPriority = DataSignerPriority;
+//     type UnsignedLongevity = DataSignerLongevity;
+//     type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
+//     type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
+//     type ThisNetworkId = ThisNetworkId;
+//     type WeightInfo = ();
+// }
+
+// Sora Bridge
+impl substrate_bridge_channel::outbound::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MessageStatusNotifier = impls::LiberlandMessageStatusNotifier;
+    type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
+    type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
+    type AuxiliaryDigestHandler = LeafProvider;
+    type AssetId = u32;
+    type Balance = Balance;
+    type TimepointProvider = impls::GenericTimepointProvider;
+    type ThisNetworkId = ThisNetworkId;
+    type WeightInfo = ();
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1580,6 +1671,15 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
+
+		// Sora Bridge:
+		LeafProvider: leaf_provider::{Pallet, Storage, Event<T>} = 59,
+		// SoraBridgeApp: substrate_bridge_app::{Pallet, Storage, Event<T>, Call} = 60,
+		// SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 61,
+        SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound::{Pallet, Config<T>, Storage, Event<T>} = 62,
+        // SubstrateDispatch: dispatch::<Instance2>::{Pallet, Storage, Event<T>, Origin<T>} = 63,
+        // BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 64,
+        // MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 65,
 	}
 );
 

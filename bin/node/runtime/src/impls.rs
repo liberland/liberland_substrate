@@ -35,6 +35,7 @@ use sp_runtime::{AccountId32, DispatchError, traits::Morph};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
+use sp_core::H256;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -279,6 +280,22 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 
 		Ok(())
 	}
+}
+
+pub struct LiberlandMessageStatusNotifier;
+
+impl bridge_types::traits::MessageStatusNotifier<u32, AccountId, Balance> for LiberlandMessageStatusNotifier {
+	fn update_status(_: bridge_types::GenericNetworkId, _: H256, _: bridge_types::types::MessageStatus, _: bridge_types::GenericTimepoint) { todo!() }
+	fn inbound_request(_: bridge_types::GenericNetworkId, _: H256, _: bridge_types::GenericAccount, _: AccountId, _: u32, _: Balance, _: bridge_types::GenericTimepoint, _: bridge_types::types::MessageStatus) { todo!() }
+	fn outbound_request(_: bridge_types::GenericNetworkId, _: H256, _: AccountId, _: bridge_types::GenericAccount, _: u32, _: Balance, _: bridge_types::types::MessageStatus) { todo!() }
+}
+
+pub struct GenericTimepointProvider;
+
+impl bridge_types::traits::TimepointProvider for GenericTimepointProvider {
+    fn get_timepoint() -> bridge_types::GenericTimepoint {
+        bridge_types::GenericTimepoint::Sora(crate::System::block_number())
+    }
 }
 
 #[cfg(test)]

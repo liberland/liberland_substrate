@@ -111,6 +111,7 @@ leaf-provider-runtime-api = { git = "https://github.com/sora-xor/sora2-common.gi
 dispatch = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
 bridge-data-signer = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
 multisig-verifier = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+bridge-types = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate", optional = true}

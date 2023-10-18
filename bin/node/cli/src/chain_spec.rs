@@ -271,6 +271,7 @@ fn mainnet_config_genesis() -> GenesisConfig {
 		land_registry_office: Default::default(),
 		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
+		substrate_bridge_outbound_channel: Default::default(),
 	}
 }
 
@@ -451,6 +452,7 @@ fn bastiat_testnet_config_genesis() -> GenesisConfig {
 		land_registry_office: Default::default(),
 		metaverse_land_registry_office: Default::default(),
 		asset_registry_office: Default::default(),
+		substrate_bridge_outbound_channel: Default::default(),
 	}
 }
 
@@ -826,6 +828,7 @@ pub fn testnet_genesis(
 			admin: offices_admin,
 			clerks: nfts_clerks,
 		},
+		substrate_bridge_outbound_channel: Default::default(),
 	}
 }
 
