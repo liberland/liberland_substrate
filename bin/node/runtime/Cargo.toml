@@ -103,6 +103,15 @@ liberland-traits = { path = "../../../frame/liberland-traits", default-features 
 pallet-registry = { path = "../../../frame/registry", default-features = false }
 pallet-office = { path = "../../../frame/office", default-features = false }
 
+# SORA Bridge
+substrate-bridge-app = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+substrate-bridge-channel = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+leaf-provider = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+leaf-provider-runtime-api = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+dispatch = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+bridge-data-signer = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+multisig-verifier = { git = "https://github.com/sora-xor/sora2-common.git", branch = "update_liberland", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", branch = "polkadot-v0.9.37", git = "https://github.com/paritytech/substrate", optional = true}
 
@@ -187,6 +196,13 @@ std = [
 	"pallet-office/std",
 	"substrate-wasm-builder",
 	"serde",
+	"substrate-bridge-app/std",
+	"substrate-bridge-channel/std",
+	"leaf-provider/std",
+	"leaf-provider-runtime-api/std",
+	"dispatch/std",
+	"bridge-data-signer/std",
+	"multisig-verifier/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

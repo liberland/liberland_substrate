@@ -479,6 +479,7 @@ checksum = "1bc2832c24239b0141d5674bb9174f9d68a8b5b3f2753311927c172ca46f7e9c"
 dependencies = [
  "funty",
  "radium",
+ "serde",
  "tap",
  "wyz",
 ]
@@ -581,6 +582,71 @@ name = "block-padding"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
+
+[[package]]
+name = "bridge-common"
+version = "0.1.0"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bitvec",
+ "bridge-types",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-beefy",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "bridge-data-signer"
+version = "0.1.1"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-common",
+ "bridge-types",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "bridge-types"
+version = "0.1.0"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "derivative",
+ "ethabi",
+ "ethash",
+ "ethbloom",
+ "ethereum-types",
+ "frame-support",
+ "frame-system",
+ "getrandom 0.2.8",
+ "hex-literal 0.4.1",
+ "libsecp256k1",
+ "orml-traits",
+ "parity-bytes",
+ "parity-scale-codec",
+ "rlp",
+ "rustc-hex",
+ "scale-info",
+ "serde",
+ "sp-beefy",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "bs58"
@@ -1480,6 +1546,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derivative"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1595,6 +1672,24 @@ dependencies = [
  "libc",
  "redox_users",
  "winapi",
+]
+
+[[package]]
+name = "dispatch"
+version = "0.1.1"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-types",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -1806,6 +1901,60 @@ checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
 dependencies = [
  "cc",
  "libc",
+]
+
+[[package]]
+name = "ethabi"
+version = "17.2.0"
+source = "git+https://github.com/sora-xor/ethabi.git?branch=sora-v1.6.0#d4e99f047dfd525afa1a64992644727c89bdc368"
+dependencies = [
+ "ethereum-types",
+ "hex",
+ "sha3",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
+name = "ethash"
+version = "0.6.0"
+source = "git+https://github.com/sora-xor/ethash.git?branch=sora-v1.6.0#e08609468f3ff60fecf6a0643d121db43793e137"
+dependencies = [
+ "byteorder",
+ "ethereum-types",
+ "rlp",
+ "sha3",
+]
+
+[[package]]
+name = "ethbloom"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c22d4b5885b6aa2fe5e8b9329fb8d232bf739e434e6b87347c63bdd00c120f60"
+dependencies = [
+ "crunchy",
+ "fixed-hash",
+ "impl-codec",
+ "impl-rlp",
+ "impl-serde",
+ "scale-info",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "ethereum-types"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d215cbf040552efcbe99a38372fe80ab9d00268e20012b79fcd0f073edd8ee"
+dependencies = [
+ "ethbloom",
+ "fixed-hash",
+ "impl-codec",
+ "impl-rlp",
+ "impl-serde",
+ "primitive-types",
+ "scale-info",
+ "uint",
 ]
 
 [[package]]
@@ -2439,8 +2588,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2608,6 +2759,12 @@ name = "hex-literal"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
+
+[[package]]
+name = "hex-literal"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 
 [[package]]
 name = "hkdf"
@@ -2851,6 +3008,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba6a270039626615617f3f36d15fc827041df3b78c439da2cadfa47455a77f2f"
 dependencies = [
  "parity-scale-codec",
+]
+
+[[package]]
+name = "impl-rlp"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f28220f89297a075ddc7245cd538076ee98b01f2a9c23a53a4f1105d5a322808"
+dependencies = [
+ "rlp",
 ]
 
 [[package]]
@@ -3167,6 +3333,8 @@ dependencies = [
 name = "kitchensink-runtime"
 version = "3.0.0-dev"
 dependencies = [
+ "bridge-data-signer",
+ "dispatch",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -3175,8 +3343,11 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "leaf-provider",
+ "leaf-provider-runtime-api",
  "liberland-traits",
  "log",
+ "multisig-verifier",
  "node-primitives",
  "pallet-asset-tx-payment",
  "pallet-assets",
@@ -3245,6 +3416,8 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
+ "substrate-bridge-app",
+ "substrate-bridge-channel",
  "substrate-wasm-builder",
 ]
 
@@ -3294,10 +3467,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
+name = "leaf-provider"
+version = "0.1.1"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-types",
+ "ethabi",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-beefy",
+ "sp-core",
+ "sp-io",
+ "sp-mmr-primitives",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "leaf-provider-runtime-api"
+version = "0.1.0"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-types",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
+
+[[package]]
+name = "liberland-gen"
+version = "0.1.0"
+dependencies = [
+ "kitchensink-runtime",
+ "sp-core",
+]
 
 [[package]]
 name = "liberland-traits"
@@ -4168,6 +4383,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 
 [[package]]
+name = "multisig-verifier"
+version = "0.1.0"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-common",
+ "bridge-types",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "multistream-select"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4640,6 +4874,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
+name = "orml-traits"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=polkadot-v0.9.37#16b6c1149a15674d21c87244b7988a667e2c14d9"
+dependencies = [
+ "frame-support",
+ "impl-trait-for-tuples",
+ "num-traits",
+ "orml-utilities",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
+name = "orml-utilities"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=polkadot-v0.9.37#16b6c1149a15674d21c87244b7988a667e2c14d9"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "os_str_bytes"
 version = "6.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5110,7 +5374,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal",
+ "hex-literal 0.3.4",
  "liberland-traits",
  "log",
  "pallet-assets",
@@ -5612,6 +5876,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "parity-bytes"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b56e3a2420138bdb970f84dfb9c774aea80fa0e7371549eedec0d80c209c67"
+
+[[package]]
 name = "parity-db"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6027,6 +6297,7 @@ checksum = "9f3486ccba82358b11a77516035647c34ba167dfa53312630de83b12bd4f3d66"
 dependencies = [
  "fixed-hash",
  "impl-codec",
+ "impl-rlp",
  "impl-serde",
  "scale-info",
  "uint",
@@ -6504,6 +6775,16 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi",
+]
+
+[[package]]
+name = "rlp"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb919243f34364b6bd2fc10ef797edbfa75f33c252e7998527479c6d6b47e1ec"
+dependencies = [
+ "bytes",
+ "rustc-hex",
 ]
 
 [[package]]
@@ -9090,6 +9371,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "substrate-bridge-app"
+version = "0.1.1"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-types",
+ "ethabi",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.4.1",
+ "parity-scale-codec",
+ "rlp",
+ "rustc-hex",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "substrate-bridge-channel"
+version = "0.1.1"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=update_liberland#5e85d840acb4c5c57dc77d2a9c727506f47a237d"
+dependencies = [
+ "bridge-types",
+ "ethabi",
+ "frame-support",
+ "frame-system",
+ "once_cell",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "substrate-build-script-utils"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#f38bd6671d460293c93062cc1e4fe9e9e490cb29"
@@ -9518,6 +9841,15 @@ dependencies = [
  "unicode-normalization",
  "wasm-bindgen",
  "zeroize",
+]
+
+[[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
+dependencies = [
+ "crunchy",
 ]
 
 [[package]]
@@ -11002,6 +11334,31 @@ dependencies = [
  "rusticata-macros",
  "thiserror",
  "time 0.3.17",
+]
+
+[[package]]
+name = "xcm"
+version = "0.9.37"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
+dependencies = [
+ "derivative",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "xcm-procedural",
+]
+
+[[package]]
+name = "xcm-procedural"
+version = "0.9.37"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -1,0 +1,13 @@
+[package]
+name = "liberland-gen"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+kitchensink-runtime = { path = "../bin/node/runtime", features = [
+    # "parachain-gen",
+] }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37", default-features = false }
+
+[features]
+default = []
