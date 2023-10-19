@@ -8,7 +8,7 @@ import "../src/Bridge.sol";
 
 using stdStorage for StdStorage;
 
-contract BridgeTest is Test, BridgeEvents {
+contract VoteFeeCompare is Test, BridgeEvents {
     WrappedToken public token;
     Bridge public bridge;
 
@@ -52,7 +52,8 @@ contract BridgeTest is Test, BridgeEvents {
                             1000,
                             10,
                             650,
-                            0
+                            0,
+                            650
                         )
                     )
                 )

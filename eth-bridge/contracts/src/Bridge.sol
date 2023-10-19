@@ -94,6 +94,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     RateLimitParameters public rateLimit; // 2x uint256
     /// Minimum transfer - only applied for burns
     uint256 public minTransfer;
+    /// Initial supply limit - admin can't increase supply limit above this value
+    uint256 public maxSupplyLimit;
 
     constructor() {
         _disableInitializers();
@@ -108,6 +110,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @param decayRate initial `rateLimit.decayRate`
     /// @param supplyLimit_ initial `supplyLimit`
     /// @param minTransfer_ initial `minTransfer`
+    /// @param maxSupplyLimit_ maximum `supplyLimit` that can be set by admin
     function initialize(
         WrappedToken token_,
         uint32 votesRequired_,
@@ -116,8 +119,23 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         uint256 counterLimit,
         uint256 decayRate,
         uint256 supplyLimit_,
+        uint256 minTransfer_,
+        uint256 maxSupplyLimit_
+    ) external {
+        _initializeV1(token_, votesRequired_, mintDelay_, fee_, counterLimit, decayRate, supplyLimit_, minTransfer_);
+        initializeV2(maxSupplyLimit_);
+    }
+
+    function _initializeV1(
+        WrappedToken token_,
+        uint32 votesRequired_,
+        uint256 mintDelay_,
+        uint256 fee_,
+        uint256 counterLimit,
+        uint256 decayRate,
+        uint256 supplyLimit_,
         uint256 minTransfer_
-    ) public initializer {
+    ) internal initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
 
@@ -132,6 +150,12 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         minTransfer = minTransfer_;
         // slither-disable-end events-maths
         _grantRole(SUPER_ADMIN_ROLE, msg.sender);
+    }
+
+    /// Reinitializer from v1 to v2. Should be used in the same tx as upgrade
+    /// @param maxSupplyLimit_ maximum `supplyLimit` that can be set by admin
+    function initializeV2(uint256 maxSupplyLimit_) public reinitializer(2) {
+        maxSupplyLimit = maxSupplyLimit_;
     }
 
     /// Adding special users. See role docs on info who can grant each role
@@ -361,7 +385,11 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// Set max circulating token supply
     /// @param supplyLimit_ new supply limit
     /// @dev Only addresses with SUPER_ADMIN_ROLE can call this
+    /// @dev Reverts with `InvalidArgument` if `supplyLimit_` is greater than original limit set in constructor
     function setSupplyLimit(uint256 supplyLimit_) public onlyRole(SUPER_ADMIN_ROLE) {
+        if (supplyLimit_ > maxSupplyLimit) {
+            revert InvalidArgument();
+        }
         supplyLimit = supplyLimit_;
     }
 

@@ -40,8 +40,9 @@ contract Deploy is Script {
                     fee,
                     30_000_000_000_000_000, // max burst mint
                     60_000_000_000_000, // rate limit counter decay
-                    300_000_000_000_000_000, // max total supply
-                    30_000_000_000_000 // min transfer
+                    300_000_000_000_000_000, // supply limit
+                    30_000_000_000_000, // min transfer
+                    3_000_000_000_000_000_000 // max supply limit
                 )
             )
         );
@@ -67,8 +68,9 @@ contract Deploy is Script {
                     fee,
                     10_000_000_000_000_000, // max burst mint
                         20_000_000_000_000, // rate limit counter decay
-                    100_000_000_000_000_000, // max total supply
-                    10_000_000_000_000 // min transfer
+                    100_000_000_000_000_000, // supply limit
+                    10_000_000_000_000, // min transfer
+                    1_000_000_000_000_000_000 // max supply limit
                 )
             )
         );

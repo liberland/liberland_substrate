@@ -30,30 +30,19 @@ contract BridgeTest is Test, BridgeEvents {
         token = WrappedToken(
             address(
                 new ERC1967Proxy(
-                    address(tokenImpl),
-                    abi.encodeCall(
-                        WrappedToken.initialize,
-                        ("Liberland Merits", "LLM")
-                    )
+                address(tokenImpl),
+                abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
                 )
             )
         );
+
         bridge = Bridge(
             address(
                 new ERC1967Proxy(
                     address(bridgeImpl),
                     abi.encodeCall(
                         Bridge.initialize,
-                        (
-                            token,
-                            2,
-                            10,
-                            4,
-                            1000,
-                            10,
-                            650,
-                            0
-                        )
+                        (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000)
                     )
                 )
             )
@@ -269,6 +258,8 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testMintRespectsMaxIssuanceLimit() public {
+        // we start with 500 already minted
+        bridge.setSupplyLimit(650);
         vm.startPrank(alice);
         bridge.voteMint(receipt1, 1, 149, alice);
         bridge.voteMint(receipt2, 1, 2, alice);
@@ -651,7 +642,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitAllowsSingleTxAtLimit() public {
-        bridge.setSupplyLimit(99999);
         vm.prank(bob);
         bridge.voteMint(receipt1, 1, 1000, alice);
         vm.startPrank(alice);
@@ -662,7 +652,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitAllowsMultiTxAtLimit() public {
-        bridge.setSupplyLimit(99999);
         vm.startPrank(bob);
         bridge.voteMint(receipt1, 1, 500, alice);
         bridge.voteMint(receipt2, 1, 500, alice);
@@ -678,7 +667,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitAllowsUsingDecayedAmountRightAway() public {
-        bridge.setSupplyLimit(99999);
         vm.startPrank(bob);
         bridge.voteMint(receipt1, 1, 1000, alice);
         bridge.voteMint(receipt2, 1, 10, alice);
@@ -695,7 +683,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitGoesToZeroAfterWholeWindow() public {
-        bridge.setSupplyLimit(99999);
         vm.startPrank(bob);
         bridge.voteMint(receipt1, 1, 1000, alice);
         bridge.voteMint(receipt2, 1, 1000, alice);
@@ -712,7 +699,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitPreventsSingleBigMint() public {
-        bridge.setSupplyLimit(99999);
         vm.prank(bob);
         bridge.voteMint(receipt1, 1, 1001, alice);
         vm.prank(alice);
@@ -724,7 +710,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitPreventsMultiBigMint() public {
-        bridge.setSupplyLimit(99999);
         vm.startPrank(bob);
         bridge.voteMint(receipt1, 1, 501, alice);
         bridge.voteMint(receipt2, 1, 500, alice);
@@ -742,7 +727,6 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testRateLimitRespectsDecay() public {
-        bridge.setSupplyLimit(99999);
         vm.startPrank(bob);
         bridge.voteMint(receipt1, 1, 1000, alice);
         bridge.voteMint(receipt2, 1, 500, alice);
@@ -858,5 +842,16 @@ contract BridgeTest is Test, BridgeEvents {
 
         bridge.setMinTransfer(9);
         bridge.burn(9, substrate1);
+    }
+
+    function testSetSupplyLimitCantExceedMaxSupplyLimit() public {
+        uint256 maxLimit = bridge.maxSupplyLimit();
+
+        bridge.setSupplyLimit(maxLimit - 2);
+        bridge.setSupplyLimit(maxLimit - 1);
+        bridge.setSupplyLimit(maxLimit);
+
+        vm.expectRevert(InvalidArgument.selector);
+        bridge.setSupplyLimit(maxLimit + 1);
     }
 }
