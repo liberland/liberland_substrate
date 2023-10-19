@@ -1558,28 +1558,28 @@ impl leaf_provider::Config for Runtime {
 //     type WeightInfo = ();
 // }
 
-// // Sora Bridge
-// impl bridge_data_signer::Config for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-//     type OutboundChannel = SubstrateBridgeOutboundChannel;
-//     type CallOrigin =
-//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>>;
-//     type MaxPeers = BridgeMaxPeers;
-//     type UnsignedPriority = DataSignerPriority;
-//     type UnsignedLongevity = DataSignerLongevity;
-//     type WeightInfo = crate::weights::bridge_data_signer::WeightInfo<Runtime>;
-// }
+// Sora Bridge
+impl bridge_data_signer::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OutboundChannel = SubstrateBridgeOutboundChannel;
+    type CallOrigin =
+        dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>>;
+    type MaxPeers = BridgeMaxPeers;
+    type UnsignedPriority = DataSignerPriority;
+    type UnsignedLongevity = DataSignerLongevity;
+    type WeightInfo = ();
+}
 
 // Sora Bridge
-// impl multisig_verifier::Config for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-//     type CallOrigin =
-//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>>;
-//     type OutboundChannel = SubstrateBridgeOutboundChannel;
-//     type MaxPeers = BridgeMaxPeers;
-//     type WeightInfo = ();
-//     type ThisNetworkId = ThisNetworkId;
-// }
+impl multisig_verifier::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CallOrigin =
+        dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>>;
+    type OutboundChannel = SubstrateBridgeOutboundChannel;
+    type MaxPeers = BridgeMaxPeers;
+    type WeightInfo = ();
+    type ThisNetworkId = ThisNetworkId;
+}
 
 // Sora Bridge
 impl dispatch::Config for Runtime {
@@ -1686,8 +1686,8 @@ construct_runtime!(
 		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 61,
         SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound::{Pallet, Config<T>, Storage, Event<T>} = 62,
         SubstrateDispatch: dispatch::{Pallet, Storage, Event<T>, Origin<T>} = 63,
-        // BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 64,
-        // MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 65,
+        BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 64,
+        MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 65,
 	}
 );
 
