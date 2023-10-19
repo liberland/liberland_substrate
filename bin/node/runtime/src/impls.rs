@@ -361,22 +361,19 @@ impl Dispatchable for DispatchableSubstrateBridgeCall {
                 error: DispatchError::Other("Unavailable"),
             }),
             bridge_types::substrate::BridgeCall::DataSigner(msg) => {
-                // let call: bridge_data_signer::Call<crate::Runtime> = msg.into();
-                // let call: crate::RuntimeCall = call.into();
-                // call.dispatch(origin)
-				todo!()
+                let call: bridge_data_signer::Call<crate::Runtime> = msg.into();
+                let call: crate::RuntimeCall = call.into();
+                call.dispatch(origin)
             }
             bridge_types::substrate::BridgeCall::MultisigVerifier(msg) => {
-                // let call: multisig_verifier::Call<crate::Runtime> = msg.into();
-                // let call: crate::RuntimeCall = call.into();
-                // call.dispatch(origin)
-				todo!()
+                let call: multisig_verifier::Call<crate::Runtime> = msg.into();
+                let call: crate::RuntimeCall = call.into();
+                call.dispatch(origin)
             }
             bridge_types::substrate::BridgeCall::SubstrateApp(msg) => {
-                // let call: substrate_bridge_app::Call<crate::Runtime> = msg.try_into()?;
-                // let call: crate::RuntimeCall = call.into();
-                // call.dispatch(origin)
-				todo!()
+                let call: substrate_bridge_app::Call<crate::Runtime> = msg.try_into()?;
+                let call: crate::RuntimeCall = call.into();
+                call.dispatch(origin)
             }
         }
     }
@@ -385,30 +382,23 @@ impl Dispatchable for DispatchableSubstrateBridgeCall {
 impl GetDispatchInfo for DispatchableSubstrateBridgeCall {
     fn get_dispatch_info(&self) -> DispatchInfo {
         match &self.0 {
-            bridge_types::substrate::BridgeCall::ParachainApp(msg) => {
-                // let call: parachain_bridge_app::Call<crate::Runtime> = msg.clone().into();
-                // call.get_dispatch_info()
-				todo!()
-            }
+            bridge_types::substrate::BridgeCall::ParachainApp(msg) => Default::default(),
             bridge_types::substrate::BridgeCall::XCMApp(_msg) => Default::default(),
             bridge_types::substrate::BridgeCall::DataSigner(msg) => {
-                // let call: bridge_data_signer::Call<crate::Runtime> = msg.clone().into();
-                // call.get_dispatch_info()
-				todo!()
+                let call: bridge_data_signer::Call<crate::Runtime> = msg.clone().into();
+                call.get_dispatch_info()
             }
             bridge_types::substrate::BridgeCall::MultisigVerifier(msg) => {
-                // let call: multisig_verifier::Call<crate::Runtime> = msg.clone().into();
-                // call.get_dispatch_info()
-				todo!()
+                let call: multisig_verifier::Call<crate::Runtime> = msg.clone().into();
+                call.get_dispatch_info()
             }
             bridge_types::substrate::BridgeCall::SubstrateApp(msg) => {
-                // let call: substrate_bridge_app::Call<crate::Runtime> =
-                //     match substrate_bridge_app::Call::try_from(msg.clone()) {
-                //         Ok(c) => c,
-                //         Err(_) => return Default::default(),
-                //     };
-                // call.get_dispatch_info()
-				todo!()
+                let call: substrate_bridge_app::Call<crate::Runtime> =
+                    match substrate_bridge_app::Call::try_from(msg.clone()) {
+                        Ok(c) => c,
+                        Err(_) => return Default::default(),
+                    };
+                call.get_dispatch_info()
             }
         }
     }
@@ -436,8 +426,8 @@ pub enum MultiProof {
     // #[codec(index = 1)]
     // Multisig(<MultisigVerifier as Verifier>::Proof),
     // /// This proof is only used for benchmarking purposes
-    // #[cfg(feature = "runtime-benchmarks")]
-    // #[codec(skip)]
+    #[cfg(feature = "runtime-benchmarks")]
+    #[codec(skip)]
     Empty,
 }
 
