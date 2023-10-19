@@ -1544,19 +1544,20 @@ impl leaf_provider::Config for Runtime {
 }
 
 // Sora Bridge
-// impl substrate_bridge_app::Config for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-//     type OutboundChannel = SubstrateBridgeOutboundChannel;
-//     type CallOrigin =
-//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>>;
-//     type MessageStatusNotifier = impls::MessageStatusNotifier;
-//     type AssetRegistry = impls::MessageStatusNotifier;
-//     type AccountIdConverter = impls::LiberlandAccountIdConverter;
-//     type AssetIdConverter = impls::LiberlandAssetIdConverter;
-//     type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
-//     type BridgeAssetLocker = impls::BridgeAssetLocker;
-//     type WeightInfo = ();
-// }
+impl substrate_bridge_app::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OutboundChannel = SubstrateBridgeOutboundChannel;
+    type CallOrigin =
+        dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>>;
+    type MessageStatusNotifier = impls::LiberlandMessageStatusNotifier;
+    // type AssetRegistry = impls::LiberlandMessageStatusNotifier;
+    type AssetRegistry = impls::LiberlandMessageStatusNotifier;
+    type AccountIdConverter = impls::SoraAccountIdConverter;
+    type AssetIdConverter = impls::SoraAssetIdConverter;
+    type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
+    type BridgeAssetLocker = impls::LiberlandMessageStatusNotifier;
+    type WeightInfo = ();
+}
 
 // Sora Bridge
 impl bridge_data_signer::Config for Runtime {
@@ -1682,7 +1683,7 @@ construct_runtime!(
 
 		// Sora Bridge:
 		LeafProvider: leaf_provider::{Pallet, Storage, Event<T>} = 59,
-		// SoraBridgeApp: substrate_bridge_app::{Pallet, Storage, Event<T>, Call} = 60,
+		SoraBridgeApp: substrate_bridge_app::{Pallet, Storage, Event<T>, Call} = 60,
 		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 61,
         SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound::{Pallet, Config<T>, Storage, Event<T>} = 62,
         SubstrateDispatch: dispatch::{Pallet, Storage, Event<T>, Origin<T>} = 63,

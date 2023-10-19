@@ -32,13 +32,15 @@ use frame_support::{
 	},
 	dispatch::{DispatchErrorWithPostInfo, PostDispatchInfo, Dispatchable, DispatchInfo, GetDispatchInfo},
 };
-use sp_runtime::{AccountId32, DispatchError, traits::Morph};
+use sp_runtime::{AccountId32, DispatchError, DispatchResult, traits::Morph};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_core::H256;
 use scale_info::TypeInfo;
 use frame_support::pallet_prelude::Weight;
+use bridge_types::GenericNetworkId;
+use sp_runtime::traits::Convert;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -293,6 +295,40 @@ impl bridge_types::traits::MessageStatusNotifier<u32, AccountId, Balance> for Li
 	fn outbound_request(_: bridge_types::GenericNetworkId, _: H256, _: AccountId, _: bridge_types::GenericAccount, _: u32, _: Balance, _: bridge_types::types::MessageStatus) { todo!() }
 }
 
+impl bridge_types::traits::BridgeAssetRegistry<AccountId, u32> for LiberlandMessageStatusNotifier {
+	type AssetName = ();
+	type AssetSymbol =  ();
+
+	fn register_asset(_: GenericNetworkId, _: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetName, _: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetSymbol) -> Result<u32, DispatchError> { todo!() }
+	fn manage_asset(_: GenericNetworkId, _: u32) -> Result<(), DispatchError> { todo!() }
+	fn get_raw_info(_: u32) -> bridge_types::types::RawAssetInfo { todo!() }
+}
+
+impl bridge_types::traits::BridgeAssetLocker<AccountId> for LiberlandMessageStatusNotifier {
+	type AssetId = u32;
+	type Balance = Balance;
+
+	fn lock_asset(
+			network_id: GenericNetworkId,
+			asset_kind: bridge_types::types::AssetKind,
+			who: &AccountId,
+			asset_id: &Self::AssetId,
+			amount: &Self::Balance,
+		) -> DispatchResult {
+		todo!()
+	}
+
+	fn unlock_asset(
+			network_id: GenericNetworkId,
+			asset_kind: bridge_types::types::AssetKind,
+			who: &AccountId,
+			asset_id: &Self::AssetId,
+			amount: &Self::Balance,
+		) -> DispatchResult {
+		todo!()
+	}
+}
+
 pub struct GenericTimepointProvider;
 
 impl bridge_types::traits::TimepointProvider for GenericTimepointProvider {
@@ -440,6 +476,56 @@ impl bridge_types::traits::Verifier for MultiVerifier {
     }
 }
 
+pub struct SoraAssetIdConverter;
+impl Convert<u32, bridge_types::GenericAssetId> for SoraAssetIdConverter {
+    fn convert(a: u32) -> bridge_types::GenericAssetId {
+        bridge_types::GenericAssetId::Liberland(a.into())
+    }
+}
+
+pub struct SoraAccountIdConverter;
+impl Convert<crate::AccountId, bridge_types::GenericAccount> for SoraAccountIdConverter {
+    fn convert(a: crate::AccountId) -> bridge_types::GenericAccount {
+        bridge_types::GenericAccount::Sora(a)
+    }
+}
+
+pub struct GenericBalancePrecisionConverter;
+impl bridge_types::traits::BalancePrecisionConverter<u32, crate::Balance, bridge_types::GenericBalance>
+    for GenericBalancePrecisionConverter
+{
+    fn from_sidechain(
+        asset_id: &u32,
+        sidechain_precision: u8,
+        amount: bridge_types::GenericBalance,
+    ) -> Option<crate::Balance> {
+        // let thischain_precision = crate::Assets::asset_infos(asset_id).2;
+        // match amount {
+        //     GenericBalance::Substrate(val) => BalancePrecisionConverter::convert_precision(
+        //         sidechain_precision,
+        //         thischain_precision,
+        //         val,
+        //     ),
+        //     GenericBalance::EVM(_) => None,
+        // }
+		todo!()
+    }
+
+    fn to_sidechain(
+        asset_id: &u32,
+        sidechain_precision: u8,
+        amount: crate::Balance,
+    ) -> Option<bridge_types::GenericBalance> {
+        // let thischain_precision = crate::Assets::asset_infos(asset_id).2;
+        // let amount = BalancePrecisionConverter::convert_precision(
+        //     thischain_precision,
+        //     sidechain_precision,
+        //     amount,
+        // )?;
+        // Some(GenericBalance::Substrate(amount))
+		todo!()
+    }
+}
 
 #[cfg(test)]
 mod multiplier_tests {
