@@ -35,7 +35,7 @@ use frame_support::{
 use sp_runtime::{AccountId32, DispatchError, DispatchResult, traits::Morph};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
-use sp_std::collections::btree_map::BTreeMap;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 use sp_core::H256;
 use scale_info::TypeInfo;
 use frame_support::pallet_prelude::Weight;
@@ -290,18 +290,72 @@ impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
 pub struct LiberlandMessageStatusNotifier;
 
 impl bridge_types::traits::MessageStatusNotifier<u32, AccountId, Balance> for LiberlandMessageStatusNotifier {
-	fn update_status(_: bridge_types::GenericNetworkId, _: H256, _: bridge_types::types::MessageStatus, _: bridge_types::GenericTimepoint) { todo!() }
-	fn inbound_request(_: bridge_types::GenericNetworkId, _: H256, _: bridge_types::GenericAccount, _: AccountId, _: u32, _: Balance, _: bridge_types::GenericTimepoint, _: bridge_types::types::MessageStatus) { todo!() }
-	fn outbound_request(_: bridge_types::GenericNetworkId, _: H256, _: AccountId, _: bridge_types::GenericAccount, _: u32, _: Balance, _: bridge_types::types::MessageStatus) { todo!() }
+	fn update_status(
+		_: bridge_types::GenericNetworkId, 
+		_: H256, 
+		_: bridge_types::types::MessageStatus, 
+		_: bridge_types::GenericTimepoint
+	) { 
+	}
+
+	fn inbound_request(
+		_: bridge_types::GenericNetworkId, 
+		_: H256, 
+		_: bridge_types::GenericAccount, 
+		_: AccountId, 
+		_: u32, 
+		_: Balance, 
+		_: bridge_types::GenericTimepoint, 
+		_: bridge_types::types::MessageStatus
+	) { 
+	}
+	
+	fn outbound_request(
+		_: bridge_types::GenericNetworkId, 
+		_: H256, 
+		_: AccountId, 
+		_: bridge_types::GenericAccount, 
+		_: u32, 
+		_: Balance, 
+		_: bridge_types::types::MessageStatus
+	) { 
+	}
 }
 
 impl bridge_types::traits::BridgeAssetRegistry<AccountId, u32> for LiberlandMessageStatusNotifier {
 	type AssetName = ();
 	type AssetSymbol =  ();
 
-	fn register_asset(_: GenericNetworkId, _: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetName, _: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetSymbol) -> Result<u32, DispatchError> { todo!() }
-	fn manage_asset(_: GenericNetworkId, _: u32) -> Result<(), DispatchError> { todo!() }
-	fn get_raw_info(_: u32) -> bridge_types::types::RawAssetInfo { todo!() }
+	fn register_asset(
+		_: GenericNetworkId, 
+		_: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetName, 
+		_: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetSymbol
+	) -> Result<u32, DispatchError> { 
+		// todo!()
+		// Asset::create()
+		Err(DispatchError::Other("NOT AVAILIBLE"))
+	}
+
+	fn manage_asset(
+		_: GenericNetworkId, 
+		_: u32
+	) -> Result<(), DispatchError> { 
+		Ok(())
+	}
+
+	fn get_raw_info(
+		asset_id: u32
+	) -> bridge_types::types::RawAssetInfo { 
+		// let a = <crate::Assets as crate::Runtime>::Metadata::get(asset_id);
+		// let a = crate::Assets::Metadata::get(asset_id);
+		// let a = crate::Asset;
+		// todo!();
+		bridge_types::types::RawAssetInfo {
+			name: Vec::new(),
+			symbol: Vec::new(),
+			precision: 0,
+		}
+	}
 }
 
 impl bridge_types::traits::BridgeAssetLocker<AccountId> for LiberlandMessageStatusNotifier {
@@ -315,7 +369,8 @@ impl bridge_types::traits::BridgeAssetLocker<AccountId> for LiberlandMessageStat
 			asset_id: &Self::AssetId,
 			amount: &Self::Balance,
 		) -> DispatchResult {
-		todo!()
+		// todo!()
+		Ok(())
 	}
 
 	fn unlock_asset(
@@ -325,7 +380,8 @@ impl bridge_types::traits::BridgeAssetLocker<AccountId> for LiberlandMessageStat
 			asset_id: &Self::AssetId,
 			amount: &Self::Balance,
 		) -> DispatchResult {
-		todo!()
+		// todo!()
+		Ok(())
 	}
 }
 
@@ -423,9 +479,9 @@ pub struct MultiVerifier;
 
 #[derive(Clone, Debug, PartialEq, codec::Encode, codec::Decode, scale_info::TypeInfo)]
 pub enum MultiProof {
-    // #[codec(index = 1)]
-    // Multisig(<MultisigVerifier as Verifier>::Proof),
-    // /// This proof is only used for benchmarking purposes
+    #[codec(index = 0)]
+    Multisig(<crate::MultisigVerifier as bridge_types::traits::Verifier>::Proof),
+    /// This proof is only used for benchmarking purposes
     #[cfg(feature = "runtime-benchmarks")]
     #[codec(skip)]
     Empty,
@@ -439,25 +495,21 @@ impl bridge_types::traits::Verifier for MultiVerifier {
         message: H256,
         proof: &Self::Proof,
     ) -> frame_support::pallet_prelude::DispatchResult {
-        // match proof {
-            // #[cfg(feature = "wip")] // Trustless substrate bridge
-            // MultiProof::Beefy(proof) => BeefyLightClient::verify(network_id, message, proof),
-            // MultiProof::Multisig(proof) => MultisigVerifier::verify(network_id, message, proof),
-            // #[cfg(feature = "runtime-benchmarks")]
-            // MultiProof::Empty => Ok(()),
-        // }
-		todo!()
+        match proof {
+            MultiProof::Multisig(proof) => crate::MultisigVerifier::verify(network_id, message, proof),
+            #[cfg(feature = "runtime-benchmarks")]
+            MultiProof::Empty => Ok(()),
+        }
+		// todo!()
     }
 
     fn verify_weight(proof: &Self::Proof) -> Weight {
-        // match proof {
-        //     #[cfg(feature = "wip")] // Trustless substrate bridge
-        //     MultiProof::Beefy(proof) => BeefyLightClient::verify_weight(proof),
-        //     MultiProof::Multisig(proof) => MultisigVerifier::verify_weight(proof),
-        //     #[cfg(feature = "runtime-benchmarks")]
-        //     MultiProof::Empty => Default::default(),
-        // }
-		todo!()
+        match proof {
+            MultiProof::Multisig(proof) => crate::MultisigVerifier::verify_weight(proof),
+            #[cfg(feature = "runtime-benchmarks")]
+            MultiProof::Empty => Default::default(),
+        }
+		// todo!()
     }
 
     #[cfg(feature = "runtime-benchmarks")]
@@ -498,7 +550,11 @@ impl bridge_types::traits::BalancePrecisionConverter<u32, crate::Balance, bridge
         //     ),
         //     GenericBalance::EVM(_) => None,
         // }
-		todo!()
+		// todo!()
+		match amount {
+			bridge_types::GenericBalance::Substrate(balance) => Some(balance),
+			_ => None,
+		}
     }
 
     fn to_sidechain(
@@ -513,7 +569,7 @@ impl bridge_types::traits::BalancePrecisionConverter<u32, crate::Balance, bridge
         //     amount,
         // )?;
         // Some(GenericBalance::Substrate(amount))
-		todo!()
+		Some(bridge_types::GenericBalance::Substrate(amount))
     }
 }
 
