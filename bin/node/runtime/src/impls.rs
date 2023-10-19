@@ -30,12 +30,15 @@ use frame_support::{
 		Currency, OnUnbalanced, InstanceFilter,
 		Contains,
 	},
+	dispatch::{DispatchErrorWithPostInfo, PostDispatchInfo, Dispatchable, DispatchInfo, GetDispatchInfo},
 };
 use sp_runtime::{AccountId32, DispatchError, traits::Morph};
 use pallet_asset_tx_payment::HandleCredit;
 use sp_staking::{EraIndex, OnStakerSlash};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_core::H256;
+use scale_info::TypeInfo;
+use frame_support::pallet_prelude::Weight;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -297,6 +300,146 @@ impl bridge_types::traits::TimepointProvider for GenericTimepointProvider {
         bridge_types::GenericTimepoint::Sora(crate::System::block_number())
     }
 }
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct DispatchableSubstrateBridgeCall(bridge_types::substrate::BridgeCall);
+
+impl Dispatchable for DispatchableSubstrateBridgeCall {
+    type RuntimeOrigin = crate::RuntimeOrigin;
+    type Config = crate::Runtime;
+    type Info = DispatchInfo;
+    type PostInfo = PostDispatchInfo;
+
+    fn dispatch(
+        self,
+        origin: Self::RuntimeOrigin,
+    ) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+        frame_support::log::debug!("Dispatching SubstrateBridgeCall: {:?}", self.0);
+        match self.0 {
+            bridge_types::substrate::BridgeCall::ParachainApp(msg) => Err(DispatchErrorWithPostInfo {
+                post_info: Default::default(),
+                error: DispatchError::Other("Unavailable"),
+            }),
+            bridge_types::substrate::BridgeCall::XCMApp(_msg) => Err(DispatchErrorWithPostInfo {
+                post_info: Default::default(),
+                error: DispatchError::Other("Unavailable"),
+            }),
+            bridge_types::substrate::BridgeCall::DataSigner(msg) => {
+                // let call: bridge_data_signer::Call<crate::Runtime> = msg.into();
+                // let call: crate::RuntimeCall = call.into();
+                // call.dispatch(origin)
+				todo!()
+            }
+            bridge_types::substrate::BridgeCall::MultisigVerifier(msg) => {
+                // let call: multisig_verifier::Call<crate::Runtime> = msg.into();
+                // let call: crate::RuntimeCall = call.into();
+                // call.dispatch(origin)
+				todo!()
+            }
+            bridge_types::substrate::BridgeCall::SubstrateApp(msg) => {
+                // let call: substrate_bridge_app::Call<crate::Runtime> = msg.try_into()?;
+                // let call: crate::RuntimeCall = call.into();
+                // call.dispatch(origin)
+				todo!()
+            }
+        }
+    }
+}
+
+impl GetDispatchInfo for DispatchableSubstrateBridgeCall {
+    fn get_dispatch_info(&self) -> DispatchInfo {
+        match &self.0 {
+            bridge_types::substrate::BridgeCall::ParachainApp(msg) => {
+                // let call: parachain_bridge_app::Call<crate::Runtime> = msg.clone().into();
+                // call.get_dispatch_info()
+				todo!()
+            }
+            bridge_types::substrate::BridgeCall::XCMApp(_msg) => Default::default(),
+            bridge_types::substrate::BridgeCall::DataSigner(msg) => {
+                // let call: bridge_data_signer::Call<crate::Runtime> = msg.clone().into();
+                // call.get_dispatch_info()
+				todo!()
+            }
+            bridge_types::substrate::BridgeCall::MultisigVerifier(msg) => {
+                // let call: multisig_verifier::Call<crate::Runtime> = msg.clone().into();
+                // call.get_dispatch_info()
+				todo!()
+            }
+            bridge_types::substrate::BridgeCall::SubstrateApp(msg) => {
+                // let call: substrate_bridge_app::Call<crate::Runtime> =
+                //     match substrate_bridge_app::Call::try_from(msg.clone()) {
+                //         Ok(c) => c,
+                //         Err(_) => return Default::default(),
+                //     };
+                // call.get_dispatch_info()
+				todo!()
+            }
+        }
+    }
+}
+
+
+pub struct SoraBridgeCallFilter;
+
+impl Contains<DispatchableSubstrateBridgeCall> for SoraBridgeCallFilter {
+    fn contains(call: &DispatchableSubstrateBridgeCall) -> bool {
+        match &call.0 {
+            bridge_types::substrate::BridgeCall::ParachainApp(_) => false,
+            bridge_types::substrate::BridgeCall::XCMApp(_) => false,
+            bridge_types::substrate::BridgeCall::DataSigner(_) => true,
+            bridge_types::substrate::BridgeCall::MultisigVerifier(_) => true,
+            bridge_types::substrate::BridgeCall::SubstrateApp(_) => true,
+        }
+    }
+}
+
+pub struct MultiVerifier;
+
+#[derive(Clone, Debug, PartialEq, codec::Encode, codec::Decode, scale_info::TypeInfo)]
+pub enum MultiProof {
+    // #[codec(index = 1)]
+    // Multisig(<MultisigVerifier as Verifier>::Proof),
+    // /// This proof is only used for benchmarking purposes
+    // #[cfg(feature = "runtime-benchmarks")]
+    // #[codec(skip)]
+    Empty,
+}
+
+impl bridge_types::traits::Verifier for MultiVerifier {
+    type Proof = MultiProof;
+
+    fn verify(
+        network_id: bridge_types::GenericNetworkId,
+        message: H256,
+        proof: &Self::Proof,
+    ) -> frame_support::pallet_prelude::DispatchResult {
+        // match proof {
+            // #[cfg(feature = "wip")] // Trustless substrate bridge
+            // MultiProof::Beefy(proof) => BeefyLightClient::verify(network_id, message, proof),
+            // MultiProof::Multisig(proof) => MultisigVerifier::verify(network_id, message, proof),
+            // #[cfg(feature = "runtime-benchmarks")]
+            // MultiProof::Empty => Ok(()),
+        // }
+		todo!()
+    }
+
+    fn verify_weight(proof: &Self::Proof) -> Weight {
+        // match proof {
+        //     #[cfg(feature = "wip")] // Trustless substrate bridge
+        //     MultiProof::Beefy(proof) => BeefyLightClient::verify_weight(proof),
+        //     MultiProof::Multisig(proof) => MultisigVerifier::verify_weight(proof),
+        //     #[cfg(feature = "runtime-benchmarks")]
+        //     MultiProof::Empty => Default::default(),
+        // }
+		todo!()
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn valid_proof() -> Option<Self::Proof> {
+        Some(MultiProof::Empty)
+    }
+}
+
 
 #[cfg(test)]
 mod multiplier_tests {

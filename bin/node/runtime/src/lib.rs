@@ -83,6 +83,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
+use sp_runtime::transaction_validity::TransactionLongevity;
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -1521,10 +1522,17 @@ impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
 	type WeightInfo = ();
 }
 
+// Sora Bridge
 parameter_types! {
 	pub const BridgeMaxMessagePayloadSize: u32 = 256;
 	pub const BridgeMaxMessagesPerCommit: u32 = 20;
 	pub const ThisNetworkId: bridge_types::GenericNetworkId = bridge_types::GenericNetworkId::Sub(bridge_types::SubNetworkId::Custom(1));
+	pub const BridgeMaxPeers: u32 = 50;
+    // Not as important as some essential transactions (e.g. im_online or similar ones)
+    pub DataSignerPriority: TransactionPriority = Perbill::from_percent(10) * TransactionPriority::max_value();
+    // We don't want to have not relevant imports be stuck in transaction pool
+    // for too long
+    pub DataSignerLongevity: TransactionLongevity = EPOCH_DURATION_IN_BLOCKS as u64;
 }
 
 // Sora Bridge
@@ -1566,37 +1574,37 @@ impl leaf_provider::Config for Runtime {
 // impl multisig_verifier::Config for Runtime {
 //     type RuntimeEvent = RuntimeEvent;
 //     type CallOrigin =
-//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>>;
+//         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>>;
 //     type OutboundChannel = SubstrateBridgeOutboundChannel;
 //     type MaxPeers = BridgeMaxPeers;
 //     type WeightInfo = ();
 //     type ThisNetworkId = ThisNetworkId;
 // }
 
-// // Sora Bridge
-// impl dispatch::Config<dispatch::Instance2> for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-//     type OriginOutput = bridge_types::types::CallOriginOutput<SubNetworkId, H256, ()>;
-//     type Origin = RuntimeOrigin;
-//     type MessageId = bridge_types::types::MessageId;
-//     type Hashing = Keccak256;
-//     type Call = DispatchableSubstrateBridgeCall;
-//     type CallFilter = SubstrateBridgeCallFilter;
-//     type WeightInfo = crate::weights::dispatch::WeightInfo<Runtime>;
-// }
+// Sora Bridge
+impl dispatch::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OriginOutput = bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>;
+    type Origin = RuntimeOrigin;
+    type MessageId = bridge_types::types::MessageId;
+    type Hashing = Keccak256;
+    type Call = impls::DispatchableSubstrateBridgeCall;
+    type CallFilter = impls::SoraBridgeCallFilter;
+    type WeightInfo = ();
+}
 
-// // Sora Bridge
-// impl substrate_bridge_channel::inbound::Config for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-//     type Verifier = MultiVerifier;
-//     type MessageDispatch = SubstrateDispatch;
-//     type UnsignedPriority = DataSignerPriority;
-//     type UnsignedLongevity = DataSignerLongevity;
-//     type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
-//     type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
-//     type ThisNetworkId = ThisNetworkId;
-//     type WeightInfo = ();
-// }
+// Sora Bridge
+impl substrate_bridge_channel::inbound::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Verifier = impls::MultiVerifier;
+    type MessageDispatch = SubstrateDispatch;
+    type UnsignedPriority = DataSignerPriority;
+    type UnsignedLongevity = DataSignerLongevity;
+    type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
+    type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
+    type ThisNetworkId = ThisNetworkId;
+    type WeightInfo = ();
+}
 
 // Sora Bridge
 impl substrate_bridge_channel::outbound::Config for Runtime {
@@ -1675,9 +1683,9 @@ construct_runtime!(
 		// Sora Bridge:
 		LeafProvider: leaf_provider::{Pallet, Storage, Event<T>} = 59,
 		// SoraBridgeApp: substrate_bridge_app::{Pallet, Storage, Event<T>, Call} = 60,
-		// SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 61,
+		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 61,
         SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound::{Pallet, Config<T>, Storage, Event<T>} = 62,
-        // SubstrateDispatch: dispatch::<Instance2>::{Pallet, Storage, Event<T>, Origin<T>} = 63,
+        SubstrateDispatch: dispatch::{Pallet, Storage, Event<T>, Origin<T>} = 63,
         // BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 64,
         // MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 65,
 	}
