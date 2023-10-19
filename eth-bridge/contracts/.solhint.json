@@ -7,7 +7,6 @@
     "modifier-name-mixedcase": "error",
     "named-parameters-mapping": "error",
     "private-vars-leading-underscore": ["error",{"strict":true}],
-    "ordering": "warn",
     "func-visibility": ["warn",{"ignoreConstructors":true}]
   }
 }
