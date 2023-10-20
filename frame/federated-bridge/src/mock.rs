@@ -95,6 +95,8 @@ impl pallet_federated_bridge::Config for Test {
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
 	type MaxTotalLocked = ConstU64<10000>;
 	type MinimumTransfer = ConstU64<2>;
+	type MinimumFee = ConstU64<10>;
+	type MaximumFee = ConstU64<100>;
 	type WeightInfo = ();
 }
 

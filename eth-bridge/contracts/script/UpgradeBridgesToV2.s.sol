@@ -16,14 +16,22 @@ contract UpgradeBridgesToV2 is Script {
             address(newBridgeImpl),
             abi.encodeCall(
                 Bridge.initializeV2,
-                (3_000_000_000_000_000_000) // max supply limit of 3M LLD, admin can lower it
+                (
+                    3_000_000_000_000_000_000, // max supply limit of 3M LLD, admin can lower it
+                    1_000_000 gwei, // min fee
+                    100_000_000 gwei // max fee
+                )
             )
         );
         llmProxy.upgradeToAndCall(
             address(newBridgeImpl),
             abi.encodeCall(
                 Bridge.initializeV2,
-                (1_000_000_000_000_000_000) // max supply limit of 1M LLM, admin can lower it
+                (
+                    1_000_000_000_000_000_000, // max supply limit of 3M LLD, admin can lower it
+                    1_000_000 gwei, // min fee
+                    100_000_000 gwei // max fee
+                )
             )
         );
     }

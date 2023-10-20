@@ -94,8 +94,12 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     RateLimitParameters public rateLimit; // 2x uint256
     /// Minimum transfer - only applied for burns
     uint256 public minTransfer;
-    /// Initial supply limit - admin can't increase supply limit above this value
+    /// Maximum supply limit - admin can't increase supply limit above this value
     uint256 public maxSupplyLimit;
+    /// Minimum fee that admin can set
+    uint256 public minFee;
+    /// Maximum fee that admin can set
+    uint256 public maxFee;
 
     constructor() {
         _disableInitializers();
@@ -111,6 +115,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @param supplyLimit_ initial `supplyLimit`
     /// @param minTransfer_ initial `minTransfer`
     /// @param maxSupplyLimit_ maximum `supplyLimit` that can be set by admin
+    /// @param minFee_ minimum `fee` that can be set by admin
+    /// @param maxFee_ maximum `fee` that can be set by admin
     function initialize(
         WrappedToken token_,
         uint32 votesRequired_,
@@ -120,10 +126,12 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         uint256 decayRate,
         uint256 supplyLimit_,
         uint256 minTransfer_,
-        uint256 maxSupplyLimit_
+        uint256 maxSupplyLimit_,
+        uint256 minFee_,
+        uint256 maxFee_
     ) external {
         _initializeV1(token_, votesRequired_, mintDelay_, fee_, counterLimit, decayRate, supplyLimit_, minTransfer_);
-        initializeV2(maxSupplyLimit_);
+        initializeV2(maxSupplyLimit_, minFee_, maxFee_);
     }
 
     function _initializeV1(
@@ -154,8 +162,10 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
 
     /// Reinitializer from v1 to v2. Should be used in the same tx as upgrade
     /// @param maxSupplyLimit_ maximum `supplyLimit` that can be set by admin
-    function initializeV2(uint256 maxSupplyLimit_) public reinitializer(2) {
+    function initializeV2(uint256 maxSupplyLimit_, uint256 minFee_, uint256 maxFee_) public reinitializer(2) {
         maxSupplyLimit = maxSupplyLimit_;
+        minFee = minFee_;
+        maxFee = maxFee_;
     }
 
     /// Adding special users. See role docs on info who can grant each role
@@ -319,7 +329,11 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// Set the minting fee
     /// @param fee_ New minting fee
     /// @dev Only addresses with ADMIN_ROLE can call this
+    /// @dev Will revert with InvalidArgument if outside [minFee,maxFee] range
     function setFee(uint256 fee_) public onlyRole(ADMIN_ROLE) {
+        if (fee_ > maxFee || fee_ < minFee) {
+            revert InvalidArgument();
+        }
         fee = fee_;
     }
 

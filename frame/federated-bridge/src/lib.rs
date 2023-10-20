@@ -97,6 +97,8 @@
 //! * `WithdrawalDelay` - number of blocks between transfer approval and actually allowing it
 //! * `WithdrawalRateLimit` - rate limit parameters
 //! * `MinimumTransfer` - minimum amount that can be deposited in single call
+//! * `MinimumFee` - minimum fee that can be set by admin
+//! * `MaximumFee` - maximum fee that can be set by admin
 //! * `ForceOrigin` - origin that's authorized to set admin and super admin
 //!
 //!
@@ -137,9 +139,9 @@ pub use pallet::*;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
+mod benchmarking;
 mod mock;
 mod tests;
-mod benchmarking;
 pub mod weights;
 pub use weights::WeightInfo;
 
@@ -197,7 +199,10 @@ pub mod pallet {
 	use frame_support::{
 		sp_runtime::{traits::AccountIdConversion, Saturating},
 		traits::{
-			tokens::{Preservation, fungible::{Inspect, Mutate}},
+			tokens::{
+				fungible::{Inspect, Mutate},
+				Preservation,
+			},
 			ExistenceRequirement,
 		},
 	};
@@ -261,6 +266,14 @@ pub mod pallet {
 		/// enforced on deposits.
 		type MinimumTransfer: Get<BalanceOfToken<Self, I>>;
 
+		#[pallet::constant]
+		/// Minimum fee that admin can set.
+		type MinimumFee: Get<BalanceOf<Self, I>>;
+
+		#[pallet::constant]
+		/// Maximum fee that admin can set.
+		type MaximumFee: Get<BalanceOf<Self, I>>;
+
 		/// Origin that's authorized to set Admin and SuperAdmin
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
@@ -300,6 +313,8 @@ pub mod pallet {
 		TooMuchLocked,
 		/// Amount smaller than MinimumTransfer
 		TooSmallAmount,
+		/// Invalid value
+		InvalidValue,
 	}
 
 	#[pallet::event]
@@ -517,8 +532,8 @@ pub mod pallet {
 			ensure!(state == BridgeState::Active, Error::<T, I>::BridgeStopped);
 			ensure!(relays.contains(&relay), Error::<T, I>::Unauthorized);
 			ensure!(
-				status == IncomingReceiptStatus::Voting ||
-					matches!(status, IncomingReceiptStatus::Approved(_)),
+				status == IncomingReceiptStatus::Voting
+					|| matches!(status, IncomingReceiptStatus::Approved(_)),
 				Error::<T, I>::AlreadyProcessed
 			);
 
@@ -528,7 +543,7 @@ pub mod pallet {
 					// someone lied, stop the bridge
 					Self::do_set_state(BridgeState::Stopped);
 					// we return Ok, as we DONT want to revert stopping bridge
-					return Ok(())
+					return Ok(());
 				}
 			} else {
 				// first vote
@@ -622,11 +637,17 @@ pub mod pallet {
 		///
 		/// Can be called by Admin and SuperAdmin.
 		///
+		/// Reverts with InvalidValue if outside the [MinimumFee, MaximumFee] range.
+		///
 		/// Should be set high enough to cover running costs for all relays.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::set_fee())]
 		pub fn set_fee(origin: OriginFor<T>, amount: BalanceOf<T, I>) -> DispatchResult {
 			Self::ensure_admin(origin)?;
+
+			ensure!(amount >= T::MinimumFee::get(), Error::<T, I>::InvalidValue);
+			ensure!(amount <= T::MaximumFee::get(), Error::<T, I>::InvalidValue);
+
 			Fee::<T, I>::set(amount);
 			Ok(())
 		}
@@ -828,8 +849,8 @@ pub mod pallet {
 		fn ensure_admin(origin: OriginFor<T>) -> DispatchResult {
 			let caller = ensure_signed(origin)?;
 			ensure!(
-				Some(caller.clone()) == Admin::<T, I>::get() ||
-					Some(caller) == SuperAdmin::<T, I>::get(),
+				Some(caller.clone()) == Admin::<T, I>::get()
+					|| Some(caller) == SuperAdmin::<T, I>::get(),
 				Error::<T, I>::Unauthorized
 			);
 			Ok(())
