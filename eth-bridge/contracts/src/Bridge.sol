@@ -100,6 +100,8 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     uint256 public minFee;
     /// Maximum fee that admin can set
     uint256 public maxFee;
+    /// Minimum votes required that admin can set
+    uint256 public minVotesRequired;
 
     constructor() {
         _disableInitializers();
@@ -128,10 +130,11 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
         uint256 minTransfer_,
         uint256 maxSupplyLimit_,
         uint256 minFee_,
-        uint256 maxFee_
+        uint256 maxFee_,
+        uint256 minVotesRequired_
     ) external {
         _initializeV1(token_, votesRequired_, mintDelay_, fee_, counterLimit, decayRate, supplyLimit_, minTransfer_);
-        initializeV2(maxSupplyLimit_, minFee_, maxFee_);
+        initializeV2(maxSupplyLimit_, minFee_, maxFee_, minVotesRequired_);
     }
 
     function _initializeV1(
@@ -162,10 +165,14 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
 
     /// Reinitializer from v1 to v2. Should be used in the same tx as upgrade
     /// @param maxSupplyLimit_ maximum `supplyLimit` that can be set by admin
-    function initializeV2(uint256 maxSupplyLimit_, uint256 minFee_, uint256 maxFee_) public reinitializer(2) {
+    function initializeV2(uint256 maxSupplyLimit_, uint256 minFee_, uint256 maxFee_, uint256 minVotesRequired_)
+        public
+        reinitializer(2)
+    {
         maxSupplyLimit = maxSupplyLimit_;
         minFee = minFee_;
         maxFee = maxFee_;
+        minVotesRequired = minVotesRequired_;
     }
 
     /// Adding special users. See role docs on info who can grant each role
@@ -342,7 +349,7 @@ contract Bridge is Initializable, AccessControlUpgradeable, UUPSUpgradeable, Bri
     /// @dev Only addresses with SUPER_ADMIN_ROLE can call this
     /// @dev Reverts with `InvalidArgument` if `votesRequired_` is 0
     function setVotesRequired(uint32 votesRequired_) public onlyRole(SUPER_ADMIN_ROLE) {
-        if (votesRequired_ == 0) revert InvalidArgument();
+        if (votesRequired_ < minVotesRequired) revert InvalidArgument();
         votesRequired = votesRequired_;
     }
 

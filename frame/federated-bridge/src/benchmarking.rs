@@ -114,7 +114,7 @@ benchmarks_instance_pallet! {
 	}
 
 	vote_withdraw {
-		let r in 1 .. T::MaxRelays::get() => add_relays::<T, I>(r)?;
+		let r in 2 .. T::MaxRelays::get() => add_relays::<T, I>(r)?;
 		activate::<T, I>();
 
 		let admin: T::AccountId = account("admin", 0, SEED);
@@ -137,7 +137,7 @@ benchmarks_instance_pallet! {
 	}
 
 	withdraw {
-		let r in 1 .. T::MaxRelays::get() => add_relays::<T, I>(r)?;
+		let r in 2 .. T::MaxRelays::get() => add_relays::<T, I>(r)?;
 
 		let admin: T::AccountId = account("admin", 0, SEED);
 		let origin = RawOrigin::Signed(admin.clone());

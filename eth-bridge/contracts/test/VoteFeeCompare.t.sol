@@ -55,7 +55,8 @@ contract VoteFeeCompare is Test, BridgeEvents {
                             0,
                             650,
                             2,
-                            100
+                            100,
+                            2
                         )
                     )
                 )

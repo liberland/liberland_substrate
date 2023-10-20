@@ -97,6 +97,7 @@ impl pallet_federated_bridge::Config for Test {
 	type MinimumTransfer = ConstU64<2>;
 	type MinimumFee = ConstU64<10>;
 	type MaximumFee = ConstU64<100>;
+	type MinimumVotesRequired = ConstU32<2>;
 	type WeightInfo = ();
 }
 

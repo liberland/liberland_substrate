@@ -687,6 +687,16 @@ fn set_votes_required_works() {
 }
 
 #[test]
+fn set_votes_required_respects_minimum() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Bridge::set_votes_required(RuntimeOrigin::signed(101), 1),
+			Error::<Test>::InvalidValue
+		);
+	});
+}
+
+#[test]
 fn add_relay_checks_origin() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(Bridge::add_relay(RuntimeOrigin::signed(0), 5), Error::<Test>::Unauthorized);

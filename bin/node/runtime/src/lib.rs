@@ -1577,6 +1577,7 @@ parameter_types! {
 	pub const LLMMinimumTransfer: Balance = 10 * GRAINS_IN_LLM;
 	pub const BridgeMinimumFee: Balance = 1 * DOLLARS;
 	pub const BridgeMaximumFee: Balance = 10 * DOLLARS;
+	pub const BridgeMinimumVotesRequired: u32 = 3;
 }
 
 type EthLLDBridgeInstance = pallet_federated_bridge::Instance1;
@@ -1594,6 +1595,7 @@ impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
 	type MinimumTransfer = LLDMinimumTransfer;
 	type MinimumFee = BridgeMinimumFee;
 	type MaximumFee = BridgeMaximumFee;
+	type MinimumVotesRequired = BridgeMinimumVotesRequired;
 	type WeightInfo = ();
 }
 
@@ -1612,6 +1614,7 @@ impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
 	type MinimumTransfer = LLMMinimumTransfer;
 	type MinimumFee = BridgeMinimumFee;
 	type MaximumFee = BridgeMaximumFee;
+	type MinimumVotesRequired = BridgeMinimumVotesRequired;
 	type WeightInfo = ();
 }
 

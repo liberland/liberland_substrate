@@ -19,7 +19,8 @@ contract UpgradeBridgesToV2 is Script {
                 (
                     3_000_000_000_000_000_000, // max supply limit of 3M LLD, admin can lower it
                     1_000_000 gwei, // min fee
-                    100_000_000 gwei // max fee
+                    100_000_000 gwei, // max fee
+                    3 // min votes required
                 )
             )
         );
@@ -30,7 +31,8 @@ contract UpgradeBridgesToV2 is Script {
                 (
                     1_000_000_000_000_000_000, // max supply limit of 3M LLD, admin can lower it
                     1_000_000 gwei, // min fee
-                    100_000_000 gwei // max fee
+                    100_000_000 gwei, // max fee
+                    3 // min votes required
                 )
             )
         );

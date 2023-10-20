@@ -274,6 +274,10 @@ pub mod pallet {
 		/// Maximum fee that admin can set.
 		type MaximumFee: Get<BalanceOf<Self, I>>;
 
+		#[pallet::constant]
+		/// Maximum value of votes required that admin can set.
+		type MinimumVotesRequired: Get<u32>;
+
 		/// Origin that's authorized to set Admin and SuperAdmin
 		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
@@ -660,6 +664,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::set_votes_required())]
 		pub fn set_votes_required(origin: OriginFor<T>, votes_required: u32) -> DispatchResult {
 			Self::ensure_super_admin(origin)?;
+			ensure!(votes_required >= T::MinimumVotesRequired::get(), Error::<T, I>::InvalidValue);
 			VotesRequired::<T, I>::set(votes_required);
 			Ok(())
 		}
