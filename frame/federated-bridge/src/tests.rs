@@ -6,7 +6,10 @@ use crate::{
 	VotesRequired, Voting, Watchers,
 };
 use frame_support::{assert_noop, assert_ok};
-use sp_runtime::{TokenError, traits::{AccountIdConversion, BadOrigin}};
+use sp_runtime::{
+	traits::{AccountIdConversion, BadOrigin},
+	TokenError,
+};
 
 fn eth_recipient(n: u8) -> EthAddress {
 	let mut addr: EthAddress = Default::default();
@@ -42,7 +45,8 @@ fn deposit_emits_receipt() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Bridge::deposit(RuntimeOrigin::signed(0), 2, eth_recipient(0)));
 		System::assert_last_event(
-			Event::<Test>::OutgoingReceipt { from: 0, amount: 2, eth_recipient: eth_recipient(0) }.into(),
+			Event::<Test>::OutgoingReceipt { from: 0, amount: 2, eth_recipient: eth_recipient(0) }
+				.into(),
 		);
 	});
 }
@@ -512,6 +516,14 @@ fn set_fee_works() {
 		assert_eq!(Fee::<Test>::get(), 4);
 		assert_ok!(Bridge::set_fee(RuntimeOrigin::signed(100), 100));
 		assert_eq!(Fee::<Test>::get(), 100);
+	});
+}
+
+#[test]
+fn set_fee_respects_min_max() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(Bridge::set_fee(RuntimeOrigin::signed(100), 9), Error::<Test>::InvalidValue);
+		assert_noop!(Bridge::set_fee(RuntimeOrigin::signed(100), 101), Error::<Test>::InvalidValue);
 	});
 }
 

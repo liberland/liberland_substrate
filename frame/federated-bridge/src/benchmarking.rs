@@ -11,19 +11,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 use super::*;
 use crate::{
-	Pallet as Bridge,
-	StatusOf,
-	IncomingReceiptStatus,
-	Fee,
+	Admin, BridgeState, Fee, IncomingReceiptStatus, Pallet as Bridge, StatusOf, SuperAdmin,
 	VotesRequired,
-	BridgeState,
-	Admin, SuperAdmin,
 };
-use sp_runtime::traits::Bounded;
 use frame_benchmarking::{account, benchmarks_instance_pallet, impl_benchmark_test_suite};
+use frame_support::traits::{
+	fungible::{Inspect, Mutate},
+	Currency,
+};
 use frame_system::RawOrigin;
+use sp_runtime::traits::Bounded;
 use sp_std::prelude::*;
-use frame_support::traits::{Currency, fungible::{Mutate, Inspect}};
 
 const SEED: u32 = 0;
 
@@ -38,7 +36,9 @@ fn activate<T: Config<I>, I: 'static>() {
 	Bridge::<T, I>::set_state(RawOrigin::Signed(admin).into(), BridgeState::Active).unwrap();
 }
 
-fn receipt<T: Config<I>, I: 'static>(i: u8) -> (ReceiptId, IncomingReceipt<T::AccountId, BalanceOfToken<T, I>>) {
+fn receipt<T: Config<I>, I: 'static>(
+	i: u8,
+) -> (ReceiptId, IncomingReceipt<T::AccountId, BalanceOfToken<T, I>>) {
 	(
 		[i; 32],
 		IncomingReceipt {
@@ -84,16 +84,17 @@ fn add_votes<T: Config<I>, I: 'static>(r: u32) -> Result<(), &'static str> {
 	let (receipt_id, receipt_data) = receipt::<T, I>(0);
 	for i in 1..=r {
 		let relay: T::AccountId = account("relay", i, SEED);
-		Bridge::<T, I>::vote_withdraw(RawOrigin::Signed(relay).into(),
+		Bridge::<T, I>::vote_withdraw(
+			RawOrigin::Signed(relay).into(),
 			receipt_id.clone(),
 			receipt_data.clone(),
-		).unwrap();
+		)
+		.unwrap();
 	}
 
 	assert_eq!(Voting::<T, I>::get(receipt_id).len(), r as usize);
 	Ok(())
 }
-
 
 benchmarks_instance_pallet! {
 	deposit {
@@ -186,7 +187,7 @@ benchmarks_instance_pallet! {
 		let r in 1 .. T::MaxRelays::get() - 1 => add_relays::<T, I>(r)?;
 		let admin: T::AccountId = account("admin", 0, SEED);
 		let relay: T::AccountId = account("relay", r+1, SEED);
-        let origin = RawOrigin::Signed(admin.clone());
+		let origin = RawOrigin::Signed(admin.clone());
 	}: _(origin, relay.clone())
 	verify {
 		assert!(Relays::<T, I>::get().contains(&relay));
@@ -196,7 +197,7 @@ benchmarks_instance_pallet! {
 		let r in 1 .. T::MaxWatchers::get() => add_watchers::<T, I>(r)?;
 		let admin: T::AccountId = account("admin", 0, SEED);
 		let watcher: T::AccountId = account("watcher", 1, SEED);
-        let origin = RawOrigin::Signed(admin.clone());
+		let origin = RawOrigin::Signed(admin.clone());
 		assert!(Watchers::<T, I>::get().contains(&watcher));
 	}: _(origin, watcher.clone())
 	verify {
@@ -207,7 +208,7 @@ benchmarks_instance_pallet! {
 		let r in 1 .. T::MaxRelays::get() => add_relays::<T, I>(r)?;
 		let admin: T::AccountId = account("admin", 0, SEED);
 		let relay: T::AccountId = account("relay", 1, SEED);
-        let origin = RawOrigin::Signed(admin.clone());
+		let origin = RawOrigin::Signed(admin.clone());
 		assert!(Relays::<T, I>::get().contains(&relay));
 	}: _(origin, relay.clone())
 	verify {
@@ -218,7 +219,7 @@ benchmarks_instance_pallet! {
 		let r in 1 .. T::MaxWatchers::get() - 1 => add_watchers::<T, I>(r)?;
 		let admin: T::AccountId = account("admin", 0, SEED);
 		let watcher: T::AccountId = account("watcher", r+1, SEED);
-        let origin = RawOrigin::Signed(admin.clone());
+		let origin = RawOrigin::Signed(admin.clone());
 	}: _(origin, watcher.clone())
 	verify {
 		assert!(Watchers::<T, I>::get().contains(&watcher));
@@ -236,7 +237,7 @@ benchmarks_instance_pallet! {
 	emergency_stop {
 		let r in 1 .. T::MaxWatchers::get() => add_watchers::<T, I>(r)?;
 		let watcher: T::AccountId = account("watcher", 1, SEED);
-        let origin = RawOrigin::Signed(watcher.clone());
+		let origin = RawOrigin::Signed(watcher.clone());
 	}: _(origin)
 	verify {
 		assert_eq!(State::<T, I>::get(), BridgeState::Stopped);

@@ -42,7 +42,9 @@ contract Deploy is Script {
                     60_000_000_000_000, // rate limit counter decay
                     300_000_000_000_000_000, // supply limit
                     30_000_000_000_000, // min transfer
-                    3_000_000_000_000_000_000 // max supply limit
+                    3_000_000_000_000_000_000, // max supply limit
+                    1_000_000 gwei, // min fee
+                    100_000_000 gwei // max fee
                 )
             )
         );
@@ -70,7 +72,9 @@ contract Deploy is Script {
                         20_000_000_000_000, // rate limit counter decay
                     100_000_000_000_000_000, // supply limit
                     10_000_000_000_000, // min transfer
-                    1_000_000_000_000_000_000 // max supply limit
+                    1_000_000_000_000_000_000, // max supply limit
+                    1_000_000 gwei, // min fee
+                    100_000_000 gwei // max fee
                 )
             )
         );

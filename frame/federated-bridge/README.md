@@ -97,6 +97,8 @@ Following security features are implemented substrate-side:
 * `WithdrawalDelay` - number of blocks between transfer approval and actually allowing it
 * `WithdrawalRateLimit` - rate limit parameters
 * `MinimumTransfer` - minimum amount that can be deposited in single call
+* `MinimumFee` - minimum fee that can be set by admin
+* `MaximumFee` - maximum fee that can be set by admin
 * `ForceOrigin` - origin that's authorized to set admin and super admin
 
 

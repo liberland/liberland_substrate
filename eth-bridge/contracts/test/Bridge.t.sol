@@ -42,7 +42,7 @@ contract BridgeTest is Test, BridgeEvents {
                     address(bridgeImpl),
                     abi.encodeCall(
                         Bridge.initialize,
-                        (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000)
+                        (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000, 2, 100)
                     )
                 )
             )
@@ -405,10 +405,18 @@ contract BridgeTest is Test, BridgeEvents {
 
     function testSetFeeWorks() public {
         vm.startPrank(dave);
-        bridge.setFee(1);
-        assertEq(bridge.fee(), 1);
+        bridge.setFee(2);
+        assertEq(bridge.fee(), 2);
         bridge.setFee(10);
         assertEq(bridge.fee(), 10);
+    }
+
+    function testSetFeeRespectsMinMax() public {
+        vm.startPrank(dave);
+        vm.expectRevert(InvalidArgument.selector);
+        bridge.setFee(1);
+        vm.expectRevert(InvalidArgument.selector);
+        bridge.setFee(101);
     }
 
     function testSetFeeRequiresAdmin() public {
