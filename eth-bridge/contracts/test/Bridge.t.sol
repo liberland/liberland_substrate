@@ -42,7 +42,7 @@ contract BridgeTest is Test, BridgeEvents {
                     address(bridgeImpl),
                     abi.encodeCall(
                         Bridge.initialize,
-                        (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000, 2, 100)
+                        (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000, 2, 100, 2)
                     )
                 )
             )
@@ -428,10 +428,15 @@ contract BridgeTest is Test, BridgeEvents {
     }
 
     function testSetVotesRequiredWorks() public {
-        bridge.setVotesRequired(1);
-        assertEq(bridge.votesRequired(), 1);
+        bridge.setVotesRequired(5);
+        assertEq(bridge.votesRequired(), 5);
         bridge.setVotesRequired(10);
         assertEq(bridge.votesRequired(), 10);
+    }
+
+    function testSetVotesRequiredRespectsMin() public {
+        vm.expectRevert(InvalidArgument.selector);
+        bridge.setVotesRequired(1);
     }
 
     function testSetVotesRequiredRequiresSuperAdmin() public {
@@ -762,9 +767,10 @@ contract BridgeTest is Test, BridgeEvents {
 
     function testMaxTotalSupplyIsRespectedAfterBurns() public {
         bridge.setSupplyLimit(500);
-        bridge.setVotesRequired(1);
 
         vm.prank(alice);
+        bridge.voteMint(receipt1, 1, 100, alice);
+        vm.prank(bob);
         bridge.voteMint(receipt1, 1, 100, alice);
 
         vm.roll(11);
@@ -773,13 +779,6 @@ contract BridgeTest is Test, BridgeEvents {
 
         bridge.burn(100, substrate1);
         bridge.mint{value: 4}(receipt1);
-    }
-
-    function testVotesRequiredCantBeZero() public {
-        vm.expectRevert(InvalidArgument.selector);
-        bridge.setVotesRequired(0);
-
-        bridge.setVotesRequired(1);
     }
 
     function testOnlyUpgraderCanUpgrade() public {

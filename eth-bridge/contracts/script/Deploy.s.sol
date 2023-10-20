@@ -44,7 +44,8 @@ contract Deploy is Script {
                     30_000_000_000_000, // min transfer
                     3_000_000_000_000_000_000, // max supply limit
                     1_000_000 gwei, // min fee
-                    100_000_000 gwei // max fee
+                    100_000_000 gwei, // max fee
+                    3 // min votes required
                 )
             )
         );
@@ -74,7 +75,8 @@ contract Deploy is Script {
                     10_000_000_000_000, // min transfer
                     1_000_000_000_000_000_000, // max supply limit
                     1_000_000 gwei, // min fee
-                    100_000_000 gwei // max fee
+                    100_000_000 gwei, // max fee
+                    3 // min votes required
                 )
             )
         );
