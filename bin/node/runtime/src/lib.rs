@@ -1533,6 +1533,7 @@ parameter_types! {
     // We don't want to have not relevant imports be stuck in transaction pool
     // for too long
     pub DataSignerLongevity: TransactionLongevity = EPOCH_DURATION_IN_BLOCKS as u64;
+	pub TechAcc: AccountId = [66; 32].into();
 }
 
 // Sora Bridge
@@ -1550,12 +1551,13 @@ impl substrate_bridge_app::Config for Runtime {
     type CallOrigin =
         dispatch::EnsureAccount<bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>>;
     type MessageStatusNotifier = impls::LiberlandMessageStatusNotifier;
-    // type AssetRegistry = impls::LiberlandMessageStatusNotifier;
     type AssetRegistry = impls::LiberlandMessageStatusNotifier;
+    // type AssetRegistry = SoraBridgeProxy;
     type AccountIdConverter = impls::SoraAccountIdConverter;
     type AssetIdConverter = impls::SoraAssetIdConverter;
     type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
-    type BridgeAssetLocker = impls::LiberlandMessageStatusNotifier;
+    // type BridgeAssetLocker = impls::LiberlandMessageStatusNotifier;
+    type BridgeAssetLocker = SoraBridgeProxy;
     type WeightInfo = ();
 }
 
@@ -1620,6 +1622,12 @@ impl substrate_bridge_channel::outbound::Config for Runtime {
     type ThisNetworkId = ThisNetworkId;
     type WeightInfo = ();
 }
+
+// Sora Bridge
+impl substrate_assets_bridgeproxy:: Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type TechAcc = TechAcc;
+} 
 
 construct_runtime!(
 	pub enum Runtime where
@@ -1689,6 +1697,7 @@ construct_runtime!(
         SubstrateDispatch: dispatch::{Pallet, Storage, Event<T>, Origin<T>} = 63,
         BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 64,
         MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 65,
+		SoraBridgeProxy: substrate_assets_bridgeproxy::{Pallet, Storage, Event<T>} = 66,
 	}
 );
 

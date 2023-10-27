@@ -99,15 +99,16 @@ pallet-elections-phragmen = { path = "frame/elections-phragmen" }
 pallet-staking = { path = "frame/staking" }
 pallet-nfts = { path = "frame/nfts" }
 
-# [patch."https://github.com/sora-xor/sora2-common.git"]
-# leaf-provider = { path = "../sora2-common/pallets/leaf-provider" }
-# leaf-provider-rpc = { path = "../sora2-common/pallets/leaf-provider/rpc" }
-# leaf-provider-runtime-api = { path = "../sora2-common/pallets/leaf-provider/runtime-api" }
-# bridge-common = { path = "../sora2-common/pallets/bridge-common" }
-# dispatch = { path = "../sora2-common/pallets/dispatch" }
-# bridge-types = { path = "../sora2-common/pallets/types" }
-# bridge-data-signer = { path = "../sora2-common/pallets/data-signer" }
-# multisig-verifier = { path = "../sora2-common/pallets/multisig-verifier" }
-# substrate-bridge-channel = { path = "../sora2-common/pallets/substrate-channel" }
-# substrate-bridge-app = { path = "../sora2-common/pallets/substrate-app" }
+[patch."https://github.com/sora-xor/sora2-common.git"]
+leaf-provider = { path = "../sora2-common/pallets/leaf-provider" }
+leaf-provider-rpc = { path = "../sora2-common/pallets/leaf-provider/rpc" }
+leaf-provider-runtime-api = { path = "../sora2-common/pallets/leaf-provider/runtime-api" }
+bridge-common = { path = "../sora2-common/pallets/bridge-common" }
+dispatch = { path = "../sora2-common/pallets/dispatch" }
+bridge-types = { path = "../sora2-common/pallets/types" }
+bridge-data-signer = { path = "../sora2-common/pallets/data-signer" }
+multisig-verifier = { path = "../sora2-common/pallets/multisig-verifier" }
+substrate-bridge-channel = { path = "../sora2-common/pallets/substrate-channel" }
+substrate-bridge-app = { path = "../sora2-common/pallets/substrate-app" }
 # bridge-channel-rpc = { path = "../sora2-common/pallets/substrate-channel/rpc" }
+substrate-assets-bridgeproxy = { path = "../sora2-common/pallets/substrate-assets-bridgeproxy" }
