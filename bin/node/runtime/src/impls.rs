@@ -322,41 +322,41 @@ impl bridge_types::traits::MessageStatusNotifier<u32, AccountId, Balance> for Li
 	}
 }
 
-impl bridge_types::traits::BridgeAssetRegistry<AccountId, u32> for LiberlandMessageStatusNotifier {
-	type AssetName = ();
-	type AssetSymbol =  ();
+// impl bridge_types::traits::BridgeAssetRegistry<AccountId, u32> for LiberlandMessageStatusNotifier {
+// 	type AssetName = Vec<u8>;
+// 	type AssetSymbol =  Vec<u8>;
 
-	fn register_asset(
-		_: GenericNetworkId, 
-		_: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetName, 
-		_: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetSymbol
-	) -> Result<u32, DispatchError> { 
-		// todo!()
-		// Asset::create()
-		Err(DispatchError::Other("NOT AVAILIBLE"))
-	}
+// 	fn register_asset(
+// 		_: GenericNetworkId, 
+// 		_: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetName, 
+// 		_: <Self as bridge_types::traits::BridgeAssetRegistry<AccountId, u32>>::AssetSymbol
+// 	) -> Result<u32, DispatchError> { 
+// 		// todo!()
+// 		// Asset::create()
+// 		Err(DispatchError::Other("NOT AVAILIBLE"))
+// 	}
 
-	fn manage_asset(
-		_: GenericNetworkId, 
-		_: u32
-	) -> Result<(), DispatchError> { 
-		Ok(())
-	}
+// 	fn manage_asset(
+// 		_: GenericNetworkId, 
+// 		_: u32
+// 	) -> Result<(), DispatchError> { 
+// 		Ok(())
+// 	}
 
-	fn get_raw_info(
-		asset_id: u32
-	) -> bridge_types::types::RawAssetInfo { 
-		// let a = <crate::Assets as crate::Runtime>::Metadata::get(asset_id);
-		// let a = crate::Assets::Metadata::get(asset_id);
-		// let a = crate::Asset;
-		// todo!();
-		bridge_types::types::RawAssetInfo {
-			name: Vec::new(),
-			symbol: Vec::new(),
-			precision: 0,
-		}
-	}
-}
+// 	fn get_raw_info(
+// 		asset_id: u32
+// 	) -> bridge_types::types::RawAssetInfo { 
+// 		// let a = <crate::Assets as crate::Runtime>::Metadata::get(asset_id);
+// 		// let a = crate::Assets::Metadata::get(asset_id);
+// 		// let a = crate::Asset;
+// 		// todo!();
+// 		bridge_types::types::RawAssetInfo {
+// 			name: Vec::new(),
+// 			symbol: Vec::new(),
+// 			precision: 0,
+// 		}
+// 	}
+// }
 
 impl bridge_types::traits::BridgeAssetLocker<AccountId> for LiberlandMessageStatusNotifier {
 	type AssetId = u32;
