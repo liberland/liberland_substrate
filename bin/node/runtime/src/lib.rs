@@ -1579,7 +1579,7 @@ parameter_types! {
 	);
 	pub const LLMMaxTotalLocked: Balance = 100_000 * GRAINS_IN_LLM;
 	pub const LLMMinimumTransfer: Balance = 10 * GRAINS_IN_LLM;
-	pub const BridgeMinimumFee: Balance = 1 * DOLLARS;
+	pub const BridgeMinimumFee: Balance = 10 * CENTS;
 	pub const BridgeMaximumFee: Balance = 10 * DOLLARS;
 	pub const BridgeMinimumVotesRequired: u32 = 3;
 }
