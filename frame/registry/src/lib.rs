@@ -226,6 +226,10 @@ pub mod pallet {
 		InsufficientDeposit,
 		/// Entity doesn't allow edits by registrars
 		NotEditableByRegistrar,
+		/// Trying to register entity that requested to be deregistered
+		EntityIsNone,
+		/// Trying to soft unregister company that do not apply for that
+		NotRequestedToUnregister,
 	}
 
 	#[pallet::event]
@@ -246,13 +250,15 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn requests)]
 	/// Registration requests. See `request_registration` and `cancel_request`
+	/// If Request data is None it means a request to remove entity from registry
+	/// Some means request to add or to change data in registry
 	pub(super) type Requests<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
 		RegistryIndex,
 		Blake2_128Concat,
 		T::EntityId,
-		RequestOf<T, I>,
+		Option<RequestOf<T, I>>,
 		OptionQuery,
 	>;
 
@@ -458,10 +464,13 @@ pub mod pallet {
 			let owner = T::EntityOrigin::ensure_origin(origin)?;
 			Self::ensure_entity_owner(&owner, &entity_id)?;
 
-			if let Some(Request { deposit, .. }) = Self::requests(&registry_index, &entity_id) {
-				// refund deposit
-				let owner = Self::entity_owner(&entity_id).ok_or(Error::<T, I>::InvalidEntity)?;
-				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &owner, deposit);
+			if let Some(req) = Self::requests(&registry_index, &entity_id) {
+				if let Some(Request { deposit, .. }) = req {
+					// refund deposit
+					let owner =
+						Self::entity_owner(&entity_id).ok_or(Error::<T, I>::InvalidEntity)?;
+					T::Currency::unreserve_named(T::ReserveIdentifier::get(), &owner, deposit);
+				}
 			} else {
 				return Err(Error::<T, I>::InvalidEntity.into());
 			}
@@ -476,6 +485,7 @@ pub mod pallet {
 		///
 		/// * `registry_index` - Registry index to remove from
 		/// * `entity_id` - AccountId of entity to unregister
+		/// * `soft` - Boolean information should we accept delete request or hard unregister Registries
 		///
 		/// Will refund deposit of stored data.
 		///
@@ -489,6 +499,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			registry_index: RegistryIndex,
 			entity_id: T::EntityId,
+			soft: bool,
 		) -> DispatchResult {
 			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
 			Self::ensure_registrar(&sender, registry_index)?;
@@ -502,10 +513,20 @@ pub mod pallet {
 			} else {
 				return Err(Error::<T, I>::InvalidEntity.into());
 			}
-			Registries::<T, I>::remove(&registry_index, &entity_id);
 
+			if soft {
+				if let Some(req) = Self::requests(registry_index, &entity_id) {
+					if req.is_some() {
+						return Err(Error::<T, I>::NotRequestedToUnregister.into());
+					}
+					Requests::<T, I>::remove(registry_index, &entity_id);
+				} else {
+					return Err(Error::<T, I>::NotRequestedToUnregister.into());
+				}
+			}
+
+			Registries::<T, I>::remove(registry_index, &entity_id);
 			Self::deposit_event(Event::EntityUnregistered { entity_id, registry_index });
-
 			Ok(())
 		}
 
@@ -536,7 +557,9 @@ pub mod pallet {
 
 			// get the request and verify it matches what we want to register
 			let Request { data: request_data, deposit: request_deposit, editable_by_registrar } =
-				Self::requests(&registry_index, &entity_id).ok_or(Error::<T, I>::InvalidEntity)?;
+				Self::requests(&registry_index, &entity_id)
+					.ok_or(Error::<T, I>::InvalidEntity)?
+					.ok_or(Error::<T, I>::EntityIsNone)?;
 			ensure!(T::Hashing::hash_of(&request_data) == data, Error::<T, I>::MismatchedData);
 
 			// ensure deposit is ok - mostly defensive, it should never fail,
@@ -587,7 +610,6 @@ pub mod pallet {
 			entity_id: T::EntityId,
 			data: T::EntityData,
 		) -> DispatchResult {
-			// make sure origin is ok for registry_index
 			let sender = T::RegistrarOrigin::ensure_origin(origin)?;
 			Self::ensure_registrar(&sender, registry_index)?;
 
@@ -612,33 +634,28 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/* see https://github.com/liberland/liberland_substrate/issues/250
-		/// Remove Entity from given registry.
-		///
-		/// * `registry_index` - Registry index to remove from
-		///
-		/// Will refund deposit of stored data.
-		///
-		/// Emits `EntityUnregistered`.
-		///
-		/// Must be called by `EntityOrigin`
-		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::unregister())]
-		pub fn unregister(origin: OriginFor<T>, registry_index: RegistryIndex) -> DispatchResult {
-			let entity = T::EntityOrigin::ensure_origin(origin)?;
-			if let Some(Registration { deposit, .. }) = Self::registries(&entity, registry_index) {
-				// refund deposit
-				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &entity, deposit);
-			} else {
-				return Err(Error::<T, I>::InvalidEntity.into())
+		#[pallet::call_index(7)]
+		#[pallet::weight(T::WeightInfo::request_entity_unregister())]
+		pub fn request_entity_unregister(
+			origin: OriginFor<T>,
+			registry_index: RegistryIndex,
+			entity_id: T::EntityId,
+		) -> DispatchResult {
+			let sender = T::EntityOrigin::ensure_origin(origin)?;
+			Self::ensure_entity_owner(&sender, &entity_id)?;
+
+			if let Some(Some(req)) = Self::requests(&registry_index, &entity_id) {
+				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &sender, req.deposit);
 			}
-			EntityRegistries::<T, I>::remove(&entity, registry_index);
+			if Self::registries(&registry_index, entity_id.clone()).is_none() {
+				return Err(Error::<T, I>::InvalidEntity.into());
+			}
 
-			Self::deposit_event(Event::EntityUnregistered { entity, registry_index });
+			Requests::<T, I>::insert(&registry_index, &entity_id, None::<RequestOf<T, I>>);
 
+			Self::deposit_event(Event::RegistrationRequested { registry_index, entity_id });
 			Ok(())
 		}
-		*/
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -683,12 +700,11 @@ pub mod pallet {
 			editable_by_registrar: bool,
 		) -> DispatchResult {
 			let required_deposit = Self::calculate_deposit(&data);
-			let old_deposit = Self::requests(&registry_index, &entity_id)
-				.map(|Request { deposit, .. }| deposit)
-				.unwrap_or_default();
 
 			// refund old deposit, if any
-			T::Currency::unreserve_named(T::ReserveIdentifier::get(), &owner, old_deposit);
+			if let Some(Some(req)) = Self::requests(&registry_index, &entity_id) {
+				T::Currency::unreserve_named(T::ReserveIdentifier::get(), &owner, req.deposit);
+			}
 
 			// reserve new deposit
 			T::Currency::reserve_named(T::ReserveIdentifier::get(), &owner, required_deposit)?;
@@ -696,7 +712,7 @@ pub mod pallet {
 			Requests::<T, I>::insert(
 				&registry_index,
 				&entity_id,
-				Request { deposit: required_deposit, data, editable_by_registrar },
+				Some(Request { deposit: required_deposit, data, editable_by_registrar }),
 			);
 
 			Self::deposit_event(Event::RegistrationRequested { registry_index, entity_id });
