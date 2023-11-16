@@ -515,10 +515,7 @@ pub mod pallet {
 			}
 
 			if soft {
-				if let Some(req) = Self::requests(registry_index, &entity_id) {
-					if req.is_some() {
-						return Err(Error::<T, I>::NotRequestedToUnregister.into());
-					}
+				if let Some(None) = Self::requests(registry_index, &entity_id) {
 					Requests::<T, I>::remove(registry_index, &entity_id);
 				} else {
 					return Err(Error::<T, I>::NotRequestedToUnregister.into());
