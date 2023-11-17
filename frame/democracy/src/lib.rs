@@ -1580,6 +1580,28 @@ impl<T: Config> Pallet<T> {
 		.map_err(|_| Error::<T>::NoneWaiting.into())
 	}
 
+	/// Table the next waiting proposal for a vote.
+	fn launch_all(now: T::BlockNumber) -> DispatchResult {
+		loop {
+			if let Err(e) = Self::launch_public(now) {
+				if e == Error::<T>::NoneWaiting.into() {
+					break
+				}
+				return Err(e)
+			}
+		}
+		loop {
+			if let Err(e) = Self::launch_external(now) {
+				if e == Error::<T>::NoneWaiting.into() {
+					break
+				}
+				return Err(e)
+			}
+		}
+
+		return Ok(())
+	}
+
 	/// Table the waiting external proposal for a vote, if there is one.
 	fn launch_external(now: T::BlockNumber) -> DispatchResult {
 		if let Some((proposal, threshold)) = <NextExternal<T>>::take() {
@@ -1686,7 +1708,7 @@ impl<T: Config> Pallet<T> {
 		if (now % T::LaunchPeriod::get()).is_zero() {
 			// Errors come from the queue being empty. If the queue is not empty, it will take
 			// full block weight.
-			if Self::launch_next(now).is_ok() {
+			if Self::launch_all(now).is_ok() {
 				weight = max_block_weight;
 			} else {
 				weight.saturating_accrue(T::WeightInfo::on_initialize_base_with_launch_period(r));
