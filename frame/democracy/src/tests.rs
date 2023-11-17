@@ -326,11 +326,13 @@ impl Config for Test {
 	type LLM = LLM;
 	type LLInitializer = LiberlandInitializer;
 	type DelegateeFilter = Everything;
+	type ProposalFee = ();
+	type ProposalFeeAmount = ConstU64<10>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
+	let balances = vec![(1, 100), (2, 200), (3, 300), (4, 400), (5, 500), (6, 600)];
 	let mut llm_balances: Vec<(u64, u64, u64)> = balances.iter().map(|(id, _)| (*id, 6000, 5000)).collect();
 	llm_balances.push((7, 1000, 1000));
 
@@ -358,7 +360,7 @@ fn params_should_work() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Democracy::referendum_count(), 0);
 		assert_eq!(Balances::free_balance(42), 0);
-		assert_eq!(Balances::total_issuance(), 210);
+		assert_eq!(Balances::total_issuance(), 2100);
 	});
 }
 
@@ -394,6 +396,7 @@ fn fast_forward_to(n: u64) {
 
 fn begin_referendum() -> ReferendumIndex {
 	System::set_block_number(0);
+	Balances::make_free_balance_be(&1, 100);
 	assert_ok!(propose_set_balance(1, 2, 1));
 	fast_forward_to(2);
 	0

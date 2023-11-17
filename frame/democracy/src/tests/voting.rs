@@ -73,7 +73,7 @@ fn single_proposal_should_work() {
 
 		// start of 2 => next referendum scheduled.
 		fast_forward_to(2);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, aye(1)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(2)));
 
 		assert_eq!(Democracy::referendum_count(), 1);
 		assert_eq!(
@@ -84,7 +84,7 @@ fn single_proposal_should_work() {
 				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  },
+				tally: Tally { ayes: 200, nays: 0, turnout: 200, aye_voters: 10000, nay_voters: 0  },
 			})
 		);
 
@@ -97,6 +97,7 @@ fn single_proposal_should_work() {
 		fast_forward_to(4);
 
 		assert_noop!(Democracy::referendum_status(0), Error::<Test>::ReferendumInvalid);
+
 		assert!(pallet_scheduler::Agenda::<Test>::get(6)[0].is_some());
 
 		// referendum passes and wait another two blocks for enactment.
@@ -146,7 +147,7 @@ fn controversial_low_turnout_voting_should_work() {
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, big_nay(5)));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, big_aye(6)));
 
-		assert_eq!(tally(r), Tally { ayes: 60, nays: 50, turnout: 110, aye_voters: 10000, nay_voters: 10000  });
+		assert_eq!(tally(r), Tally { ayes: 600, nays: 500, turnout: 1100, aye_voters: 10000, nay_voters: 10000  });
 
 		next_block();
 		next_block();
@@ -159,7 +160,7 @@ fn controversial_low_turnout_voting_should_work() {
 fn passing_low_turnout_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Balances::free_balance(42), 0);
-		assert_eq!(Balances::total_issuance(), 210);
+		assert_eq!(Balances::total_issuance(), 2100);
 
 		let r = Democracy::inject_referendum(
 			2,
