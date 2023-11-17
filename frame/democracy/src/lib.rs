@@ -166,7 +166,7 @@ use frame_support::{
 		schedule::{v3::Named as ScheduleNamed, DispatchTime},
 		Bounded, Currency, Get, Hash as PreimageHash, LockIdentifier, LockableCurrency, QueryPreimage,
 		ReservableCurrency, StorePreimage,
-		Contains, OnUnbalanced
+		Contains, OnUnbalanced, tokens::{ExistenceRequirement, WithdrawReasons}
 	},
 	pallet_prelude::{MaxEncodedLen, TypeInfo},
 	BoundedVec,
@@ -1242,9 +1242,14 @@ impl<T: Config> Pallet<T> {
 	fn do_propose(who: T::AccountId, proposal: BoundedCallOf<T>, value: BalanceOf<T>, dispatch_origin: DispatchOrigin) -> DispatchResult {
 		T::Citizenship::ensure_politics_allowed(&who)?;
 
-		ensure!(T::Currency::can_slash(&who, T::ProposalFeeAmount::get()), Error::<T>::InsufficientFunds);
-
-		T::ProposalFee::on_unbalanced(T::Currency::slash(&who, T::ProposalFeeAmount::get()).0);
+		T::ProposalFee::on_unbalanced(
+			T::Currency::withdraw(
+				&who,
+				T::ProposalFeeAmount::get(),
+				WithdrawReasons::FEE,
+				ExistenceRequirement::KeepAlive
+			)?
+		);
 
 		let index = Self::public_prop_count();
 		let real_prop_count = PublicProps::<T>::decode_len().unwrap_or(0) as u32;

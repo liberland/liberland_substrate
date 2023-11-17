@@ -34,7 +34,7 @@ fn simple_passing_should_work() {
 			0,
 		);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, aye(1)));
-		assert_eq!(tally(r), Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  });
+		assert_eq!(tally(r), Tally { ayes: 100, nays: 0, turnout: 100, aye_voters: 10000, nay_voters: 0  });
 		assert_eq!(Democracy::lowest_unbaked(), 0);
 		next_block();
 		next_block();
@@ -54,7 +54,7 @@ fn simple_failing_should_work() {
 			0,
 		);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(1)));
-		assert_eq!(tally(r), Tally { ayes: 0, nays: 10, turnout: 10, aye_voters: 00000, nay_voters: 10000  });
+		assert_eq!(tally(r), Tally { ayes: 0, nays: 100, turnout: 100, aye_voters: 00000, nay_voters: 10000  });
 
 		next_block();
 		next_block();
@@ -82,12 +82,12 @@ fn ooo_inject_referendums_should_work() {
 		);
 
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r2, aye(1)));
-		assert_eq!(tally(r2), Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  });
+		assert_eq!(tally(r2), Tally { ayes: 100, nays: 0, turnout: 100, aye_voters: 10000, nay_voters: 0  });
 
 		next_block();
 
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r1, aye(1)));
-		assert_eq!(tally(r1), Tally { ayes: 10, nays: 0, turnout: 10, aye_voters: 10000, nay_voters: 0  });
+		assert_eq!(tally(r1), Tally { ayes: 100, nays: 0, turnout: 100, aye_voters: 10000, nay_voters: 0  });
 
 		next_block();
 		assert_eq!(Balances::free_balance(42), 2);
@@ -114,7 +114,7 @@ fn delayed_enactment_should_work() {
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, aye(5)));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, aye(6)));
 
-		assert_eq!(tally(r), Tally { ayes: 210, nays: 0, turnout: 210, aye_voters: 60000, nay_voters: 0  });
+		assert_eq!(tally(r), Tally { ayes: 2100, nays: 0, turnout: 2100, aye_voters: 60000, nay_voters: 0  });
 
 		next_block();
 		assert_eq!(Balances::free_balance(42), 0);

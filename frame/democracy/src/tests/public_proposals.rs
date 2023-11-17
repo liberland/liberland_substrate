@@ -45,9 +45,9 @@ fn deposit_for_proposals_should_be_taken() {
 		assert_ok!(Democracy::second(RuntimeOrigin::signed(5), 0));
 		// liberland specific - free balance shouldn't change, seconds shouldn't
 		// lock anything
-		assert_eq!(Balances::free_balance(1), 0);
-		assert_eq!(Balances::free_balance(2), 20);
-		assert_eq!(Balances::free_balance(5), 50);
+		assert_eq!(Balances::free_balance(1), 90);
+		assert_eq!(Balances::free_balance(2), 200);
+		assert_eq!(Balances::free_balance(5), 500);
 	});
 }
 
@@ -60,9 +60,23 @@ fn deposit_for_proposals_should_be_returned() {
 		assert_ok!(Democracy::second(RuntimeOrigin::signed(5), 0));
 		assert_ok!(Democracy::second(RuntimeOrigin::signed(5), 0));
 		fast_forward_to(3);
-		assert_eq!(Balances::free_balance(1), 0);
-		assert_eq!(Balances::free_balance(2), 20);
-		assert_eq!(Balances::free_balance(5), 50);
+		assert_eq!(Balances::free_balance(1), 90);
+		assert_eq!(Balances::free_balance(2), 200);
+		assert_eq!(Balances::free_balance(5), 500);
+	});
+}
+
+#[test]
+fn proposal_with_funds_below_save_value_should_not_work() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(propose_set_balance(1, 2, 5));
+
+		Balances::make_free_balance_be(&1, 0);
+
+		assert_noop!(
+			propose_set_balance(1, 2, 0), 
+			pallet_balances::Error::<Test, _>::InsufficientBalance,
+	);
 	});
 }
 
@@ -71,7 +85,12 @@ fn proposal_with_funds_below_minimum_should_not_work() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(propose_set_balance(1, 2, 5));
 
-		assert_noop!(propose_set_balance(1, 2, 0), Error::<Test>::InsufficientFunds);
+		Balances::make_free_balance_be(&1, 10);
+		
+		assert_noop!(
+			propose_set_balance(1, 2, 0), 
+			pallet_balances::pallet::Error::<Test>::Expendability
+	);
 	});
 }
 
@@ -79,11 +98,11 @@ fn proposal_with_funds_below_minimum_should_not_work() {
 fn creating_proposal_takes_fee() {
 	new_test_ext().execute_with(|| {
 		System::set_block_number(0);
-		assert_eq!(Balances::total_balance(&1), 10);
+		assert_eq!(Balances::total_balance(&1), 100);
 
 		assert_ok!(propose_set_balance(1, 2, 5));
 
-		assert_eq!(Balances::total_balance(&1), 0);
+		assert_eq!(Balances::total_balance(&1), 90);
 		
 	});
 }
