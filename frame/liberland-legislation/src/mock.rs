@@ -126,6 +126,8 @@ impl pallet_democracy::Config for Test {
 	type LLInitializer = LiberlandInitializer;
 	type DelegateeFilter = Everything;
 	type SubmitOrigin = EnsureSigned<Self::AccountId>;
+	type ProposalFeeAmount = ConstU64<0>;
+	type ProposalFee = ();
 }
 
 impl pallet_balances::Config for Test {

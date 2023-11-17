@@ -177,7 +177,7 @@ fn blacklisting_should_work() {
 }
 
 #[test]
-fn runners_up_should_come_after() {
+fn all_referenda_should_start_at_the_same_time() {
 	new_test_ext().execute_with(|| {
 		System::set_block_number(0);
 		assert_ok!(propose_set_balance(3, 2, 2));
@@ -185,9 +185,7 @@ fn runners_up_should_come_after() {
 		assert_ok!(propose_set_balance(3, 3, 3));
 		fast_forward_to(2);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), 0, aye(1)));
-		fast_forward_to(4);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), 1, aye(1)));
-		fast_forward_to(6);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), 2, aye(1)));
 	});
 }

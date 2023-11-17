@@ -908,12 +908,11 @@ mod multiplier_tests {
 		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &self_intersecting));
 	}
 
-	use frame_support::traits::EitherOfDiverse;
 	use frame_system::{EnsureRoot, RawOrigin};
 	use node_primitives::AccountId;
 	use core::cmp::Ordering;
 	use sp_runtime::testing::sr25519;
-	use crate::{EnsureSenateMajority, EnsureCmp, OriginCaller, sp_api_hidden_includes_construct_runtime::hidden_include::traits::PrivilegeCmp};
+	use crate::{EnsureCmp, OriginCaller, sp_api_hidden_includes_construct_runtime::hidden_include::traits::PrivilegeCmp};
 
 	#[test]
 	fn ensure_cmp_works_for_root() {
