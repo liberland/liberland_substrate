@@ -45,7 +45,7 @@ benchmarks_instance_pallet! {
   }: _<T::RuntimeOrigin>(origin, 0, data.clone(), false)
   verify {
 	let entity_id: T::EntityId = 0u8.into();
-	assert!(matches!(Registry::<T, I>::requests(0, entity_id), Some(Request { data: ndata, .. }) if ndata == data));
+	assert!(matches!(Registry::<T, I>::requests(0, entity_id), Some(Some(Request { data: ndata, .. })) if ndata == data));
   }
 
   request_registration {
@@ -59,7 +59,7 @@ benchmarks_instance_pallet! {
 	Registry::<T, I>::request_entity(origin.clone(), 0, data.clone(), false).unwrap();
   }: _<T::RuntimeOrigin>(origin, 0, entity_id.clone(), data.clone(), false)
   verify {
-	assert!(matches!(Registry::<T, I>::requests(0, entity_id), Some(Request { data: ndata, .. }) if ndata == data));
+	assert!(matches!(Registry::<T, I>::requests(0, entity_id), Some(Some(Request { data: ndata, .. })) if ndata == data));
   }
 
   cancel_request {
@@ -69,7 +69,7 @@ benchmarks_instance_pallet! {
 	let data = get_data::<T, I>(1, 100 as usize);
 	Registry::<T, I>::request_entity(origin.clone(), 0, data.clone(), false).unwrap();
 	let entity_id: T::EntityId = 0u8.into();
-	assert!(matches!(Registry::<T, I>::requests(0, entity_id.clone()), Some(Request { data: ndata, .. }) if ndata == data));
+	assert!(matches!(Registry::<T, I>::requests(0, entity_id.clone()), Some(Some(Request { data: ndata, .. })) if ndata == data));
   }: _<T::RuntimeOrigin>(origin, 0, entity_id.clone())
   verify {
 	assert_eq!(Registry::<T, I>::requests(0, entity_id), None);
@@ -116,7 +116,7 @@ benchmarks_instance_pallet! {
 			Some(Registration { data: ndata, .. }) if ndata == data
 		)
 	);
-  }: _<T::RuntimeOrigin>(registrar, reg_idx, entity_id.clone())
+  }: _<T::RuntimeOrigin>(registrar, reg_idx, entity_id.clone(), false)
   verify {
 	assert_eq!(Registry::<T, I>::registries(reg_idx, entity_id), None);
   }
@@ -182,6 +182,27 @@ benchmarks_instance_pallet! {
 		Registry::<T, I>::registries(reg_idx, entity_id),
 		Some(Registration { data: ndata, .. }) if ndata == reg_data
 	));
+  }
+
+  request_entity_unregister {
+	let registrar: T::RuntimeOrigin = RawOrigin::Signed(account("registrar", 1, SEED)).into();
+	add_registries::<T, I>(1)?;
+	let reg_idx: u32 = Registry::<T, I>::registrars().len() as u32 - 1;
+	let acc: T::AccountId = account("owner", 0, SEED);
+	let origin: T::RuntimeOrigin = RawOrigin::Signed(acc.clone()).into();
+	let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value() / 2u32.into());
+	let entity_id: T::EntityId = 0u8.into();
+	let data = get_data::<T, I>(1, 1000);
+
+	Registry::<T, I>::request_entity(origin.clone(), reg_idx, data.clone(), true).unwrap();
+	Registry::<T, I>::register_entity(registrar.clone(), reg_idx, entity_id.clone(), T::Hashing::hash_of(&data)).unwrap();
+	assert!(matches!(
+		Registry::<T, I>::registries(reg_idx, entity_id.clone()),
+		Some(Registration { data: ndata, .. }) if ndata == data
+	));
+  }: _<T::RuntimeOrigin>(origin.clone(), reg_idx, entity_id.clone())
+  verify {
+	assert!(matches!(Registry::<T, I>::requests(reg_idx, entity_id), Some(None)));
   }
 }
 
