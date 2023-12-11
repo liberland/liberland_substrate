@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Requirements: 
-# * cargo capable of building substrate
 # * node.js + npm
 # * apt install -y moreutils jq
 #
@@ -22,7 +21,7 @@ npm install
 mkdir -p data
 cp "$BINARY" data/binary
 cp "$RUNTIME" data/runtime.wasm
-rm -f data/fork.json
+rm -f data/fork.json data/storage.json
 
 # Build new spec
 npm start
