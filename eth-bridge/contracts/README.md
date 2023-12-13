@@ -71,7 +71,7 @@ LDN Bridge (proxy): 0xC4217e86A64Ccec4Ac1Ac6ce04Acba709b9D912B
 LKN ERC-20 token (proxy): 0x42c096574aC5Efe204ccB73FfC86031e30DEcc7B
 LKN Bridge (proxy): 0x195afd36BD3d831F4C1195a150584D6A7ebF546f
 
-Common bridge implementation: 0x9598CDF255589C86F5ef6ff7A96Ce87D8E04F9e0
+Common bridge implementation: 0x7642C06e8e67D8b26eC483AdaC478dFb26135634
 Common token implementation: 0x70f5152D56132beFb503cCa1d6CCB6f5F49048a8
 ```
 
