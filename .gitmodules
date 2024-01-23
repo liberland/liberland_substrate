@@ -1,6 +1,3 @@
-[submodule "scripts/fork-test/fork-off-substrate"]
-	path = scripts/fork-test/fork-off-substrate
-	url = https://github.com/liberland/fork-off-substrate.git
 [submodule "eth-bridge/contracts/lib/forge-std"]
 	path = eth-bridge/contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
@@ -10,3 +7,6 @@
 [submodule "eth-bridge/contracts/lib/openzeppelin-contracts"]
 	path = eth-bridge/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "scripts/fork-test/liberland-fork-substrate"]
+	path = scripts/fork-test/liberland-fork-substrate
+	url = git@github.com:liberland/liberland-fork-substrate.git

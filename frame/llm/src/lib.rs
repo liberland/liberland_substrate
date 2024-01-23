@@ -76,9 +76,9 @@
 //!
 //! ## Genesis Config
 //!
-//! * `unpooling_withdrawlock_duration`: duration, in seconds, for which additional unlocks should
+//! * `unpooling_withdrawlock_duration`: duration, in blocks, for which additional unlocks should
 //!   be locked after `politics_unlock`
-//! * `unpooling_electionlock_duration`: duration, in seconds, for which politics rights should be
+//! * `unpooling_electionlock_duration`: duration, in blocks, for which politics rights should be
 //!   suspended after `politics_unlock`
 //!
 //! ## Interface
@@ -233,10 +233,10 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		/// duration, in seconds, for which additional unlocks should be locked
+		/// duration, in blocks, for which additional unlocks should be locked
 		/// after `politics_unlock`
 		pub unpooling_withdrawlock_duration: T::BlockNumber,
-		/// duration, in seconds, for which politics rights should be suspended
+		/// duration, in blocks, for which politics rights should be suspended
 		/// after `politics_unlock`
 		pub unpooling_electionlock_duration: T::BlockNumber,
 		pub _phantom: PhantomData<T>,
@@ -325,7 +325,7 @@ pub mod pallet {
 		Locked,
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 
 	#[pallet::pallet]
 	#[pallet::storage_version(STORAGE_VERSION)]

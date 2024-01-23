@@ -231,3 +231,47 @@ pub mod v2 {
 		}
 	}
 }
+
+pub mod v3 {
+	use super::*;
+	
+	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
+
+	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
+			assert!(StorageVersion::get::<Pallet<T>>() <= 2, "can only upgrade from version 2");
+
+			Ok(().encode())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			let weight = T::DbWeight::get().reads(1);
+			if StorageVersion::get::<Pallet<T>>() > 2 {
+				log::warn!(
+					target: TARGET,
+					"skipping on_runtime_upgrade: executed on wrong storage version.\
+				Expected version 2 or lower"
+				);
+				return weight;
+			}
+
+			let duration: T::BlockNumber = 432000u32.into();
+			WithdrawlockDuration::<T>::put(&duration);
+			ElectionlockDuration::<T>::put(&duration);
+
+			let _ = Withdrawlock::<T>::clear(u32::MAX, None);
+			let _ = Electionlock::<T>::clear(u32::MAX, None);
+
+			StorageVersion::new(3).put::<Pallet<T>>();
+			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
+			assert_eq!(StorageVersion::get::<Pallet<T>>(), 3, "must upgrade");
+			log::info!(target: TARGET, "WithdrawlockDuration set to {:?}, ElectionlockDuration set to {:?}", WithdrawlockDuration::<T>::get(), ElectionlockDuration::<T>::get(),);
+			Ok(())
+		}
+	}
+}
