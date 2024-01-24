@@ -15,8 +15,8 @@ set -euo pipefail
 export ORIG_CHAIN WS_ENDPOINT
 
 # Cleanup & Prepare
-[ ! -e "$(dirname "$0")/fork-off-substrate/package.json" ] && git submodule update --init
-cd "$(dirname "$0")/fork-off-substrate"
+[ ! -e "$(dirname "$0")/liberland-fork-substrate/package.json" ] && git submodule update --init
+cd "$(dirname "$0")/liberland-fork-substrate"
 npm install
 mkdir -p data
 cp "$BINARY" data/binary

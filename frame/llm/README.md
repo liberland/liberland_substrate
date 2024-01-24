@@ -61,8 +61,8 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 ## Genesis Config
 
-* `unpooling_withdrawlock_duration`: duration, in seconds, for which additional unlocks should be locked after `politics_unlock`
-* `unpooling_electionlock_duration`: duration, in seconds, for which politics rights should be suspended after `politics_unlock`
+* `unpooling_withdrawlock_duration`: duration, in blocks, for which additional unlocks should be locked after `politics_unlock`
+* `unpooling_electionlock_duration`: duration, in blocks, for which politics rights should be suspended after `politics_unlock`
 
 ## Interface
 
