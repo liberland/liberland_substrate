@@ -234,7 +234,7 @@ pub mod v2 {
 
 pub mod v3 {
 	use super::*;
-	
+
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
