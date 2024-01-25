@@ -15,7 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::*;
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
+
+use crate::{traits::MetadataValidator, *};
 use frame_support::pallet_prelude::*;
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -45,6 +50,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		);
 
 		let collection_config = Self::get_collection_config(&collection)?;
+
+		if !T::MetadataValidator::validate_metadata(collection, item, &data) {
+			return Err(Error::<T, I>::IncorrectData.into())
+		}
 
 		ItemMetadataOf::<T, I>::try_mutate_exists(collection, item, |metadata| {
 			if metadata.is_none() {

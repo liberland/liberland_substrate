@@ -1,36 +1,68 @@
-# Substrate &middot; [![GitHub license](https://img.shields.io/badge/license-GPL3%2FApache2-blue)](#LICENSE) [![GitLab Status](https://gitlab.parity.io/parity/substrate/badges/master/pipeline.svg)](https://gitlab.parity.io/parity/substrate/pipelines) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](docs/CONTRIBUTING.adoc) [![Stack Exchange](https://img.shields.io/badge/Substrate-Community%20&%20Support-24CC85?logo=stackexchange)](https://substrate.stackexchange.com/)
-<p align="center">
-  <img src="/docs/media/sub.gif">
+[![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/liberland/liberland_substrate)](https://github.com/liberland/liberland_substrate/tags) [![Twitter](https://img.shields.io/badge/Twitter-gray?logo=twitter)](https://twitter.com/Liberland_org)
+
+# Liberland Blockchain
+<p>
+<center>
+   <img src="https://lgl.liberland.org/uploads/-/system/appearance/header_logo/1/Liberland_vlajka.png" alt="Liberland Logo" style="height: 68px; width:100px;"/>
+
+</center>
 </p>
 
-Substrate is a next-generation framework for blockchain innovation 🚀.
+Liberland is a country established in 2015, on a no man’s land (terra nullius) between Croatia and Serbia (www.liberland.org). Liberland’s founders are blockchain and liberty enthusiasts. Liberland’s State project could be summarised by two concepts: Minimal state and distributive governance.
 
-## Getting Started
+We want to make all e-government services available to our citizens using our substrate-based blockchain.
 
-Head to [docs.substrate.io](https://docs.substrate.io) and follow the [installation](https://docs.substrate.io/install/) instructions.
-Then try out one of the [tutorials](https://docs.substrate.io/tutorials/).
-Refer to the [Docker instructions](./docker/README.md) to quickly run Substrate, Substrate Node Template, Subkey, or to build a chain spec.
+This repository contains the substrate-based implementation of Liberland blockchain node.
 
-## Community & Support
+## Documentation:
+* [Learn more about Liberland](https://liberland-1.gitbook.io/wiki/)
+* [Learn more about Liberland Blockchain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain)
 
-Join the highly active and supportive community on the [Substrate Stack Exchange](https://substrate.stackexchange.com/) to ask questions about use and problems you run into using this software.
-Please do report bugs and [issues here](https://github.com/paritytech/substrate/issues) for anything you suspect requires action in the source. 
+## Interact with live testnets:
+* [PowellGoHome](https://polkadot.js.org/apps/?rpc=wss%253A%252F%252Ftestchain.liberland.org)
 
-## Contributions & Code of Conduct
+## Contact:
+* [Liberland's website](https://liberland.org/)
+* [Join Liberland's Technical Node Operator group on Matrix](https://matrix.to/#/!YzbTfsgCDANzhNLYpW:matrix.org?via=matrix.org)
+* [Facebook Page](https://www.facebook.com/liberland)
+* [Twitter](https://twitter.com/Liberland_org)
+* Feel free to [open an issue](https://github.com/liberland/liberland_substrate/issues/new) in this repository
 
-Please follow the contributions guidelines as outlined in [`docs/CONTRIBUTING.adoc`](docs/CONTRIBUTING.adoc).
-In all communications and contributions, this project follows the [Contributor Covenant Code of Conduct](docs/CODE_OF_CONDUCT.md).
+## Quick-start guide for developing locally
 
-## Security
+### Install deps
+```
+sudo apt update
+sudo apt install build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32-unknown-unknown
+```
 
-The security policy and procedures can be found in [`docs/SECURITY.md`](docs/SECURITY.md).
+### Clone `liberland_substrate` repository
+```
+git clone https://github.com/liberland/liberland_substrate.git -b main
+cd liberland_substrate
+```
 
-## License
+### Run automated tests
+```
+cargo test --release --features runtime-benchmarks --no-fail-fast
+```
 
-- Substrate Primitives (`sp-*`), Frame (`frame-*`) and the pallets (`pallets-*`), binaries (`/bin`) and all other utilities are licensed under [Apache 2.0](LICENSE-APACHE2).
-- Substrate Client (`/client/*` / `sc-*`) is licensed under [GPL v3.0 with a classpath linking exception](LICENSE-GPL3).
+### Build and run development node
+```
+cargo run --release -- --dev
+```
 
-The reason for the split-licensing is to ensure that for the vast majority of teams using Substrate to create feature-chains, then all changes can be made entirely in Apache2-licensed code, allowing teams full freedom over what and how they release and giving licensing clarity to commercial teams.
+Development instance is a single-node testnet, in which standard development
+accounts (Alice, Bob, etc.) are endowed with assets. To interact with it, visit
+[Polkadot.js Apps](https://polkadot.js.org/apps/?rpc=ws://localhost:9944).
 
-In the interests of the community, we require any deeper improvements made to Substrate's core logic (e.g. Substrate's internal consensus, crypto or database code) to be contributed back so everyone can benefit.
+### Further reading
+* [Run a validator](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator)
+* [Run with Docker](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-developers-and-testers/docker)
 
+
+## Licensing
+All code that is committed on behalf of Liberland is distributed under the MIT license. 
+You may find a copy of the MIT license [here](https://github.com/liberland/liberland_substrate/blob/main/LICENSE-MIT). Alternatively, you may visit [OpenSource.org](https://opensource.org/licenses/MIT).

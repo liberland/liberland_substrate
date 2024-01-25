@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Tests for the module.
 
 use super::{ConfigOp, Event, *};
@@ -5841,4 +5845,18 @@ mod staking_interface {
 			assert!(Staking::status(&42).is_err());
 		})
 	}
+}
+
+#[test]
+fn citizenship_checks_works() {
+	ExtBuilder::default().build_and_execute(|| {
+		assert_ok!(Staking::set_citizenship_required(RuntimeOrigin::root(), true));
+		bond(49, 100);
+		bond(50, 100);
+		assert_noop!(
+			Staking::validate(RuntimeOrigin::signed(49), ValidatorPrefs::default()),
+			pallet_llm::Error::<Test>::NonCitizen,
+		);
+		assert_ok!(Staking::validate(RuntimeOrigin::signed(50), ValidatorPrefs::default()));
+	})
 }

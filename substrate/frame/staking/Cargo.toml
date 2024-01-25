@@ -18,36 +18,42 @@ codec = { package = "parity-scale-codec", version = "3.2.2", default-features = 
 	"derive",
 ] }
 scale-info = { version = "2.5.0", default-features = false, features = ["derive"] }
-sp-std = { version = "5.0.0", default-features = false, path = "../../primitives/std" }
-sp-io = { version = "7.0.0", default-features = false, path = "../../primitives/io" }
-sp-runtime = { version = "7.0.0", default-features = false, path = "../../primitives/runtime" }
-sp-staking = { version = "4.0.0-dev", default-features = false, path = "../../primitives/staking" }
-frame-support = { version = "4.0.0-dev", default-features = false, path = "../support" }
-frame-system = { version = "4.0.0-dev", default-features = false, path = "../system" }
+sp-std = { version = "5.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-io = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-runtime = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-staking = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-system = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 pallet-session = { version = "4.0.0-dev", default-features = false, features = [
 	"historical",
-], path = "../session" }
-pallet-authorship = { version = "4.0.0-dev", default-features = false, path = "../authorship" }
-sp-application-crypto = { version = "7.0.0", default-features = false, path = "../../primitives/application-crypto" }
-frame-election-provider-support = { version = "4.0.0-dev", default-features = false, path = "../election-provider-support" }
+], branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-authorship = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-application-crypto = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-election-provider-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 log = { version = "0.4.17", default-features = false }
+pallet-llm = { default-features = false, path = "../llm" }
+pallet-liberland-initializer = { default-features = false, path = "../liberland-initializer" }
+liberland-traits = { path = "../liberland-traits", default-features = false}
+pallet-assets = { default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-identity = { default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 
 # Optional imports for benchmarking
-frame-benchmarking = { version = "4.0.0-dev", default-features = false, path = "../benchmarking", optional = true }
+frame-benchmarking = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate", optional = true }
 rand_chacha = { version = "0.2", default-features = false, optional = true }
 
 [dev-dependencies]
-sp-tracing = { version = "6.0.0", path = "../../primitives/tracing" }
-sp-core = { version = "7.0.0", path = "../../primitives/core" }
-sp-npos-elections = { version = "4.0.0-dev", path = "../../primitives/npos-elections" }
-pallet-balances = { version = "4.0.0-dev", path = "../balances" }
-pallet-timestamp = { version = "4.0.0-dev", path = "../timestamp" }
-pallet-staking-reward-curve = { version = "4.0.0-dev", path = "../staking/reward-curve" }
-pallet-bags-list = { version = "4.0.0-dev", path = "../bags-list" }
-substrate-test-utils = { version = "4.0.0-dev", path = "../../test-utils" }
-frame-benchmarking = { version = "4.0.0-dev", path = "../benchmarking" }
-frame-election-provider-support = { version = "4.0.0-dev", path = "../election-provider-support" }
+sp-tracing = { version = "6.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-core = { version = "7.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-npos-elections = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-timestamp = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-staking-reward-curve = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-bags-list = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+substrate-test-utils = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-benchmarking = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-election-provider-support = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 rand_chacha = { version = "0.2" }
+pallet-nfts = { path = "../nfts" }
 
 [features]
 default = ["std"]
@@ -67,11 +73,20 @@ std = [
 	"sp-application-crypto/std",
 	"log/std",
 	"frame-election-provider-support/std",
+	"pallet-assets/std",
+	"pallet-identity/std",
+	"pallet-llm/std",
+	"pallet-liberland-initializer/std",
+	"liberland-traits/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
 	"rand_chacha",
 	"sp-staking/runtime-benchmarks",
+	"pallet-liberland-initializer/runtime-benchmarks",
+	"liberland-traits/runtime-benchmarks",
+	"pallet-nfts/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime", "frame-election-provider-support/try-runtime"]

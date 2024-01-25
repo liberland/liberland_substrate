@@ -15,13 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Test environment for Nfts pallet.
 
 use super::*;
 use crate as pallet_nfts;
+use liberland_traits::MockCitizenshipChecker;
 
 use frame_support::{
 	construct_runtime, parameter_types,
+	BoundedVec,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64},
 };
 use sp_core::H256;
@@ -31,6 +37,14 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 	MultiSignature,
 };
+
+pub struct DummyMetadataValidator;
+
+impl<StringLimit> crate::traits::MetadataValidator<u32, u32, StringLimit> for DummyMetadataValidator {
+    fn validate_metadata(_: u32, i: u32, _: &BoundedVec<u8, StringLimit>) -> bool {
+		i != 9991999
+    }
+}
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -98,6 +112,11 @@ parameter_types! {
 	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
 }
 
+parameter_types! {
+	pub MockCitizenOne: AccountId = [100u8; 32].into();
+	pub MockCitizenTwo: AccountId = [101u8; 32].into();
+}
+
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type CollectionId = u32;
@@ -128,6 +147,8 @@ impl Config for Test {
 	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
+	type Citizenship = MockCitizenshipChecker<Self::AccountId, MockCitizenOne, MockCitizenTwo>;
+	type MetadataValidator = DummyMetadataValidator;
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {

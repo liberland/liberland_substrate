@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Identity pallet benchmarking.
 
 #![cfg(feature = "runtime-benchmarks")]
@@ -52,7 +56,7 @@ fn add_registrars<T: Config>(r: u32) -> Result<(), &'static str> {
 					IdentityField::Legal | IdentityField::Web |
 					IdentityField::Riot | IdentityField::Email |
 					IdentityField::PgpFingerprint |
-					IdentityField::Image | IdentityField::Twitter,
+					IdentityField::Image,
 			);
 		Identity::<T>::set_fields(RawOrigin::Signed(registrar.clone()).into(), i, fields)?;
 	}
@@ -114,7 +118,7 @@ fn create_identity_info<T: Config>(num_fields: u32) -> IdentityInfo<T::MaxAdditi
 		email: data.clone(),
 		pgp_fingerprint: Some([0; 20]),
 		image: data.clone(),
-		twitter: data,
+		twitter: data.clone(),
 	}
 }
 
@@ -324,7 +328,7 @@ benchmarks! {
 		Identity::<T>::add_registrar(registrar_origin, caller_lookup)?;
 		let fields = IdentityFields(
 			IdentityField::Display | IdentityField::Legal | IdentityField::Web | IdentityField::Riot
-			| IdentityField::Email | IdentityField::PgpFingerprint | IdentityField::Image | IdentityField::Twitter
+			| IdentityField::Email | IdentityField::PgpFingerprint | IdentityField::Image
 		);
 		let registrars = Registrars::<T>::get();
 		ensure!(registrars[r as usize].as_ref().unwrap().fields == Default::default(), "fields already set.");

@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! The tests for cancelation functionality.
 
 use super::*;
@@ -25,6 +29,7 @@ fn cancel_referendum_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -49,6 +54,7 @@ fn emergency_cancel_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			2,
 		);
@@ -63,6 +69,7 @@ fn emergency_cancel_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
+			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			2,
 		);

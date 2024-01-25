@@ -1,1 +1,0 @@
-# Substrate Docker Image

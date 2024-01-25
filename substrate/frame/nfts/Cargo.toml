@@ -17,17 +17,21 @@ codec = { package = "parity-scale-codec", version = "3.2.2", default-features = 
 enumflags2 = { version = "0.7.7" }
 log = { version = "0.4.17", default-features = false }
 scale-info = { version = "2.5.0", default-features = false, features = ["derive"] }
-frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, path = "../benchmarking" }
-frame-support = { version = "4.0.0-dev", default-features = false, path = "../support" }
-frame-system = { version = "4.0.0-dev", default-features = false, path = "../system" }
-sp-core = { version = "7.0.0", default-features = false, path = "../../primitives/core" }
-sp-io = { version = "7.0.0", default-features = false, path = "../../primitives/io" }
-sp-runtime = { version = "7.0.0", default-features = false, path = "../../primitives/runtime" }
-sp-std = { version = "5.0.0", default-features = false, path = "../../primitives/std" }
+frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+frame-system = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-core = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-io = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-runtime = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-std = { version = "5.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+liberland-traits = { default-features = false, path = "../liberland-traits" }
 
 [dev-dependencies]
-pallet-balances = { version = "4.0.0-dev", path = "../balances" }
-sp-keystore = { version = "0.13.0", path = "../../primitives/keystore" }
+pallet-balances = { version = "4.0.0-dev", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-core = { version = "7.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-io = { version = "7.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-std = { version = "5.0.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-keystore = { version = "0.13.0", branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
 
 [features]
 default = ["std"]

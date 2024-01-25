@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! # Identity Pallet
 //!
 //! - [`Config`]
@@ -75,7 +79,7 @@
 mod benchmarking;
 #[cfg(test)]
 mod tests;
-mod types;
+pub mod types;
 pub mod weights;
 
 use frame_support::traits::{BalanceStatus, Currency, OnUnbalanced, ReservableCurrency};
@@ -101,6 +105,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use liberland_traits::CitizenshipChecker;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -149,6 +154,8 @@ pub mod pallet {
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
+
+		type Citizenship: CitizenshipChecker<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -332,6 +339,7 @@ pub mod pallet {
 			info: Box<IdentityInfo<T::MaxAdditionalFields>>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			let was_citizen = T::Citizenship::is_citizen(&sender);
 			let extra_fields = info.additional.len() as u32;
 			ensure!(extra_fields <= T::MaxAdditionalFields::get(), Error::<T>::TooManyFields);
 			let fd = <BalanceOf<T>>::from(extra_fields) * T::FieldDeposit::get();
@@ -362,8 +370,9 @@ pub mod pallet {
 
 			let judgements = id.judgements.len();
 			<IdentityOf<T>>::insert(&sender, id);
-			Self::deposit_event(Event::IdentitySet { who: sender });
+			Self::deposit_event(Event::IdentitySet { who: sender.clone() });
 
+			T::Citizenship::identity_changed(was_citizen, &sender);
 			Ok(Some(T::WeightInfo::set_identity(
 				judgements as u32, // R
 				extra_fields,      // X
@@ -467,6 +476,7 @@ pub mod pallet {
 		))]
 		pub fn clear_identity(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			let was_citizen = T::Citizenship::is_citizen(&sender);
 
 			let (subs_deposit, sub_ids) = <SubsOf<T>>::take(&sender);
 			let id = <IdentityOf<T>>::take(&sender).ok_or(Error::<T>::NotNamed)?;
@@ -478,8 +488,9 @@ pub mod pallet {
 			let err_amount = T::Currency::unreserve(&sender, deposit);
 			debug_assert!(err_amount.is_zero());
 
-			Self::deposit_event(Event::IdentityCleared { who: sender, deposit });
+			Self::deposit_event(Event::IdentityCleared { who: sender.clone(), deposit });
 
+			T::Citizenship::identity_changed(was_citizen, &sender);
 			Ok(Some(T::WeightInfo::clear_identity(
 				id.judgements.len() as u32,      // R
 				sub_ids.len() as u32,            // S
@@ -520,6 +531,7 @@ pub mod pallet {
 			#[pallet::compact] max_fee: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			let was_citizen = T::Citizenship::is_citizen(&sender);
 			let registrars = <Registrars<T>>::get();
 			let registrar = registrars
 				.get(reg_index as usize)
@@ -547,10 +559,11 @@ pub mod pallet {
 			<IdentityOf<T>>::insert(&sender, id);
 
 			Self::deposit_event(Event::JudgementRequested {
-				who: sender,
+				who: sender.clone(),
 				registrar_index: reg_index,
 			});
 
+			T::Citizenship::identity_changed(was_citizen, &sender);
 			Ok(Some(T::WeightInfo::request_judgement(judgements as u32, extra_fields as u32))
 				.into())
 		}
@@ -580,6 +593,7 @@ pub mod pallet {
 			reg_index: RegistrarIndex,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			let was_citizen = T::Citizenship::is_citizen(&sender);
 			let mut id = <IdentityOf<T>>::get(&sender).ok_or(Error::<T>::NoIdentity)?;
 
 			let pos = id
@@ -599,10 +613,11 @@ pub mod pallet {
 			<IdentityOf<T>>::insert(&sender, id);
 
 			Self::deposit_event(Event::JudgementUnrequested {
-				who: sender,
+				who: sender.clone(),
 				registrar_index: reg_index,
 			});
 
+			T::Citizenship::identity_changed(was_citizen, &sender);
 			Ok(Some(T::WeightInfo::cancel_request(judgements as u32, extra_fields as u32)).into())
 		}
 
@@ -752,6 +767,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let target = T::Lookup::lookup(target)?;
+			let was_citizen = T::Citizenship::is_citizen(&target);
 			ensure!(!judgement.has_deposit(), Error::<T>::InvalidJudgement);
 			<Registrars<T>>::get()
 				.get(reg_index as usize)
@@ -787,8 +803,9 @@ pub mod pallet {
 			let judgements = id.judgements.len();
 			let extra_fields = id.info.additional.len();
 			<IdentityOf<T>>::insert(&target, id);
-			Self::deposit_event(Event::JudgementGiven { target, registrar_index: reg_index });
+			Self::deposit_event(Event::JudgementGiven { target: target.clone(), registrar_index: reg_index });
 
+			T::Citizenship::identity_changed(was_citizen, &target);
 			Ok(Some(T::WeightInfo::provide_judgement(judgements as u32, extra_fields as u32))
 				.into())
 		}
@@ -825,6 +842,9 @@ pub mod pallet {
 
 			// Figure out who we're meant to be clearing.
 			let target = T::Lookup::lookup(target)?;
+
+			let was_citizen = T::Citizenship::is_citizen(&target);
+
 			// Grab their deposit (and check that they have one).
 			let (subs_deposit, sub_ids) = <SubsOf<T>>::take(&target);
 			let id = <IdentityOf<T>>::take(&target).ok_or(Error::<T>::NotNamed)?;
@@ -835,8 +855,9 @@ pub mod pallet {
 			// Slash their deposit from them.
 			T::Slashed::on_unbalanced(T::Currency::slash_reserved(&target, deposit).0);
 
-			Self::deposit_event(Event::IdentityKilled { who: target, deposit });
+			Self::deposit_event(Event::IdentityKilled { who: target.clone(), deposit });
 
+			T::Citizenship::identity_changed(was_citizen, &target);
 			Ok(Some(T::WeightInfo::kill_identity(
 				id.judgements.len() as u32,      // R
 				sub_ids.len() as u32,            // S

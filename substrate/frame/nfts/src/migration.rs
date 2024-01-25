@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 use super::*;
 use frame_support::{log, traits::OnRuntimeUpgrade};
 
@@ -97,7 +101,7 @@ pub mod v1 {
 			let current_version = Pallet::<T>::current_storage_version();
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 			ensure!(onchain_version == 0 && current_version == 1, "migration from version 0 to 1.");
-			let prev_count = Collection::<T>::iter().count();
+			let prev_count = Collection::<T>::iter_keys().count();
 			Ok((prev_count as u32).encode())
 		}
 

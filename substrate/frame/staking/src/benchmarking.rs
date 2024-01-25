@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// File has been modified by Liberland in 2023. All modifications by Liberland are distributed under the MIT license.
+
+// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
+
 //! Staking pallet benchmarking.
 
 use super::*;
@@ -936,6 +940,12 @@ benchmarks! {
 	}: _(RawOrigin::Root, min_commission)
 	verify {
 		assert_eq!(MinCommission::<T>::get(), Perbill::from_percent(100));
+	}
+
+	set_citizenship_required {
+	}: _(RawOrigin::Root, true)
+	verify {
+		assert_eq!(CitizenshipRequired::<T>::get(), true);
 	}
 
 	impl_benchmark_test_suite!(
