@@ -28,16 +28,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{
-	dispatch::{DispatchError, DispatchResult},
+	dispatch::DispatchResult,
 	ensure,
 	traits::{
 		fungible, Currency, Get, LockIdentifier, LockableCurrency, PollStatus, Polling,
 		ReservableCurrency, WithdrawReasons,
 	},
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Saturating, StaticLookup, Zero},
-	ArithmeticError, Perbill,
+	ArithmeticError, DispatchError, Perbill,
 };
 use sp_std::prelude::*;
 
@@ -68,16 +69,13 @@ type BalanceOf<T, I = ()> =
 type VotingOf<T, I = ()> = Voting<
 	BalanceOf<T, I>,
 	<T as frame_system::Config>::AccountId,
-	<T as frame_system::Config>::BlockNumber,
+	BlockNumberFor<T>,
 	PollIndexOf<T, I>,
 	<T as Config<I>>::MaxVotes,
 >;
 #[allow(dead_code)]
-type DelegatingOf<T, I = ()> = Delegating<
-	BalanceOf<T, I>,
-	<T as frame_system::Config>::AccountId,
-	<T as frame_system::Config>::BlockNumber,
->;
+type DelegatingOf<T, I = ()> =
+	Delegating<BalanceOf<T, I>, <T as frame_system::Config>::AccountId, BlockNumberFor<T>>;
 pub type TallyOf<T, I = ()> = Tally<BalanceOf<T, I>, <T as Config<I>>::MaxTurnout>;
 pub type VotesOf<T, I = ()> = BalanceOf<T, I>;
 type PollIndexOf<T, I = ()> = <<T as Config<I>>::Polls as Polling<TallyOf<T, I>>>::Index;
@@ -88,8 +86,15 @@ type ClassOf<T, I = ()> = <<T as Config<I>>::Polls as Polling<TallyOf<T, I>>>::C
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{pallet_prelude::*, traits::ClassCountOf};
+	use frame_support::{
+		pallet_prelude::{
+			DispatchResultWithPostInfo, IsType, StorageDoubleMap, StorageMap, ValueQuery,
+		},
+		traits::ClassCountOf,
+		Twox64Concat,
+	};
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::BoundedVec;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(_);
@@ -103,14 +108,14 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		/// Currency type with which voting happens.
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
 			+ fungible::Inspect<Self::AccountId>;
 
 		/// The implementation of the logic which conducts polls.
 		type Polls: Polling<
 			TallyOf<Self, I>,
 			Votes = BalanceOf<Self, I>,
-			Moment = Self::BlockNumber,
+			Moment = BlockNumberFor<Self>,
 		>;
 
 		/// The maximum amount of tokens which may be used for voting. May just be
@@ -130,7 +135,7 @@ pub mod pallet {
 		/// It should be no shorter than enactment period to ensure that in the case of an approval,
 		/// those successful voters are locked into the consequences that their votes entail.
 		#[pallet::constant]
-		type VoteLockingPeriod: Get<Self::BlockNumber>;
+		type VoteLockingPeriod: Get<BlockNumberFor<Self>>;
 	}
 
 	/// All voting for a particular voter in a particular voting class. We store the balance for the

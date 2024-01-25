@@ -25,9 +25,8 @@ use sc_network::{
 	request_responses::{IfDisconnected, RequestFailure},
 	types::ProtocolName,
 	NetworkNotification, NetworkPeers, NetworkRequest, NetworkSyncForkRequest,
-	NotificationSenderError, NotificationSenderT,
+	NotificationSenderError, NotificationSenderT, ReputationChange,
 };
-use sc_peerset::ReputationChange;
 use sp_runtime::traits::{Block as BlockT, NumberFor};
 
 use std::collections::HashSet;
@@ -100,7 +99,11 @@ mockall::mock! {
 			protocol: ProtocolName,
 			peers: HashSet<Multiaddr>,
 		) -> Result<(), String>;
-		fn remove_peers_from_reserved_set(&self, protocol: ProtocolName, peers: Vec<PeerId>);
+		fn remove_peers_from_reserved_set(
+			&self,
+			protocol: ProtocolName,
+			peers: Vec<PeerId>
+		) -> Result<(), String>;
 		fn sync_num_connected(&self) -> usize;
 	}
 

@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,8 +63,8 @@ pub mod pallet {
 		sp_runtime::traits::{AccountIdConversion, StaticLookup},
 		traits::{
 			fungible::{
-				hold::{Inspect as HoldInspectFungible, Mutate as HoldMutateFungible},
-				Inspect as InspectFungible, Mutate as MutateFungible,
+				hold::Mutate as HoldMutateFungible, Inspect as InspectFungible,
+				Mutate as MutateFungible,
 			},
 			fungibles::{
 				metadata::{MetadataDeposit, Mutate as MutateMetadata},
@@ -86,7 +86,7 @@ pub mod pallet {
 	use sp_std::{fmt::Display, prelude::*};
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -96,11 +96,10 @@ pub mod pallet {
 		/// The currency mechanism, used for paying for deposits.
 		type Currency: InspectFungible<Self::AccountId>
 			+ MutateFungible<Self::AccountId>
-			+ HoldInspectFungible<Self::AccountId>
-			+ HoldMutateFungible<Self::AccountId>;
+			+ HoldMutateFungible<Self::AccountId, Reason = Self::RuntimeHoldReason>;
 
-		#[pallet::constant]
-		type HoldReason: Get<<Self::Currency as HoldInspectFungible<Self::AccountId>>::Reason>;
+		/// Overarching hold reason.
+		type RuntimeHoldReason: From<HoldReason>;
 
 		/// The deposit paid by the user locking an NFT. The deposit is returned to the original NFT
 		/// owner when the asset is unified and the NFT is unlocked.
@@ -201,6 +200,14 @@ pub mod pallet {
 		NftNotFractionalized,
 	}
 
+	/// A reason for the pallet placing a hold on funds.
+	#[pallet::composite_enum]
+	pub enum HoldReason {
+		/// Reserved for a fractionalized NFT.
+		#[codec(index = 0)]
+		Fractionalized,
+	}
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Lock the NFT and mint a new fungible asset.
@@ -239,7 +246,7 @@ pub mod pallet {
 
 			let pallet_account = Self::get_pallet_account();
 			let deposit = T::Deposit::get();
-			T::Currency::hold(&T::HoldReason::get(), &nft_owner, deposit)?;
+			T::Currency::hold(&HoldReason::Fractionalized.into(), &nft_owner, deposit)?;
 			Self::do_lock_nft(nft_collection_id, nft_id)?;
 			Self::do_create_asset(asset_id.clone(), pallet_account.clone())?;
 			Self::do_mint_asset(asset_id.clone(), &beneficiary, fractions)?;
@@ -303,7 +310,12 @@ pub mod pallet {
 				let asset_creator = details.asset_creator;
 				Self::do_burn_asset(asset_id.clone(), &who, details.fractions)?;
 				Self::do_unlock_nft(nft_collection_id, nft_id, &beneficiary)?;
-				T::Currency::release(&T::HoldReason::get(), &asset_creator, deposit, BestEffort)?;
+				T::Currency::release(
+					&HoldReason::Fractionalized.into(),
+					&asset_creator,
+					deposit,
+					BestEffort,
+				)?;
 
 				Self::deposit_event(Event::NftUnified {
 					nft_collection: nft_collection_id,
@@ -326,12 +338,12 @@ pub mod pallet {
 			T::PalletId::get().into_account_truncating()
 		}
 
-		/// Transfer the NFT from the account holding that NFT to the pallet's account.
+		/// Prevent further transferring of NFT.
 		fn do_lock_nft(nft_collection_id: T::NftCollectionId, nft_id: T::NftId) -> DispatchResult {
 			T::Nfts::disable_transfer(&nft_collection_id, &nft_id)
 		}
 
-		/// Transfer the NFT to the account returning the tokens.
+		/// Remove the transfer lock and transfer the NFT to the account returning the tokens.
 		fn do_unlock_nft(
 			nft_collection_id: T::NftCollectionId,
 			nft_id: T::NftId,

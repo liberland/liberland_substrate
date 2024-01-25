@@ -27,9 +27,9 @@
 //! Implementations of these traits may be converted to implementations of corresponding
 //! `nonfungible` traits by using the `nonfungible::ItemOf` type adapter.
 
-use crate::dispatch::{DispatchError, DispatchResult, Parameter};
+use crate::dispatch::{DispatchResult, Parameter};
 use codec::{Decode, Encode};
-use sp_runtime::TokenError;
+use sp_runtime::{DispatchError, TokenError};
 use sp_std::prelude::*;
 
 /// Trait for providing an interface to many read-only NFT-like sets of items.
@@ -180,6 +180,16 @@ pub trait InspectEnumerable<AccountId>: Inspect<AccountId> {
 	) -> Self::OwnedInCollectionIterator;
 }
 
+/// Trait for providing an interface to check the account's role within the collection.
+pub trait InspectRole<AccountId>: Inspect<AccountId> {
+	/// Returns `true` if `who` is the issuer of the `collection`.
+	fn is_issuer(collection: &Self::CollectionId, who: &AccountId) -> bool;
+	/// Returns `true` if `who` is the admin of the `collection`.
+	fn is_admin(collection: &Self::CollectionId, who: &AccountId) -> bool;
+	/// Returns `true` if `who` is the freezer of the `collection`.
+	fn is_freezer(collection: &Self::CollectionId, who: &AccountId) -> bool;
+}
+
 /// Trait for providing the ability to create collections of nonfungible items.
 pub trait Create<AccountId, CollectionConfig>: Inspect<AccountId> {
 	/// Create a `collection` of nonfungible items to be owned by `who` and managed by `admin`.
@@ -188,6 +198,13 @@ pub trait Create<AccountId, CollectionConfig>: Inspect<AccountId> {
 		admin: &AccountId,
 		config: &CollectionConfig,
 	) -> Result<Self::CollectionId, DispatchError>;
+
+	fn create_collection_with_id(
+		collection: Self::CollectionId,
+		who: &AccountId,
+		admin: &AccountId,
+		config: &CollectionConfig,
+	) -> Result<(), DispatchError>;
 }
 
 /// Trait for providing the ability to destroy collections of nonfungible items.

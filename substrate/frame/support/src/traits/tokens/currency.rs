@@ -21,13 +21,8 @@ use super::{
 	imbalance::{Imbalance, SignedImbalance},
 	misc::{Balance, ExistenceRequirement, WithdrawReasons},
 };
-use crate::{
-	dispatch::{DispatchError, DispatchResult},
-	traits::Get,
-};
-use codec::MaxEncodedLen;
-use sp_runtime::{traits::MaybeSerializeDeserialize, FixedPointOperand};
-use sp_std::fmt::Debug;
+use crate::{dispatch::DispatchResult, traits::Get};
+use sp_runtime::{traits::MaybeSerializeDeserialize, DispatchError};
 
 mod reservable;
 pub use reservable::{NamedReservableCurrency, ReservableCurrency};
@@ -37,7 +32,7 @@ pub use lockable::{LockIdentifier, LockableCurrency, VestingSchedule};
 /// Abstraction over a fungible assets system.
 pub trait Currency<AccountId> {
 	/// The balance of an account.
-	type Balance: Balance + MaybeSerializeDeserialize + Debug + MaxEncodedLen + FixedPointOperand;
+	type Balance: Balance + MaybeSerializeDeserialize;
 
 	/// The opaque token type for an imbalance. This is returned by unbalanced operations
 	/// and must be dealt with. It may be dropped but cannot be cloned.
@@ -124,8 +119,7 @@ pub trait Currency<AccountId> {
 
 	/// Transfer some liquid free balance to another staker.
 	///
-	/// This is a very high-level function. It will ensure all appropriate fees are paid
-	/// and no imbalance in the system remains.
+	/// This is a very high-level function. It will ensure no imbalance in the system remains.
 	fn transfer(
 		source: &AccountId,
 		dest: &AccountId,

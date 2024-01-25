@@ -30,11 +30,18 @@ use sp_runtime::traits::Hash;
 use substrate_test_utils::assert_eq_uvec;
 
 #[test]
+#[docify::export]
 fn basic_scheduling_works() {
 	new_test_ext().execute_with(|| {
+		// Call to schedule
 		let call =
 			RuntimeCall::Logger(LoggerCall::log { i: 42, weight: Weight::from_parts(10, 0) });
+
+		// BaseCallFilter should be implemented to accept `Logger::log` runtime call which is
+		// implemented for `BaseFilter` in the mock runtime
 		assert!(!<Test as frame_system::Config>::BaseCallFilter::contains(&call));
+
+		// Schedule call to be executed at the 4th block
 		assert_ok!(Scheduler::do_schedule(
 			DispatchTime::At(4),
 			None,
@@ -42,33 +49,53 @@ fn basic_scheduling_works() {
 			root(),
 			Preimage::bound(call).unwrap()
 		));
+
+		// `log` runtime call should not have executed yet
 		run_to_block(3);
 		assert!(logger::log().is_empty());
+
 		run_to_block(4);
+		// `log` runtime call should have executed at block 4
 		assert_eq!(logger::log(), vec![(root(), 42u32)]);
+
 		run_to_block(100);
 		assert_eq!(logger::log(), vec![(root(), 42u32)]);
 	});
 }
 
 #[test]
+#[docify::export]
 fn scheduling_with_preimages_works() {
 	new_test_ext().execute_with(|| {
+		// Call to schedule
 		let call =
 			RuntimeCall::Logger(LoggerCall::log { i: 42, weight: Weight::from_parts(10, 0) });
+
 		let hash = <Test as frame_system::Config>::Hashing::hash_of(&call);
 		let len = call.using_encoded(|x| x.len()) as u32;
-		// Important to use here `Bounded::Lookup` to ensure that we request the hash.
+
+		// Important to use here `Bounded::Lookup` to ensure that that the Scheduler can request the
+		// hash from PreImage to dispatch the call
 		let hashed = Bounded::Lookup { hash, len };
+
+		// Schedule call to be executed at block 4 with the PreImage hash
 		assert_ok!(Scheduler::do_schedule(DispatchTime::At(4), None, 127, root(), hashed));
+
+		// Register preimage on chain
 		assert_ok!(Preimage::note_preimage(RuntimeOrigin::signed(0), call.encode()));
 		assert!(Preimage::is_requested(&hash));
+
+		// `log` runtime call should not have executed yet
 		run_to_block(3);
 		assert!(logger::log().is_empty());
+
 		run_to_block(4);
+		// preimage should not have been removed when executed by the scheduler
 		assert!(!Preimage::len(&hash).is_some());
 		assert!(!Preimage::is_requested(&hash));
+		// `log` runtime call should have executed at block 4
 		assert_eq!(logger::log(), vec![(root(), 42u32)]);
+
 		run_to_block(100);
 		assert_eq!(logger::log(), vec![(root(), 42u32)]);
 	});
@@ -1849,5 +1876,44 @@ fn reschedule_named_last_task_removes_agenda() {
 		);
 		// if all tasks `None`, agenda fully removed.
 		assert!(Agenda::<Test>::get(when).len() == 0);
+	});
+}
+
+/// Ensures that an unvailable call sends an event.
+#[test]
+fn unavailable_call_is_detected() {
+	use frame_support::traits::schedule::v3::Named;
+
+	new_test_ext().execute_with(|| {
+		let call =
+			RuntimeCall::Logger(LoggerCall::log { i: 42, weight: Weight::from_parts(10, 0) });
+		let hash = <Test as frame_system::Config>::Hashing::hash_of(&call);
+		let len = call.using_encoded(|x| x.len()) as u32;
+		// Important to use here `Bounded::Lookup` to ensure that we request the hash.
+		let bound = Bounded::Lookup { hash, len };
+
+		let name = [1u8; 32];
+
+		// Schedule a call.
+		let _address = <Scheduler as Named<_, _, _>>::schedule_named(
+			name,
+			DispatchTime::At(4),
+			None,
+			127,
+			root(),
+			bound.clone(),
+		)
+		.unwrap();
+
+		// Ensure the preimage isn't available
+		assert!(!Preimage::have(&bound));
+
+		// Executes in block 4.
+		run_to_block(4);
+
+		assert_eq!(
+			System::events().last().unwrap().event,
+			crate::Event::CallUnavailable { task: (4, 0), id: Some(name) }.into()
+		);
 	});
 }

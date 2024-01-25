@@ -160,12 +160,12 @@ pub use types::*;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero},
-	ArithmeticError, TokenError,
+	ArithmeticError, DispatchError, TokenError,
 };
 use sp_std::prelude::*;
 
 use frame_support::{
-	dispatch::{DispatchError, DispatchResult},
+	dispatch::DispatchResult,
 	ensure,
 	pallet_prelude::DispatchResultWithPostInfo,
 	storage::KeyPrefixIterator,
@@ -380,7 +380,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
+	impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
 		fn build(&self) {
 			for (id, owner, is_sufficient, min_balance) in &self.assets {
 				assert!(!Asset::<T, I>::contains_key(id), "Asset id already in use");

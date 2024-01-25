@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,13 +61,16 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_arithmetic::traits::{Saturating, Zero};
+use sp_runtime::RuntimeDebug;
 use sp_std::{marker::PhantomData, prelude::*};
 
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
-	ensure,
-	traits::{tokens::Balance as BalanceTrait, EnsureOrigin, Get, RankedMembers},
-	BoundedVec, RuntimeDebug,
+	ensure, impl_ensure_origin_with_arg_ignoring_arg,
+	traits::{
+		tokens::Balance as BalanceTrait, EnsureOrigin, EnsureOriginWithArg, Get, RankedMembers,
+	},
+	BoundedVec,
 };
 
 #[cfg(test)]
@@ -191,9 +194,8 @@ pub mod pallet {
 		type EvidenceSize: Get<u32>;
 	}
 
-	pub type ParamsOf<T, I> =
-		ParamsType<<T as Config<I>>::Balance, <T as frame_system::Config>::BlockNumber, RANK_COUNT>;
-	pub type MemberStatusOf<T> = MemberStatus<<T as frame_system::Config>::BlockNumber>;
+	pub type ParamsOf<T, I> = ParamsType<<T as Config<I>>::Balance, BlockNumberFor<T>, RANK_COUNT>;
+	pub type MemberStatusOf<T> = MemberStatus<BlockNumberFor<T>>;
 	pub type RankOf<T, I> = <<T as Config<I>>::Members as RankedMembers>::Rank;
 
 	/// The overall status of the system.
@@ -321,12 +323,12 @@ pub mod pallet {
 
 		/// Set the parameters.
 		///
-		/// - `origin`: A origin complying with `ParamsOrigin` or root.
+		/// - `origin`: An origin complying with `ParamsOrigin` or root.
 		/// - `params`: The new parameters for the pallet.
 		#[pallet::weight(T::WeightInfo::set_params())]
 		#[pallet::call_index(1)]
 		pub fn set_params(origin: OriginFor<T>, params: Box<ParamsOf<T, I>>) -> DispatchResult {
-			T::ParamsOrigin::try_origin(origin).map(|_| ()).or_else(|o| ensure_root(o))?;
+			T::ParamsOrigin::ensure_origin_or_root(origin)?;
 			Params::<T, I>::put(params.as_ref());
 			Self::deposit_event(Event::<T, I>::ParamsChanged { params: *params });
 			Ok(())
@@ -570,7 +572,7 @@ impl<T: Config<I>, I: 'static, const MIN_RANK: u16> EnsureOrigin<T::RuntimeOrigi
 	type Success = T::AccountId;
 
 	fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
-		let who = frame_system::EnsureSigned::try_origin(o)?;
+		let who = <frame_system::EnsureSigned<_> as EnsureOrigin<_>>::try_origin(o)?;
 		match T::Members::rank_of(&who) {
 			Some(rank) if rank >= MIN_RANK && Member::<T, I>::contains_key(&who) => Ok(who),
 			_ => Err(frame_system::RawOrigin::Signed(who).into()),
@@ -590,4 +592,10 @@ impl<T: Config<I>, I: 'static, const MIN_RANK: u16> EnsureOrigin<T::RuntimeOrigi
 		}
 		Ok(frame_system::RawOrigin::Signed(who).into())
 	}
+}
+
+impl_ensure_origin_with_arg_ignoring_arg! {
+	impl< { T: Config<I>, I: 'static, const MIN_RANK: u16, A } >
+		EnsureOriginWithArg<T::RuntimeOrigin, A> for EnsureInducted<T, I, MIN_RANK>
+	{}
 }

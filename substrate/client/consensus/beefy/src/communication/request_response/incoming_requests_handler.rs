@@ -1,4 +1,4 @@
-// Copyright Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Substrate.
 
 // Substrate is free software: you can redistribute it and/or modify
@@ -16,9 +16,9 @@
 
 //! Helper for handling (i.e. answering) BEEFY justifications requests from a remote peer.
 
-use codec::Decode;
+use codec::DecodeAll;
 use futures::{channel::oneshot, StreamExt};
-use log::{debug, error, trace};
+use log::{debug, trace};
 use sc_client_api::BlockBackend;
 use sc_network::{
 	config as netconfig, config::RequestResponseConfig, types::ProtocolName, PeerId,
@@ -77,7 +77,7 @@ impl<B: Block> IncomingRequest<B> {
 		F: FnOnce(usize) -> Vec<ReputationChange>,
 	{
 		let netconfig::IncomingRequest { payload, peer, pending_response } = raw;
-		let payload = match JustificationRequest::decode(&mut payload.as_ref()) {
+		let payload = match JustificationRequest::decode_all(&mut payload.as_ref()) {
 			Ok(payload) => payload,
 			Err(err) => {
 				let response = netconfig::OutgoingResponse {
@@ -182,7 +182,9 @@ where
 	}
 
 	/// Run [`BeefyJustifsRequestHandler`].
-	pub async fn run(mut self) {
+	///
+	/// Should never end, returns `Error` otherwise.
+	pub async fn run(&mut self) -> Error {
 		trace!(target: BEEFY_SYNC_LOG_TARGET, "🥩 Running BeefyJustifsRequestHandler");
 
 		while let Ok(request) = self
@@ -215,9 +217,6 @@ where
 				},
 			}
 		}
-		error!(
-			target: crate::LOG_TARGET,
-			"🥩 On-demand requests receiver stream terminated, closing worker."
-		);
+		Error::RequestsReceiverStreamClosed
 	}
 }

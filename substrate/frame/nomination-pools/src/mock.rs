@@ -1,8 +1,25 @@
+// This file is part of Substrate.
+
+// Copyright (C) Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use super::*;
 use crate::{self as pools};
 use frame_support::{assert_ok, parameter_types, PalletId};
 use frame_system::RawOrigin;
-use sp_runtime::FixedU128;
+use sp_runtime::{BuildStorage, FixedU128};
 use sp_staking::Stake;
 
 pub type BlockNumber = u64;
@@ -47,6 +64,7 @@ impl StakingMock {
 impl sp_staking::StakingInterface for StakingMock {
 	type Balance = Balance;
 	type AccountId = AccountId;
+	type CurrencyToVote = ();
 
 	fn minimum_nominator_bond() -> Self::Balance {
 		StakingMinBond::get()
@@ -167,14 +185,13 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = ();
 	type BaseCallFilter = frame_support::traits::Everything;
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
 	type Hash = sp_core::H256;
 	type Hashing = sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = sp_runtime::traits::IdentityLookup<Self::AccountId>;
-	type Header = sp_runtime::testing::Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ();
 	type DbWeight = ();
@@ -206,7 +223,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = ();
 	type MaxHolds = ();
 }
 
@@ -245,15 +262,11 @@ impl pools::Config for Runtime {
 	type MaxPointsToBalance = frame_support::traits::ConstU8<10>;
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 frame_support::construct_runtime!(
-	pub struct Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub struct Runtime
 	{
-		System: frame_system::{Pallet, Call, Storage, Event<T>, Config},
+		System: frame_system::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Pools: pools::{Pallet, Call, Storage, Event<T>},
 	}
@@ -323,7 +336,7 @@ impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
 		sp_tracing::try_init_simple();
 		let mut storage =
-			frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
+			frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
 
 		let _ = crate::GenesisConfig::<Runtime> {
 			min_join_bond: MinJoinBondConfig::get(),

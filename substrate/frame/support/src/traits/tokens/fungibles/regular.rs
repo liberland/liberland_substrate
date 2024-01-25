@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2019-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,6 @@
 use sp_std::marker::PhantomData;
 
 use crate::{
-	dispatch::DispatchError,
 	ensure,
 	traits::{
 		tokens::{
@@ -38,7 +37,7 @@ use crate::{
 	},
 };
 use sp_arithmetic::traits::{CheckedAdd, CheckedSub, One};
-use sp_runtime::{traits::Saturating, ArithmeticError, TokenError};
+use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, TokenError};
 
 use super::{Credit, Debt, HandleImbalanceDrop, Imbalance};
 
@@ -62,7 +61,8 @@ pub trait Inspect<AccountId>: Sized {
 	/// The minimum balance any single account may have.
 	fn minimum_balance(asset: Self::AssetId) -> Self::Balance;
 
-	/// Get the total amount of funds whose ultimate bneficial ownership can be determined as `who`.
+	/// Get the total amount of funds whose ultimate beneficial ownership can be determined as
+	/// `who`.
 	///
 	/// This may include funds which are wholly inaccessible to `who`, either temporarily or even
 	/// indefinitely.
@@ -135,7 +135,7 @@ impl<A, T: Balanced<A>> Dust<A, T> {
 /// **WARNING**
 /// Do not use this directly unless you want trouble, since it allows you to alter account balances
 /// without keeping the issuance up to date. It has no safeguards against accidentally creating
-/// token imbalances in your system leading to accidental imflation or deflation. It's really just
+/// token imbalances in your system leading to accidental inflation or deflation. It's really just
 /// for the underlying datatype to implement so the user gets the much safer `Balanced` trait to
 /// use.
 pub trait Unbalanced<AccountId>: Inspect<AccountId> {

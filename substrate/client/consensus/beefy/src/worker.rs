@@ -30,7 +30,7 @@ use crate::{
 	round::{Rounds, VoteImportResult},
 	BeefyVoterLinks, LOG_TARGET,
 };
-use codec::{Codec, Decode, Encode};
+use codec::{Codec, Decode, DecodeAll, Encode};
 use futures::{stream::Fuse, FutureExt, StreamExt};
 use log::{debug, error, info, log_enabled, trace, warn};
 use sc_client_api::{Backend, FinalityNotification, FinalityNotifications, HeaderBackend};
@@ -41,7 +41,7 @@ use sp_arithmetic::traits::{AtLeast32Bit, Saturating};
 use sp_consensus::SyncOracle;
 use sp_consensus_beefy::{
 	check_equivocation_proof,
-	crypto::{AuthorityId, Signature},
+	ecdsa_crypto::{AuthorityId, Signature},
 	BeefyApi, Commitment, ConsensusLog, EquivocationProof, PayloadProvider, ValidatorSet,
 	VersionedFinalityProof, VoteMessage, BEEFY_ENGINE_ID,
 };
@@ -78,11 +78,11 @@ pub(crate) struct VoterOracle<B: Block> {
 	///
 	/// There are three voter states coresponding to three queue states:
 	/// 1. voter uninitialized: queue empty,
-	/// 2. up-to-date - all mandatory blocks leading up to current GRANDPA finalized:
-	///    queue has ONE element, the 'current session' where `mandatory_done == true`,
+	/// 2. up-to-date - all mandatory blocks leading up to current GRANDPA finalized: queue has ONE
+	///    element, the 'current session' where `mandatory_done == true`,
 	/// 3. lagging behind GRANDPA: queue has [1, N] elements, where all `mandatory_done == false`.
-	///    In this state, everytime a session gets its mandatory block BEEFY finalized, it's
-	///    popped off the queue, eventually getting to state `2. up-to-date`.
+	///    In this state, everytime a session gets its mandatory block BEEFY finalized, it's popped
+	///    off the queue, eventually getting to state `2. up-to-date`.
 	sessions: VecDeque<Rounds<B>>,
 	/// Min delta in block numbers between two blocks, BEEFY should vote on.
 	min_block_delta: u32,
@@ -313,6 +313,16 @@ impl<B: Block> PersistedState<B> {
 	}
 }
 
+/// Helper object holding BEEFY worker communication/gossip components.
+///
+/// These are created once, but will be reused if worker is restarted/reinitialized.
+pub(crate) struct BeefyComms<B: Block> {
+	pub gossip_engine: GossipEngine<B>,
+	pub gossip_validator: Arc<GossipValidator<B>>,
+	pub gossip_report_stream: TracingUnboundedReceiver<PeerReport>,
+	pub on_demand_justifications: OnDemandJustificationsEngine<B>,
+}
+
 /// A BEEFY worker plays the BEEFY protocol
 pub(crate) struct BeefyWorker<B: Block, BE, P, RuntimeApi, S> {
 	// utilities
@@ -322,11 +332,8 @@ pub(crate) struct BeefyWorker<B: Block, BE, P, RuntimeApi, S> {
 	pub sync: Arc<S>,
 	pub key_store: BeefyKeystore,
 
-	// communication
-	pub gossip_engine: GossipEngine<B>,
-	pub gossip_validator: Arc<GossipValidator<B>>,
-	pub gossip_report_stream: TracingUnboundedReceiver<PeerReport>,
-	pub on_demand_justifications: OnDemandJustificationsEngine<B>,
+	// communication (created once, but returned and reused if worker is restarted/reinitialized)
+	pub comms: BeefyComms<B>,
 
 	// channels
 	/// Links between the block importer, the background voter and the RPC layer.
@@ -348,7 +355,7 @@ where
 	P: PayloadProvider<B>,
 	S: SyncOracle,
 	R: ProvideRuntimeApi<B>,
-	R::Api: BeefyApi<B>,
+	R::Api: BeefyApi<B, AuthorityId>,
 {
 	fn best_grandpa_block(&self) -> NumberFor<B> {
 		*self.persisted_state.voting_oracle.best_grandpa_block_header.number()
@@ -447,11 +454,7 @@ where
 			.ok()
 			.flatten()
 			.filter(|genesis| *genesis == self.persisted_state.pallet_genesis)
-			.ok_or_else(|| {
-				let err = Error::ConsensusReset;
-				error!(target: LOG_TARGET, "🥩 Error: {}", err);
-				err
-			})?;
+			.ok_or(Error::ConsensusReset)?;
 
 		if *header.number() > self.best_grandpa_block() {
 			// update best GRANDPA finalized block we have seen
@@ -479,7 +482,7 @@ where
 			if let Err(e) = self
 				.persisted_state
 				.gossip_filter_config()
-				.map(|filter| self.gossip_validator.update_filter(filter))
+				.map(|filter| self.comms.gossip_validator.update_filter(filter))
 			{
 				error!(target: LOG_TARGET, "🥩 Voter error: {:?}", e);
 			}
@@ -499,7 +502,11 @@ where
 				if let Some(finality_proof) = self.handle_vote(vote)? {
 					let gossip_proof = GossipMessage::<B>::FinalityProof(finality_proof);
 					let encoded_proof = gossip_proof.encode();
-					self.gossip_engine.gossip_message(proofs_topic::<B>(), encoded_proof, true);
+					self.comms.gossip_engine.gossip_message(
+						proofs_topic::<B>(),
+						encoded_proof,
+						true,
+					);
 				},
 			RoundAction::Drop => metric_inc!(self, beefy_stale_votes),
 			RoundAction::Enqueue => error!(target: LOG_TARGET, "🥩 unexpected vote: {:?}.", vote),
@@ -607,7 +614,7 @@ where
 
 		metric_set!(self, beefy_best_block, block_num);
 
-		self.on_demand_justifications.cancel_requests_older_than(block_num);
+		self.comms.on_demand_justifications.cancel_requests_older_than(block_num);
 
 		if let Err(e) = self
 			.backend
@@ -636,7 +643,7 @@ where
 		// Update gossip validator votes filter.
 		self.persisted_state
 			.gossip_filter_config()
-			.map(|filter| self.gossip_validator.update_filter(filter))?;
+			.map(|filter| self.comms.gossip_validator.update_filter(filter))?;
 		Ok(())
 	}
 
@@ -756,12 +763,14 @@ where
 			err
 		})? {
 			let encoded_proof = GossipMessage::<B>::FinalityProof(finality_proof).encode();
-			self.gossip_engine.gossip_message(proofs_topic::<B>(), encoded_proof, true);
+			self.comms
+				.gossip_engine
+				.gossip_message(proofs_topic::<B>(), encoded_proof, true);
 		} else {
 			metric_inc!(self, beefy_votes_sent);
 			debug!(target: LOG_TARGET, "🥩 Sent vote message: {:?}", vote);
 			let encoded_vote = GossipMessage::<B>::Vote(vote).encode();
-			self.gossip_engine.gossip_message(votes_topic::<B>(), encoded_vote, false);
+			self.comms.gossip_engine.gossip_message(votes_topic::<B>(), encoded_vote, false);
 		}
 
 		// Persist state after vote to avoid double voting in case of voter restarts.
@@ -787,7 +796,7 @@ where
 			// make sure there's also an on-demand justification request out for it.
 			if let Some((block, active)) = self.voting_oracle().mandatory_pending() {
 				// This only starts new request if there isn't already an active one.
-				self.on_demand_justifications.request(block, active);
+				self.comms.on_demand_justifications.request(block, active);
 			}
 		}
 	}
@@ -795,11 +804,12 @@ where
 	/// Main loop for BEEFY worker.
 	///
 	/// Run the main async loop which is driven by finality notifications and gossiped votes.
+	/// Should never end, returns `Error` otherwise.
 	pub(crate) async fn run(
 		mut self,
-		mut block_import_justif: Fuse<NotificationReceiver<BeefyVersionedFinalityProof<B>>>,
-		mut finality_notifications: Fuse<FinalityNotifications<B>>,
-	) {
+		block_import_justif: &mut Fuse<NotificationReceiver<BeefyVersionedFinalityProof<B>>>,
+		finality_notifications: &mut Fuse<FinalityNotifications<B>>,
+	) -> (Error, BeefyComms<B>) {
 		info!(
 			target: LOG_TARGET,
 			"🥩 run BEEFY worker, best grandpa: #{:?}.",
@@ -807,10 +817,11 @@ where
 		);
 
 		let mut votes = Box::pin(
-			self.gossip_engine
+			self.comms
+				.gossip_engine
 				.messages_for(votes_topic::<B>())
 				.filter_map(|notification| async move {
-					let vote = GossipMessage::<B>::decode(&mut &notification.message[..])
+					let vote = GossipMessage::<B>::decode_all(&mut &notification.message[..])
 						.ok()
 						.and_then(|message| message.unwrap_vote());
 					trace!(target: LOG_TARGET, "🥩 Got vote message: {:?}", vote);
@@ -819,10 +830,11 @@ where
 				.fuse(),
 		);
 		let mut gossip_proofs = Box::pin(
-			self.gossip_engine
+			self.comms
+				.gossip_engine
 				.messages_for(proofs_topic::<B>())
 				.filter_map(|notification| async move {
-					let proof = GossipMessage::<B>::decode(&mut &notification.message[..])
+					let proof = GossipMessage::<B>::decode_all(&mut &notification.message[..])
 						.ok()
 						.and_then(|message| message.unwrap_finality_proof());
 					trace!(target: LOG_TARGET, "🥩 Got gossip proof message: {:?}", proof);
@@ -831,12 +843,12 @@ where
 				.fuse(),
 		);
 
-		loop {
+		let error = loop {
 			// Act on changed 'state'.
 			self.process_new_state();
 
 			// Mutable reference used to drive the gossip engine.
-			let mut gossip_engine = &mut self.gossip_engine;
+			let mut gossip_engine = &mut self.comms.gossip_engine;
 			// Use temp val and report after async section,
 			// to avoid having to Mutex-wrap `gossip_engine`.
 			let mut gossip_report: Option<PeerReport> = None;
@@ -848,20 +860,20 @@ where
 				// Use `select_biased!` to prioritize order below.
 				// Process finality notifications first since these drive the voter.
 				notification = finality_notifications.next() => {
-					if notification.and_then(|notif| {
-						self.handle_finality_notification(&notif).ok()
-					}).is_none() {
-						error!(target: LOG_TARGET, "🥩 Finality stream terminated, closing worker.");
-						return;
+					if let Some(notif) = notification {
+						if let Err(err) = self.handle_finality_notification(&notif) {
+							break err;
+						}
+					} else {
+						break Error::FinalityStreamTerminated;
 					}
 				},
 				// Make sure to pump gossip engine.
 				_ = gossip_engine => {
-					error!(target: LOG_TARGET, "🥩 Gossip engine has terminated, closing worker.");
-					return;
+					break Error::GossipEngineTerminated;
 				},
 				// Process incoming justifications as these can make some in-flight votes obsolete.
-				response_info = self.on_demand_justifications.next().fuse() => {
+				response_info = self.comms.on_demand_justifications.next().fuse() => {
 					match response_info {
 						ResponseInfo::ValidProof(justif, peer_report) => {
 							if let Err(err) = self.triage_incoming_justif(justif) {
@@ -881,8 +893,7 @@ where
 							debug!(target: LOG_TARGET, "🥩 {}", err);
 						}
 					} else {
-						error!(target: LOG_TARGET, "🥩 Block import stream terminated, closing worker.");
-						return;
+						break Error::BlockImportStreamTerminated;
 					}
 				},
 				justif = gossip_proofs.next() => {
@@ -892,11 +903,7 @@ where
 							debug!(target: LOG_TARGET, "🥩 {}", err);
 						}
 					} else {
-						error!(
-							target: LOG_TARGET,
-							"🥩 Finality proofs gossiping stream terminated, closing worker."
-						);
-						return;
+						break Error::FinalityProofGossipStreamTerminated;
 					}
 				},
 				// Finally process incoming votes.
@@ -907,22 +914,21 @@ where
 							debug!(target: LOG_TARGET, "🥩 {}", err);
 						}
 					} else {
-						error!(
-							target: LOG_TARGET,
-							"🥩 Votes gossiping stream terminated, closing worker."
-						);
-						return;
+						break Error::VotesGossipStreamTerminated;
 					}
 				},
 				// Process peer reports.
-				report = self.gossip_report_stream.next() => {
+				report = self.comms.gossip_report_stream.next() => {
 					gossip_report = report;
 				},
 			}
 			if let Some(PeerReport { who, cost_benefit }) = gossip_report {
-				self.gossip_engine.report(who, cost_benefit);
+				self.comms.gossip_engine.report(who, cost_benefit);
 			}
-		}
+		};
+
+		// return error _and_ `comms` that can be reused
+		(error, self.comms)
 	}
 
 	/// Report the given equivocation to the BEEFY runtime module. This method
@@ -1158,18 +1164,21 @@ pub(crate) mod tests {
 		)
 		.unwrap();
 		let payload_provider = MmrRootProvider::new(api.clone());
+		let comms = BeefyComms {
+			gossip_engine,
+			gossip_validator,
+			gossip_report_stream,
+			on_demand_justifications,
+		};
 		BeefyWorker {
 			backend,
 			payload_provider,
 			runtime: api,
 			key_store: Some(keystore).into(),
 			links,
-			gossip_engine,
-			gossip_validator,
-			gossip_report_stream,
+			comms,
 			metrics,
 			sync: Arc::new(sync),
-			on_demand_justifications,
 			pending_justifications: BTreeMap::new(),
 			persisted_state,
 		}

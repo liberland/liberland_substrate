@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,12 +20,9 @@
 use crate::{Config, CreditOf, Event, Pallet};
 use codec::{Decode, Encode, MaxEncodedLen};
 use core::ops::BitOr;
-use frame_support::{
-	traits::{Imbalance, LockIdentifier, OnUnbalanced, WithdrawReasons},
-	RuntimeDebug,
-};
+use frame_support::traits::{Imbalance, LockIdentifier, OnUnbalanced, WithdrawReasons};
 use scale_info::TypeInfo;
-use sp_runtime::Saturating;
+use sp_runtime::{RuntimeDebug, Saturating};
 
 /// Simplified reasons for withdrawing balance.
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]

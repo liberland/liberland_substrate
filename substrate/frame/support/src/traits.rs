@@ -80,18 +80,18 @@ pub use metadata::{
 };
 
 mod hooks;
-#[cfg(feature = "std")]
+#[allow(deprecated)]
 pub use hooks::GenesisBuild;
 pub use hooks::{
-	Hooks, IntegrityTest, OnFinalize, OnGenesis, OnIdle, OnInitialize, OnRuntimeUpgrade,
-	OnTimestampSet,
+	BuildGenesisConfig, Hooks, IntegrityTest, OnFinalize, OnGenesis, OnIdle, OnInitialize,
+	OnRuntimeUpgrade, OnTimestampSet,
 };
 
 pub mod schedule;
 mod storage;
 pub use storage::{
-	Instance, PartialStorageInfoTrait, StorageInfo, StorageInfoTrait, StorageInstance,
-	TrackedStorageKey, WhitelistedStorageKeys,
+	Incrementable, Instance, PartialStorageInfoTrait, StorageInfo, StorageInfoTrait,
+	StorageInstance, TrackedStorageKey, WhitelistedStorageKeys,
 };
 
 mod dispatch;
@@ -100,23 +100,27 @@ pub use dispatch::EnsureOneOf;
 pub use dispatch::{
 	AsEnsureOriginWithArg, CallerTrait, EitherOf, EitherOfDiverse, EnsureOrigin,
 	EnsureOriginEqualOrHigherPrivilege, EnsureOriginWithArg, MapSuccess, NeverEnsureOrigin,
-	OriginTrait, TryMapSuccess, UnfilteredDispatchable,
+	OriginTrait, TryMapSuccess, TryWithMorphedArg, UnfilteredDispatchable,
 };
 
 mod voting;
-pub use voting::{
-	ClassCountOf, CurrencyToVote, PollStatus, Polling, SaturatingCurrencyToVote,
-	U128CurrencyToVote, VoteTally,
-};
+pub use voting::{ClassCountOf, PollStatus, Polling, VoteTally};
 
 mod preimages;
 pub use preimages::{Bounded, BoundedInline, FetchResult, Hash, QueryPreimage, StorePreimage};
 
 mod messages;
 pub use messages::{
-	EnqueueMessage, ExecuteOverweightError, Footprint, NoopServiceQueues, ProcessMessage,
-	ProcessMessageError, ServiceQueues, TransformOrigin,
+	EnqueueMessage, EnqueueWithOrigin, ExecuteOverweightError, Footprint, HandleMessage,
+	NoopServiceQueues, ProcessMessage, ProcessMessageError, QueuePausedQuery, ServiceQueues,
+	TransformOrigin,
 };
+
+mod safe_mode;
+pub use safe_mode::{SafeMode, SafeModeError, SafeModeNotify};
+
+mod tx_pause;
+pub use tx_pause::{TransactionPause, TransactionPauseError};
 
 #[cfg(feature = "try-runtime")]
 mod try_runtime;
