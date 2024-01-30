@@ -25,8 +25,8 @@
 use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
 	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
-	AuthorityDiscoveryConfig,BabeConfig, BalancesConfig, Block, CouncilConfig,
-	DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig,
+	BabeConfig, BalancesConfig, Block, CouncilConfig,
+	DemocracyConfig, ElectionsConfig, ImOnlineConfig,
 	MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
 	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
 	TechnicalCommitteeConfig, LiberlandInitializerConfig,
@@ -51,7 +51,7 @@ use sp_runtime::{
 	Perbill,
 };
 
-pub use kitchensink_runtime::GenesisConfig;
+pub use kitchensink_runtime::RuntimeGenesisConfig;
 pub use node_primitives::{AccountId, Balance, Signature};
 
 type AccountPublic = <Signature as Verify>::Signer;
@@ -74,7 +74,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
 
 fn session_keys(
 	grandpa: GrandpaId,
@@ -95,7 +95,7 @@ pub fn bastiat_testnet_config() -> ChainSpec {
 	ChainSpec::from_json_bytes(&include_bytes!("../../../../specs/bastiat.raw.json")[..]).expect("Broken bastiat chain spec")
 }
 
-fn staging_testnet_config_genesis() -> GenesisConfig {
+fn staging_testnet_config_genesis() -> RuntimeGenesisConfig {
 	#[rustfmt::skip]
 	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![
 		// Liberland Node 1
@@ -220,14 +220,14 @@ pub fn staging_testnet_config() -> ChainSpec {
 	)
 }
 
-/// Helper function to generate a crypto pair from seed
+/// Helper function to generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
 	TPublic::Pair::from_string(&format!("//{}", seed), None)
 		.expect("static values are valid; qed")
 		.public()
 }
 
-/// Helper function to generate an account ID from seed
+/// Helper function to generate an account ID from seed.
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
 	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
@@ -235,7 +235,7 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-/// Helper function to generate stash, controller and session key from seed
+/// Helper function to generate stash, controller and session key from seed.
 pub fn authority_keys_from_seed(
 	seed: &str,
 ) -> (AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId) {
@@ -249,7 +249,7 @@ pub fn authority_keys_from_seed(
 	)
 }
 
-/// Helper function to create GenesisConfig for testing
+/// Helper function to create RuntimeGenesisConfig for testing.
 pub fn testnet_genesis(
 	initial_authorities: Vec<(
 		AccountId,
@@ -267,7 +267,7 @@ pub fn testnet_genesis(
 	technical_committee: Option<Vec<AccountId>>,
 	offices_admin: Option<AccountId>,
 	offices_clerks: Vec<AccountId>,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
 	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -366,8 +366,8 @@ pub fn testnet_genesis(
 	let registry_clerks = offices_clerks.iter().map(|acc| (acc.clone(), RegistryCallFilter::RegisterOnly)).collect();
 	let nfts_clerks: Vec<(AccountId, NftsCallFilter)> = offices_clerks.iter().map(|acc| (acc.clone(), NftsCallFilter::ManageItems)).collect();
 
-	GenesisConfig {
-		system: SystemConfig { code: wasm_binary_unwrap().to_vec() },
+	RuntimeGenesisConfig {
+		system: SystemConfig { code: wasm_binary_unwrap().to_vec(), ..Default::default() },
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
 		},
@@ -409,28 +409,21 @@ pub fn testnet_genesis(
 		},
 		sudo: SudoConfig { key: Some(root_key.clone()) },
 		babe: BabeConfig {
-			authorities: vec![],
 			epoch_config: Some(kitchensink_runtime::BABE_GENESIS_EPOCH_CONFIG),
+			..Default::default()
 		},
 		im_online: ImOnlineConfig { keys: vec![] },
-		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-		grandpa: GrandpaConfig { authorities: vec![] },
+		authority_discovery: Default::default(),
+		grandpa: Default::default(),
 		technical_membership: Default::default(),
 		treasury: Default::default(),
-		society: SocietyConfig {
-			members: endowed_accounts
-				.iter()
-				.take((num_endowed_accounts + 1) / 2)
-				.cloned()
-				.collect(),
-			pot: 0,
-			max_members: 999,
-		},
+		society: SocietyConfig { pot: 0 },
 		assets: pallet_assets::GenesisConfig {
 			// This asset is used by the NIS pallet as counterpart currency.
 			assets: vec![(9, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1)],
 			..Default::default()
 		},
+		pool_assets: Default::default(),
 		transaction_storage: Default::default(),
 		transaction_payment: Default::default(),
 		llm: Default::default(),
@@ -480,7 +473,7 @@ pub fn testnet_genesis(
 	}
 }
 
-fn development_config_genesis() -> GenesisConfig {
+fn development_config_genesis() -> RuntimeGenesisConfig {
 	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
 	let bob = get_account_id_from_seed::<sr25519::Public>("Bob");
 	let total_llm = 6000 * GRAINS_IN_LLM;
@@ -508,7 +501,7 @@ fn development_config_genesis() -> GenesisConfig {
 	)
 }
 
-/// Development config (single validator Alice)
+/// Development config (single validator Alice).
 pub fn development_config() -> ChainSpec {
 	ChainSpec::from_genesis(
 		"Development",
@@ -524,7 +517,7 @@ pub fn development_config() -> ChainSpec {
 	)
 }
 
-fn local_testnet_genesis() -> GenesisConfig {
+fn local_testnet_genesis() -> RuntimeGenesisConfig {
 	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
 	let bob = get_account_id_from_seed::<sr25519::Public>("Bob");
 	let total_llm = 6000 * GRAINS_IN_LLM;
@@ -546,7 +539,7 @@ fn local_testnet_genesis() -> GenesisConfig {
 	)
 }
 
-/// Local testnet config (multivalidator Alice + Bob)
+/// Local testnet config (multivalidator Alice + Bob).
 pub fn local_testnet_config() -> ChainSpec {
 	ChainSpec::from_genesis(
 		"Local Testnet",
@@ -569,7 +562,7 @@ pub(crate) mod tests {
 	use sc_service_test;
 	use sp_runtime::BuildStorage;
 
-	fn local_testnet_genesis_instant_single() -> GenesisConfig {
+	fn local_testnet_genesis_instant_single() -> RuntimeGenesisConfig {
 		testnet_genesis(
 			vec![authority_keys_from_seed("Alice")],
 			vec![],
@@ -583,7 +576,7 @@ pub(crate) mod tests {
 		)
 	}
 
-	/// Local testnet config (single validator - Alice)
+	/// Local testnet config (single validator - Alice).
 	pub fn integration_test_config_with_single_authority() -> ChainSpec {
 		ChainSpec::from_genesis(
 			"Integration Test",
@@ -599,7 +592,7 @@ pub(crate) mod tests {
 		)
 	}
 
-	/// Local testnet config (multivalidator Alice + Bob)
+	/// Local testnet config (multivalidator Alice + Bob).
 	pub fn integration_test_config_with_two_authorities() -> ChainSpec {
 		ChainSpec::from_genesis(
 			"Integration Test",

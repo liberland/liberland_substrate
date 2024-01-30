@@ -18,21 +18,21 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 ] }
 log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
-sp-keyring = { version = "7.0.0", optional = true, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-sp-core = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-frame-benchmarking =  { branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate", default-features = false }
-frame-support = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-frame-system = { version = "4.0.0-dev", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-sp-std = { version = "5.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-sp-io = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-sp-runtime = { version = "7.0.0", default-features = false, branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+sp-keyring = { default-features = false, optional = true, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-core = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-benchmarking =  { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true }
+frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-llm = { default-features = false, path = "../llm" }
 liberland-traits = { path = "../liberland-traits", default-features = false}
 
 [dev-dependencies]
-pallet-balances = { branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-pallet-assets = { branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
-pallet-scheduler = { branch = "polkadot-v0.9.43", git = "https://github.com/paritytech/substrate" }
+pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-scheduler = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-liberland-initializer = { path = "../liberland-initializer" }
 pallet-democracy = { path = "../democracy" }
 pallet-nfts = { path = "../nfts" }
@@ -45,7 +45,7 @@ std = [
 	"scale-info/std",
 	"frame-support/std",
 	"frame-system/std",
-	"frame-benchmarking/std",
+	"frame-benchmarking?/std",
 	"pallet-llm/std",
 	"pallet-democracy/std",
 	"pallet-nfts/std",

@@ -234,6 +234,7 @@ pub mod v2 {
 
 pub mod v3 {
 	use super::*;
+	use frame_system::pallet_prelude::BlockNumberFor;
 
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
@@ -256,7 +257,7 @@ pub mod v3 {
 				return weight;
 			}
 
-			let duration: T::BlockNumber = 432000u32.into();
+			let duration: BlockNumberFor<T> = 432000u32.into();
 			WithdrawlockDuration::<T>::put(&duration);
 			ElectionlockDuration::<T>::put(&duration);
 

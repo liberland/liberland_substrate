@@ -188,7 +188,7 @@ pub mod pallet {
 	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
 	#[pallet::storage]
 	#[pallet::getter(fn next_release)]
-	pub(super) type NextRelease<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>; // ValueQuery ,  OnEmpty = 0
+	pub(super) type NextRelease<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>; // ValueQuery ,  OnEmpty = 0
 
 	/// amount of LLM each account has allocated into politics
 	#[pallet::storage]
@@ -200,32 +200,32 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock)]
 	pub(super) type Withdrawlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, T::BlockNumber, ValueQuery>; // account and blocknumber
+		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberFor<T>, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
-	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> T::BlockNumber {
+	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> BlockNumberFor<T> {
 		120u8.into()
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock_duration)]
 	pub(super) type WithdrawlockDuration<T: Config> =
-		StorageValue<_, T::BlockNumber, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
+		StorageValue<_, BlockNumberFor<T>, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
 
 	/// block number until which account can't participate in politics directly
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock)]
 	pub(super) type Electionlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, T::BlockNumber, ValueQuery>; // account and blocknumber
+		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberFor<T>, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
-	pub fn ElectionlockDurationOnEmpty<T: Config>() -> T::BlockNumber {
+	pub fn ElectionlockDurationOnEmpty<T: Config>() -> BlockNumberFor<T> {
 		120u8.into()
 	}
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock_duration)]
 	pub(super) type ElectionlockDuration<T: Config> =
-		StorageValue<_, T::BlockNumber, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+		StorageValue<_, BlockNumberFor<T>, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizens)]
@@ -235,14 +235,13 @@ pub mod pallet {
 	pub struct GenesisConfig<T: Config> {
 		/// duration, in blocks, for which additional unlocks should be locked
 		/// after `politics_unlock`
-		pub unpooling_withdrawlock_duration: T::BlockNumber,
+		pub unpooling_withdrawlock_duration: BlockNumberFor<T>,
 		/// duration, in blocks, for which politics rights should be suspended
 		/// after `politics_unlock`
-		pub unpooling_electionlock_duration: T::BlockNumber,
+		pub unpooling_electionlock_duration: BlockNumberFor<T>,
 		pub _phantom: PhantomData<T>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
@@ -254,7 +253,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			let rootorg = frame_system::RawOrigin::Root.into();
 			Pallet::<T>::create_llm(rootorg).unwrap();
@@ -298,7 +297,7 @@ pub mod pallet {
 		type AssetName: Get<Vec<u8>>;
 		type AssetSymbol: Get<Vec<u8>>;
 		#[pallet::constant]
-		type InflationEventInterval: Get<<Self as frame_system::Config>::BlockNumber>;
+		type InflationEventInterval: Get<BlockNumberFor<Self>>;
 		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
 		type WeightInfo: WeightInfo;
 	}
@@ -333,7 +332,7 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(b: T::BlockNumber) -> Weight {
+		fn on_initialize(b: BlockNumberFor<T>) -> Weight {
 			Self::maybe_release(b);
 			Weight::zero()
 		}
@@ -643,7 +642,7 @@ pub mod pallet {
 			PalletId(*b"polilock").into_account_truncating()
 		}
 
-		fn get_future_block() -> T::BlockNumber {
+		fn get_future_block() -> BlockNumberFor<T> {
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 			current_block_number + T::InflationEventInterval::get()
 		}
@@ -657,7 +656,7 @@ pub mod pallet {
 			release_amount
 		}
 
-		fn maybe_release(block: T::BlockNumber) -> bool {
+		fn maybe_release(block: BlockNumberFor<T>) -> bool {
 			if block < NextRelease::<T>::get() {
 				return false;
 			}
@@ -730,7 +729,7 @@ pub mod pallet {
 			// little-endian
 			// 256 = vec![0x00, 0x01];
 			let eligible_on = eligible_on.iter().rfold(0u64, |r, i: &u8| (r << 8) + (*i as u64));
-			let eligible_on: Result<T::BlockNumber, _> = eligible_on.try_into();
+			let eligible_on: Result<BlockNumberFor<T>, _> = eligible_on.try_into();
 
 			let is_eligible =
 				matches!(eligible_on, Ok(eligible_on) if eligible_on <= current_block_number);

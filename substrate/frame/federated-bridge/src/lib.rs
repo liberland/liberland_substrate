@@ -136,7 +136,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 use frame_support::{pallet_prelude::*, traits::Currency, PalletId};
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
 mod benchmarking;
@@ -177,12 +176,11 @@ impl<T> Default for IncomingReceiptStatus<T> {
 	}
 }
 
-#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-/// Bridge state:
-/// * Stopped - emergency state, block all actions pending manual review
-/// * Active - business as usual
+#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
 pub enum BridgeState {
+	/// Bridge state:
+	/// * Stopped - emergency state, block all actions pending manual review
+	/// * Active - business as usual
 	Stopped,
 	Active,
 }
@@ -250,7 +248,7 @@ pub mod pallet {
 		/// Delay between getting approval from relays and actually unlocking
 		/// withdrawal for eth -> substrate transfer.
 		/// Gives watchers time to stop bridge.
-		type WithdrawalDelay: Get<Self::BlockNumber>;
+		type WithdrawalDelay: Get<BlockNumberFor<Self>>;
 
 		#[pallet::constant]
 		/// Rate limit parameters This is implemented as The Leaky Bucket as a
@@ -391,7 +389,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		ReceiptId,
-		IncomingReceiptStatus<T::BlockNumber>,
+		IncomingReceiptStatus<BlockNumberFor<T>>,
 		ValueQuery,
 	>;
 
@@ -419,7 +417,7 @@ pub mod pallet {
 	/// Counter used to track rate limiting
 	/// Decays linearly each block
 	pub(super) type WithdrawalCounter<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, (BalanceOfToken<T, I>, T::BlockNumber), ValueQuery>;
+		StorageValue<_, (BalanceOfToken<T, I>, BlockNumberFor<T>), ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -432,7 +430,6 @@ pub mod pallet {
 		pub super_admin: Option<T::AccountId>,
 	}
 
-	#[cfg(feature = "std")]
 	impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
 		fn default() -> Self {
 			Self {
@@ -448,7 +445,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
+	impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
 		fn build(&self) {
 			Relays::<T, I>::put(&self.relays);
 			Watchers::<T, I>::put(&self.watchers);

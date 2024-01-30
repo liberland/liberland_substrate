@@ -106,13 +106,14 @@
 use codec::{Decode, Encode};
 use frame_support::{
 	traits::{
-		defensive_prelude::*, ChangeMembers, Contains, ContainsLengthBound, Currency,
-		CurrencyToVote, Get, InitializeMembers, LockIdentifier, LockableCurrency, OnUnbalanced,
-		ReservableCurrency, SortedMembers, WithdrawReasons,
+		defensive_prelude::*, ChangeMembers, Contains, ContainsLengthBound, Currency, Get,
+		InitializeMembers, LockIdentifier, LockableCurrency, OnUnbalanced, ReservableCurrency,
+		SortedMembers, WithdrawReasons,
 	},
 	weights::Weight,
 };
 use liberland_traits::{CitizenshipChecker, LLM, LLInitializer};
+use log;
 use scale_info::TypeInfo;
 use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
@@ -120,6 +121,7 @@ use sp_runtime::{
 	DispatchError, Perbill, RuntimeDebug,
 };
 use sp_std::prelude::*;
+use sp_staking::currency_to_vote::CurrencyToVote;
 
 #[cfg(any(feature = "try-runtime", test))]
 use sp_runtime::TryRuntimeError;
@@ -198,7 +200,7 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -215,7 +217,7 @@ pub mod pallet {
 		type MaxAdditionalFields: Get<u32>;
 
 		/// The currency that people are electing with.
-		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+		type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
 			+ ReservableCurrency<Self::AccountId>;
 
 		/// What to do when the members change.
@@ -261,7 +263,7 @@ pub mod pallet {
 		/// round will happen. If set to zero, no elections are ever triggered and the module will
 		/// be in passive mode.
 		#[pallet::constant]
-		type TermDuration: Get<Self::BlockNumber>;
+		type TermDuration: Get<BlockNumberFor<Self>>;
 
 		/// The maximum number of candidates in a phragmen election.
 		///
@@ -301,7 +303,7 @@ pub mod pallet {
 		/// What to do at the end of each block.
 		///
 		/// Checks if an election needs to happen or not.
-		fn on_initialize(n: T::BlockNumber) -> Weight {
+		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
 			let term_duration = T::TermDuration::get();
 			if !term_duration.is_zero() && (n % term_duration).is_zero() {
 				Self::do_phragmen()
@@ -324,7 +326,7 @@ pub mod pallet {
 					frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND as f32
 			};
 
-			frame_support::log::debug!(
+			log::debug!(
 				target: LOG_TARGET,
 				"election weight {}s ({:?}) // chain's block weight {}s ({:?})",
 				to_seconds(&election_weight),
@@ -346,7 +348,7 @@ pub mod pallet {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn try_state(_n: T::BlockNumber) -> Result<(), TryRuntimeError> {
+		fn try_state(_n: BlockNumberFor<T>) -> Result<(), TryRuntimeError> {
 			Self::do_try_state()
 		}
 	}
@@ -715,7 +717,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			assert!(
 				self.members.len() as u32 <= T::DesiredMembers::get(),
@@ -738,7 +740,10 @@ pub mod pallet {
 					Members::<T>::mutate(|members| {
 						match members.binary_search_by(|m| m.who.cmp(member)) {
 							Ok(_) => {
-								panic!("Duplicate member in elections-phragmen genesis: {}", member)
+								panic!(
+									"Duplicate member in elections-phragmen genesis: {:?}",
+									member
+								)
 							},
 							Err(pos) => members.insert(
 								pos,
@@ -1285,9 +1290,6 @@ mod tests {
 
 	construct_runtime!(
 		pub enum Test where
-			Block = Block,
-			NodeBlock = Block,
-			UncheckedExtrinsic = UncheckedExtrinsic,
 		{
 			System: frame_system::{Pallet, Call, Storage, Event<T>},
 			Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -1306,14 +1308,13 @@ mod tests {
 		type BlockLength = ();
 		type DbWeight = ();
 		type RuntimeOrigin = RuntimeOrigin;
-		type Index = u64;
-		type BlockNumber = u64;
+		type Nonce = u64;
 		type RuntimeCall = RuntimeCall;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
 		type AccountId = u64;
 		type Lookup = IdentityLookup<Self::AccountId>;
-		type Header = Header;
+		type Block = Block;
 		type RuntimeEvent = RuntimeEvent;
 		type BlockHashCount = ConstU64<250>;
 		type Version = ();
@@ -1339,7 +1340,7 @@ mod tests {
 		type ReserveIdentifier = [u8; 8];
 		type FreezeIdentifier = ();
 		type MaxFreezes = ();
-		type HoldIdentifier = ();
+		type RuntimeHoldReason = ();
 		type MaxHolds = ();
 	}
 
@@ -1520,7 +1521,7 @@ mod tests {
 		type PalletId = ElectionsPhragmenPalletId;
 		type RuntimeEvent = RuntimeEvent;
 		type Currency = Balances;
-		type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+		type CurrencyToVote = ();
 		type ChangeMembers = TestChangeMembers;
 		type InitializeMembers = ();
 		type CandidacyBond = CandidacyBond;
@@ -1601,7 +1602,7 @@ mod tests {
 			];
 			let llm_balances = balances.iter().map(|(id, _)| (*id, 6000, 5000)).collect();
 
-			let mut ext: sp_io::TestExternalities = GenesisConfig {
+			let mut ext: sp_io::TestExternalities = RuntimeGenesisConfig {
 				balances: pallet_balances::GenesisConfig::<Test> { balances: balances.clone() },
 				elections: elections_phragmen::GenesisConfig::<Test> {
 					members: self.genesis_members,
