@@ -11,7 +11,7 @@ EXPOSE 30333 9933 9944
 VOLUME /data
 RUN useradd -Ms /bin/bash liberland
 COPY --from=downloader /app/node /node
-COPY specs /specs
+COPY substrate/specs /specs
 RUN mkdir /data && chown liberland:liberland -R /specs /node /data && chmod +x /node
 USER liberland
 ENTRYPOINT [ "/node" ]
