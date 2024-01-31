@@ -46,7 +46,7 @@ cd liberland_substrate
 
 ### Run automated tests
 ```
-cargo test --release --features runtime-benchmarks --no-fail-fast
+cargo test --features runtime-benchmarks --no-fail-fast
 ```
 
 ### Build and run development node

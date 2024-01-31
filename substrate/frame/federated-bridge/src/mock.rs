@@ -3,28 +3,24 @@
 pub use crate as pallet_federated_bridge;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, ConstU64, GenesisBuild},
+	traits::{ConstU32, ConstU64},
 	weights::Weight,
 	PalletId,
 };
 use frame_system::EnsureRoot;
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	testing::Header,
+	BuildStorage,
 	traits::{BlakeTwo256, IdentityLookup},
 };
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum Test
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		System: frame_system,
+		Balances: pallet_balances,
 		Bridge: pallet_federated_bridge,
 	}
 );
@@ -41,13 +37,12 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockHashCount = ConstU64<250>;
 	type BlockLength = ();
-	type BlockNumber = u64;
 	type BlockWeights = ();
+	type Nonce = u64;
+	type Block = Block;
 	type DbWeight = ();
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type Header = Header;
-	type Index = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type OnKilledAccount = ();
@@ -74,7 +69,7 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type MaxHolds = ();
 }
 
@@ -102,7 +97,7 @@ impl pallet_federated_bridge::Config for Test {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let balances =
 		vec![(0, 100), (1, 100), (2, 100), (3, 100), (4, 100), (5, 100), (6, 100), (200, 20000)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }

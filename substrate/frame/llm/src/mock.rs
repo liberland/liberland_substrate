@@ -3,32 +3,28 @@
 use crate as pallet_llm;
 use frame_support::{
 	ord_parameter_types, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse, GenesisBuild},
+	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse},
 	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	testing::Header,
+	BuildStorage,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
 	Permill,
 };
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum Test
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
-		LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
+		System: frame_system,
+		Balances: pallet_balances,
+		Assets: pallet_assets,
+		Identity: pallet_identity,
+		LLM: pallet_llm,
 	}
 );
 impl pallet_assets::Config for Test {
@@ -66,13 +62,12 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockHashCount = ConstU64<250>;
 	type BlockLength = ();
-	type BlockNumber = u64;
+	type Block = Block;
 	type BlockWeights = ();
 	type DbWeight = ();
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type Header = Header;
-	type Index = u64;
+	type Nonce = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type OnKilledAccount = ();
@@ -99,7 +94,7 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type MaxHolds = ();
 }
 
@@ -192,7 +187,7 @@ pub fn setup_citizenships(accounts: Vec<u64>) {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let treasury = LLM::get_llm_treasury_account();
 	let balances = vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (treasury, 100)];
 	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }

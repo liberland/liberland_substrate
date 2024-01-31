@@ -13,30 +13,27 @@ pub use crate as pallet_office;
 use codec::MaxEncodedLen;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU64, GenesisBuild, InstanceFilter},
+	traits::{ConstU64, InstanceFilter},
 	weights::Weight,
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	testing::Header,
+	BuildStorage,
+	RuntimeDebug,
 	traits::{BlakeTwo256, IdentityLookup},
 };
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum Test
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system,
 		Office: pallet_office,
 		GenesisOffice: pallet_office::<Instance1>,
 	}
@@ -54,13 +51,12 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockHashCount = ConstU64<250>;
 	type BlockLength = ();
-	type BlockNumber = u64;
 	type BlockWeights = ();
 	type DbWeight = ();
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type Header = Header;
-	type Index = u64;
+	type Block = Block;
+	type Nonce = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type OnKilledAccount = ();
@@ -80,7 +76,6 @@ parameter_types! {
 }
 
 use codec::{Decode, Encode};
-use frame_support::RuntimeDebug;
 
 #[derive(
 	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo,
@@ -137,7 +132,7 @@ impl pallet_office::Config<pallet_office::Instance1> for Test {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
 	OfficeConfig { admin: Some(0), clerks: vec![] }
 		.assimilate_storage(&mut t)

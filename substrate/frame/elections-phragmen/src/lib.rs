@@ -1271,7 +1271,7 @@ mod tests {
 	use frame_system::ensure_signed;
 	use sp_runtime::{
 		Permill,
-		testing::{TestSignature, Header, H256},
+		testing::{TestSignature, H256},
 		traits::{BlakeTwo256, IdentityLookup},
 		BuildStorage,
 	};
@@ -1285,11 +1285,10 @@ mod tests {
 	use frame_support::traits::{AsEnsureOriginWithArg, OnInitialize};
 	use substrate_test_utils::assert_eq_uvec;
 
-	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 	type Block = frame_system::mocking::MockBlock<Test>;
 
 	construct_runtime!(
-		pub enum Test where
+		pub enum Test
 		{
 			System: frame_system::{Pallet, Call, Storage, Event<T>},
 			Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},

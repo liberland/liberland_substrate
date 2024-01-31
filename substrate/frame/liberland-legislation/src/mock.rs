@@ -6,7 +6,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstU16, ConstU32, ConstU64, EitherOfDiverse, EqualPrivilegeOnly,
-		Everything, GenesisBuild,
+		Everything,
 	},
 };
 use frame_system as system;
@@ -14,20 +14,17 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
-	testing::{Header, TestSignature},
+	BuildStorage,
+	testing::{TestSignature},
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill, Permill,
 };
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum Test
 	{
 		System: frame_system,
 		Balances: pallet_balances,
@@ -48,13 +45,12 @@ impl system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockHashCount = ConstU64<250>;
 	type BlockLength = ();
-	type BlockNumber = u64;
 	type BlockWeights = ();
 	type DbWeight = ();
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type Header = Header;
-	type Index = u64;
+	type Block = Block;
+	type Nonce = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type OnKilledAccount = ();
@@ -142,7 +138,7 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type MaxHolds = ();
 }
 
@@ -274,7 +270,7 @@ impl pallet_liberland_legislation::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_llm::GenesisConfig::<Test>::default().assimilate_storage(&mut t).unwrap();
 	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 1000), (2, 1000), (3, 1000)] }
 		.assimilate_storage(&mut t)

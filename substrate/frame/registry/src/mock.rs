@@ -5,30 +5,26 @@ use core::marker::PhantomData;
 pub use crate as pallet_registry;
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, ConstU64, EitherOf, GenesisBuild, MapSuccess},
+	traits::{ConstU32, ConstU64, EitherOf, MapSuccess},
 	weights::Weight,
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned};
 use sp_core::{ConstU16, Get, H256};
 use sp_runtime::{
-	testing::Header,
+	BuildStorage,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Morph},
 	BoundedVec, Perbill,
 };
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum Test
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Registry: pallet_registry::{Pallet, Call, Storage, Config<T>, Event<T>},
+		System: frame_system,
+		Balances: pallet_balances,
+		Registry: pallet_registry,
 		SecondRegistry: pallet_registry::<Instance2>,
 		RegistryWithCollectives: pallet_registry::<Instance3>,
 		Collective: pallet_collective,
@@ -48,13 +44,12 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockHashCount = ConstU64<250>;
 	type BlockLength = ();
-	type BlockNumber = u64;
+	type Block = Block;
+	type Nonce = u64;
 	type BlockWeights = ();
 	type DbWeight = ();
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type Header = Header;
-	type Index = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type OnKilledAccount = ();
@@ -80,8 +75,8 @@ impl pallet_balances::Config for Test {
 	type AccountStore = System;
 	type WeightInfo = ();
 	type FreezeIdentifier = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type MaxFreezes = ();
-	type HoldIdentifier = ();
 	type MaxHolds = ();
 }
 
@@ -195,7 +190,7 @@ impl pallet_registry::Config<pallet_registry::Instance4> for Test {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let collective_account_id = CollectiveAccountId::get();
 	let balances =
 		vec![(0, 100), (1, 100), (2, 100), (3, 3), (collective_account_id, 10), (999, 100)];

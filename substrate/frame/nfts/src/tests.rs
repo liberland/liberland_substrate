@@ -1309,7 +1309,7 @@ fn validate_deposit_required_setting() {
 			bvec![2],
 			bvec![0],
 		));
-		assert_ok!(<Nfts as Mutate<<Test as SystemConfig>::AccountId, ItemConfig>>::set_attribute(
+		assert_ok!(<Nfts as Mutate<<Test as crate::SystemConfig>::AccountId, ItemConfig>>::set_attribute(
 			&0,
 			&0,
 			&[3],
@@ -1329,7 +1329,7 @@ fn validate_deposit_required_setting() {
 		assert_eq!(Balances::reserved_balance(account(3)), 3);
 
 		assert_ok!(
-			<Nfts as Mutate<<Test as SystemConfig>::AccountId, ItemConfig>>::clear_attribute(
+			<Nfts as Mutate<<Test as crate::SystemConfig>::AccountId, ItemConfig>>::clear_attribute(
 				&0,
 				&0,
 				&[3],
