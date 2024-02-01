@@ -102,6 +102,7 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
+mod migrations;
 use impls::{
 	Author, CreditToBlockAuthor, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
@@ -1126,7 +1127,14 @@ impl pallet_contracts::Config for Runtime {
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Migrations = ();
+	type Migrations = (
+		pallet_contracts::migration::v10::Migration<Runtime, Balances>,
+		pallet_contracts::migration::v11::Migration<Runtime>,
+		pallet_contracts::migration::v12::Migration<Runtime, Balances>,
+		pallet_contracts::migration::v13::Migration<Runtime>,
+		pallet_contracts::migration::v14::Migration<Runtime, Balances>,
+		pallet_contracts::migration::v15::Migration<Runtime>,
+	);
 	#[cfg(feature = "runtime-benchmarks")]
 	type Migrations = pallet_contracts::migration::codegen::BenchMigrations;
 	type MaxDelegateDependencies = ConstU32<32>;
@@ -1925,7 +1933,16 @@ mod bounties_v4 {
 
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
-type Migrations = (pallet_llm::migrations::v3::Migration<Runtime>,);
+parameter_types! {
+	pub const PastPayouts: Vec<(AccountId, Balance)> = vec![];
+}
+type Migrations = (
+	pallet_contracts::Migration<Runtime>,
+	pallet_llm::migrations::v3::Migration<Runtime>,
+	pallet_im_online::migration::v1::Migration<Runtime>,
+	migrations::society_to_v2::Migration<Runtime>,
+	migrations::add_pallets::Migration<Runtime>,
+);
 
 type EventRecord = frame_system::EventRecord<
 	<Runtime as frame_system::Config>::RuntimeEvent,

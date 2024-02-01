@@ -1,12 +1,12 @@
-[submodule "eth-bridge/contracts/lib/forge-std"]
-	path = substrate/eth-bridge/contracts/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "eth-bridge/contracts/lib/openzeppelin-contracts-upgradeable"]
-	path = substrate/eth-bridge/contracts/lib/openzeppelin-contracts-upgradeable
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
-[submodule "eth-bridge/contracts/lib/openzeppelin-contracts"]
-	path = substrate/eth-bridge/contracts/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "scripts/fork-test/liberland-fork-substrate"]
+[submodule "substrate/scripts/fork-test/liberland-fork-substrate"]
 	path = substrate/scripts/fork-test/liberland-fork-substrate
 	url = git@github.com:liberland/liberland-fork-substrate.git
+[submodule "substrate/eth-bridge/contracts/lib/forge-std"]
+	path = substrate/eth-bridge/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "substrate/eth-bridge/contracts/lib/openzeppelin-contracts-upgradeable"]
+	path = substrate/eth-bridge/contracts/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
+[submodule "substrate/eth-bridge/contracts/lib/openzeppelin-contracts"]
+	path = substrate/eth-bridge/contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

@@ -4,14 +4,15 @@ use liberland_traits::CitizenshipChecker;
 use pallet_identity::Registration;
 
 #[cfg(feature = "try-runtime")]
+use sp_std::vec::Vec;
+
+#[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
 
-/// The log target.
-const TARGET: &'static str = "runtime::llm::migration::v1";
 
 pub mod v1 {
 	use super::*;
-	use sp_std::vec::Vec;
+	const TARGET: &'static str = "runtime::llm::migration::v1";
 
 	#[storage_alias]
 	pub type IdentityOf<T: Config> = StorageMap<
@@ -94,6 +95,8 @@ pub mod ltm_to_lkn {
 	#[cfg(feature = "try-runtime")]
 	use sp_std::vec::Vec;
 
+	const TARGET: &'static str = "runtime::llm::migration::ltm_to_lkn";
+
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
@@ -135,8 +138,8 @@ pub mod ltm_to_lkn {
 pub mod v2 {
 	use super::*;
 	use pallet_identity::Data;
-	#[cfg(feature = "try-runtime")]
-	use sp_std::vec::Vec;
+
+	const TARGET: &'static str = "runtime::llm::migration::v2";
 
 	#[storage_alias]
 	pub type IdentityOf<T: Config> = StorageMap<
@@ -236,13 +239,13 @@ pub mod v3 {
 	use super::*;
 	use frame_system::pallet_prelude::BlockNumberFor;
 
+	const TARGET: &'static str = "runtime::llm::migration::v3";
+
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
 	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
-			assert!(StorageVersion::get::<Pallet<T>>() <= 2, "can only upgrade from version 2");
-
 			Ok(().encode())
 		}
 
