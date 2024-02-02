@@ -2,8 +2,6 @@ use super::{pallet::Config, *};
 use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 use liberland_traits::CitizenshipChecker;
 use pallet_identity::Registration;
-
-#[cfg(feature = "try-runtime")]
 use sp_std::vec::Vec;
 
 #[cfg(feature = "try-runtime")]

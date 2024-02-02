@@ -39,6 +39,34 @@ pub mod add_pallets {
                 StorageVersion::new(1).put::<PoolAssets>();
                 weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
             }
+			if StorageVersion::get::<CompanyRegistry>() == 0 {
+                StorageVersion::new(1).put::<CompanyRegistry>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
+			if StorageVersion::get::<IdentityOffice>() == 0 {
+                StorageVersion::new(1).put::<IdentityOffice>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
+			if StorageVersion::get::<CompanyRegistryOffice>() == 0 {
+                StorageVersion::new(1).put::<CompanyRegistryOffice>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
+			if StorageVersion::get::<LandRegistryOffice>() == 0 {
+                StorageVersion::new(1).put::<LandRegistryOffice>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
+			if StorageVersion::get::<MetaverseLandRegistryOffice>() == 0 {
+                StorageVersion::new(1).put::<MetaverseLandRegistryOffice>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
+			if StorageVersion::get::<AssetRegistryOffice>() == 0 {
+                StorageVersion::new(1).put::<AssetRegistryOffice>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
+			if StorageVersion::get::<Senate>() == 0 {
+                StorageVersion::new(4).put::<Senate>();
+                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
+            }
 
             weight
 		}
@@ -55,8 +83,6 @@ pub mod society_to_v2 {
 	use super::*;
 	use pallet_society::migrations::VersionUncheckedMigrateToV2;
 	use frame_support::migrations::StoreCurrentStorageVersion;
-
-	const TARGET: &'static str = "runtime::migrations::society_to_v2";
 
 	type SocietyMigration = VersionUncheckedMigrateToV2<Runtime, (), PastPayouts>;
 
@@ -78,7 +104,7 @@ pub mod society_to_v2 {
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			SocietyMigration::post_upgrade(data)
+			SocietyMigration::post_upgrade(state)
 		}
 	}
 }
