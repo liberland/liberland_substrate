@@ -72,7 +72,7 @@ jobs:
         with:
           chain: liberland
           package: kitchensink-runtime
-          runtime_dir: ./bin/node/runtime
+          runtime_dir: ./substrate/bin/node/runtime
           tag: "1.66.1"
 
       - name: Mainnet Summary
@@ -96,7 +96,7 @@ jobs:
         with:
           chain: liberland
           package: kitchensink-runtime
-          runtime_dir: ./bin/node/runtime
+          runtime_dir: ./substrate/bin/node/runtime
           tag: "1.66.1"
 
       - name: Bastiat Summary
@@ -145,5 +145,5 @@ jobs:
             linux_x86_build
             mainnet-${{github.ref_name}}.wasm
             bastiat-${{github.ref_name}}.wasm
-            specs/bastiat.raw.json
-            specs/mainnet.raw.json
+            substrate/specs/bastiat.raw.json
+            substrate/specs/mainnet.raw.json
