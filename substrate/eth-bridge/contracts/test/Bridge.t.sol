@@ -30,8 +30,7 @@ contract BridgeTest is Test, BridgeEvents {
         token = WrappedToken(
             address(
                 new ERC1967Proxy(
-                address(tokenImpl),
-                abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
+                    address(tokenImpl), abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
                 )
             )
         );
@@ -40,10 +39,7 @@ contract BridgeTest is Test, BridgeEvents {
             address(
                 new ERC1967Proxy(
                     address(bridgeImpl),
-                    abi.encodeCall(
-                        Bridge.initialize,
-                        (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000, 2, 100, 2)
-                    )
+                    abi.encodeCall(Bridge.initialize, (token, 2, 10, 4, 1000, 10, 1_000_000, 0, 1_000_000, 2, 100, 2))
                 )
             )
         );

@@ -24,8 +24,7 @@ contract Deploy is Script {
         WrappedToken lld = WrappedToken(
             address(
                 new ERC1967Proxy(
-                address(tokenImpl),
-                abi.encodeCall(WrappedToken.initialize, ("Liberland Dollars", "LLD"))
+                    address(tokenImpl), abi.encodeCall(WrappedToken.initialize, ("Liberland Dollars", "LLD"))
                 )
             )
         );
@@ -55,8 +54,7 @@ contract Deploy is Script {
         WrappedToken llm = WrappedToken(
             address(
                 new ERC1967Proxy(
-                address(tokenImpl),
-                abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
+                    address(tokenImpl), abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
                 )
             )
         );
@@ -70,7 +68,7 @@ contract Deploy is Script {
                     delay,
                     fee,
                     10_000_000_000_000_000, // max burst mint
-                        20_000_000_000_000, // rate limit counter decay
+                    20_000_000_000_000, // rate limit counter decay
                     100_000_000_000_000_000, // supply limit
                     10_000_000_000_000, // min transfer
                     1_000_000_000_000_000_000, // max supply limit

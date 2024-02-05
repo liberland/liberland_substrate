@@ -19,11 +19,7 @@ contract WrappedTokenTest is Test {
         token = WrappedToken(
             address(
                 new ERC1967Proxy(
-                    address(tokenImpl),
-                    abi.encodeCall(
-                        WrappedToken.initialize,
-                        ("Liberland Merits", "LLM")
-                    )
+                    address(tokenImpl), abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
                 )
             )
         );

@@ -30,11 +30,7 @@ contract VoteFeeCompare is Test, BridgeEvents {
         token = WrappedToken(
             address(
                 new ERC1967Proxy(
-                    address(tokenImpl),
-                    abi.encodeCall(
-                        WrappedToken.initialize,
-                        ("Liberland Merits", "LLM")
-                    )
+                    address(tokenImpl), abi.encodeCall(WrappedToken.initialize, ("Liberland Merits", "LLM"))
                 )
             )
         );
@@ -42,23 +38,7 @@ contract VoteFeeCompare is Test, BridgeEvents {
             address(
                 new ERC1967Proxy(
                     address(bridgeImpl),
-                    abi.encodeCall(
-                        Bridge.initialize,
-                        (
-                            token,
-                            3,
-                            10,
-                            4,
-                            1000,
-                            10,
-                            650,
-                            0,
-                            650,
-                            2,
-                            100,
-                            2
-                        )
-                    )
+                    abi.encodeCall(Bridge.initialize, (token, 3, 10, 4, 1000, 10, 650, 0, 650, 2, 100, 2))
                 )
             )
         );
