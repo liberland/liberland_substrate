@@ -76,7 +76,7 @@ use sp_runtime::{
 	curve::PiecewiseLinear,
 	generic, impl_opaque_keys,
 	traits::{
-		self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
+		self, BlakeTwo256, Block as BlockT, Bounded, NumberFor, OpaqueKeys,
 		SaturatedConversion, StaticLookup, AccountIdConversion, AccountIdLookup,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
@@ -104,7 +104,7 @@ pub use sp_runtime::BuildStorage;
 pub mod impls;
 mod migrations;
 use impls::{
-	Author, CreditToBlockAuthor, ToAccountId,
+	Author, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
 	ContainsMember, CouncilAccountCallFilter, EnsureCmp
 };
@@ -526,13 +526,11 @@ impl pallet_transaction_payment::Config for Runtime {
 	>;
 }
 
-impl pallet_asset_tx_payment::Config for Runtime {
+impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = Assets;
-	type OnChargeAssetTransaction = pallet_asset_tx_payment::FungiblesAdapter<
-		pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto, ()>,
-		CreditToBlockAuthor,
-	>;
+	type OnChargeAssetTransaction =
+		pallet_asset_conversion_tx_payment::AssetConversionAdapter<Balances, AssetConversion>;
 }
 
 parameter_types! {
@@ -1185,6 +1183,7 @@ where
 			frame_system::CheckEra::<Runtime>::from(era),
 			frame_system::CheckNonce::<Runtime>::from(nonce),
 			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
 		);
 		let raw_payload = SignedPayload::new(call, extra)
 			.map_err(|e| {
@@ -1740,7 +1739,6 @@ construct_runtime!(
 		Authorship: pallet_authorship = 4,
 		Balances: pallet_balances = 6,
 		TransactionPayment: pallet_transaction_payment = 7,
-		AssetTxPayment: pallet_asset_tx_payment = 8,
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 9,
 		Democracy: pallet_democracy = 10,
 		Council: pallet_collective::<Instance1> = 11,
@@ -1789,6 +1787,7 @@ construct_runtime!(
 		CouncilAccount: pallet_custom_account::<Instance1> = 61,
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
+		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
 	}
 );
 
@@ -1815,6 +1814,7 @@ pub type SignedExtra = (
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
+	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 );
 
 /// Unchecked extrinsic type as expected by this runtime.
