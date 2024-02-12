@@ -84,6 +84,9 @@ pub mod society_to_v2 {
 	use pallet_society::migrations::VersionUncheckedMigrateToV2;
 	use frame_support::migrations::StoreCurrentStorageVersion;
 
+	parameter_types! {
+		pub const PastPayouts: Vec<(AccountId, Balance)> = vec![];
+	}
 	type SocietyMigration = VersionUncheckedMigrateToV2<Runtime, (), PastPayouts>;
 
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
