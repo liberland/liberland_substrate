@@ -59,4 +59,4 @@ jobs:
         run: cargo fmt --check -p pallet-liberland-initializer -p pallet-liberland-legislation -p liberland-traits -p pallet-llm -p pallet-office -p pallet-registry
 
       - name: Run cargo test suite
-        run: cargo test --release --features runtime-benchmarks
+        run: cargo test --features runtime-benchmarks
