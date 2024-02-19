@@ -273,7 +273,7 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 14 * DAYS;
 	pub const VotingPeriod: BlockNumber = 14 * DAYS;
-	pub const TermDuration: BlockNumber = 168 * DAYS;
+	pub const TermDuration: BlockNumber = 3 * 30 * DAYS;
 	pub const EnactmentPeriod: BlockNumber = 14 * DAYS;
 	pub const AssetName: &'static str = "Liberland Merit";
 	pub const AssetSymbol: &'static str = "LLM";
@@ -284,7 +284,7 @@ parameter_types! {
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
-	pub const TermDuration: BlockNumber = 14 * DAYS;
+	pub const TermDuration: BlockNumber = 10 * DAYS;
 	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const AssetName: &'static str = "Liberland Kuna";
 	pub const AssetSymbol: &'static str = "LKN";
@@ -589,8 +589,8 @@ pallet_staking_reward_curve::build! {
 
 parameter_types! {
 	pub const SessionsPerEra: sp_staking::SessionIndex = 6;
-	pub const BondingDuration: sp_staking::EraIndex = 24 * 28;
-	pub const SlashDeferDuration: sp_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
+	pub const BondingDuration: sp_staking::EraIndex = 28 * 24 / 6; // 28 days; Era is 6h long
+	pub const SlashDeferDuration: sp_staking::EraIndex = BondingDuration::get() / 4;
 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
 	pub const MaxNominatorRewardedPerValidator: u32 = 256;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
