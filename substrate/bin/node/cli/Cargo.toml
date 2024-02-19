@@ -88,7 +88,7 @@ sc-offchain = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/po
 frame-system = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-system-rpc-runtime-api = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-asset-tx-payment = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-asset-conversion-tx-payment = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-im-online = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 # node-specific dependencies
@@ -159,7 +159,6 @@ runtime-benchmarks = [
 	"frame-benchmarking-cli/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kitchensink-runtime/runtime-benchmarks",
-	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-im-online/runtime-benchmarks",
@@ -173,7 +172,7 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-system/try-runtime",
 	"kitchensink-runtime/try-runtime",
-	"pallet-asset-tx-payment/try-runtime",
+	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-im-online/try-runtime",

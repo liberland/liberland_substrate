@@ -92,7 +92,7 @@ pallet-treasury = { default-features = false, tag = "polkadot-v1.1.0", git = "ht
 pallet-utility = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-transaction-payment = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-transaction-payment-rpc-runtime-api = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-asset-tx-payment = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-asset-conversion-tx-payment = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-transaction-storage = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-whitelist = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
@@ -133,7 +133,7 @@ std = [
 	"log/std",
 	"node-primitives/std",
 	"pallet-asset-conversion/std",
-	"pallet-asset-tx-payment/std",
+	"pallet-asset-conversion-tx-payment/std",
 	"pallet-assets/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
@@ -209,7 +209,6 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
-	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
@@ -261,7 +260,7 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"pallet-asset-conversion/try-runtime",
-	"pallet-asset-tx-payment/try-runtime",
+	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-authority-discovery/try-runtime",
 	"pallet-authorship/try-runtime",

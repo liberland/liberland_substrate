@@ -23,19 +23,17 @@ use frame_support::{
 	BoundedVec,
 	pallet_prelude::{ConstU32, PhantomData, Get, MaxEncodedLen},
 	traits::{
-		fungibles::{Balanced, Credit},
 		Currency, OnUnbalanced, InstanceFilter,
 		Contains, PrivilegeCmp, EnsureOrigin,
 	},
 };
 use sp_runtime::{RuntimeDebug, AccountId32, DispatchError, traits::{TrailingZeroInput, Morph}};
-use pallet_asset_tx_payment::HandleCredit;
 use sp_std::{vec, cmp::{max, min, Ordering}};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, RuntimeCall,
+	AccountId, Authorship, Balances, NegativeImbalance, RuntimeCall,
 	Democracy, RuntimeOrigin,
 };
 
@@ -44,18 +42,6 @@ impl OnUnbalanced<NegativeImbalance> for Author {
 	fn on_nonzero_unbalanced(amount: NegativeImbalance) {
 		if let Some(author) = Authorship::author() {
 			Balances::resolve_creating(&author, amount);
-		}
-	}
-}
-
-/// A `HandleCredit` implementation that naively transfers the fees to the block author.
-/// Will drop and burn the assets in case the transfer fails.
-pub struct CreditToBlockAuthor;
-impl HandleCredit<AccountId, Assets> for CreditToBlockAuthor {
-	fn handle_credit(credit: Credit<AccountId, Assets>) {
-		if let Some(author) = pallet_authorship::Pallet::<Runtime>::author() {
-			// Drop the result which will trigger the `OnDrop` of the imbalance in case of error.
-			let _ = Assets::resolve(&author, credit);
 		}
 	}
 }
