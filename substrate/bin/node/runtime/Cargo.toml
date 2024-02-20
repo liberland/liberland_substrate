@@ -112,6 +112,7 @@ pallet-registry = { path = "../../../frame/registry", default-features = false }
 pallet-office = { path = "../../../frame/office", default-features = false }
 pallet-federated-bridge = { path = "../../../frame/federated-bridge", default-features = false }
 pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
+pallet-contracts-registry = { path = "../../../frame/contracts-registry", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", optional = true}
@@ -144,6 +145,7 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-collective/std",
 	"pallet-contracts-primitives/std",
+	"pallet-contracts-registry/std",
 	"pallet-contracts/std",
 	"pallet-custom-account/std",
 	"pallet-democracy/std",
@@ -216,6 +218,7 @@ runtime-benchmarks = [
 	"pallet-bounties/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
+	"pallet-contracts-registry/runtime-benchmarks",
 	"pallet-contracts/runtime-benchmarks",
 	"pallet-custom-account/runtime-benchmarks",
 	"pallet-democracy/runtime-benchmarks",
@@ -259,8 +262,8 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
+	"pallet-asset-conversion/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-authority-discovery/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -270,6 +273,7 @@ try-runtime = [
 	"pallet-bounties/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-collective/try-runtime",
+	"pallet-contracts-registry/try-runtime",
 	"pallet-contracts/try-runtime",
 	"pallet-custom-account/try-runtime",
 	"pallet-democracy/try-runtime",
