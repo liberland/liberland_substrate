@@ -53,7 +53,7 @@ jobs:
         run: cargo build --release
 
       - name: Rename binary
-        run: cp target/release/substrate linux_x86_build
+        run: cp target/release/substrate-node linux_x86_build
 
       - name: Upload binary
         uses: actions/upload-artifact@v3
