@@ -1,0 +1,47 @@
+[package]
+name = "pallet-contracts-registry"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-benchmarking =  { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true }
+sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-core = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+node-primitives = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-balances = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+
+[features]
+default = ["std"]
+std = [
+  "frame-support/std",
+  "frame-system/std",
+  "codec/std",
+  "scale-info/std",
+  "frame-benchmarking?/std",
+  "sp-io/std",
+  "sp-std/std",
+  "sp-core/std",
+  "sp-runtime/std",
+  "pallet-balances/std",
+  "node-primitives/std"
+]
+
+try-runtime = [
+  "frame-support/try-runtime",
+  "pallet-balances/try-runtime"
+]
+
+runtime-benchmarks= [
+  "frame-benchmarking/runtime-benchmarks",
+  "pallet-balances/runtime-benchmarks"
+]
