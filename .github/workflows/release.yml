@@ -68,12 +68,12 @@ jobs:
 
       - name: Srtool build mainnet runtime
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.6.0
+        uses: chevdor/srtool-actions@v0.8.0
         with:
           chain: liberland
           package: kitchensink-runtime
           runtime_dir: ./substrate/bin/node/runtime
-          tag: "1.66.1"
+          tag: "1.74.0"
 
       - name: Mainnet Summary
         run: |
@@ -90,14 +90,14 @@ jobs:
 
       - name: Srtool build bastiat runtime
         id: srtool_build_bastiat
-        uses: chevdor/srtool-actions@v0.6.0
+        uses: chevdor/srtool-actions@v0.8.0
         env:
           BUILD_OPTS: "--features testnet-runtime"
         with:
           chain: liberland
           package: kitchensink-runtime
           runtime_dir: ./substrate/bin/node/runtime
-          tag: "1.66.1"
+          tag: "1.74.0"
 
       - name: Bastiat Summary
         run: |
