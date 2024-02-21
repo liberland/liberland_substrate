@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [ -z "$1" ]; then
+if [ $# -lt 1 ]; then
 	{
 		echo "Error: missing arguments."
 		echo "Usage:"
@@ -13,8 +13,7 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-cargo build --release
-bin='cargo run -q --release --'
+bin=${LIBERLAND_NODE:-'cargo run -q --release --'}
 sr25519="babe imon audi"
 ed25519="gran"
 
