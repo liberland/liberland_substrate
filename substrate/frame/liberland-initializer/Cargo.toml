@@ -1,0 +1,67 @@
+[package]
+name = "pallet-liberland-initializer"
+version = "0.1.0"
+description = "Liberland initialization pallet."
+authors = ["Kacper Żuk"]
+homepage = "https://liberland.org"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/liberland/liberland_substrate"
+readme = "README.md"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+log = { version = "0.4.14", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+sp-keyring = { default-features = false, optional = true, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-core = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-benchmarking =  { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true }
+frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-balances = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-identity = { default-features = false, path = "../identity" }
+pallet-nfts = { default-features = false, path = "../nfts" }
+pallet-registry = { default-features = false, path = "../registry" }
+pallet-llm = { default-features = false, path = "../llm" }
+liberland-traits = { path = "../liberland-traits", default-features = false}
+
+[dev-dependencies]
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"scale-info/std",
+	"frame-support/std",
+	"frame-system/std",
+	"frame-benchmarking?/std",
+	"pallet-identity/std",
+	"pallet-nfts/std",
+	"pallet-registry/std",
+	"pallet-llm/std",
+	"log/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"liberland-traits/std",
+]
+
+runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
+	"liberland-traits/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"pallet-llm/try-runtime",
+	"pallet-identity/try-runtime",
+	"pallet-registry/try-runtime",
+	"pallet-nfts/try-runtime",
+]

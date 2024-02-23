@@ -1,0 +1,27 @@
+[package]
+name = "liberland-traits"
+version = "0.1.0"
+authors = []
+edition = "2021"
+license = "MIT"
+homepage = "https://liberland.org"
+repository = "https://github.com/liberland/liberland_substrate/"
+description = "Liberland Traits"
+readme = "README.md"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+
+
+[dev-dependencies]
+
+[features]
+default = ["std"]
+std = [ "sp-runtime/std", "sp-std/std", "frame-support/std" ]
+runtime-benchmarks = []
+try-runtime = []

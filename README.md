@@ -32,9 +32,9 @@ This repository contains the substrate-based implementation of Liberland blockch
 
 ### Install deps
 ```
+sudo apt update
 sudo apt install build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup default nightly
 rustup target add wasm32-unknown-unknown
 ```
 
@@ -46,7 +46,7 @@ cd liberland_substrate
 
 ### Run automated tests
 ```
-cargo test --release --features runtime-benchmarks --no-fail-fast
+cargo test --features runtime-benchmarks --no-fail-fast
 ```
 
 ### Build and run development node
