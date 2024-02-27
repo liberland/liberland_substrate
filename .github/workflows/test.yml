@@ -56,7 +56,7 @@ jobs:
           key: ${{ runner.os }}-cargo-rust-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Format code with rustfmt
-        run: cargo fmt --check -p pallet-liberland-initializer -p pallet-liberland-legislation -p liberland-traits -p pallet-llm -p pallet-office -p pallet-registry
+        run: cargo fmt --check -p pallet-liberland-initializer -p pallet-liberland-legislation -p liberland-traits -p pallet-llm -p pallet-office -p pallet-registry -p pallet-custom-account -p pallet-contracts-registry
 
       - name: Run cargo test suite
         run: cargo test --features runtime-benchmarks

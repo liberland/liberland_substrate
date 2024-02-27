@@ -33,18 +33,17 @@ use frame_election_provider_support::{
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
-	instances::{Instance2},
-	ord_parameter_types,
-	pallet_prelude::{InherentData, Get},
 	inherent::CheckInherentsResult,
+	instances::Instance2,
+	ord_parameter_types,
+	pallet_prelude::{Get, InherentData},
 	parameter_types,
 	traits::{
-		Everything,
 		fungible::{Balanced, Credit},
-        tokens::nonfungibles_v2::Inspect,
-		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32, MapSuccess,
-		Currency, EitherOf, EitherOfDiverse, Imbalance, InstanceFilter,
-		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced
+		tokens::nonfungibles_v2::Inspect,
+		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32, Currency, EitherOf,
+		EitherOfDiverse, Everything, Imbalance, InstanceFilter, KeyOwnerProofSystem,
+		LockIdentifier, MapSuccess, Nothing, OnUnbalanced,
 	},
 	weights::{
 		constants::{
@@ -56,7 +55,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned, EnsureWithSuccess, EnsureSignedBy
+	EnsureRoot, EnsureSigned, EnsureSignedBy, EnsureWithSuccess,
 };
 pub use node_primitives::{AccountId, Signature};
 use node_primitives::{Balance, BlockNumber, Hash, Moment, Nonce};
@@ -76,12 +75,11 @@ use sp_runtime::{
 	curve::PiecewiseLinear,
 	generic, impl_opaque_keys,
 	traits::{
-		self, BlakeTwo256, Block as BlockT, Bounded, NumberFor, OpaqueKeys,
-		SaturatedConversion, StaticLookup, AccountIdConversion, AccountIdLookup,
+		self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded,
+		NumberFor, OpaqueKeys, SaturatedConversion, StaticLookup,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill,
-	RuntimeDebug
+	ApplyExtrinsicResult, FixedPointNumber, Perbill, Percent, Permill, Perquintill, RuntimeDebug,
 };
 use sp_std::prelude::*;
 #[cfg(any(feature = "std", test))]
@@ -104,14 +102,13 @@ pub use sp_runtime::BuildStorage;
 pub mod impls;
 mod migrations;
 use impls::{
-	Author, ToAccountId,
-	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember, CouncilAccountCallFilter, EnsureCmp
+	Author, ContainsMember, CouncilAccountCallFilter, EnsureCmp, IdentityCallFilter,
+	NftsCallFilter, OnLLMPoliticsUnlock, RegistryCallFilter, ToAccountId,
 };
 
 /// Constant values used within the runtime.
 pub mod constants;
-use constants::{currency::*, time::*, llm::*};
+use constants::{currency::*, llm::*, time::*};
 use sp_runtime::generic::Era;
 
 /// Generated voter bag information.
@@ -357,21 +354,18 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => !matches!(
 				c,
-				RuntimeCall::Balances(..) |
-					RuntimeCall::Assets(..) |
-					RuntimeCall::Nfts(..)
+				RuntimeCall::Balances(..) | RuntimeCall::Assets(..) | RuntimeCall::Nfts(..)
 			),
 			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Democracy(..) |
-					RuntimeCall::Council(..) |
-					RuntimeCall::Society(..) |
-					RuntimeCall::TechnicalCommittee(..) |
-					RuntimeCall::Elections(..) |
-					RuntimeCall::Treasury(..)
+				RuntimeCall::Democracy(..)
+					| RuntimeCall::Council(..)
+					| RuntimeCall::Society(..)
+					| RuntimeCall::TechnicalCommittee(..)
+					| RuntimeCall::Elections(..)
+					| RuntimeCall::Treasury(..)
 			),
-			ProxyType::Staking =>
-				matches!(c, RuntimeCall::Staking(..)),
+			ProxyType::Staking => matches!(c, RuntimeCall::Staking(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -400,20 +394,13 @@ impl pallet_proxy::Config for Runtime {
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
-type EnsureCouncilMajority = pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
-type EnsureSenateMajority = pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
-type EnsureRootOrHalfCouncil = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureCouncilMajority,
->;
-type EnsureSenateOrCouncilMajority = EitherOfDiverse<
-	EnsureSenateMajority,
-	EnsureCouncilMajority,
->;
-type EnsureRootOrHalfSenate = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EnsureSenateMajority,
->;
+type EnsureCouncilMajority =
+	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>;
+type EnsureSenateMajority =
+	pallet_collective::EnsureProportionMoreThan<AccountId, SenateCollective, 1, 2>;
+type EnsureRootOrHalfCouncil = EitherOfDiverse<EnsureRoot<AccountId>, EnsureCouncilMajority>;
+type EnsureSenateOrCouncilMajority = EitherOfDiverse<EnsureSenateMajority, EnsureCouncilMajority>;
+type EnsureRootOrHalfSenate = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSenateMajority>;
 
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
@@ -638,7 +625,7 @@ impl pallet_staking::Config for Runtime {
 	type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 	type BenchmarkingConfig = StakingBenchmarkingConfig;
 	type Citizenship = LLM;
-	#[cfg(any(test,feature = "runtime-benchmarks"))]
+	#[cfg(any(test, feature = "runtime-benchmarks"))]
 	type LLInitializer = LiberlandInitializer;
 }
 
@@ -720,8 +707,8 @@ impl Get<Option<BalancingConfig>> for OffchainRandomBalancing {
 			max => {
 				let seed = sp_io::offchain::random_seed();
 				let random = <u32>::decode(&mut TrailingZeroInput::new(&seed))
-					.expect("input is padded with zeroes; qed") %
-					max.saturating_add(1);
+					.expect("input is padded with zeroes; qed")
+					% max.saturating_add(1);
 				random as usize
 			},
 		};
@@ -840,11 +827,10 @@ impl pallet_democracy::Config for Runtime {
 	type SubmitOrigin = EnsureSigned<AccountId>;
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
-	type FastTrackOrigin =
-		EitherOfDiverse<
-			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>,
-			EnsureCouncilMajority,
-		>;
+	type FastTrackOrigin = EitherOfDiverse<
+		pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>,
+		EnsureCouncilMajority,
+	>;
 	type InstantOrigin =
 		pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
 	type InstantAllowed = frame_support::traits::ConstBool<true>;
@@ -857,12 +843,9 @@ impl pallet_democracy::Config for Runtime {
 		EitherOf<
 			EnsureSenateMajority,
 			pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
-		>
+		>,
 	>;
-	type BlacklistOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureSenateOrCouncilMajority
-	>;
+	type BlacklistOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSenateOrCouncilMajority>;
 
 	// Any single technical committee member may veto a coming council proposal, however they can
 	// only do it once and it lasts only for the cool-off period.
@@ -1036,11 +1019,7 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = Bounties;
 	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 	type MaxApprovals = MaxApprovals;
-	type SpendOrigin = EnsureWithSuccess<
-		EnsureRootOrHalfCouncil,
-		AccountId,
-		MaxBalance
-	>;
+	type SpendOrigin = EnsureWithSuccess<EnsureRootOrHalfCouncil, AccountId, MaxBalance>;
 }
 
 parameter_types! {
@@ -1320,11 +1299,11 @@ impl pallet_society::Config for Runtime {
 }
 
 impl pallet_mmr::Config for Runtime {
-    const INDEXING_PREFIX: &'static [u8] = b"mmr";
-    type Hashing = <Runtime as frame_system::Config>::Hashing;
-    type LeafData = pallet_mmr::ParentNumberAndHash<Self>;
-    type OnNewRoot = ();
-    type WeightInfo = ();
+	const INDEXING_PREFIX: &'static [u8] = b"mmr";
+	type Hashing = <Runtime as frame_system::Config>::Hashing;
+	type LeafData = pallet_mmr::ParentNumberAndHash<Self>;
+	type OnNewRoot = ();
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -1440,10 +1419,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
-	type SenateOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureSenateMajority
-	>;
+	type SenateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSenateMajority>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 	type WeightInfo = ();
 }
@@ -1526,10 +1502,7 @@ impl pallet_liberland_legislation::Config for Runtime {
 	type Citizenship = LLM;
 	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 2, 3>;
 	type InternationalTreatyOrigin = EnsureRootOrHalfCouncil;
-	type LowTierDeleteOrigin = EitherOf<
-		EnsureRoot<AccountId>,
-		EnsureSenateMajority
-	>;
+	type LowTierDeleteOrigin = EitherOf<EnsureRoot<AccountId>, EnsureSenateMajority>;
 	type LLInitializer = LiberlandInitializer;
 	type WeightInfo = pallet_liberland_legislation::weights::SubstrateWeight<Runtime>;
 }
@@ -1544,7 +1517,7 @@ parameter_types! {
 
 type EnsureMembersAsAccountId<I, A> = MapSuccess<
 	pallet_collective::EnsureProportionMoreThan<AccountId, I, 1, 2>, // half of collective
-	ToAccountId<(), A>
+	ToAccountId<(), A>,
 >;
 
 type RegistryEnsureRegistrar = EitherOf<
@@ -1717,7 +1690,6 @@ impl pallet_custom_account::Config<pallet_custom_account::Instance1> for Runtime
 	type CallFilter = CouncilAccountCallFilter;
 	type WeightInfo = ();
 }
-
 pub struct IntoAuthor;
 impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 	fn on_nonzero_unbalanced(credit: Credit<AccountId, Balances>) {
@@ -1725,6 +1697,25 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 			let _ = <Balances as Balanced<_>>::resolve(&author, credit);
 		}
 	}
+}
+
+parameter_types! {
+	pub ContractRegistryReserveIdentifier: &'static [u8; 8] = b"contregi";
+	pub ContractRegistryBaseDeposit: Balance = 1 * CENTS;
+	pub ContractRegistryByteDeposit: Balance = 10 * MILLICENTS;
+}
+
+impl pallet_contracts_registry::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxContractContentLen = ConstU32<{ 2u32 * 1024u32 * 1024u32 }>;
+	type MaxSignatures = ConstU32<16u32>;
+	type AddJudgeOrigin = EnsureRoot<AccountId>;
+	type SubmitOrigin = EnsureSigned<AccountId>;
+	type WeightInfo = pallet_contracts_registry::weights::SubstrateWeight<Runtime>;
+	type Currency = Balances;
+	type BaseDeposit = ContractRegistryBaseDeposit;
+	type ByteDeposit = ContractRegistryByteDeposit;
+	type ReserveIdentifier = ContractRegistryReserveIdentifier;
 }
 
 construct_runtime!(
@@ -1788,6 +1779,7 @@ construct_runtime!(
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
 		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
+		ContractsRegistry: pallet_contracts_registry = 65,
 	}
 );
 
@@ -1834,13 +1826,12 @@ pub type Executive = frame_executive::Executive<
 	Migrations,
 >;
 
-
 // staking is only expected to be used by polkadot/kusama/et al., so they didn't
 // bother to bump the default storage version. as such, we have V7_0_0 version
 // set, but it's actually the layout of V12. Fix it before running V13 migration.
 mod staking_v12 {
 	use super::*;
-	use frame_support::{storage_alias, traits::OnRuntimeUpgrade, pallet_prelude::*};
+	use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 
 	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	enum ObsoleteReleases {
@@ -1865,18 +1856,19 @@ mod staking_v12 {
 	}
 
 	#[storage_alias]
-	type StorageVersion<T: pallet_staking::Config> = StorageValue<pallet_staking::Pallet<T>, ObsoleteReleases, ValueQuery>;
+	type StorageVersion<T: pallet_staking::Config> =
+		StorageValue<pallet_staking::Pallet<T>, ObsoleteReleases, ValueQuery>;
 
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			frame_support::ensure!(
-                StorageVersion::<T>::get() == ObsoleteReleases::V7_0_0,
-                "Expected v7 before upgrading to v12"
-            );
+				StorageVersion::<T>::get() == ObsoleteReleases::V7_0_0,
+				"Expected v7 before upgrading to v12"
+			);
 
-            Ok(Default::default())
+			Ok(Default::default())
 		}
 
 		fn on_runtime_upgrade() -> Weight {
@@ -1888,9 +1880,9 @@ mod staking_v12 {
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 			frame_support::ensure!(
-                StorageVersion::<T>::get() == ObsoleteReleases::V12_0_0,
-                "Failed to upgrade to v12"
-            );
+				StorageVersion::<T>::get() == ObsoleteReleases::V12_0_0,
+				"Failed to upgrade to v12"
+			);
 			Ok(())
 		}
 	}
@@ -1899,7 +1891,7 @@ mod staking_v12 {
 // see commit 9957da3cbb027f9b754c453a4d58a62665e532ef for details
 mod bounties_v4 {
 	use super::*;
-	use frame_support::{traits::OnRuntimeUpgrade, pallet_prelude::*};
+	use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
 
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
@@ -1907,25 +1899,24 @@ mod bounties_v4 {
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			frame_support::ensure!(
 				Bounties::on_chain_storage_version() == 0,
-                "Expected v0 before upgrading to v4"
-            );
+				"Expected v0 before upgrading to v4"
+			);
 
-            Ok(Default::default())
+			Ok(Default::default())
 		}
 
 		fn on_runtime_upgrade() -> Weight {
 			log::info!("Migrated pallet-bounties PalletVersion to 4");
 			Bounties::current_storage_version().put::<Bounties>();
 			T::DbWeight::get().reads_writes(1, 1)
-
 		}
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
 			frame_support::ensure!(
 				Bounties::on_chain_storage_version() == 4,
-                "Failed to update to v4"
-            );
+				"Failed to update to v4"
+			);
 			Ok(())
 		}
 	}
@@ -2005,6 +1996,7 @@ mod benches {
 		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
 		[pallet_custom_account, CouncilAccount]
+		[pallet_contracts_registry, ContractsRegistry]
 	);
 }
 
