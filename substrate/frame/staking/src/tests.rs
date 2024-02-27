@@ -6127,6 +6127,197 @@ mod staking_interface {
 			assert!(Staking::status(&42).is_err());
 		})
 	}
+
+	#[test]
+	fn bond_to_create_new_bond() {
+		ExtBuilder::default().nominate(false).build_and_execute(|| {
+			// put some money in account that we'll use.
+			for i in 1..5 {
+				let _ = Balances::make_free_balance_be(&i, 2000);
+			}
+
+			// --- Block 2:
+			start_session(2);
+			assert_eq!(Balances::free_balance(2), 2000);
+			assert_eq!(Balances::free_balance(3), 2000);
+			assert_eq!(
+				Staking::ledger(&3),
+				None
+			);
+
+			assert_ok!(Staking::bond_to(RuntimeOrigin::signed(2), 3, 1500));
+			
+			assert_eq!(Balances::free_balance(2), 500);
+			assert_eq!(Balances::free_balance(3), 3500);
+
+			assert_eq!(
+				Staking::ledger(&2),
+				None
+			);
+			assert_eq!(
+				Staking::ledger(&3),
+				Some(StakingLedger {
+					stash: 3,
+					total: 1500,
+					active: 1500,
+					unlocking: Default::default(),
+					claimed_rewards: bounded_vec![0],
+				})
+			);
+		});
+	}
+
+	#[test]
+	fn bond_to_deposit_to_existing_bond() {
+		ExtBuilder::default().nominate(false).build_and_execute(|| {
+			// put some money in account that we'll use.
+			for i in 1..5 {
+				let _ = Balances::make_free_balance_be(&i, 2000);
+			}
+
+			// --- Block 2:
+			start_session(2);
+
+			assert_eq!(Balances::free_balance(2), 2000);
+			assert_eq!(Balances::free_balance(3), 2000);
+			assert_eq!(
+				Staking::ledger(&3),
+				None
+			);
+
+			assert_ok!(Staking::bond_to(RuntimeOrigin::signed(2), 3, 1500));
+			
+			assert_eq!(Balances::free_balance(2), 500);
+			assert_eq!(Balances::free_balance(3), 3500);
+
+			assert_eq!(
+				Staking::ledger(&2),
+				None
+			);
+			assert_eq!(
+				Staking::ledger(&3),
+				Some(StakingLedger {
+					stash: 3,
+					total: 1500,
+					active: 1500,
+					unlocking: Default::default(),
+					claimed_rewards: bounded_vec![0],
+				})
+			);
+			
+			assert_eq!(Balances::free_balance(2), 500);
+			assert_eq!(Balances::free_balance(3), 3500);
+
+			assert_ok!(Staking::bond_to(RuntimeOrigin::signed(2), 3, 300));
+			
+			assert_eq!(Balances::free_balance(2), 200);
+			assert_eq!(Balances::free_balance(3), 3800);
+
+			assert_eq!(
+				Staking::ledger(&2),
+				None
+			);
+			assert_eq!(
+				Staking::ledger(&3),
+				Some(StakingLedger {
+					stash: 3,
+					total: 1800,
+					active: 1800,
+					unlocking: Default::default(),
+					claimed_rewards: bounded_vec![0],
+				})
+			);
+		});
+	}
+
+	#[test]
+	fn bond_to_deposit_events() {
+		ExtBuilder::default().nominate(false).build_and_execute(|| {
+			// put some money in account that we'll use.
+			for i in 1..5 {
+				let _ = Balances::make_free_balance_be(&i, 2000);
+			}
+
+			// --- Block 2:
+			start_session(2);
+
+			assert_eq!(Balances::free_balance(2), 2000);
+			assert_eq!(Balances::free_balance(3), 2000);
+			assert_eq!(
+				Staking::ledger(&3),
+				None
+			);
+
+			assert_ok!(Staking::bond_to(RuntimeOrigin::signed(2), 3, 1500));
+			
+			assert_eq!(Balances::free_balance(2), 500);
+			assert_eq!(Balances::free_balance(3), 3500);
+
+			assert_eq!(
+				Staking::ledger(&2),
+				None
+			);
+			assert_eq!(
+				Staking::ledger(&3),
+				Some(StakingLedger {
+					stash: 3,
+					total: 1500,
+					active: 1500,
+					unlocking: Default::default(),
+					claimed_rewards: bounded_vec![0],
+				})
+			);
+		
+			assert_eq!(*staking_events().last().unwrap(), Event::Bonded { stash: 3, amount: 1500 });
+
+			assert_eq!(Balances::free_balance(2), 500);
+			assert_eq!(Balances::free_balance(3), 3500);
+
+			assert_ok!(Staking::bond_to(RuntimeOrigin::signed(2), 3, 300));
+			
+			assert_eq!(Balances::free_balance(2), 200);
+			assert_eq!(Balances::free_balance(3), 3800);
+
+			assert_eq!(
+				Staking::ledger(&2),
+				None
+			);
+			assert_eq!(
+				Staking::ledger(&3),
+				Some(StakingLedger {
+					stash: 3,
+					total: 1800,
+					active: 1800,
+					unlocking: Default::default(),
+					claimed_rewards: bounded_vec![0],
+				})
+			);
+
+			assert_eq!(*staking_events().last().unwrap(), Event::Bonded { stash: 3, amount: 300 });
+		});
+	}
+
+		#[test]
+	fn bond_to_transfer_failed() {
+		ExtBuilder::default().nominate(false).build_and_execute(|| {
+			// put some money in account that we'll use.
+			for i in 1..5 {
+				let _ = Balances::make_free_balance_be(&i, 2000);
+			}
+
+			// --- Block 2:
+			start_session(2);
+
+			assert_eq!(Balances::free_balance(2), 2000);
+			assert_eq!(Balances::free_balance(3), 2000);
+			assert_eq!(
+				Staking::ledger(&3),
+				None
+			);
+
+			assert_noop!(Staking::bond_to(RuntimeOrigin::signed(2), 3, 4000), Error::<Test>::TransferFailed);
+		});
+	}
 }
 
 #[test]
