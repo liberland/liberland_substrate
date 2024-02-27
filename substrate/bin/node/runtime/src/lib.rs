@@ -1727,6 +1727,25 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 	}
 }
 
+parameter_types! {
+	pub ContractRegistryReserveIdentifier: &'static [u8; 8] = b"contregi";
+	pub ContractRegistryBaseDeposit: Balance = 1 * CENTS;
+	pub ContractRegistryByteDeposit: Balance = 10 * MILLICENTS;
+}
+
+impl pallet_contracts_registry::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxContractContentLen = ConstU32<{ 2u32 * 1024u32 * 1024u32 }>;
+	type MaxSignatures = ConstU32<16u32>;
+	type AddJudgeOrigin = EnsureRoot<AccountId>;
+	type SubmitOrigin = EnsureSigned<AccountId>;
+	type WeightInfo = pallet_contracts_registry::weights::SubstrateWeight<Runtime>;
+	type Currency = Balances;
+	type BaseDeposit = ContractRegistryBaseDeposit;
+	type ByteDeposit = ContractRegistryByteDeposit;
+	type ReserveIdentifier = ContractRegistryReserveIdentifier;
+}
+
 construct_runtime!(
 	pub struct Runtime
 	{
@@ -1788,6 +1807,7 @@ construct_runtime!(
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
 		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
+		ContractsRegistry: pallet_contracts_registry = 65,
 	}
 );
 
@@ -2005,6 +2025,7 @@ mod benches {
 		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
 		[pallet_custom_account, CouncilAccount]
+		[pallet_contracts_registry, ContractsRegistry]
 	);
 }
 

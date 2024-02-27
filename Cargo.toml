@@ -19,6 +19,9 @@ members = [
 	"substrate/frame/office",
 	"substrate/frame/federated-bridge",
 	"substrate/frame/custom-account",
+	"substrate/frame/llm",
+	"substrate/frame/liberland-legislation",
+	"substrate/frame/contracts-registry",
 ]
 
 [profile.release]
