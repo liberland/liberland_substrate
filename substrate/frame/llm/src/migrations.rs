@@ -3,6 +3,7 @@ use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 use liberland_traits::CitizenshipChecker;
 use pallet_identity::Registration;
 use sp_std::vec::Vec;
+use frame_system::pallet_prelude::BlockNumberFor;
 
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
@@ -235,7 +236,6 @@ pub mod v2 {
 
 pub mod v3 {
 	use super::*;
-	use frame_system::pallet_prelude::BlockNumberFor;
 
 	const TARGET: &'static str = "runtime::llm::migration::v3";
 
@@ -273,6 +273,55 @@ pub mod v3 {
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 3, "must upgrade");
 			log::info!(target: TARGET, "WithdrawlockDuration set to {:?}, ElectionlockDuration set to {:?}", WithdrawlockDuration::<T>::get(), ElectionlockDuration::<T>::get(),);
+			Ok(())
+		}
+	}
+}
+
+pub mod v4 {
+	use super::*;
+
+	const TARGET: &'static str = "runtime::llm::migration::v4";
+
+	pub struct Migration<T, OldInterval>(sp_std::marker::PhantomData<(T, OldInterval)>);
+
+	#[storage_alias]
+	type NextRelease<T: Config> = StorageValue<
+		Pallet<T>,
+		BlockNumberFor<T>,
+		ValueQuery
+	>;
+
+	impl<T: Config, OldInterval: Get<BlockNumberFor<T>>> OnRuntimeUpgrade for Migration<T, OldInterval> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
+			assert!(StorageVersion::get::<Pallet<T>>() == 3, "can only upgrade from version 3");
+
+			Ok(().encode())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			let weight = T::DbWeight::get().reads(1);
+			if StorageVersion::get::<Pallet<T>>() != 3 {
+				log::warn!(
+					target: TARGET,
+					"skipping on_runtime_upgrade: executed on wrong storage version.\
+				Expected version 3"
+				);
+				return weight;
+			}
+
+			LastRelease::<T>::put(
+				NextRelease::<T>::get() - OldInterval::get()
+			);
+
+			StorageVersion::new(4).put::<Pallet<T>>();
+			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
+			assert_eq!(StorageVersion::get::<Pallet<T>>(), 4, "must upgrade");
 			Ok(())
 		}
 	}

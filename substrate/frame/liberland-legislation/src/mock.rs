@@ -240,6 +240,7 @@ parameter_types! {
 	pub const AssetName: &'static str = "LiberTest Merit";
 	pub const AssetSymbol: &'static str = "LTM";
 	pub const InflationEventInterval: u64 = 1000;
+	pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
 }
 
 impl pallet_llm::Config for Test {
@@ -253,6 +254,7 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();

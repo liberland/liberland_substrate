@@ -47,7 +47,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 ## Internal Storage:
 
-* `NextRelease`: block number for next LLM Release Event (transfer of 10% from **Vault** to **Treasury**)
+* `LastRelease`: block number for last LLM Release Event (transfer from **Vault** to **Treasury**)
 * `LLMPolitics`: amount of LLM each account has allocated into politics
 * `Withdrawlock`: block number until which account can't do another `politics_unlock`
 * `Electionlock`: block number until which account can't participate in politics directly

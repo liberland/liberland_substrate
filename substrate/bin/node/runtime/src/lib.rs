@@ -1424,7 +1424,8 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
+	pub const InflationEventInterval: BlockNumber = 30 * DAYS;
+	pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1440,6 +1441,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type SenateOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EnsureSenateMajority
@@ -1954,14 +1956,11 @@ mod bounties_v4 {
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 parameter_types! {
-	pub const PastPayouts: Vec<(AccountId, Balance)> = vec![];
+    pub const OldInflationEventInterval: BlockNumber = 365 * DAYS;
 }
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
-	pallet_llm::migrations::v3::Migration<Runtime>,
-	pallet_im_online::migration::v1::Migration<Runtime>,
-	migrations::society_to_v2::Migration<Runtime>,
-	migrations::add_pallets::Migration<Runtime>,
+	pallet_llm::migrations::v4::Migration<Runtime, OldInflationEventInterval>,
 );
 
 type EventRecord = frame_system::EventRecord<
