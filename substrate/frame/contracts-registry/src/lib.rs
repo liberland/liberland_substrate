@@ -258,6 +258,7 @@ pub mod pallet {
 
 			JudgesSignatures::<T, I>::insert(index, BoundedVec::default());
 			PartiesSignatures::<T, I>::insert(index, BoundedVec::default());
+			NextContractsId::<T, I>::put(index + 1);
 
 			Self::deposit_event(Event::ContractCreated { contract_id: index, creator: who });
 			Ok(Some(T::WeightInfo::create_contract(
