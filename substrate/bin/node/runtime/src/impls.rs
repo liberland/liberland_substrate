@@ -29,7 +29,12 @@ use frame_support::{
 };
 use sp_runtime::{RuntimeDebug, AccountId32, DispatchError, traits::{TrailingZeroInput, Morph}};
 use sp_std::{vec, cmp::{max, min, Ordering}};
-
+use scale_info::TypeInfo;
+use sp_runtime::traits::Dispatchable;
+use frame_support::dispatch::{DispatchInfo, PostDispatchInfo, DispatchErrorWithPostInfo, GetDispatchInfo};
+use bridge_types::H256;
+use sp_runtime::traits::Convert;
+use bridge_types::LiberlandAssetId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -434,6 +439,182 @@ impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
 		}
 
 		true
+	}
+}
+
+// Sora Bridge
+pub struct GenericTimepointProvider;
+
+impl bridge_types::traits::TimepointProvider for GenericTimepointProvider {
+	fn get_timepoint() -> bridge_types::GenericTimepoint {
+		bridge_types::GenericTimepoint::Sora(crate::System::block_number())
+	}
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct DispatchableSubstrateBridgeCall(bridge_types::substrate::BridgeCall);
+
+impl Dispatchable for DispatchableSubstrateBridgeCall {
+	type RuntimeOrigin = crate::RuntimeOrigin;
+	type Config = crate::Runtime;
+	type Info = DispatchInfo;
+	type PostInfo = PostDispatchInfo;
+
+	fn dispatch(
+		self,
+		origin: Self::RuntimeOrigin,
+	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+		match self.0 {
+			bridge_types::substrate::BridgeCall::ParachainApp(_) => {
+				Err(DispatchErrorWithPostInfo {
+					post_info: Default::default(),
+					error: DispatchError::Other("Unavailable"),
+				})
+			},
+			bridge_types::substrate::BridgeCall::XCMApp(_) => Err(DispatchErrorWithPostInfo {
+				post_info: Default::default(),
+				error: DispatchError::Other("Unavailable"),
+			}),
+			bridge_types::substrate::BridgeCall::DataSigner(msg) => {
+				let call: bridge_data_signer::Call<crate::Runtime> = msg.into();
+				let call: crate::RuntimeCall = call.into();
+				call.dispatch(origin)
+			},
+			bridge_types::substrate::BridgeCall::MultisigVerifier(msg) => {
+				let call: multisig_verifier::Call<crate::Runtime> = msg.into();
+				let call: crate::RuntimeCall = call.into();
+				call.dispatch(origin)
+			},
+			bridge_types::substrate::BridgeCall::SubstrateApp(msg) => {
+				let call: substrate_bridge_app::Call<crate::Runtime> = msg.try_into()?;
+				let call: crate::RuntimeCall = call.into();
+				call.dispatch(origin)
+			},
+		}
+	}
+}
+
+impl GetDispatchInfo for DispatchableSubstrateBridgeCall {
+	fn get_dispatch_info(&self) -> DispatchInfo {
+		match &self.0 {
+			bridge_types::substrate::BridgeCall::ParachainApp(_) => Default::default(),
+			bridge_types::substrate::BridgeCall::XCMApp(_) => Default::default(),
+			bridge_types::substrate::BridgeCall::DataSigner(msg) => {
+				let call: bridge_data_signer::Call<crate::Runtime> = msg.clone().into();
+				call.get_dispatch_info()
+			},
+			bridge_types::substrate::BridgeCall::MultisigVerifier(msg) => {
+				let call: multisig_verifier::Call<crate::Runtime> = msg.clone().into();
+				call.get_dispatch_info()
+			},
+			bridge_types::substrate::BridgeCall::SubstrateApp(msg) => {
+				let call: substrate_bridge_app::Call<crate::Runtime> =
+					match substrate_bridge_app::Call::try_from(msg.clone()) {
+						Ok(c) => c,
+						Err(_) => return Default::default(),
+					};
+				call.get_dispatch_info()
+			},
+		}
+	}
+}
+
+pub struct SoraBridgeCallFilter;
+
+impl Contains<DispatchableSubstrateBridgeCall> for SoraBridgeCallFilter {
+	fn contains(call: &DispatchableSubstrateBridgeCall) -> bool {
+		match &call.0 {
+			bridge_types::substrate::BridgeCall::ParachainApp(_) => false,
+			bridge_types::substrate::BridgeCall::XCMApp(_) => false,
+			bridge_types::substrate::BridgeCall::DataSigner(_) => true,
+			bridge_types::substrate::BridgeCall::MultisigVerifier(_) => true,
+			bridge_types::substrate::BridgeCall::SubstrateApp(_) => true,
+		}
+	}
+}
+
+pub struct MultiVerifier;
+
+#[derive(Clone, Debug, PartialEq, codec::Encode, codec::Decode, scale_info::TypeInfo)]
+pub enum MultiProof {
+	#[codec(index = 0)]
+	Multisig(<crate::MultisigVerifier as bridge_types::traits::Verifier>::Proof),
+	/// This proof is only used for benchmarking purposes
+	#[cfg(feature = "runtime-benchmarks")]
+	#[codec(skip)]
+	Empty,
+}
+
+impl bridge_types::traits::Verifier for MultiVerifier {
+	type Proof = MultiProof;
+
+	fn verify(
+		network_id: bridge_types::GenericNetworkId,
+		message: H256,
+		proof: &Self::Proof,
+	) -> frame_support::pallet_prelude::DispatchResult {
+		match proof {
+			MultiProof::Multisig(proof) => {
+				crate::MultisigVerifier::verify(network_id, message, proof)
+			},
+			#[cfg(feature = "runtime-benchmarks")]
+			MultiProof::Empty => Ok(()),
+		}
+	}
+
+	fn verify_weight(proof: &Self::Proof) -> Weight {
+		match proof {
+			MultiProof::Multisig(proof) => crate::MultisigVerifier::verify_weight(proof),
+			#[cfg(feature = "runtime-benchmarks")]
+			MultiProof::Empty => Default::default(),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn valid_proof() -> Option<Self::Proof> {
+		Some(MultiProof::Empty)
+	}
+}
+
+pub struct SoraAssetIdConverter;
+impl Convert<LiberlandAssetId, bridge_types::GenericAssetId> for SoraAssetIdConverter {
+	fn convert(a: LiberlandAssetId) -> bridge_types::GenericAssetId {
+		bridge_types::GenericAssetId::Liberland(a.into())
+	}
+}
+
+pub struct SoraAccountIdConverter;
+impl Convert<crate::AccountId, bridge_types::GenericAccount> for SoraAccountIdConverter {
+	fn convert(a: crate::AccountId) -> bridge_types::GenericAccount {
+		bridge_types::GenericAccount::Liberland(a)
+	}
+}
+
+pub struct GenericBalancePrecisionConverter;
+impl
+	bridge_types::traits::BalancePrecisionConverter<
+		LiberlandAssetId,
+		crate::Balance,
+		bridge_types::GenericBalance,
+	> for GenericBalancePrecisionConverter
+{
+	fn from_sidechain(
+		_: &LiberlandAssetId,
+		_: u8,
+		amount: bridge_types::GenericBalance,
+	) -> Option<crate::Balance> {
+		match amount {
+			bridge_types::GenericBalance::Substrate(balance) => Some(balance),
+			_ => None,
+		}
+	}
+
+	fn to_sidechain(
+		_: &LiberlandAssetId,
+		_: u8,
+		amount: crate::Balance,
+	) -> Option<bridge_types::GenericBalance> {
+		Some(bridge_types::GenericBalance::Substrate(amount))
 	}
 }
 

@@ -108,3 +108,7 @@ pub mod society_to_v2 {
 		}
 	}
 }
+
+pub mod sora_bridge {
+	// use super::*;
+}

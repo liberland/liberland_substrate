@@ -88,6 +88,11 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
+use sp_runtime::traits::Keccak256;
+use sp_runtime::transaction_validity::TransactionLongevity;
+use bridge_types::LiberlandAssetId;
+
+pub use bridge_types::{GenericNetworkId, SubNetworkId};
 
 #[cfg(any(feature = "std", test))]
 pub use frame_system::Call as SystemCall;
@@ -1727,6 +1732,121 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 	}
 }
 
+// Sora Bridge
+parameter_types! {
+	pub const BridgeMaxMessagePayloadSize: u32 = 256;
+	pub const BridgeMaxMessagesPerCommit: u32 = 20;
+	pub const ThisNetworkId: bridge_types::GenericNetworkId = bridge_types::GenericNetworkId::Sub(bridge_types::SubNetworkId::Liberland);
+	pub const BridgeMaxPeers: u32 = 50;
+	// Not as important as some essential transactions (e.g. im_online or similar ones)
+	pub DataSignerPriority: TransactionPriority = Perbill::from_percent(10) * TransactionPriority::max_value();
+	// We don't want to have not relevant imports be stuck in transaction pool
+	// for too long
+	pub DataSignerLongevity: TransactionLongevity = EPOCH_DURATION_IN_BLOCKS as u64;
+	pub const MinAssetBalance: u32 = 1;
+	// pub TechAcc: AccountId = AccountId::new(hex_literal::hex!("dc5201cda01113be2ca9093c49a92763c95c708dd61df70c945df749c365da5d"));
+}
+
+// Sora Bridge
+impl leaf_provider::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Hashing = Keccak256;
+	type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+	type Randomness = pallet_babe::RandomnessFromTwoEpochsAgo<Self>;
+}
+
+// Sora Bridge
+impl substrate_bridge_app::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OutboundChannel = SubstrateBridgeOutboundChannel;
+	type CallOrigin = dispatch::EnsureAccount<
+		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>,
+	>;
+	type MessageStatusNotifier = SoraBridgeProvider;
+	type AssetRegistry = SoraBridgeProvider;
+	type AccountIdConverter = impls::SoraAccountIdConverter;
+	type AssetIdConverter = impls::SoraAssetIdConverter;
+	type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
+	type BridgeAssetLocker = SoraBridgeProvider;
+	type WeightInfo = ();
+}
+
+// Sora Bridge
+impl bridge_data_signer::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OutboundChannel = SubstrateBridgeOutboundChannel;
+	type CallOrigin = dispatch::EnsureAccount<
+		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>,
+	>;
+	type MaxPeers = BridgeMaxPeers;
+	type UnsignedPriority = DataSignerPriority;
+	type UnsignedLongevity = DataSignerLongevity;
+	type WeightInfo = ();
+}
+
+// Sora Bridge
+impl multisig_verifier::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type CallOrigin = dispatch::EnsureAccount<
+		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>,
+	>;
+	type OutboundChannel = SubstrateBridgeOutboundChannel;
+	type MaxPeers = BridgeMaxPeers;
+	type WeightInfo = ();
+	type ThisNetworkId = ThisNetworkId;
+}
+
+// Sora Bridge
+impl dispatch::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OriginOutput =
+		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>;
+	type Origin = RuntimeOrigin;
+	type MessageId = bridge_types::types::MessageId;
+	type Hashing = Keccak256;
+	type Call = impls::DispatchableSubstrateBridgeCall;
+	type CallFilter = impls::SoraBridgeCallFilter;
+	type WeightInfo = ();
+}
+
+// Sora Bridge
+impl substrate_bridge_channel::inbound::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Verifier = impls::MultiVerifier;
+	type MessageDispatch = SubstrateDispatch;
+	type UnsignedPriority = DataSignerPriority;
+	type UnsignedLongevity = DataSignerLongevity;
+	type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
+	type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
+	type ThisNetworkId = ThisNetworkId;
+	type WeightInfo = ();
+}
+
+// Sora Bridge
+impl substrate_bridge_channel::outbound::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MessageStatusNotifier = SoraBridgeProvider;
+	type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
+	type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
+	type AuxiliaryDigestHandler = LeafProvider;
+	type AssetId = bridge_types::LiberlandAssetId;
+	type Balance = Balance;
+	type TimepointProvider = impls::GenericTimepointProvider;
+	type ThisNetworkId = ThisNetworkId;
+	type WeightInfo = ();
+}
+
+// Sora Bridge
+impl sora_liberland_bridge_provider::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MinBalance = MinAssetBalance;
+	type Balances = Balances;
+	type AssetId = LiberlandAssetId;
+	type SoraApp = SoraBridgeApp;
+	type AccountIdConverter = sp_runtime::traits::Identity;
+	type TimepointProvider = impls::GenericTimepointProvider;
+}
+
 construct_runtime!(
 	pub struct Runtime
 	{
@@ -1788,6 +1908,16 @@ construct_runtime!(
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
 		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
+
+		// Sora Bridge:
+		LeafProvider: leaf_provider::{Pallet, Storage, Event<T>} = 80,
+		SoraBridgeApp: substrate_bridge_app::{Pallet, Storage, Event<T>, Call} = 81,
+		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 82,
+		SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound::{Pallet, Config<T>, Storage, Event<T>} = 83,
+		SubstrateDispatch: dispatch::{Pallet, Storage, Event<T>, Origin<T>} = 84,
+		BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 85,
+		MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 86,
+		SoraBridgeProvider: sora_liberland_bridge_provider = 87,
 	}
 );
 

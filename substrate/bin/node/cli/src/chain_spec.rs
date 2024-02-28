@@ -26,16 +26,16 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
 	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
 	BabeConfig, BalancesConfig, Block, CouncilConfig,
-	DemocracyConfig, ElectionsConfig, ImOnlineConfig,
+	DemocracyConfig, ElectionsConfig, GenericNetworkId, ImOnlineConfig,
 	MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
-	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
+	StakerStatus, StakingConfig, SudoConfig, SystemConfig, SubNetworkId,
 	TechnicalCommitteeConfig, LiberlandInitializerConfig,
 	CompanyRegistryOfficePalletId, CompanyRegistryOfficeConfig,
 	LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, EthLLDBridgeConfig, EthLLMBridgeConfig,
+	SenateConfig, SoraBridgeProviderConfig, EthLLDBridgeConfig, EthLLMBridgeConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -469,6 +469,14 @@ pub fn testnet_genesis(
 			admin: Some(root_key.clone()),
 			super_admin: Some(root_key),
 			..Default::default()
+		},
+
+		substrate_bridge_outbound_channel: Default::default(),
+		sora_bridge_provider: SoraBridgeProviderConfig {
+			register_tech_accounts: vec![(
+				GenericNetworkId::Sub(SubNetworkId::Mainnet),
+				get_account_id_from_seed::<sr25519::Public>("Sora"))
+			],
 		},
 	}
 }

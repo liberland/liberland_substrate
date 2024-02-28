@@ -113,6 +113,16 @@ pallet-office = { path = "../../../frame/office", default-features = false }
 pallet-federated-bridge = { path = "../../../frame/federated-bridge", default-features = false }
 pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
 
+# Sora Bridge:
+substrate-bridge-app = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+substrate-bridge-channel = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+leaf-provider = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+dispatch = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+bridge-data-signer = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+multisig-verifier = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+bridge-types = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+sora-liberland-bridge-provider = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false, package = "liberland-bridge-provider" }
+
 [build-dependencies]
 substrate-wasm-builder = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", optional = true}
 
@@ -200,6 +210,16 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+
+	# Sora Bridge:
+	"substrate-bridge-app/std",
+	"substrate-bridge-channel/std",
+	"leaf-provider/std",
+	"dispatch/std",
+	"bridge-data-signer/std",
+	"bridge-types/std",
+	"multisig-verifier/std",
+	"sora-liberland-bridge-provider/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
