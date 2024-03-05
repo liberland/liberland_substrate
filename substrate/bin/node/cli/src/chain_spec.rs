@@ -26,16 +26,16 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
 	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
 	BabeConfig, BalancesConfig, Block, CouncilConfig,
-	DemocracyConfig, ElectionsConfig, GenericNetworkId, ImOnlineConfig,
+	DemocracyConfig, ElectionsConfig, ImOnlineConfig,
 	MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
-	StakerStatus, StakingConfig, SudoConfig, SystemConfig, SubNetworkId,
+	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
 	TechnicalCommitteeConfig, LiberlandInitializerConfig,
 	CompanyRegistryOfficePalletId, CompanyRegistryOfficeConfig,
 	LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, SoraBridgeProviderConfig, EthLLDBridgeConfig, EthLLMBridgeConfig,
+	SenateConfig, EthLLDBridgeConfig, EthLLMBridgeConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -465,19 +465,13 @@ pub fn testnet_genesis(
 			super_admin: Some(root_key.clone()),
 			..Default::default()
 		},
-		eth_llm_bridge: EthLLMBridgeConfig {
+		eth_llm_bridge: EthLLMBridgeConfig {	
 			admin: Some(root_key.clone()),
 			super_admin: Some(root_key),
 			..Default::default()
 		},
-
 		substrate_bridge_outbound_channel: Default::default(),
-		sora_bridge_provider: SoraBridgeProviderConfig {
-			register_tech_accounts: vec![(
-				GenericNetworkId::Sub(SubNetworkId::Mainnet),
-				get_account_id_from_seed::<sr25519::Public>("Sora"))
-			],
-		},
+		sora_bridge_app: Default::default(),
 	}
 }
 

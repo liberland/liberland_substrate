@@ -1744,7 +1744,7 @@ parameter_types! {
 	// for too long
 	pub DataSignerLongevity: TransactionLongevity = EPOCH_DURATION_IN_BLOCKS as u64;
 	pub const MinAssetBalance: u32 = 1;
-	// pub TechAcc: AccountId = AccountId::new(hex_literal::hex!("dc5201cda01113be2ca9093c49a92763c95c708dd61df70c945df749c365da5d"));
+	pub SoraMainnetTechAcc: AccountId = impls::get_account_id_from_string_hash("Sora");
 }
 
 // Sora Bridge
@@ -1845,6 +1845,7 @@ impl sora_liberland_bridge_provider::Config for Runtime {
 	type SoraApp = SoraBridgeApp;
 	type AccountIdConverter = sp_runtime::traits::Identity;
 	type TimepointProvider = impls::GenericTimepointProvider;
+	type SoraMainnetTechAcc = SoraMainnetTechAcc;
 }
 
 construct_runtime!(
@@ -1910,13 +1911,13 @@ construct_runtime!(
 		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
 
 		// Sora Bridge:
-		LeafProvider: leaf_provider::{Pallet, Storage, Event<T>} = 80,
-		SoraBridgeApp: substrate_bridge_app::{Pallet, Storage, Event<T>, Call} = 81,
-		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 82,
-		SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound::{Pallet, Config<T>, Storage, Event<T>} = 83,
-		SubstrateDispatch: dispatch::{Pallet, Storage, Event<T>, Origin<T>} = 84,
-		BridgeDataSigner: bridge_data_signer::{Pallet, Storage, Event<T>, Call, ValidateUnsigned} = 85,
-		MultisigVerifier: multisig_verifier::{Pallet, Storage, Event<T>, Call} = 86,
+		LeafProvider: leaf_provider = 80,
+		SoraBridgeApp: substrate_bridge_app = 81,
+		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound = 82,
+		SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound = 83,
+		SubstrateDispatch: dispatch = 84,
+		BridgeDataSigner: bridge_data_signer = 85,
+		MultisigVerifier: multisig_verifier = 86,
 		SoraBridgeProvider: sora_liberland_bridge_provider = 87,
 	}
 );
