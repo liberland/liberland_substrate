@@ -1125,14 +1125,7 @@ impl pallet_contracts::Config for Runtime {
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Migrations = (
-		pallet_contracts::migration::v10::Migration<Runtime, Balances>,
-		pallet_contracts::migration::v11::Migration<Runtime>,
-		pallet_contracts::migration::v12::Migration<Runtime, Balances>,
-		pallet_contracts::migration::v13::Migration<Runtime>,
-		pallet_contracts::migration::v14::Migration<Runtime, Balances>,
-		pallet_contracts::migration::v15::Migration<Runtime>,
-	);
+	type Migrations = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Migrations = pallet_contracts::migration::codegen::BenchMigrations;
 	type MaxDelegateDependencies = ConstU32<32>;
@@ -1959,7 +1952,6 @@ parameter_types! {
     pub const OldInflationEventInterval: BlockNumber = 365 * DAYS;
 }
 type Migrations = (
-	pallet_contracts::Migration<Runtime>,
 	pallet_llm::migrations::v4::Migration<Runtime, OldInflationEventInterval>,
 	migrations::add_contracts_registry_pallet::Migration<Runtime>,
 );
