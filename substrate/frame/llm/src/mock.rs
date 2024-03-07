@@ -10,9 +10,8 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	BuildStorage,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
-	Perbill, Permill,
+	BuildStorage, Perbill, Permill,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;

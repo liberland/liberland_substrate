@@ -1,13 +1,12 @@
 use super::{pallet::Config, *};
 use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
+use frame_system::pallet_prelude::BlockNumberFor;
 use liberland_traits::CitizenshipChecker;
 use pallet_identity::Registration;
 use sp_std::vec::Vec;
-use frame_system::pallet_prelude::BlockNumberFor;
 
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
-
 
 pub mod v1 {
 	use super::*;
@@ -286,13 +285,11 @@ pub mod v4 {
 	pub struct Migration<T, OldInterval>(sp_std::marker::PhantomData<(T, OldInterval)>);
 
 	#[storage_alias]
-	type NextRelease<T: Config> = StorageValue<
-		Pallet<T>,
-		BlockNumberFor<T>,
-		ValueQuery
-	>;
+	type NextRelease<T: Config> = StorageValue<Pallet<T>, BlockNumberFor<T>, ValueQuery>;
 
-	impl<T: Config, OldInterval: Get<BlockNumberFor<T>>> OnRuntimeUpgrade for Migration<T, OldInterval> {
+	impl<T: Config, OldInterval: Get<BlockNumberFor<T>>> OnRuntimeUpgrade
+		for Migration<T, OldInterval>
+	{
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
 			assert!(StorageVersion::get::<Pallet<T>>() == 3, "can only upgrade from version 3");
@@ -311,9 +308,7 @@ pub mod v4 {
 				return weight;
 			}
 
-			LastRelease::<T>::put(
-				NextRelease::<T>::get() - OldInterval::get()
-			);
+			LastRelease::<T>::put(NextRelease::<T>::get() - OldInterval::get());
 
 			StorageVersion::new(4).put::<Pallet<T>>();
 			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
