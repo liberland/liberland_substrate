@@ -1961,6 +1961,7 @@ parameter_types! {
 type Migrations = (
 	pallet_contracts::Migration<Runtime>,
 	pallet_llm::migrations::v4::Migration<Runtime, OldInflationEventInterval>,
+	migrations::add_contracts_registry_pallet::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
