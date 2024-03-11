@@ -4,6 +4,7 @@
 pub use pallet::*;
 
 pub mod benchmarking;
+pub mod migrations;
 pub mod mock;
 pub mod tests;
 pub mod types;
@@ -22,6 +23,7 @@ pub mod pallet {
 	use super::*;
 
 	use frame_support::pallet_prelude::*;
+	use frame_support::StorageDoubleMap as StorageDoubleMapTrait;
 	use frame_system::pallet_prelude::OriginFor;
 	use sp_runtime::Saturating;
 
@@ -30,7 +32,7 @@ pub mod pallet {
 	>>::ReserveIdentifier;
 
 	/// The current storage version.
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
 	#[pallet::pallet]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -63,7 +65,7 @@ pub mod pallet {
 
 		/// Maximum signatures per contract
 		#[pallet::constant]
-		type MaxSignatures: Get<u32>;
+		type MaxParties: Get<u32>;
 
 		/// Origin from which a judge may be added
 		type AddJudgeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -119,12 +121,7 @@ pub mod pallet {
 		_,
 		Twox64Concat,
 		ContractIndex,
-		ContractDataStorage<
-			T::MaxContractContentLen,
-			T::MaxSignatures,
-			T::AccountId,
-			BalanceOf<T, I>,
-		>,
+		ContractDataStorage<T::MaxContractContentLen, T::MaxParties, T::AccountId, BalanceOf<T, I>>,
 		OptionQuery,
 	>;
 
@@ -133,12 +130,14 @@ pub mod pallet {
 	/// TWOX-NOTE: Safe, as increasing integer keys are safe.
 	#[pallet::storage]
 	#[pallet::getter(fn parties_signatures)]
-	pub type PartiesSignatures<T: Config<I>, I: 'static = ()> = StorageMap<
+	pub type PartiesSignatures<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Twox64Concat,
 		ContractIndex,
-		BoundedVec<T::AccountId, T::MaxSignatures>,
-		OptionQuery,
+		Twox64Concat,
+		T::AccountId,
+		bool,
+		ValueQuery,
 	>;
 
 	/// Vec of judge signatures for each contract
@@ -146,14 +145,15 @@ pub mod pallet {
 	/// TWOX-NOTE: Safe, as increasing integer keys are safe.
 	#[pallet::storage]
 	#[pallet::getter(fn judge_signatures)]
-	pub(super) type JudgesSignatures<T: Config<I>, I: 'static = ()> = StorageMap<
+	pub(super) type JudgesSignatures<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Twox64Concat,
 		ContractIndex,
-		BoundedVec<T::AccountId, T::MaxSignatures>,
-		OptionQuery,
+		Twox64Concat,
+		T::AccountId,
+		bool,
+		ValueQuery,
 	>;
-
 	/// List of judges
 	#[pallet::storage]
 	#[pallet::getter(fn judges)]
@@ -203,10 +203,12 @@ pub mod pallet {
 			let is_judge = Judges::<T, I>::get(&who);
 			ensure!(is_judge, Error::<T, I>::NotJudge);
 
-			JudgesSignatures::<T, I>::try_mutate(
-				contract_id,
-				|signatures_list| -> DispatchResult { Self::sign_contract(&who, signatures_list) },
-			)?;
+			Contracts::<T, I>::get(contract_id).ok_or(Error::<T, I>::ContractNotFound)?;
+
+			let already_signed = JudgesSignatures::<T, I>::get(contract_id, who.clone());
+			ensure!(!already_signed, Error::<T, I>::AlreadySigned);
+
+			JudgesSignatures::<T, I>::insert(contract_id, who.clone(), true);
 
 			Self::deposit_event(Event::JudgeSigned { contract_id, signer: who });
 			Ok(())
@@ -232,7 +234,7 @@ pub mod pallet {
 		pub fn create_contract(
 			origin: OriginFor<T>,
 			data: BoundedVec<u8, T::MaxContractContentLen>,
-			parties: BoundedVec<T::AccountId, T::MaxSignatures>,
+			parties: Option<BoundedVec<T::AccountId, T::MaxParties>>,
 		) -> DispatchResultWithPostInfo {
 			let who = T::SubmitOrigin::ensure_origin(origin)?;
 
@@ -245,7 +247,7 @@ pub mod pallet {
 				index,
 				ContractDataStorage::<
 					T::MaxContractContentLen,
-					T::MaxSignatures,
+					T::MaxParties,
 					T::AccountId,
 					BalanceOf<T, I>,
 				> {
@@ -256,8 +258,6 @@ pub mod pallet {
 				},
 			);
 
-			JudgesSignatures::<T, I>::insert(index, BoundedVec::default());
-			PartiesSignatures::<T, I>::insert(index, BoundedVec::default());
 			NextContractsId::<T, I>::put(index + 1);
 
 			Self::deposit_event(Event::ContractCreated { contract_id: index, creator: who });
@@ -284,12 +284,15 @@ pub mod pallet {
 
 			let contracts =
 				Contracts::<T, I>::get(contract_id).ok_or(Error::<T, I>::ContractNotFound)?;
-			ensure!(contracts.parties.contains(&who), Error::<T, I>::NotParty);
 
-			PartiesSignatures::<T, I>::try_mutate(
-				contract_id,
-				|signatures_list| -> DispatchResult { Self::sign_contract(&who, signatures_list) },
-			)?;
+			if let Some(parties) = contracts.parties {
+				ensure!(parties.contains(&who), Error::<T, I>::NotParty);
+			}
+
+			let already_signed = PartiesSignatures::<T, I>::get(contract_id, who.clone());
+			ensure!(!already_signed, Error::<T, I>::AlreadySigned);
+
+			PartiesSignatures::<T, I>::insert(contract_id, who.clone(), true);
 
 			Self::deposit_event(Event::PartySigned { contract_id, signer: who });
 			Ok(())
@@ -325,19 +328,12 @@ pub mod pallet {
 		pub fn remove_contract(origin: OriginFor<T>, contract_id: ContractIndex) -> DispatchResult {
 			T::SubmitOrigin::ensure_origin(origin)?;
 
-			let judges_signatures_len = JudgesSignatures::<T, I>::get(contract_id)
-				.ok_or(Error::<T, I>::ContractNotFound)?
-				.len();
-			let parties_signatures_len = PartiesSignatures::<T, I>::get(contract_id)
-				.ok_or(Error::<T, I>::ContractNotFound)?
-				.len();
+			let contains_judges = JudgesSignatures::<T, I>::contains_prefix(contract_id);
+			let contains_parties = PartiesSignatures::<T, I>::contains_prefix(contract_id);
 			let contract =
 				Contracts::<T, I>::get(contract_id).ok_or(Error::<T, I>::ContractNotFound)?;
 
-			ensure!(
-				judges_signatures_len == 0 && parties_signatures_len == 0,
-				Error::<T, I>::ContractInUse
-			);
+			ensure!(!contains_judges && !contains_parties, Error::<T, I>::ContractInUse);
 
 			T::Currency::unreserve_named(
 				T::ReserveIdentifier::get(),
@@ -345,8 +341,8 @@ pub mod pallet {
 				contract.deposit,
 			);
 
-			JudgesSignatures::<T, I>::remove(contract_id);
-			PartiesSignatures::<T, I>::remove(contract_id);
+			JudgesSignatures::<T, I>::drain_prefix(contract_id);
+			PartiesSignatures::<T, I>::drain_prefix(contract_id);
 			Contracts::<T, I>::remove(contract_id);
 
 			Self::deposit_event(Event::ContractRemoved { contract_id });
@@ -360,18 +356,6 @@ pub mod pallet {
 			let required_deposit = T::BaseDeposit::get()
 				.saturating_add(T::ByteDeposit::get().saturating_mul(data_len.into()));
 			required_deposit
-		}
-
-		fn sign_contract(
-			who: &T::AccountId,
-			signatures_list: &mut Option<BoundedVec<T::AccountId, T::MaxSignatures>>,
-		) -> DispatchResult {
-			let signatures = signatures_list.as_mut().ok_or(Error::<T, I>::ContractNotFound)?;
-			let already_signed = signatures.contains(&who);
-			ensure!(!already_signed, Error::<T, I>::AlreadySigned);
-
-			signatures.try_push(who.clone()).map_err(|_| Error::<T, I>::TooMany)?;
-			Ok(())
 		}
 	}
 }

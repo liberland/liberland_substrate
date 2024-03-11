@@ -17,7 +17,7 @@ fn anyone_can_create_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin,
 			vec![].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 97u64);
 	});
@@ -72,7 +72,7 @@ fn judge_can_sign_existing_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			RuntimeOrigin::signed(2),
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -92,7 +92,7 @@ fn only_judge_can_use_judge_sign_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone().into(),
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -112,7 +112,7 @@ fn judge_already_signed_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			RuntimeOrigin::signed(2),
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -139,7 +139,7 @@ fn party_can_sign_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin,
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![acc].try_into().unwrap()
+			Some(vec![acc].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -170,7 +170,7 @@ fn party_can_not_sign_not_a_party() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin,
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -192,7 +192,7 @@ fn party_already_signed_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin,
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![acc].try_into().unwrap()
+			Some(vec![acc].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -253,7 +253,7 @@ fn judge_sign_contract_deposits_event() {
 		assert_ok!(ContractsRegistry::create_contract(
 			RuntimeOrigin::signed(2),
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -276,7 +276,7 @@ fn create_contract_deposits_event() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin,
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		System::assert_last_event(
 			Event::<Test>::ContractCreated { contract_id: 0, creator: signer }.into(),
@@ -294,7 +294,7 @@ fn party_sign_contract_deposits_event() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin,
 			vec![3, 4, 5].try_into().unwrap(),
-			vec![signer].try_into().unwrap()
+			Some(vec![signer].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 
@@ -325,7 +325,7 @@ fn creator_can_remove_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 97u64);
 		assert!(Contracts::<Test>::get(0).is_some());
@@ -344,7 +344,7 @@ fn anyone_can_remove_contract() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 97u64);
 		assert!(Contracts::<Test>::get(0).is_some());
@@ -366,7 +366,7 @@ fn can_not_remove_contract_signed_by_parties() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![].try_into().unwrap(),
-			vec![parties].try_into().unwrap()
+			Some(vec![parties].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 97u64);
 		assert!(Contracts::<Test>::get(0).is_some());
@@ -392,7 +392,7 @@ fn can_not_remove_contract_signed_by_judge() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 97u64);
 		assert!(Contracts::<Test>::get(0).is_some());
@@ -416,7 +416,7 @@ fn remove_contract_deposits_event() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 97u64);
 		assert!(Contracts::<Test>::get(0).is_some());
@@ -436,7 +436,7 @@ fn create_contract_successfully_reserve_deposit() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![1, 2, 3].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 	});
@@ -451,10 +451,28 @@ fn remove_contract_successfully_unreserve_deposit() {
 		assert_ok!(ContractsRegistry::create_contract(
 			origin.clone(),
 			vec![1, 2, 3].try_into().unwrap(),
-			vec![].try_into().unwrap()
+			Some(vec![].try_into().unwrap())
 		));
 		assert_eq!(Balances::free_balance(2), 91u64);
 		assert_ok!(ContractsRegistry::remove_contract(origin.clone(), 0));
 		assert_eq!(Balances::free_balance(2), 100u64);
+	});
+}
+
+#[test]
+fn anyone_can_sign_contract_without_party() {
+	new_test_ext().execute_with(|| {
+		let origin = RuntimeOrigin::signed(2);
+
+		assert_eq!(Balances::free_balance(2), 100u64);
+		assert_ok!(ContractsRegistry::create_contract(
+			origin,
+			vec![3, 4, 5].try_into().unwrap(),
+			None
+		));
+		assert_eq!(Balances::free_balance(2), 91u64);
+
+		assert_ok!(ContractsRegistry::party_sign_contract(RawOrigin::Signed(0).into(), 0));
+		assert_ok!(ContractsRegistry::party_sign_contract(RawOrigin::Signed(1).into(), 0));
 	});
 }

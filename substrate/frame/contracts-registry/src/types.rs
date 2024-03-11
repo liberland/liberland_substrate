@@ -11,7 +11,7 @@ pub struct ContractDataStorage<MaxContractsLen: Get<u32>, MaxParties: Get<u32>, 
 	// Content of contract
 	pub data: BoundedVec<u8, MaxContractsLen>,
 	// Vec of parties that may sign following contract
-	pub parties: BoundedVec<AccountId, MaxParties>,
+	pub parties: Option<BoundedVec<AccountId, MaxParties>>,
 	pub creator: AccountId,
 	pub deposit: Balance,
 }
