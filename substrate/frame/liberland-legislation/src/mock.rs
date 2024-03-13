@@ -14,10 +14,9 @@ use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_runtime::{
-	BuildStorage,
-	testing::{TestSignature},
+	testing::TestSignature,
 	traits::{BlakeTwo256, IdentityLookup},
-	Perbill, Permill,
+	BuildStorage, Perbill, Permill,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;

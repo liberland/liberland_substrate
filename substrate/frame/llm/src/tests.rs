@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use crate::{
-	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, LastRelease,
-	Withdrawlock, WithdrawlockDuration, Config,
+	mock::*, Config, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, LastRelease,
+	Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
 use frame_support::{
@@ -45,7 +45,8 @@ fn releases_on_future_block() {
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		let vault = LLM::get_llm_vault_account();
-		let next_block = LastRelease::<Test>::get() + <Test as Config>::InflationEventInterval::get();
+		let next_block =
+			LastRelease::<Test>::get() + <Test as Config>::InflationEventInterval::get();
 		let treasury_before = Assets::balance(id, treasury);
 		let vault_before = Assets::balance(id, vault);
 
@@ -515,7 +516,8 @@ fn releases_correct_amounts() {
 		for expected_treasury_balance in expected {
 			for _ in 1..=12 {
 				// trigger 12 release events, simulating 1 year
-				let next_block = LastRelease::<Test>::get() + <Test as Config>::InflationEventInterval::get();
+				let next_block =
+					LastRelease::<Test>::get() + <Test as Config>::InflationEventInterval::get();
 				System::set_block_number(next_block);
 				LLM::on_initialize(next_block);
 			}
