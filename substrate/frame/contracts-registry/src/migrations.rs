@@ -1,6 +1,7 @@
 use super::{pallet::Config, *};
 use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 use frame_system::pallet_prelude::BlockNumberFor;
+use sp_std::vec::Vec;
 
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
