@@ -73,7 +73,7 @@ pub mod v2 {
 				"Pre upgrade contracts size: {}",
 				contracts_size
 			);
-			Ok(().encode())
+			Ok((contracts_size as u32).encode())
 		}
 
 		fn on_runtime_upgrade() -> Weight {
@@ -106,7 +106,8 @@ pub mod v2 {
 				})
 
             });
-            
+
+
             StorageVersion::new(2).put::<Pallet<T>>();
 			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 		}
@@ -114,12 +115,15 @@ pub mod v2 {
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "must upgrade");
+			let (old_contracts_size): (u32) =
+				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state");
 			let contracts_size = Contracts::<T>::iter().count();
 			log::warn!(
 				target: TARGET,
 				"Post upgrade contracts size: {}",
 				contracts_size
 			);
+			assert_eq!(contracts_size, old_contracts_size, "must migrate all contracts");
 			Ok(())
 		}
 	}
