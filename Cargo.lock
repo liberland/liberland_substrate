@@ -5746,6 +5746,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "log",
  "node-primitives",
  "pallet-balances",
  "parity-scale-codec",

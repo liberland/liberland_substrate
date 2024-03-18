@@ -150,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 18,
+	spec_version: 19,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -167,7 +167,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 18,
+	spec_version: 19,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1731,7 +1731,7 @@ parameter_types! {
 impl pallet_contracts_registry::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type MaxContractContentLen = ConstU32<{ 2u32 * 1024u32 * 1024u32 }>;
-	type MaxSignatures = ConstU32<16u32>;
+	type MaxParties = ConstU32<16u32>;
 	type AddJudgeOrigin = EnsureRoot<AccountId>;
 	type SubmitOrigin = EnsureSigned<AccountId>;
 	type WeightInfo = pallet_contracts_registry::weights::SubstrateWeight<Runtime>;
@@ -1952,8 +1952,7 @@ parameter_types! {
     pub const OldInflationEventInterval: BlockNumber = 365 * DAYS;
 }
 type Migrations = (
-	pallet_llm::migrations::v4::Migration<Runtime, OldInflationEventInterval>,
-	migrations::add_contracts_registry_pallet::Migration<Runtime>,
+	pallet_contracts_registry::migrations::v2::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<

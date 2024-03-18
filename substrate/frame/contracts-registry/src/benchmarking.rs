@@ -39,22 +39,15 @@ benchmarks_instance_pallet! {
 		let data = get_data::<T, I>(1, 1 as usize);
 		let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value() / 2u32.into());
 
-		let parties: BoundedVec<T::AccountId, T::MaxSignatures> = vec![].try_into().unwrap();
-		assert_ok!(ContractsRegistry::<T, I>::create_contract(origin.clone().into(), data.clone(), parties.clone()));
+		let parties: BoundedVec<T::AccountId, T::MaxParties> = vec![].try_into().unwrap();
+		assert_ok!(ContractsRegistry::<T, I>::create_contract(origin.clone().into(), data.clone(), Some(parties.clone())));
 
 		let acc: T::AccountId = account("a", 1, 1);
 		let origin = RawOrigin::Signed(acc.clone());
-		assert_ok!(ContractsRegistry::<T, I>::add_judge(RawOrigin::Root.into(), acc));
-		for i in 1..T::MaxSignatures::get() {
-			let j: T::AccountId = account("judge", i, 1);
-			let jo = RawOrigin::Signed(j.clone()).into();
-			assert_ok!(ContractsRegistry::<T, I>::add_judge(RawOrigin::Root.into(), j));
-			assert_ok!(ContractsRegistry::<T, I>::judge_sign_contract(jo, 0));
-		}
-
-	}: _<T::RuntimeOrigin>(origin.into(), 0)
+		assert_ok!(ContractsRegistry::<T, I>::add_judge(RawOrigin::Root.into(), acc.clone()));
+	}: _<T::RuntimeOrigin>(origin.clone().into(), 0)
 	verify {
-		ensure!((JudgesSignatures::<T, I>::get(0).unwrap().len() as u32)  == T::MaxSignatures::get() , "Judges signatures length mismatch");
+		ensure!(JudgesSignatures::<T, I>::get::<u32, T::AccountId>(0, acc) , "Judges signed");
 	}
 
 	create_contract {
@@ -64,9 +57,9 @@ benchmarks_instance_pallet! {
 		let origin = RawOrigin::Signed(acc.clone());
 
 		let data = get_data::<T, I>(1, s as usize);
-		let parties: BoundedVec<T::AccountId, T::MaxSignatures> = vec![acc.clone(); T::MaxSignatures::get() as usize].try_into().unwrap();
+		let parties: BoundedVec<T::AccountId, T::MaxParties> = vec![acc.clone(); T::MaxParties::get() as usize].try_into().unwrap();
 		let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value()/ 2u32.into());
-	}: _<T::RuntimeOrigin>(origin.into(), data, parties)
+	}: _<T::RuntimeOrigin>(origin.into(), data, Some(parties))
 	verify {
 		Contracts::<T, I>::get(0).unwrap()
 	}
@@ -77,29 +70,16 @@ benchmarks_instance_pallet! {
 
 		let data = get_data::<T, I>(1, 3 as usize);
 
-		let mut parties = vec![];
-		for i in 0..(T::MaxSignatures::get()-1) {
-			let signatory = account("sig", i, 1);
-			parties.push(signatory);
-		}
-
 		let last_acc: T::AccountId = account("a", 1, 1);
-		parties.push(last_acc.clone());
-
-		let parties: BoundedVec<T::AccountId, T::MaxSignatures> = parties.try_into().unwrap();
+		let parties: BoundedVec<T::AccountId, T::MaxParties> = vec![last_acc.clone()].try_into().unwrap();
 		let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value()/ 2u32.into());
-		assert_ok!(ContractsRegistry::<T, I>::create_contract(origin.clone().into(), data.clone(), parties.clone()));
-
-		for i in 0..(T::MaxSignatures::get()-1) {
-			let signatory_origin = RawOrigin::Signed(parties[i as usize].clone()).into();
-			assert_ok!(ContractsRegistry::<T, I>::party_sign_contract(signatory_origin, 0));
-		}
+		assert_ok!(ContractsRegistry::<T, I>::create_contract(origin.clone().into(), data.clone(), Some(parties.clone())));
 
 		let _ = T::Currency::make_free_balance_be(&last_acc, BalanceOf::<T, I>::max_value()/ 2u32.into());
 		let origin = RawOrigin::Signed(last_acc.clone());
-	}: _<T::RuntimeOrigin>(origin.into(), 0)
+	}: _<T::RuntimeOrigin>(origin.clone().into(), 0)
 	verify {
-		ensure!((PartiesSignatures::<T, I>::get(0).unwrap().len() as u32)  == T::MaxSignatures::get(), "Parties signatures length mismatch");
+		ensure!(PartiesSignatures::<T, I>::get::<u32, T::AccountId>(0, last_acc), "Parties signed");
 	}
 
 	remove_judge {
@@ -117,9 +97,9 @@ benchmarks_instance_pallet! {
 		let origin = RawOrigin::Signed(acc.clone());
 
 		let data = get_data::<T, I>(1, 2 as usize);
-		let parties: BoundedVec<T::AccountId, T::MaxSignatures> = vec![acc.clone(); T::MaxSignatures::get() as usize].try_into().unwrap();
+		let parties: BoundedVec<T::AccountId, T::MaxParties> = vec![acc.clone(); T::MaxParties::get() as usize].try_into().unwrap();
 		let _ = T::Currency::make_free_balance_be(&acc, BalanceOf::<T, I>::max_value()/ 2u32.into());
-		assert_ok!(ContractsRegistry::<T, I>::create_contract(origin.clone().into(), data, parties));
+		assert_ok!(ContractsRegistry::<T, I>::create_contract(origin.clone().into(), data, Some(parties)));
 		assert!(Contracts::<T, I>::get(0).is_some());
 	}: _<T::RuntimeOrigin>(origin.into(), 0)
 	verify {

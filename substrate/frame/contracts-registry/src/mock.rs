@@ -78,7 +78,7 @@ parameter_types! {
 impl pallet_contracts_registry::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MaxContractContentLen = ConstU32<{ 2u32 * 1024u32 * 1024u32 }>;
-	type MaxSignatures = ConstU32<16u32>;
+	type MaxParties = ConstU32<16u32>;
 	type AddJudgeOrigin = EnsureRoot<Self::AccountId>;
 	type SubmitOrigin = EnsureSigned<Self::AccountId>;
 	type WeightInfo = ();
