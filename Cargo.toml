@@ -19,7 +19,6 @@ members = [
 	"substrate/frame/office",
 	"substrate/frame/federated-bridge",
 	"substrate/frame/custom-account",
-	"substrate/liberland-gen",
 ]
 
 [profile.release]
