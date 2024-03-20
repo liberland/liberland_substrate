@@ -919,7 +919,7 @@ dependencies = [
 [[package]]
 name = "bridge-common"
 version = "0.1.0"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bitvec",
  "bridge-types",
@@ -938,7 +938,7 @@ dependencies = [
 [[package]]
 name = "bridge-data-signer"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-common",
  "bridge-types",
@@ -957,7 +957,7 @@ dependencies = [
 [[package]]
 name = "bridge-types"
 version = "0.1.0"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "derivative",
  "ethabi",
@@ -2143,7 +2143,7 @@ dependencies = [
 [[package]]
 name = "dispatch"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-types",
  "frame-benchmarking",
@@ -4194,7 +4194,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 [[package]]
 name = "leaf-provider"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-types",
  "ethabi",
@@ -4220,7 +4220,7 @@ checksum = "b4668fb0ea861c1df094127ac5f1da3409a82116a4ba74fca2e58ef927159bb3"
 [[package]]
 name = "liberland-bridge-provider"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-types",
  "frame-benchmarking",
@@ -4236,14 +4236,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "liberland-gen"
-version = "0.1.0"
-dependencies = [
- "kitchensink-runtime",
- "sp-core",
 ]
 
 [[package]]
@@ -5210,7 +5202,7 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 [[package]]
 name = "multisig-verifier"
 version = "0.1.0"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-common",
  "bridge-types",
@@ -10453,7 +10445,7 @@ dependencies = [
 [[package]]
 name = "substrate-bridge-app"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-types",
  "ethabi",
@@ -10475,7 +10467,7 @@ dependencies = [
 [[package]]
 name = "substrate-bridge-channel"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#3df3d8405a67cd5c995796f17e5036d2174a34ef"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#fa10f0511d9e35c576f38f552f4e060145124d62"
 dependencies = [
  "bridge-types",
  "ethabi",
