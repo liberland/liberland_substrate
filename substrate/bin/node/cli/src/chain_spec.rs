@@ -465,7 +465,7 @@ pub fn testnet_genesis(
 			super_admin: Some(root_key.clone()),
 			..Default::default()
 		},
-		eth_llm_bridge: EthLLMBridgeConfig {	
+		eth_llm_bridge: EthLLMBridgeConfig {
 			admin: Some(root_key.clone()),
 			super_admin: Some(root_key),
 			..Default::default()
