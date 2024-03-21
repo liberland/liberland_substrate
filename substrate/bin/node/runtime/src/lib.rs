@@ -155,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 17,
+	spec_version: 19,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 17,
+	spec_version: 19,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1130,14 +1130,7 @@ impl pallet_contracts::Config for Runtime {
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Migrations = (
-		pallet_contracts::migration::v10::Migration<Runtime, Balances>,
-		pallet_contracts::migration::v11::Migration<Runtime>,
-		pallet_contracts::migration::v12::Migration<Runtime, Balances>,
-		pallet_contracts::migration::v13::Migration<Runtime>,
-		pallet_contracts::migration::v14::Migration<Runtime, Balances>,
-		pallet_contracts::migration::v15::Migration<Runtime>,
-	);
+	type Migrations = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type Migrations = pallet_contracts::migration::codegen::BenchMigrations;
 	type MaxDelegateDependencies = ConstU32<32>;
@@ -1429,7 +1422,8 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
+	pub const InflationEventInterval: BlockNumber = 30 * DAYS;
+	pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1445,6 +1439,7 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type SenateOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EnsureSenateMajority
@@ -1732,6 +1727,25 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 	}
 }
 
+parameter_types! {
+	pub ContractRegistryReserveIdentifier: &'static [u8; 8] = b"contregi";
+	pub ContractRegistryBaseDeposit: Balance = 1 * CENTS;
+	pub ContractRegistryByteDeposit: Balance = 10 * MILLICENTS;
+}
+
+impl pallet_contracts_registry::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxContractContentLen = ConstU32<{ 2u32 * 1024u32 * 1024u32 }>;
+	type MaxParties = ConstU32<16u32>;
+	type AddJudgeOrigin = EnsureRoot<AccountId>;
+	type SubmitOrigin = EnsureSigned<AccountId>;
+	type WeightInfo = pallet_contracts_registry::weights::SubstrateWeight<Runtime>;
+	type Currency = Balances;
+	type BaseDeposit = ContractRegistryBaseDeposit;
+	type ByteDeposit = ContractRegistryByteDeposit;
+	type ReserveIdentifier = ContractRegistryReserveIdentifier;
+}
+
 // Sora Bridge
 parameter_types! {
 	pub const BridgeMaxMessagePayloadSize: u32 = 256;
@@ -1768,7 +1782,7 @@ impl substrate_bridge_app::Config for Runtime {
 	type AssetIdConverter = impls::SoraAssetIdConverter;
 	type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
 	type BridgeAssetLocker = SoraBridgeProvider;
-	type WeightInfo = ();
+	type WeightInfo = substrate_bridge_app::weights::SubstrateWeight<Runtime>;
 }
 
 // Sora Bridge
@@ -1781,7 +1795,7 @@ impl bridge_data_signer::Config for Runtime {
 	type MaxPeers = BridgeMaxPeers;
 	type UnsignedPriority = DataSignerPriority;
 	type UnsignedLongevity = DataSignerLongevity;
-	type WeightInfo = ();
+	type WeightInfo = bridge_data_signer::weights::SubstrateWeight<Runtime>;
 }
 
 // Sora Bridge
@@ -1792,7 +1806,7 @@ impl multisig_verifier::Config for Runtime {
 	>;
 	type OutboundChannel = SubstrateBridgeOutboundChannel;
 	type MaxPeers = BridgeMaxPeers;
-	type WeightInfo = ();
+	type WeightInfo = multisig_verifier::weights::SubstrateWeight<Runtime>;
 	type ThisNetworkId = ThisNetworkId;
 }
 
@@ -1806,7 +1820,7 @@ impl dispatch::Config for Runtime {
 	type Hashing = Keccak256;
 	type Call = impls::DispatchableSubstrateBridgeCall;
 	type CallFilter = impls::SoraBridgeCallFilter;
-	type WeightInfo = ();
+	type WeightInfo = dispatch::weights::SubstrateWeight<Runtime>;
 }
 
 // Sora Bridge
@@ -1819,7 +1833,7 @@ impl substrate_bridge_channel::inbound::Config for Runtime {
 	type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
 	type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
 	type ThisNetworkId = ThisNetworkId;
-	type WeightInfo = ();
+	type WeightInfo = substrate_bridge_channel::inbound::weights::SubstrateWeight<Runtime>;
 }
 
 // Sora Bridge
@@ -1833,7 +1847,7 @@ impl substrate_bridge_channel::outbound::Config for Runtime {
 	type Balance = Balance;
 	type TimepointProvider = impls::GenericTimepointProvider;
 	type ThisNetworkId = ThisNetworkId;
-	type WeightInfo = ();
+	type WeightInfo = substrate_bridge_channel::outbound::weights::SubstrateWeight<Runtime>;
 }
 
 // Sora Bridge
@@ -1909,6 +1923,7 @@ construct_runtime!(
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
 		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
+		ContractsRegistry: pallet_contracts_registry = 65,
 
 		// Sora Bridge:
 		LeafProvider: leaf_provider = 80,
@@ -2065,14 +2080,10 @@ mod bounties_v4 {
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 parameter_types! {
-	pub const PastPayouts: Vec<(AccountId, Balance)> = vec![];
+    pub const OldInflationEventInterval: BlockNumber = 365 * DAYS;
 }
 type Migrations = (
-	pallet_contracts::Migration<Runtime>,
-	pallet_llm::migrations::v3::Migration<Runtime>,
-	pallet_im_online::migration::v1::Migration<Runtime>,
-	migrations::society_to_v2::Migration<Runtime>,
-	migrations::add_pallets::Migration<Runtime>,
+	pallet_contracts_registry::migrations::v2::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
@@ -2136,6 +2147,7 @@ mod benches {
 		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
 		[pallet_custom_account, CouncilAccount]
+		[pallet_contracts_registry, ContractsRegistry]
 	);
 }
 

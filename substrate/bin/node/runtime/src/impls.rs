@@ -618,12 +618,10 @@ impl
 	}
 }
 
-use sp_core::sr25519::Public;
-
 // a function that generates an account id from a seed string
 pub fn get_account_id_from_string_hash(seed: &str) -> AccountId32 {
 	let hash = H256::from_slice(&sp_io::hashing::blake2_256(seed.as_bytes()));
-	let public_key = Public::from_h256(hash);
+	let public_key = sp_core::sr25519::Public::from_h256(hash);
 	AccountId32::from(public_key)
 }
 
