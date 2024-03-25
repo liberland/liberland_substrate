@@ -470,6 +470,8 @@ pub fn testnet_genesis(
 			super_admin: Some(root_key),
 			..Default::default()
 		},
+		substrate_bridge_outbound_channel: Default::default(),
+		sora_bridge_app: Default::default(),
 	}
 }
 
