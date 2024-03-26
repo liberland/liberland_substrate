@@ -332,4 +332,14 @@ try-runtime = [
 	"pallet-utility/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"sp-runtime/try-runtime",
+
+	# Sora Bridge:
+	"substrate-bridge-app/try-runtime",
+	"substrate-bridge-channel/try-runtime",
+	"leaf-provider/try-runtime",
+	"dispatch/try-runtime",
+	"bridge-data-signer/try-runtime",
+	"bridge-types/try-runtime",
+	"multisig-verifier/try-runtime",
+	"sora-liberland-bridge-provider/try-runtime",
 ]
