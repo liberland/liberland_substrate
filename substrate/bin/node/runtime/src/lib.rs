@@ -2084,6 +2084,7 @@ parameter_types! {
 }
 type Migrations = (
 	pallet_contracts_registry::migrations::v2::Migration<Runtime>,
+	migrations::add_sora_bridge::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
