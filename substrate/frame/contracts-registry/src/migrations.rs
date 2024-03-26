@@ -113,9 +113,9 @@ pub mod v2 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
+		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "must upgrade");
-			let (old_contracts_size): (u32) =
+			let old_contracts_size: u32 =
 				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state");
 			let contracts_size = Contracts::<T>::iter().count();
 			log::warn!(
@@ -123,7 +123,7 @@ pub mod v2 {
 				"Post upgrade contracts size: {}",
 				contracts_size
 			);
-			assert_eq!(contracts_size, old_contracts_size, "must migrate all contracts");
+			assert_eq!(contracts_size, old_contracts_size as usize, "must migrate all contracts");
 			Ok(())
 		}
 	}
