@@ -1082,18 +1082,7 @@ impl pallet_child_bounties::Config for Runtime {
 	type WeightInfo = pallet_child_bounties::weights::SubstrateWeight<Runtime>;
 }
 
-///*
-impl pallet_tips::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type DataDepositPerByte = DataDepositPerByte;
-	type MaximumReasonLength = MaximumReasonLength;
-	type Tippers = Elections;
-	type TipCountdown = TipCountdown;
-	type TipFindersFee = TipFindersFee;
-	type TipReportDepositBase = TipReportDepositBase;
-	type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
-}
-//*/
+
 parameter_types! {
 	pub const DepositPerItem: Balance = deposit(1, 0);
 	pub const DepositPerByte: Balance = deposit(0, 1);
@@ -1512,15 +1501,6 @@ impl pallet_transaction_storage::Config for Runtime {
 		ConstU32<{ pallet_transaction_storage::DEFAULT_MAX_TRANSACTION_SIZE }>;
 }
 
-impl pallet_whitelist::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeCall = RuntimeCall;
-	type WhitelistOrigin = EnsureRoot<AccountId>;
-	type DispatchWhitelistedOrigin = EnsureRoot<AccountId>;
-	type Preimages = Preimage;
-	type WeightInfo = pallet_whitelist::weights::SubstrateWeight<Runtime>;
-}
-
 impl pallet_liberland_legislation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
@@ -1858,14 +1838,12 @@ construct_runtime!(
 		Proxy: pallet_proxy = 29,
 		Multisig: pallet_multisig = 30,
 		Bounties: pallet_bounties = 31,
-		Tips: pallet_tips = 32,
 		Assets: pallet_assets = 33,
 		Mmr: pallet_mmr = 34,
 		Nfts: pallet_nfts = 38,
 		TransactionStorage: pallet_transaction_storage = 39,
 		VoterList: pallet_bags_list::<Instance1> = 40,
 		ChildBounties: pallet_child_bounties = 42,
-		Whitelist: pallet_whitelist = 45,
 		LLM: pallet_llm = 46,
 		LiberlandLegislation: pallet_liberland_legislation = 47,
 		LiberlandInitializer: pallet_liberland_initializer = 48,
@@ -2096,12 +2074,10 @@ mod benches {
 		[pallet_sudo, Sudo]
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
-		[pallet_tips, Tips]
 		[pallet_transaction_storage, TransactionStorage]
 		[pallet_treasury, Treasury]
 		[pallet_nfts, Nfts]
 		[pallet_utility, Utility]
-		[pallet_whitelist, Whitelist]
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
