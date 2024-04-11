@@ -64,7 +64,6 @@ pallet-authorship = { default-features = false, tag = "polkadot-v1.1.0", git = "
 pallet-babe = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-bags-list = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-balances = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-bounties = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-child-bounties = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-collective = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-contracts = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
@@ -150,7 +149,6 @@ std = [
 	"pallet-babe/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
-	"pallet-bounties/std",
 	"pallet-child-bounties/std",
 	"pallet-collective/std",
 	"pallet-contracts-primitives/std",
@@ -231,7 +229,6 @@ runtime-benchmarks = [
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
-	"pallet-bounties/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 	"pallet-contracts-registry/runtime-benchmarks",
@@ -283,7 +280,6 @@ try-runtime = [
 	"pallet-babe/try-runtime",
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
-	"pallet-bounties/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-collective/try-runtime",
 	"pallet-contracts-registry/try-runtime",

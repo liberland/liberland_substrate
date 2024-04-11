@@ -1038,7 +1038,7 @@ impl pallet_treasury::Config for Runtime {
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = ();
-	type SpendFunds = Bounties;
+	type SpendFunds = ();
 	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 	type MaxApprovals = MaxApprovals;
 	type SpendOrigin = EnsureWithSuccess<
@@ -1056,30 +1056,8 @@ parameter_types! {
 	pub const CuratorDepositMax: Balance = 100 * DOLLARS;
 }
 
-impl pallet_bounties::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type BountyDepositBase = BountyDepositBase;
-	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
-	type BountyUpdatePeriod = BountyUpdatePeriod;
-	type CuratorDepositMultiplier = CuratorDepositMultiplier;
-	type CuratorDepositMin = CuratorDepositMin;
-	type CuratorDepositMax = CuratorDepositMax;
-	type BountyValueMinimum = BountyValueMinimum;
-	type DataDepositPerByte = DataDepositPerByte;
-	type MaximumReasonLength = MaximumReasonLength;
-	type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
-	type ChildBountyManager = ChildBounties;
-}
-
 parameter_types! {
 	pub const ChildBountyValueMinimum: Balance = 1 * DOLLARS;
-}
-
-impl pallet_child_bounties::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type MaxActiveChildBountyCount = ConstU32<5>;
-	type ChildBountyValueMinimum = ChildBountyValueMinimum;
-	type WeightInfo = pallet_child_bounties::weights::SubstrateWeight<Runtime>;
 }
 
 
@@ -1837,13 +1815,11 @@ construct_runtime!(
 		Preimage: pallet_preimage = 28,
 		Proxy: pallet_proxy = 29,
 		Multisig: pallet_multisig = 30,
-		Bounties: pallet_bounties = 31,
 		Assets: pallet_assets = 33,
 		Mmr: pallet_mmr = 34,
 		Nfts: pallet_nfts = 38,
 		TransactionStorage: pallet_transaction_storage = 39,
 		VoterList: pallet_bags_list::<Instance1> = 40,
-		ChildBounties: pallet_child_bounties = 42,
 		LLM: pallet_llm = 46,
 		LiberlandLegislation: pallet_liberland_legislation = 47,
 		LiberlandInitializer: pallet_liberland_initializer = 48,
@@ -1980,41 +1956,6 @@ mod staking_v12 {
 	}
 }
 
-// see commit 9957da3cbb027f9b754c453a4d58a62665e532ef for details
-mod bounties_v4 {
-	use super::*;
-	use frame_support::{traits::OnRuntimeUpgrade, pallet_prelude::*};
-
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			frame_support::ensure!(
-				Bounties::on_chain_storage_version() == 0,
-                "Expected v0 before upgrading to v4"
-            );
-
-            Ok(Default::default())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			log::info!("Migrated pallet-bounties PalletVersion to 4");
-			Bounties::current_storage_version().put::<Bounties>();
-			T::DbWeight::get().reads_writes(1, 1)
-
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			frame_support::ensure!(
-				Bounties::on_chain_storage_version() == 4,
-                "Failed to update to v4"
-            );
-			Ok(())
-		}
-	}
-}
-
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 parameter_types! {
@@ -2048,8 +1989,6 @@ mod benches {
 		[pallet_babe, Babe]
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
-		[pallet_bounties, Bounties]
-		[pallet_child_bounties, ChildBounties]
 		[pallet_collective, Council]
 		[pallet_contracts, Contracts]
 		[pallet_democracy, Democracy]
