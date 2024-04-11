@@ -35,7 +35,7 @@ use kitchensink_runtime::{
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, EthLLDBridgeConfig, EthLLMBridgeConfig,
+	SenateConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -459,16 +459,6 @@ pub fn testnet_genesis(
 		asset_registry_office: AssetRegistryOfficeConfig {
 			admin: offices_admin,
 			clerks: nfts_clerks,
-		},
-		eth_lld_bridge: EthLLDBridgeConfig {
-			admin: Some(root_key.clone()),
-			super_admin: Some(root_key.clone()),
-			..Default::default()
-		},
-		eth_llm_bridge: EthLLMBridgeConfig {
-			admin: Some(root_key.clone()),
-			super_admin: Some(root_key),
-			..Default::default()
 		},
 		substrate_bridge_outbound_channel: Default::default(),
 		sora_bridge_app: Default::default(),

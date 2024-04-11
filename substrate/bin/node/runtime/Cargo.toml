@@ -112,7 +112,6 @@ pallet-liberland-initializer = { path = "../../../frame/liberland-initializer", 
 liberland-traits = { path = "../../../frame/liberland-traits", default-features = false }
 pallet-registry = { path = "../../../frame/registry", default-features = false }
 pallet-office = { path = "../../../frame/office", default-features = false }
-pallet-federated-bridge = { path = "../../../frame/federated-bridge", default-features = false }
 pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
 pallet-contracts-registry = { path = "../../../frame/contracts-registry", default-features = false }
 
@@ -164,7 +163,6 @@ std = [
 	"pallet-election-provider-multi-phase/std",
 	"pallet-election-provider-support-benchmarking?/std",
 	"pallet-elections-phragmen/std",
-	"pallet-federated-bridge/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
 	"pallet-im-online/std",
@@ -247,7 +245,6 @@ runtime-benchmarks = [
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
 	"pallet-elections-phragmen/runtime-benchmarks",
-	"pallet-federated-bridge/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-im-online/runtime-benchmarks",
@@ -301,7 +298,6 @@ try-runtime = [
 	"pallet-democracy/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-elections-phragmen/try-runtime",
-	"pallet-federated-bridge/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
 	"pallet-im-online/try-runtime",

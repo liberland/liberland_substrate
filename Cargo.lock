@@ -4086,7 +4086,6 @@ dependencies = [
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
  "pallet-elections-phragmen",
- "pallet-federated-bridge",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -6089,25 +6088,6 @@ dependencies = [
  "sp-std",
  "sp-tracing",
  "substrate-test-utils",
-]
-
-[[package]]
-name = "pallet-federated-bridge"
-version = "0.1.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-keyring",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]

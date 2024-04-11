@@ -23,14 +23,6 @@ pub mod add_pallets {
 		fn on_runtime_upgrade() -> Weight {
 			let mut weight = DbWeight::get().reads(1);
 
-			if StorageVersion::get::<EthLLDBridge>() == 0 {
-                StorageVersion::new(1).put::<EthLLDBridge>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<EthLLMBridge>() == 0 {
-                StorageVersion::new(1).put::<EthLLMBridge>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
 			if StorageVersion::get::<CouncilAccount>() == 0 {
                 StorageVersion::new(1).put::<CouncilAccount>();
                 weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));

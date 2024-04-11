@@ -1667,44 +1667,6 @@ parameter_types! {
 	pub const BridgeMinimumVotesRequired: u32 = 3;
 }
 
-type EthLLDBridgeInstance = pallet_federated_bridge::Instance1;
-impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Token = Balances;
-	type PalletId = LLDBridgePalletId;
-	type MaxRelays = MaxRelays;
-	type MaxWatchers = MaxWatchers;
-	type ForceOrigin = EnsureRoot<Self::AccountId>;
-	type WithdrawalDelay = WithdrawalDelay;
-	type WithdrawalRateLimit = LLDRateLimit;
-	type MaxTotalLocked = LLDMaxTotalLocked;
-	type MinimumTransfer = LLDMinimumTransfer;
-	type MinimumFee = BridgeMinimumFee;
-	type MaximumFee = BridgeMaximumFee;
-	type MinimumVotesRequired = BridgeMinimumVotesRequired;
-	type WeightInfo = ();
-}
-
-type EthLLMBridgeInstance = pallet_federated_bridge::Instance2;
-impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Token = LLM;
-	type PalletId = LLMBridgePalletId;
-	type MaxRelays = MaxRelays;
-	type MaxWatchers = MaxWatchers;
-	type ForceOrigin = EnsureRoot<Self::AccountId>;
-	type WithdrawalDelay = WithdrawalDelay;
-	type WithdrawalRateLimit = LLMRateLimit;
-	type MaxTotalLocked = LLMMaxTotalLocked;
-	type MinimumTransfer = LLMMinimumTransfer;
-	type MinimumFee = BridgeMinimumFee;
-	type MaximumFee = BridgeMaximumFee;
-	type MinimumVotesRequired = BridgeMinimumVotesRequired;
-	type WeightInfo = ();
-}
-
 parameter_types! {
 	pub const CouncilAccountPalletId: PalletId = PalletId(*b"councilc");
 }
@@ -1917,8 +1879,6 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
-		EthLLDBridge: pallet_federated_bridge::<Instance1> = 59,
-		EthLLMBridge: pallet_federated_bridge::<Instance2> = 60,
 		CouncilAccount: pallet_custom_account::<Instance1> = 61,
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
@@ -2145,7 +2105,6 @@ mod benches {
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
-		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
 		[pallet_custom_account, CouncilAccount]
 		[pallet_contracts_registry, ContractsRegistry]
