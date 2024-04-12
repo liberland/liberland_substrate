@@ -74,7 +74,6 @@ pallet-election-provider-support-benchmarking = { default-features = false, tag 
 pallet-grandpa = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-im-online = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-membership = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-mmr = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-multisig = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-offences = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-offences-benchmarking = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true }
@@ -172,7 +171,6 @@ std = [
 	"pallet-liberland-legislation/std",
 	"pallet-llm/std",
 	"pallet-membership/std",
-	"pallet-mmr/std",
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
@@ -254,7 +252,6 @@ runtime-benchmarks = [
 	"pallet-liberland-legislation/runtime-benchmarks",
 	"pallet-llm/runtime-benchmarks",
 	"pallet-membership/runtime-benchmarks",
-	"pallet-mmr/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-offences-benchmarking/runtime-benchmarks",
@@ -310,7 +307,6 @@ try-runtime = [
 	"pallet-liberland-legislation/try-runtime",
 	"pallet-llm/try-runtime",
 	"pallet-membership/try-runtime",
-	"pallet-mmr/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-offences/try-runtime",

@@ -16,7 +16,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 jsonrpsee = { version = "0.16.2", features = ["server"] }
 node-primitives = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-transaction-payment-rpc = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-mmr-rpc = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sc-chain-spec = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sc-client-api = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sc-consensus-babe = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
