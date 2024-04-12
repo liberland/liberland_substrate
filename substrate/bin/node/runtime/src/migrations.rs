@@ -9,67 +9,6 @@ use sp_runtime::TryRuntimeError;
 
 type DbWeight = <Runtime as frame_system::Config>::DbWeight;
 
-pub mod add_pallets {
-	use super::*;
-
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-
-	impl OnRuntimeUpgrade for Migration<Runtime> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
-			Ok(().encode())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			let mut weight = DbWeight::get().reads(1);
-
-			if StorageVersion::get::<CouncilAccount>() == 0 {
-                StorageVersion::new(1).put::<CouncilAccount>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<PoolAssets>() == 0 {
-                StorageVersion::new(1).put::<PoolAssets>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<CompanyRegistry>() == 0 {
-                StorageVersion::new(1).put::<CompanyRegistry>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<IdentityOffice>() == 0 {
-                StorageVersion::new(1).put::<IdentityOffice>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<CompanyRegistryOffice>() == 0 {
-                StorageVersion::new(1).put::<CompanyRegistryOffice>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<LandRegistryOffice>() == 0 {
-                StorageVersion::new(1).put::<LandRegistryOffice>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<MetaverseLandRegistryOffice>() == 0 {
-                StorageVersion::new(1).put::<MetaverseLandRegistryOffice>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<AssetRegistryOffice>() == 0 {
-                StorageVersion::new(1).put::<AssetRegistryOffice>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-			if StorageVersion::get::<Senate>() == 0 {
-                StorageVersion::new(4).put::<Senate>();
-                weight = weight.saturating_add(DbWeight::get().reads_writes(1, 1));
-            }
-
-            weight
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			Ok(())
-		}
-	}
-}
-
 pub mod add_contracts_registry_pallet {
 	use super::*;
 
