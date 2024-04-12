@@ -70,40 +70,6 @@ pub mod add_pallets {
 	}
 }
 
-
-pub mod society_to_v2 {
-	use super::*;
-	use pallet_society::migrations::VersionUncheckedMigrateToV2;
-	use frame_support::migrations::StoreCurrentStorageVersion;
-
-	parameter_types! {
-		pub const PastPayouts: Vec<(AccountId, Balance)> = vec![];
-	}
-	type SocietyMigration = VersionUncheckedMigrateToV2<Runtime, (), PastPayouts>;
-
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-
-	impl OnRuntimeUpgrade for Migration<Runtime> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
-			SocietyMigration::pre_upgrade()
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			let mut weight = DbWeight::get().reads(1);
-			weight = weight.saturating_add(SocietyMigration::on_runtime_upgrade());
-			weight = weight.saturating_add(DbWeight::get().reads_writes(0, 1));
-			<StorageVersion as StoreCurrentStorageVersion<Society>>::store_current_storage_version();
-            weight
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			SocietyMigration::post_upgrade(state)
-		}
-	}
-}
-
 pub mod add_contracts_registry_pallet {
 	use super::*;
 
