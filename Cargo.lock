@@ -919,7 +919,7 @@ dependencies = [
 [[package]]
 name = "bridge-common"
 version = "0.1.0"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bitvec",
  "bridge-types",
@@ -938,7 +938,7 @@ dependencies = [
 [[package]]
 name = "bridge-data-signer"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-common",
  "bridge-types",
@@ -957,7 +957,7 @@ dependencies = [
 [[package]]
 name = "bridge-types"
 version = "0.1.0"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "derivative",
  "ethabi",
@@ -2143,7 +2143,7 @@ dependencies = [
 [[package]]
 name = "dispatch"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-types",
  "frame-benchmarking",
@@ -4195,7 +4195,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 [[package]]
 name = "leaf-provider"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-types",
  "ethabi",
@@ -4221,7 +4221,7 @@ checksum = "b4668fb0ea861c1df094127ac5f1da3409a82116a4ba74fca2e58ef927159bb3"
 [[package]]
 name = "liberland-bridge-provider"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-types",
  "frame-benchmarking",
@@ -5203,7 +5203,7 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 [[package]]
 name = "multisig-verifier"
 version = "0.1.0"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-common",
  "bridge-types",
@@ -10464,7 +10464,7 @@ dependencies = [
 [[package]]
 name = "substrate-bridge-app"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-types",
  "ethabi",
@@ -10486,7 +10486,7 @@ dependencies = [
 [[package]]
 name = "substrate-bridge-channel"
 version = "0.1.1"
-source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#697040640cdd4a6d9c29ada6c19db2560c4810af"
+source = "git+https://github.com/sora-xor/sora2-common.git?branch=polkadotsdk-lib-1.1.0#ff2466e6ec78470c3260e1e83d2f34c33c68e62a"
 dependencies = [
  "bridge-types",
  "ethabi",
