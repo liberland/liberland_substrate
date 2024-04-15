@@ -48,7 +48,12 @@ pub mod v1 {
 		Pallet<T>,
 		Twox64Concat,
 		ContractIndex,
-		ContractDataStorage<<T as Config>::MaxContractContentLen, <T as Config>::MaxParties, <T as frame_system::Config>::AccountId, BalanceOf<T, I>>,
+		ContractDataStorage<
+			<T as Config>::MaxContractContentLen,
+			<T as Config>::MaxParties,
+			<T as frame_system::Config>::AccountId,
+			BalanceOf<T, I>,
+		>,
 		OptionQuery,
 	>;
 }
@@ -57,13 +62,11 @@ pub mod v2 {
 	use super::*;
 
 	const TARGET: &'static str = "runtime::contracts-registry::migration::v2";
-    pub type I = ();
+	pub type I = ();
 
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
 
-	impl<T: Config> OnRuntimeUpgrade
-		for Migration<T>
-	{
+	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
 			assert!(StorageVersion::get::<Pallet<T>>() == 1, "can only upgrade from version 1");
@@ -90,25 +93,24 @@ pub mod v2 {
 			let _ = v1::JudgesSignatures::<T>::clear(u32::MAX, None);
 			let _ = v1::PartiesSignatures::<T>::clear(u32::MAX, None);
 
-            Contracts::<T>::translate(|_, contract_data: 
-				v1::ContractDataStorage<
-                        <T as Config<I>>::MaxContractContentLen, 
-                        <T as Config<I>>::MaxParties, 
-                        <T as frame_system::Config>::AccountId, 
-                        BalanceOf<T, I>
-                >| {
-              
-				Some(ContractDataStorage {
+			Contracts::<T>::translate(
+				|_,
+				 contract_data: v1::ContractDataStorage<
+					<T as Config<I>>::MaxContractContentLen,
+					<T as Config<I>>::MaxParties,
+					<T as frame_system::Config>::AccountId,
+					BalanceOf<T, I>,
+				>| {
+					Some(ContractDataStorage {
 						data: contract_data.data,
 						parties: Some(contract_data.parties),
 						creator: contract_data.creator,
 						deposit: contract_data.deposit,
-				})
+					})
+				},
+			);
 
-            });
-
-
-            StorageVersion::new(2).put::<Pallet<T>>();
+			StorageVersion::new(2).put::<Pallet<T>>();
 			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 		}
 
@@ -128,4 +130,3 @@ pub mod v2 {
 		}
 	}
 }
-
