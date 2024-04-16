@@ -277,6 +277,10 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
+
+	# Sora Bridge
+	"dispatch/runtime-benchmarks",
+	"multisig-verifier/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
