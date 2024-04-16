@@ -296,8 +296,6 @@ parameter_types! {
 	pub const SpendPeriod: BlockNumber = 60 * DAYS;
 }
 
-impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
-
 impl pallet_utility::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
@@ -370,7 +368,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::Democracy(..) |
 					RuntimeCall::Council(..) |
-					RuntimeCall::Society(..) |
 					RuntimeCall::TechnicalCommittee(..) |
 					RuntimeCall::Elections(..) |
 					RuntimeCall::Treasury(..)
@@ -1038,7 +1035,7 @@ impl pallet_treasury::Config for Runtime {
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = ();
-	type SpendFunds = Bounties;
+	type SpendFunds = ();
 	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 	type MaxApprovals = MaxApprovals;
 	type SpendOrigin = EnsureWithSuccess<
@@ -1056,44 +1053,11 @@ parameter_types! {
 	pub const CuratorDepositMax: Balance = 100 * DOLLARS;
 }
 
-impl pallet_bounties::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type BountyDepositBase = BountyDepositBase;
-	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
-	type BountyUpdatePeriod = BountyUpdatePeriod;
-	type CuratorDepositMultiplier = CuratorDepositMultiplier;
-	type CuratorDepositMin = CuratorDepositMin;
-	type CuratorDepositMax = CuratorDepositMax;
-	type BountyValueMinimum = BountyValueMinimum;
-	type DataDepositPerByte = DataDepositPerByte;
-	type MaximumReasonLength = MaximumReasonLength;
-	type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
-	type ChildBountyManager = ChildBounties;
-}
-
 parameter_types! {
 	pub const ChildBountyValueMinimum: Balance = 1 * DOLLARS;
 }
 
-impl pallet_child_bounties::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type MaxActiveChildBountyCount = ConstU32<5>;
-	type ChildBountyValueMinimum = ChildBountyValueMinimum;
-	type WeightInfo = pallet_child_bounties::weights::SubstrateWeight<Runtime>;
-}
 
-///*
-impl pallet_tips::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type DataDepositPerByte = DataDepositPerByte;
-	type MaximumReasonLength = MaximumReasonLength;
-	type Tippers = Elections;
-	type TipCountdown = TipCountdown;
-	type TipFindersFee = TipFindersFee;
-	type TipReportDepositBase = TipReportDepositBase;
-	type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
-}
-//*/
 parameter_types! {
 	pub const DepositPerItem: Balance = deposit(1, 0);
 	pub const DepositPerByte: Balance = deposit(0, 1);
@@ -1104,7 +1068,7 @@ parameter_types! {
 
 impl pallet_contracts::Config for Runtime {
 	type Time = Timestamp;
-	type Randomness = RandomnessCollectiveFlip;
+	type Randomness = pallet_babe::RandomnessFromTwoEpochsAgo<Self>;
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
@@ -1270,52 +1234,6 @@ impl pallet_identity::Config for Runtime {
 	type Citizenship = LLM;
 }
 
-parameter_types! {
-	pub const ConfigDepositBase: Balance = 5 * DOLLARS;
-	pub const FriendDepositFactor: Balance = 50 * CENTS;
-	pub const MaxFriends: u16 = 9;
-	pub const RecoveryDeposit: Balance = 5 * DOLLARS;
-}
-
-impl pallet_recovery::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = pallet_recovery::weights::SubstrateWeight<Runtime>;
-	type RuntimeCall = RuntimeCall;
-	type Currency = Balances;
-	type ConfigDepositBase = ConfigDepositBase;
-	type FriendDepositFactor = FriendDepositFactor;
-	type MaxFriends = MaxFriends;
-	type RecoveryDeposit = RecoveryDeposit;
-}
-
-parameter_types! {
-	pub const GraceStrikes: u32 = 10;
-	pub const SocietyVotingPeriod: BlockNumber = 80 * HOURS;
-	pub const ClaimPeriod: BlockNumber = 80 * HOURS;
-	pub const PeriodSpend: Balance = 500 * DOLLARS;
-	pub const MaxLockDuration: BlockNumber = 36 * 30 * DAYS;
-	pub const ChallengePeriod: BlockNumber = 7 * DAYS;
-	pub const MaxPayouts: u32 = 10;
-	pub const MaxBids: u32 = 10;
-	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
-}
-
-impl pallet_society::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type PalletId = SocietyPalletId;
-	type Currency = Balances;
-	type Randomness = RandomnessCollectiveFlip;
-	type GraceStrikes = GraceStrikes;
-	type PeriodSpend = PeriodSpend;
-	type VotingPeriod = SocietyVotingPeriod;
-	type ClaimPeriod = ClaimPeriod;
-	type MaxLockDuration = MaxLockDuration;
-	type FounderSetOrigin = EnsureCouncilMajority;
-	type ChallengePeriod = ChallengePeriod;
-	type MaxPayouts = MaxPayouts;
-	type MaxBids = MaxBids;
-	type WeightInfo = pallet_society::weights::SubstrateWeight<Runtime>;
-}
 
 impl pallet_mmr::Config for Runtime {
     const INDEXING_PREFIX: &'static [u8] = b"mmr";
@@ -1512,15 +1430,6 @@ impl pallet_transaction_storage::Config for Runtime {
 		ConstU32<{ pallet_transaction_storage::DEFAULT_MAX_TRANSACTION_SIZE }>;
 }
 
-impl pallet_whitelist::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeCall = RuntimeCall;
-	type WhitelistOrigin = EnsureRoot<AccountId>;
-	type DispatchWhitelistedOrigin = EnsureRoot<AccountId>;
-	type Preimages = Preimage;
-	type WeightInfo = pallet_whitelist::weights::SubstrateWeight<Runtime>;
-}
-
 impl pallet_liberland_legislation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Citizenship = LLM;
@@ -1665,44 +1574,6 @@ parameter_types! {
 	pub const BridgeMinimumFee: Balance = 10 * CENTS;
 	pub const BridgeMaximumFee: Balance = 10 * DOLLARS;
 	pub const BridgeMinimumVotesRequired: u32 = 3;
-}
-
-type EthLLDBridgeInstance = pallet_federated_bridge::Instance1;
-impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Token = Balances;
-	type PalletId = LLDBridgePalletId;
-	type MaxRelays = MaxRelays;
-	type MaxWatchers = MaxWatchers;
-	type ForceOrigin = EnsureRoot<Self::AccountId>;
-	type WithdrawalDelay = WithdrawalDelay;
-	type WithdrawalRateLimit = LLDRateLimit;
-	type MaxTotalLocked = LLDMaxTotalLocked;
-	type MinimumTransfer = LLDMinimumTransfer;
-	type MinimumFee = BridgeMinimumFee;
-	type MaximumFee = BridgeMaximumFee;
-	type MinimumVotesRequired = BridgeMinimumVotesRequired;
-	type WeightInfo = ();
-}
-
-type EthLLMBridgeInstance = pallet_federated_bridge::Instance2;
-impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Token = LLM;
-	type PalletId = LLMBridgePalletId;
-	type MaxRelays = MaxRelays;
-	type MaxWatchers = MaxWatchers;
-	type ForceOrigin = EnsureRoot<Self::AccountId>;
-	type WithdrawalDelay = WithdrawalDelay;
-	type WithdrawalRateLimit = LLMRateLimit;
-	type MaxTotalLocked = LLMMaxTotalLocked;
-	type MinimumTransfer = LLMMinimumTransfer;
-	type MinimumFee = BridgeMinimumFee;
-	type MaximumFee = BridgeMaximumFee;
-	type MinimumVotesRequired = BridgeMinimumVotesRequired;
-	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -1887,23 +1758,16 @@ construct_runtime!(
 		AuthorityDiscovery: pallet_authority_discovery = 19,
 		Offences: pallet_offences = 20,
 		Historical: pallet_session_historical::{Pallet} = 21,
-		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 22,
 		Identity: pallet_identity = 23,
-		Society: pallet_society = 24,
-		Recovery: pallet_recovery = 25,
 		Scheduler: pallet_scheduler = 27,
 		Preimage: pallet_preimage = 28,
 		Proxy: pallet_proxy = 29,
 		Multisig: pallet_multisig = 30,
-		Bounties: pallet_bounties = 31,
-		Tips: pallet_tips = 32,
 		Assets: pallet_assets = 33,
 		Mmr: pallet_mmr = 34,
 		Nfts: pallet_nfts = 38,
 		TransactionStorage: pallet_transaction_storage = 39,
 		VoterList: pallet_bags_list::<Instance1> = 40,
-		ChildBounties: pallet_child_bounties = 42,
-		Whitelist: pallet_whitelist = 45,
 		LLM: pallet_llm = 46,
 		LiberlandLegislation: pallet_liberland_legislation = 47,
 		LiberlandInitializer: pallet_liberland_initializer = 48,
@@ -1917,8 +1781,6 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
-		EthLLDBridge: pallet_federated_bridge::<Instance1> = 59,
-		EthLLMBridge: pallet_federated_bridge::<Instance2> = 60,
 		CouncilAccount: pallet_custom_account::<Instance1> = 61,
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
@@ -2042,41 +1904,6 @@ mod staking_v12 {
 	}
 }
 
-// see commit 9957da3cbb027f9b754c453a4d58a62665e532ef for details
-mod bounties_v4 {
-	use super::*;
-	use frame_support::{traits::OnRuntimeUpgrade, pallet_prelude::*};
-
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			frame_support::ensure!(
-				Bounties::on_chain_storage_version() == 0,
-                "Expected v0 before upgrading to v4"
-            );
-
-            Ok(Default::default())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			log::info!("Migrated pallet-bounties PalletVersion to 4");
-			Bounties::current_storage_version().put::<Bounties>();
-			T::DbWeight::get().reads_writes(1, 1)
-
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			frame_support::ensure!(
-				Bounties::on_chain_storage_version() == 4,
-                "Failed to update to v4"
-            );
-			Ok(())
-		}
-	}
-}
-
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 parameter_types! {
@@ -2110,8 +1937,6 @@ mod benches {
 		[pallet_babe, Babe]
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
-		[pallet_bounties, Bounties]
-		[pallet_child_bounties, ChildBounties]
 		[pallet_collective, Council]
 		[pallet_contracts, Contracts]
 		[pallet_democracy, Democracy]
@@ -2128,24 +1953,19 @@ mod benches {
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
-		[pallet_recovery, Recovery]
 		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]
-		[pallet_society, Society]
 		[pallet_staking, Staking]
 		[pallet_sudo, Sudo]
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
-		[pallet_tips, Tips]
 		[pallet_transaction_storage, TransactionStorage]
 		[pallet_treasury, Treasury]
 		[pallet_nfts, Nfts]
 		[pallet_utility, Utility]
-		[pallet_whitelist, Whitelist]
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
-		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
 		[pallet_custom_account, CouncilAccount]
 		[pallet_contracts_registry, ContractsRegistry]
