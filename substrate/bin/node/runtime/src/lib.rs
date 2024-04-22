@@ -155,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 19,
+	spec_version: 20,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 19,
+	spec_version: 20,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1897,13 +1897,7 @@ mod staking_v12 {
 
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
-parameter_types! {
-    pub const OldInflationEventInterval: BlockNumber = 365 * DAYS;
-}
-type Migrations = (
-	pallet_contracts_registry::migrations::v2::Migration<Runtime>,
-	migrations::add_sora_bridge::Migration<Runtime>,
-);
+type Migrations = ();
 
 type EventRecord = frame_system::EventRecord<
 	<Runtime as frame_system::Config>::RuntimeEvent,
