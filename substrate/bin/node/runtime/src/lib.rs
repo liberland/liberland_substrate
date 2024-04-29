@@ -155,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 20,
+	spec_version: 21,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 20,
+	spec_version: 21,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -282,7 +282,7 @@ parameter_types! {
 	pub const EnactmentPeriod: BlockNumber = 14 * DAYS;
 	pub const AssetName: &'static str = "Liberland Merit";
 	pub const AssetSymbol: &'static str = "LLM";
-	pub const SpendPeriod: BlockNumber = 168 * DAYS;
+	pub const SpendPeriod: BlockNumber = 7 * DAYS;
 }
 
 #[cfg(feature = "testnet-runtime")]
@@ -293,7 +293,7 @@ parameter_types! {
 	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const AssetName: &'static str = "Liberland Kuna";
 	pub const AssetSymbol: &'static str = "LKN";
-	pub const SpendPeriod: BlockNumber = 60 * DAYS;
+	pub const SpendPeriod: BlockNumber = 10;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1008,7 +1008,7 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const Burn: Permill = Permill::from_percent(1);
+	pub const Burn: Permill = Permill::from_percent(0);
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
