@@ -95,6 +95,7 @@
 //! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
 //!   period. Affects political rights for an ElectionLock period.
 //! * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
+//! * `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
 //!
 //! #### Restricted
 //!
@@ -184,6 +185,8 @@ pub mod pallet {
 		AccountId32, Perbill, Permill,
 	};
 	use sp_std::vec::Vec;
+
+	pub type RemarkData = BoundedVec<u8, ConstU32<64>>;
 
 	/// block number of last LLM release event (transfer from **Vault** to **Treasury**)
 	#[pallet::storage]
@@ -496,6 +499,14 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)
 		}
+
+		/// Emit Remarked event. Used by Liberland tooling to annotate transfers.
+		#[pallet::call_index(7)]
+		#[pallet::weight(<T as Config>::WeightInfo::treasury_lld_transfer())]
+		pub fn remark(origin: OriginFor<T>, data: RemarkData) -> DispatchResult {
+			Self::deposit_event(Event::<T>::Remarked(data));
+			Ok(())
+		}
 	}
 
 	#[pallet::event]
@@ -509,6 +520,8 @@ pub mod pallet {
 		LLMPoliticsLocked(T::AccountId, T::Balance),
 		/// sent to user account, amount
 		LLMPoliticsUnlocked(T::AccountId, T::Balance),
+		/// Remark
+		Remarked(RemarkData),
 	}
 
 	impl<T: Config> Pallet<T> {
