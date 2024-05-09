@@ -293,7 +293,7 @@ parameter_types! {
 	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const AssetName: &'static str = "Liberland Kuna";
 	pub const AssetSymbol: &'static str = "LKN";
-	pub const SpendPeriod: BlockNumber = 10;
+	pub const SpendPeriod: BlockNumber = 60 * MINUTES;
 }
 
 impl pallet_utility::Config for Runtime {
