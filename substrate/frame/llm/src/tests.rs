@@ -2,7 +2,7 @@
 
 use crate::{
 	mock::*, Config, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, LastRelease,
-	Withdrawlock, WithdrawlockDuration,
+	RemarkData, Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
 use frame_support::{
@@ -638,5 +638,15 @@ fn fungible_traits_work() {
 			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&999),
 			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(100u8)
 		);
+	});
+}
+
+#[test]
+fn remark_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let origin = RuntimeOrigin::signed(1);
+		let data: RemarkData = vec![1, 2, 3].try_into().unwrap();
+		assert_ok!(LLM::remark(origin.clone(), data.clone()));
+		System::assert_last_event(Event::Remarked(data).into());
 	});
 }
