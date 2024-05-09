@@ -8,8 +8,7 @@ set -euo pipefail
 
 sudo_cmd=""
 arch=""
-chain_spec_exists=""
-chain_spec_url="null"
+network="null"
 release_info=""
 keychain_exists=""
 session_keys=""
@@ -66,25 +65,23 @@ release_info=$(mktemp)
 curl -Ls https://api.github.com/repos/liberland/liberland_substrate/releases/latest -o $release_info
 echo "OK ($(jq -r .name < $release_info))"
 
-if [ -e "/opt/liberland/chain_spec.raw.json" ]; then
-	echo "Existing /opt/liberland/chain_spec.raw.json detected - skipping chain selection, will only update node binary."
-	chain_spec_exists=1
+if [ -e "/opt/liberland/NETWORK" ]; then
+	network=$(cat /opt/liberland/NETWORK)
+	echo "Existing install detected - skipping chain selection, using '$network'."
 else
-	chain_spec_exists=0
-	chain_specs="$(jq -r '.assets[] | select(.name | endswith(".raw.json")) | .name' < $release_info)"
-	while [ "$chain_spec_url" == "null" ]; do
+	while [ "$network" == "null" ]; do
+	    networks=("bastiat" "mainnet")
 		echo "Available networks: "
-		i=0
-		for spec in $chain_specs; do
-		    name="${spec%.raw.json}"
-			echo "$i) ${name^}"
-			(( i++ )) || true
+		for idx in ${!networks[@]}; do
+		    name="${networks[$idx]}"
+			echo "$idx) ${name^}"
 		done
 		echo -n "Select number: "
-		read chain_spec_idx < /dev/tty
-		chain_spec_url="$(jq -r ".assets | map(select(.name | endswith(\".raw.json\"))) | .[$chain_spec_idx].browser_download_url" < $release_info)"
+		read network_idx < /dev/tty
+		network="${networks[$network_idx]}"
 	done
 fi
+
 node_url="$(jq -r ".assets[] | select(.name == \"linux_x86_build\") | .browser_download_url" < $release_info)"
 rm $release_info
 
@@ -96,15 +93,11 @@ fi
 
 echo "Everything's ready. Tasks:"
 echo "  [X] Download $node_url -> /usr/local/bin/liberland-node"
-if [ $chain_spec_exists -eq 0 ]; then
-	echo "  [X] Download $chain_spec_url -> /opt/liberland/chain_spec.raw.json"
-else
-	echo "  [ ] Chain spec already exists, so won't be changed."
-fi
-echo "  [X] Generate systemd service liberland-node.service to autorun on boot."
+echo "  [X] Configure to use $network network"
+echo "  [X] Generate systemd service liberland-validator.service to autorun on boot."
 echo "  [X] Enable NTP time synchronization."
 if [ $keychain_exists -eq 0 ]; then
-	echo "  [X] Generate new session keys and store them in node"
+	echo "  [X] Generate new session keys and store them in the node"
 else
 	echo "  [ ] Data dir already exists, so session keys won't be regenerated."
 fi
@@ -120,10 +113,8 @@ $sudo_cmd systemctl stop liberland-validator &>/dev/null || true
 echo "Download binary..."
 $sudo_cmd curl -sSL $node_url -o /usr/local/bin/liberland-node
 $sudo_cmd chmod +x /usr/local/bin/liberland-node
-if [ $chain_spec_exists -eq 0 ]; then
-	echo "Download chain spec..."
-	$sudo_cmd curl -sSL $chain_spec_url -o /opt/liberland/chain_spec.raw.json
-fi
+echo "Configure network..."
+echo $network | $sudo_cmd tee /opt/liberland/NETWORK >/dev/null
 echo "Generate liberland-validator.service..."
 $sudo_cmd tee /etc/systemd/system/liberland-validator.service >/dev/null << EOF
 [Unit]
@@ -132,7 +123,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/liberland-node -d /opt/liberland/data --chain /opt/liberland/chain_spec.raw.json --validator
+ExecStart=/usr/local/bin/liberland-node -d /opt/liberland/data --chain $network --validator
 Restart=on-failure
 RestartSec=5m
 

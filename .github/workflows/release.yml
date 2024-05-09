@@ -145,5 +145,3 @@ jobs:
             linux_x86_build
             mainnet-${{github.ref_name}}.wasm
             bastiat-${{github.ref_name}}.wasm
-            substrate/specs/bastiat.raw.json
-            substrate/specs/mainnet.raw.json
