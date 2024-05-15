@@ -18,7 +18,8 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::EnsureRoot;
-use sp_core::{ConstU16, H256};
+use pallet_balances::AccountData;
+use sp_core::{ConstU16, ConstU32, H256};
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	BuildStorage,
@@ -34,6 +35,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		CustomAccount: pallet_custom_account,
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}
 );
 
@@ -44,7 +46,7 @@ parameter_types! {
 		);
 }
 impl frame_system::Config for Test {
-	type AccountData = ();
+	type AccountData = AccountData<u64>;
 	type AccountId = u64;
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockHashCount = ConstU64<250>;
@@ -67,6 +69,22 @@ impl frame_system::Config for Test {
 	type SS58Prefix = ConstU16<42>;
 	type SystemWeightInfo = ();
 	type Version = ();
+}
+
+impl pallet_balances::Config for Test {
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
+	type MaxLocks = ConstU32<10>;
+	type Balance = u64;
+	type RuntimeEvent = RuntimeEvent;
+	type DustRemoval = ();
+	type ExistentialDeposit = ConstU64<1>;
+	type AccountStore = System;
+	type WeightInfo = ();
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type RuntimeHoldReason = ();
+	type MaxHolds = ();
 }
 
 parameter_types! {
@@ -95,6 +113,7 @@ impl pallet_custom_account::Config for Test {
 	type ExecuteOrigin = EnsureRoot<u64>;
 	type CallFilter = CustomAccountCallFilter;
 	type WeightInfo = ();
+	type Currency = Balances;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

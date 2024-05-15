@@ -204,7 +204,7 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 				// for tips, if any, 0% to treasury, 100% to author (though this can be anything)
 				tips.ration_merge_into(0, 100, &mut split);
 			}
-			Treasury::on_unbalanced(split.0);
+			CouncilAccount::on_unbalanced(split.0);
 			Author::on_unbalanced(split.1);
 		}
 	}
@@ -614,9 +614,9 @@ impl pallet_staking::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
-	type RewardRemainder = Treasury;
+	type RewardRemainder = CouncilAccount;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = Treasury;
+	type Slash = CouncilAccount;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -784,7 +784,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxRefunds = ConstU32<3>;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight = MinerMaxWeight;
-	type SlashHandler = Treasury; // burn slashes
+	type SlashHandler = CouncilAccount; // burn slashes
 	type RewardHandler = (); // nothing to do upon rewards
 	type DataProvider = Staking;
 	type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
@@ -883,7 +883,7 @@ impl pallet_democracy::Config for Runtime {
 	type MaxBlacklisted = ConstU32<100>;
 	type DelegateeFilter = ContainsMember<Runtime, CouncilCollective>;
 
-	type ProposalFee = Treasury;
+	type ProposalFee = CouncilAccount;
 	type ProposalFeeAmount = ProposalFeeAmount;
 }
 
@@ -1227,7 +1227,7 @@ impl pallet_identity::Config for Runtime {
 	type MaxSubAccounts = MaxSubAccounts;
 	type MaxAdditionalFields = MaxAdditionalFields;
 	type MaxRegistrars = MaxRegistrars;
-	type Slashed = Treasury;
+	type Slashed = CouncilAccount;
 	type ForceOrigin = EnsureRootOrHalfCouncil;
 	type RegistrarOrigin = EnsureRootOrHalfCouncil;
 	type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
@@ -1579,6 +1579,7 @@ impl pallet_custom_account::Config<pallet_custom_account::Instance1> for Runtime
 	type ExecuteOrigin = EnsureCouncilMajority;
 	type CallFilter = CouncilAccountCallFilter;
 	type WeightInfo = ();
+	type Currency = Balances;
 }
 
 pub struct IntoAuthor;
