@@ -26,6 +26,9 @@ sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://git
 sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
+[dev-dependencies]
+pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+
 [features]
 default = ["std"]
 std = [
