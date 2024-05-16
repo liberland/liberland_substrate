@@ -502,8 +502,8 @@ pub mod pallet {
 
 		/// Emit Remarked event. Used by Liberland tooling to annotate transfers.
 		#[pallet::call_index(7)]
-		#[pallet::weight(<T as Config>::WeightInfo::treasury_lld_transfer())]
-		pub fn remark(origin: OriginFor<T>, data: RemarkData) -> DispatchResult {
+		#[pallet::weight(<T as Config>::WeightInfo::remark(data.len() as u32))]
+		pub fn remark(_origin: OriginFor<T>, data: RemarkData) -> DispatchResult {
 			Self::deposit_event(Event::<T>::Remarked(data));
 			Ok(())
 		}

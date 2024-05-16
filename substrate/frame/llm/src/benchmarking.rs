@@ -100,6 +100,15 @@ benchmarks! {
 	verify {
 		assert_eq!(<<T as Config>::Currency as Currency<T::AccountId>>::total_balance(&user), amount);
 	}
+
+	remark {
+		let l in 0 .. 64;
+		let data: RemarkData = [1u8].repeat(l as usize).try_into().unwrap();
+	}: _(RawOrigin::Root, data.clone())
+	verify {
+		let e: <T as Config>::RuntimeEvent = Event::Remarked(data).into();
+		frame_system::Pallet::<T>::assert_last_event(e.into());
+	}
 }
 
 impl_benchmark_test_suite!(LLM, crate::mock::new_test_ext(), crate::mock::Test,);
