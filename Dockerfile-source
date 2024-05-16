@@ -10,7 +10,7 @@ COPY substrate/ .
 RUN cargo build --release
 
 FROM debian:buster-slim AS runtime
-EXPOSE 30333 9933 9944
+EXPOSE 30333 9944
 VOLUME /data
 COPY --from=builder /app/target/release/substrate /node
 COPY substrate/specs /specs

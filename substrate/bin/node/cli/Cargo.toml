@@ -1,8 +1,8 @@
 [package]
 name = "node-cli"
-version = "3.0.0-dev"
+version = "21.0.0"
 authors.workspace = true
-description = "Generic Substrate node implementation in Rust."
+description = "Liberland node implementation in Rust."
 build = "build.rs"
 edition.workspace = true
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
