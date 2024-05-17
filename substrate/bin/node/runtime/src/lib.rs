@@ -417,6 +417,11 @@ type EnsureRootOrHalfSenate = EitherOfDiverse<
 	EnsureSenateMajority,
 >;
 
+type EnsureRootOrHalfSenateOrCustomCouncil = EitherOfDiverse<
+	EnsureRootOrHalfSenate,
+	EnsureSignedBy<CouncilAccount, AccountId>
+>;
+
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
 		RuntimeBlockWeights::get().max_block;
@@ -428,7 +433,7 @@ impl pallet_scheduler::Config for Runtime {
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
-	type ScheduleOrigin = EnsureRootOrHalfSenate;
+	type ScheduleOrigin = EnsureRootOrHalfSenateOrCustomCouncil;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxScheduledPerBlock = ConstU32<512>;
 	#[cfg(not(feature = "runtime-benchmarks"))]

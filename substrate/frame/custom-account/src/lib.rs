@@ -56,7 +56,7 @@ pub mod pallet {
 	use frame_support::{
 		dispatch::GetDispatchInfo,
 		pallet_prelude::{DispatchResult, *},
-		traits::{Contains, OnUnbalanced, OriginTrait},
+		traits::{Contains, OnUnbalanced, OriginTrait, SortedMembers},
 		PalletId,
 	};
 	use frame_system::{pallet_prelude::*, RawOrigin};
@@ -162,5 +162,13 @@ pub mod pallet {
 			let _ = T::Currency::resolve_creating(&call_account_id, amount);
 			Self::deposit_event(Event::Deposit { value: numeric_amount });
 		}
+	}
+
+	impl<T: Config<I>, I: 'static> SortedMembers<T::AccountId> for Pallet<T, I> {
+		fn sorted_members() -> Vec<T::AccountId> {
+			vec![T::PalletId::get().into_account_truncating()]
+		}
+		#[cfg(feature = "runtime-benchmarks")]
+		fn add(_m: &T::AccountId) {}
 	}
 }
