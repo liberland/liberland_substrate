@@ -159,8 +159,20 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-rust-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Check try-runtime build
-        run: cargo build --release --features try-runtime
+      - name: Build try-runtime bastiat runtime
+        run: cargo build --release --features try-runtime,testnet-runtime -p kitchensink-runtime
+      
+      - name: Install try-runtime CLI
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --locked
+
+      - name: try-runtime bastiat
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-idempotency-checks --no-weight-warnings live --uri wss://archive.testchain.liberland.org:443
+        
+      - name: Build try-runtime mainnet runtime
+        run: cargo build --release --features try-runtime -p kitchensink-runtime
+
+      - name: try-runtime mainnet
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-idempotency-checks --no-weight-warnings live --uri wss://mainnet.liberland.org:443
 
   build:
     runs-on: ubuntu-latest

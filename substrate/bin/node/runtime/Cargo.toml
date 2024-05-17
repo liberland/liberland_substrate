@@ -1,8 +1,8 @@
 [package]
 name = "kitchensink-runtime"
-version = "21.0.0"
+version = "22.0.0"
 authors.workspace = true
-description = "Substrate node kitchensink runtime."
+description = "Liberland node runtime."
 edition.workspace = true
 build = "build.rs"
 license = "Apache-2.0"
