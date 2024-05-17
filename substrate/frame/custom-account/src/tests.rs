@@ -10,8 +10,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #![cfg(test)]
 
 use crate::{mock::*, Event, NegativeImbalanceOf};
-use frame_support::traits::Imbalance;
-use frame_support::traits::OnUnbalanced;
+use frame_support::traits::{Imbalance, OnUnbalanced, SortedMembers};
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use sp_runtime::traits::{AccountIdConversion, Hash};
 
@@ -79,5 +78,15 @@ fn execute_unbalanced() {
 		let balance_after = Balances::free_balance(call_account_id);
 		assert_eq!(balance_before, balance_after - 100);
 		System::assert_last_event(Event::<Test>::Deposit { value: amount }.into());
+	});
+}
+
+#[test]
+fn sorted_members_are_correct() {
+	new_test_ext().execute_with(|| {
+		let call_account_id: u64 = CustomAccountPalletId::get().into_account_truncating();
+		let members = CustomAccount::sorted_members();
+		assert_eq!(members.len(), 1);
+		assert_eq!(members[0], call_account_id)
 	});
 }

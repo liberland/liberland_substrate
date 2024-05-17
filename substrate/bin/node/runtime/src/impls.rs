@@ -240,13 +240,60 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo, Serialize, Deserialize,
 )]
 pub struct CouncilAccountCallFilter;
+
+impl CouncilAccountCallFilter {
+	fn ensure_schedule(c: &RuntimeCall) -> Result<(&RuntimeCall, &BlockNumber), ()> {
+		if let RuntimeCall::Scheduler(pallet_scheduler::Call::schedule { when, call, ..}) = c {
+			Ok((call, when))
+		} else if let RuntimeCall::Scheduler(pallet_scheduler::Call::schedule_named { when, call, ..}) = c {
+			Ok((call, when))
+		} else {
+			Err(())
+		}
+	}
+
+	fn ensure_batched(c: &RuntimeCall) -> Result<&Vec<RuntimeCall>, ()> {
+		if let RuntimeCall::Utility(pallet_utility::Call::batch { calls }) = c {
+			Ok(calls)
+		} else if let RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) = c {
+			Ok(calls)
+		} else {
+			Err(())
+		}
+	}
+
+	fn ensure_transfer_or_remark(c: &RuntimeCall) -> Result<(), ()> {
+		match c {
+			RuntimeCall::LLM(pallet_llm::Call::remark { .. }) => Ok(()),
+			RuntimeCall::LLM(pallet_llm::Call::send_llm { .. }) => Ok(()),
+			RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) => Ok(()),
+			RuntimeCall::Assets(pallet_assets::Call::transfer { .. }) => Ok(()),
+			RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { .. }) => Ok(()),
+			RuntimeCall::Balances(pallet_balances::Call::transfer { .. }) => Ok(()),
+			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { .. }) => Ok(()),
+			_ => Err(())
+		}
+	}
+
+	fn ensure_valid_council_call(c: &RuntimeCall) -> Result<(), ()> {
+		let (scheduled_call, when) = Self::ensure_schedule(c)?;
+		if when - System::block_number() <= 4 * DAYS {
+			return Err(());
+		}
+
+		let batched_calls = Self::ensure_batched(scheduled_call)?;
+
+		batched_calls.iter()
+			.map(Self::ensure_transfer_or_remark)
+			.all(|v| v.is_ok())
+			.then_some(())
+			.ok_or(())
+	}
+}
+
 impl Contains<RuntimeCall> for CouncilAccountCallFilter {
 	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c,
-			RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) | 
-			RuntimeCall::LLM(pallet_llm::Call::send_llm { .. }) |
-			RuntimeCall::System(frame_system::Call::remark_with_event { .. }) // for benchmarking
-		)
+		Self::ensure_valid_council_call(c).is_ok()
 	}
 }
 
@@ -623,6 +670,153 @@ pub fn get_account_id_from_string_hash(seed: &str) -> AccountId32 {
 	let hash = H256::from_slice(&sp_io::hashing::blake2_256(seed.as_bytes()));
 	let public_key = sp_core::sr25519::Public::from_h256(hash);
 	AccountId32::from(public_key)
+}
+
+#[cfg(test)]
+mod council_filter_tests {
+	use crate::DAYS;
+	use super::{CouncilAccountCallFilter, RuntimeCall};
+	use frame_support::{PalletId, traits::Contains};
+	use sp_runtime::{traits::AccountIdConversion, AccountId32};
+
+	fn wrap_in_scheduled_batch(calls: Vec<RuntimeCall>) -> RuntimeCall {
+		RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+			when: 10 * DAYS,
+			maybe_periodic: None,
+			priority: 1,
+			call: RuntimeCall::Utility(pallet_utility::Call::batch { calls }).into()
+		})
+	}
+
+	fn remark_call() -> RuntimeCall {
+		RuntimeCall::LLM(pallet_llm::Call::remark { data: vec![].try_into().unwrap() })
+	}
+
+	fn accid() -> AccountId32 {
+		PalletId(*b"12345678").into_account_truncating()
+	}
+
+	fn acc() -> sp_runtime::MultiAddress<AccountId32, ()> {
+		accid().into()
+	}
+
+	#[test]
+	fn allows_schedule() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = wrap_in_scheduled_batch(vec![]);
+			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_scheduled_batch_all() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 10 * DAYS,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: vec![] }).into()
+			});
+			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_schedule_named() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule_named {
+				id: [0u8].repeat(32).try_into().unwrap(),
+				when: 10 * DAYS,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into()
+			});
+			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_scheduled_batched_balances() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![
+				RuntimeCall::Balances(pallet_balances::Call::transfer { dest: acc(), value: 1u8.into() }),
+				remark_call(),
+				RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { dest: acc(), value: 1u8.into() }),
+				remark_call(),
+			];
+			let call = wrap_in_scheduled_batch(calls);
+			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_scheduled_batched_llm() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![
+				RuntimeCall::LLM(pallet_llm::Call::send_llm { to_account: accid(), amount: 1u8.into() }),
+				remark_call(),
+				RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { to_account: accid(), amount: 1u8.into() }),
+				remark_call(),
+			];
+			let call = wrap_in_scheduled_batch(calls);
+			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_scheduled_batched_assets() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![
+				RuntimeCall::Assets(pallet_assets::Call::transfer { id: 100.into(), target: acc(), amount: 1u8.into() }),
+				remark_call(),
+				RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { id: 100.into(), target: acc(), amount: 1u8.into() }),
+				remark_call(),
+			];
+			let call = wrap_in_scheduled_batch(calls);
+			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_short_schedule() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 1 * DAYS,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into()
+			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_direct_batching() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] });
+			assert!(!CouncilAccountCallFilter::contains(&call));
+
+			let call = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: vec![] });
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_direct_transfers() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { to_account: accid(), amount: 1u8.into() });
+			assert!(!CouncilAccountCallFilter::contains(&call));
+
+			let call = RuntimeCall::LLM(pallet_llm::Call::send_llm { to_account: accid(), amount: 1u8.into() });
+			assert!(!CouncilAccountCallFilter::contains(&call));
+
+			let call = RuntimeCall::Assets(pallet_assets::Call::transfer { id: 100.into(), target: acc().into(), amount: 1u8.into() });
+			assert!(!CouncilAccountCallFilter::contains(&call));
+
+			let call = RuntimeCall::Balances(pallet_balances::Call::transfer { dest: acc(), value: 1u8.into() });
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
 }
 
 #[cfg(test)]
