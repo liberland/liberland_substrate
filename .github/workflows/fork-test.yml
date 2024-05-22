@@ -1,0 +1,70 @@
+name: Fork test
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  forktest:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C debug-assertions=y"
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime moreutils
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          default: true
+          target: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
+
+      - name: Install check-unknowns script deps
+        run: yarn
+        working-directory: substrate/scripts/fork-test/check-unknowns
+
+      - name: Standard prod build - mainnet
+        run: cargo build --release
+      
+      - name: Run check-unknowns test on mainnet fork
+        run: |
+            ./run-fork.sh mainnet.config.sh &
+            cd check-unknowns
+            timeout 5m npx ts-node src/index.ts
+        working-directory: substrate/scripts/fork-test
+
+      - name: Kill mainnet node
+        run: killall -9 substrate-node
+        
+      - name: Standard prod build - bastiat
+        run: cargo build --release -F testnet-runtime
+
+      - name: Run check-unknowns test on mainnet fork
+        run: |
+            ./run-fork.sh bastiat.config.sh &
+            cd check-unknowns
+            timeout 5m npx ts-node src/index.ts
+        working-directory: substrate/scripts/fork-test
+
+      - name: Kill bastiat node
+        run: killall -9 substrate-node
