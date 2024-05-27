@@ -186,7 +186,7 @@ pub mod pallet {
 	};
 	use sp_std::vec::Vec;
 
-	pub type RemarkData = BoundedVec<u8, ConstU32<64>>;
+	pub type RemarkData = BoundedVec<u8, ConstU32<256>>;
 
 	/// block number of last LLM release event (transfer from **Vault** to **Treasury**)
 	#[pallet::storage]
