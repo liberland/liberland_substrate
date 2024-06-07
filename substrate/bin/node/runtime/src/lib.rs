@@ -111,7 +111,7 @@ mod migrations;
 use impls::{
 	Author, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember, CouncilAccountCallFilter, EnsureCmp
+	ContainsMember, CouncilAccountCallFilter, EnsureCmp, SenateAccountCallFilter,
 };
 
 /// Constant values used within the runtime.
@@ -1587,6 +1587,20 @@ impl pallet_custom_account::Config<pallet_custom_account::Instance1> for Runtime
 	type Currency = Balances;
 }
 
+parameter_types! {
+	pub const SenateAccountPalletId: PalletId = PalletId(*b"lltreasu");
+}
+
+impl pallet_custom_account::Config<pallet_custom_account::Instance2> for Runtime {
+	type RuntimeCall = RuntimeCall;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = SenateAccountPalletId;
+	type ExecuteOrigin = EnsureSenateMajority;
+	type CallFilter = SenateAccountCallFilter;
+	type WeightInfo = ();
+	type Currency = Balances;
+}
+
 pub struct IntoAuthor;
 impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 	fn on_nonzero_unbalanced(credit: Credit<AccountId, Balances>) {
@@ -1783,6 +1797,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance2> = 63,
 		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
 		ContractsRegistry: pallet_contracts_registry = 65,
+		SenateAccount: pallet_custom_account::<Instance2> = 66,
 
 		// Sora Bridge:
 		LeafProvider: leaf_provider = 80,
@@ -1903,7 +1918,9 @@ mod staking_v12 {
 
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
-type Migrations = ();
+type Migrations = (
+	crate::migrations::add_senate_account_pallet::Migration<Runtime>,
+);
 
 type EventRecord = frame_system::EventRecord<
 	<Runtime as frame_system::Config>::RuntimeEvent,

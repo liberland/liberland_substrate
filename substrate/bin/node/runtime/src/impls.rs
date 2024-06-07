@@ -239,6 +239,29 @@ impl InstanceFilter<RuntimeCall> for NftsCallFilter {
 #[derive(
 	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo, Serialize, Deserialize,
 )]
+pub struct SenateAccountCallFilter;
+
+impl Contains<RuntimeCall> for SenateAccountCallFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		match c {
+			RuntimeCall::Utility(pallet_utility::Call::batch { calls }) => calls.iter().all(|inner_call| Self::contains(inner_call)),
+			RuntimeCall::Utility(pallet_utility::Call::batch_all { calls }) => calls.iter().all(|inner_call| Self::contains(inner_call)),
+			_ => matches!(c,
+				RuntimeCall::LLM(pallet_llm::Call::remark { .. }) |
+				RuntimeCall::LLM(pallet_llm::Call::send_llm { .. }) |
+				RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) |
+				RuntimeCall::Assets(pallet_assets::Call::transfer { .. }) |
+				RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { .. }) |
+				RuntimeCall::Balances(pallet_balances::Call::transfer { .. }) |
+				RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { .. })
+			)
+		}
+	}
+}
+
+#[derive(
+	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo, Serialize, Deserialize,
+)]
 pub struct CouncilAccountCallFilter;
 
 impl CouncilAccountCallFilter {
@@ -670,6 +693,106 @@ pub fn get_account_id_from_string_hash(seed: &str) -> AccountId32 {
 	let hash = H256::from_slice(&sp_io::hashing::blake2_256(seed.as_bytes()));
 	let public_key = sp_core::sr25519::Public::from_h256(hash);
 	AccountId32::from(public_key)
+}
+
+#[cfg(test)]
+mod senate_filter_tests {
+	use super::{SenateAccountCallFilter, RuntimeCall};
+	use frame_support::{PalletId, traits::Contains};
+	use sp_runtime::{traits::AccountIdConversion, AccountId32};
+
+	fn accid() -> AccountId32 {
+		PalletId(*b"12345678").into_account_truncating()
+	}
+
+	fn acc() -> sp_runtime::MultiAddress<AccountId32, ()> {
+		accid().into()
+	}
+
+	#[test]
+	fn allows_batch_all() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![
+				RuntimeCall::LLM(pallet_llm::Call::remark { data: vec![].try_into().unwrap() }),
+				RuntimeCall::LLM(pallet_llm::Call::send_llm { to_account: accid(), amount: 1u8.into() }),
+				RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { to_account: accid(), amount: 1u8.into() }),
+				RuntimeCall::Balances(pallet_balances::Call::transfer { dest: acc(), value: 1u8.into() }),
+				RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { dest: acc(), value: 1u8.into() }),
+				RuntimeCall::Assets(pallet_assets::Call::transfer { id: 100.into(), target: acc(), amount: 1u8.into() }),
+				RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { id: 100.into(), target: acc(), amount: 1u8.into() }),
+			];
+			let call = RuntimeCall::Utility(pallet_utility::Call::batch_all { calls });
+			assert!(SenateAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_batch() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![
+				RuntimeCall::LLM(pallet_llm::Call::remark { data: vec![].try_into().unwrap() }),
+				RuntimeCall::LLM(pallet_llm::Call::send_llm { to_account: accid(), amount: 1u8.into() }),
+				RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { to_account: accid(), amount: 1u8.into() }),
+				RuntimeCall::Balances(pallet_balances::Call::transfer { dest: acc(), value: 1u8.into() }),
+				RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { dest: acc(), value: 1u8.into() }),
+				RuntimeCall::Assets(pallet_assets::Call::transfer { id: 100.into(), target: acc(), amount: 1u8.into() }),
+				RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { id: 100.into(), target: acc(), amount: 1u8.into() }),
+			];
+			let call = RuntimeCall::Utility(pallet_utility::Call::batch { calls });
+			assert!(SenateAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_lld_transfers() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let c = RuntimeCall::Balances(pallet_balances::Call::transfer { dest: acc(), value: 1u8.into() });
+			assert!(SenateAccountCallFilter::contains(&c));
+			let c = RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive { dest: acc(), value: 1u8.into() });
+			assert!(SenateAccountCallFilter::contains(&c));
+		});
+	}
+
+	#[test]
+	fn allows_assets_transfers() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let c = RuntimeCall::Assets(pallet_assets::Call::transfer { id: 100.into(), target: acc(), amount: 1u8.into() });
+			assert!(SenateAccountCallFilter::contains(&c));
+			let c = RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { id: 100.into(), target: acc(), amount: 1u8.into() });
+			assert!(SenateAccountCallFilter::contains(&c));
+		});
+	}
+
+	#[test]
+	fn allows_llm_transfers() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let c = RuntimeCall::LLM(pallet_llm::Call::remark { data: vec![].try_into().unwrap() });
+			assert!(SenateAccountCallFilter::contains(&c));
+			let c = RuntimeCall::LLM(pallet_llm::Call::send_llm { to_account: accid(), amount: 1u8.into() });
+			assert!(SenateAccountCallFilter::contains(&c));
+			let c = RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { to_account: accid(), amount: 1u8.into() });
+			assert!(SenateAccountCallFilter::contains(&c));
+		});
+	}
+
+	#[test]
+	fn disallows_other_stuff() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let c = RuntimeCall::System(frame_system::Call::remark { remark: vec![].try_into().unwrap() });
+			assert!(!SenateAccountCallFilter::contains(&c));
+		});
+	}
+
+	#[test]
+	fn disallows_batched_other_stuff() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![
+				RuntimeCall::System(frame_system::Call::remark { remark: vec![].try_into().unwrap() }),
+			];
+			let call = RuntimeCall::Utility(pallet_utility::Call::batch { calls });
+			assert!(!SenateAccountCallFilter::contains(&call));
+		});
+	}
 }
 
 #[cfg(test)]
