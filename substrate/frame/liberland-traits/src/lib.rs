@@ -35,6 +35,12 @@ pub trait CitizenshipChecker<AccountId> {
 	/// * have a KnownGood judgement
 	fn ensure_politics_allowed(account: &AccountId) -> Result<(), DispatchError>;
 
+	/// Checks if account can start a validator. For validation to be allowed, account needs to:
+	/// * have >=5k LLM politipooled
+	/// * have valid citizen identity
+	/// * have a KnownGood judgement
+	fn ensure_validate_allowed(account: &AccountId) -> Result<(), DispatchError>;
+
 	/// Checks if account has NFTs allowed. For NFTs to be allowed, account needs to:
 	/// * have LLM politipooled
 	/// * have valid citizen identity

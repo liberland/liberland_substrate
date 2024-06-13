@@ -1108,7 +1108,7 @@ pub mod pallet {
 		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
 			let controller = ensure_signed(origin)?;
 			if CitizenshipRequired::<T>::get() {
-				T::Citizenship::ensure_politics_allowed(&controller)?;
+				T::Citizenship::ensure_validate_allowed(&controller)?;
 			}
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
