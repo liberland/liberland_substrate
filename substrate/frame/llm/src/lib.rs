@@ -771,6 +771,12 @@ pub mod pallet {
 			Ok(())
 		}
 
+		fn ensure_validate_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
+			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
+			Ok(())
+		}
+
 		fn ensure_land_nfts_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
