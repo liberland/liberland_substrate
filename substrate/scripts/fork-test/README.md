@@ -24,7 +24,7 @@
    cd scripts/fork-test/
    export BINARY=/tmp/liberland-testnet-v14.0.1
    export RUNTIME=/tmp/bastiat-v15.0.0.wasm
-   ./test.sh bastiat.config.sh
+   ./run-fork.sh bastiat.config.sh
    ```
 8. Test the chain: https://polkadot.js.org/apps/?rpc=ws://localhost:9944
    * this chain has the same storage as Testnet at the time the test was run - the only differences is that there's only one validator: Alice
@@ -46,7 +46,7 @@
    cd scripts/fork-test/
    export BINARY=/tmp/liberland-mainnet-v13.0.0
    export RUNTIME=/tmp/mainnet-v15.0.0.wasm
-   ./test.sh mainnet.config.sh
+   ./run-fork.sh mainnet.config.sh
    ```
 8. Test the chain: https://polkadot.js.org/apps/?rpc=ws://localhost:9944
    * this chain has the same storage as mainnet at the time the test was run - the only differences is that there's only one validator: Alice

@@ -1,0 +1,17 @@
+{
+  "name": "test-api",
+  "packageManager": "yarn@1.22.19",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node"
+  },
+  "dependencies": {
+    "@polkadot/api": "^10.11.2"
+  },
+  "license":"UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "prettify": "^0.1.7",
+    "typescript": "^5.3.3"
+  }
+}
