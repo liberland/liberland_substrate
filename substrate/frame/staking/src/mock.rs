@@ -234,6 +234,7 @@ impl pallet_llm::Config for Test {
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
+	type MaxCourts = ConstU32<100>;
 }
 
 use pallet_nfts::PalletFeatures;

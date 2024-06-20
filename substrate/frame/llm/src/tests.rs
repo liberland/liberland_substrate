@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use crate::{
-	mock::*, Config, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, LastRelease,
-	RemarkData, Withdrawlock, WithdrawlockDuration,
+	mock::*, Config, Courts, Electionlock, ElectionlockDuration, Error, Event, LLMAccount,
+	LLMPolitics, LastRelease, RemarkData, Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
 use frame_support::{
@@ -648,5 +648,111 @@ fn remark_deposits_event() {
 		let data: RemarkData = vec![1, 2, 3].try_into().unwrap();
 		assert_ok!(LLM::remark(origin.clone(), data.clone()));
 		System::assert_last_event(Event::Remarked(data).into());
+	});
+}
+
+#[test]
+fn set_courts_works() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(LLM::set_courts(RuntimeOrigin::root(), vec![105, 110].try_into().unwrap()));
+		assert_eq!(Courts::<Test>::get(), vec![105, 110]);
+	});
+}
+
+#[test]
+fn only_approved_accounts_can_call_force_transfer() {
+	new_test_ext().execute_with(|| {
+		let unapproved = RuntimeOrigin::signed(2);
+		let approved = RuntimeOrigin::signed(1);
+
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 1;
+
+		assert_noop!(
+			LLM::force_transfer(unapproved, from.clone(), to.clone(), amount),
+			Error::<Test>::NotCourt
+		);
+
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 1));
+		assert_ok!(LLM::force_transfer(approved, from, to, amount));
+	});
+}
+
+#[test]
+fn cant_force_transfer_more_than_balance() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 1;
+
+		assert_noop!(LLM::force_transfer(court, from, to, amount), Error::<Test>::LowBalance);
+	});
+}
+
+#[test]
+fn cant_force_transfer_from_liquid() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let from = LLMAccount::Liquid(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 1;
+
+		assert_noop!(LLM::force_transfer(court, from, to, amount), Error::<Test>::InvalidAccount);
+	});
+}
+
+#[test]
+fn force_updates_balances_correctly_to_liquid() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let id = LLM::llm_id();
+		let politipool = LLM::get_llm_politipool_account();
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Liquid(2);
+		let amount = 2;
+
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 3));
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(2), 2));
+		let politipool_before = Assets::balance(id, politipool);
+		let from_before = Assets::balance(id, 1);
+		let to_before = Assets::balance(id, 2);
+
+		assert_ok!(LLM::force_transfer(court, from, to, amount));
+
+		assert_eq!(Assets::balance(id, politipool), politipool_before - amount);
+		assert_eq!(Assets::balance(id, 1), from_before);
+		assert_eq!(Assets::balance(id, 2), to_before + amount);
+
+		assert_eq!(LLMPolitics::<Test>::get(1), 3 - amount);
+		assert_eq!(LLMPolitics::<Test>::get(2), 2);
+	});
+}
+
+#[test]
+fn force_updates_balances_correctly_to_locked() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let id = LLM::llm_id();
+		let politipool = LLM::get_llm_politipool_account();
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 2;
+
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 3));
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(2), 2));
+		let politipool_before = Assets::balance(id, politipool);
+		let from_before = Assets::balance(id, 1);
+		let to_before = Assets::balance(id, 2);
+
+		assert_ok!(LLM::force_transfer(court, from, to, amount));
+
+		assert_eq!(Assets::balance(id, politipool), politipool_before);
+		assert_eq!(Assets::balance(id, 1), from_before);
+		assert_eq!(Assets::balance(id, 2), to_before);
+
+		assert_eq!(LLMPolitics::<Test>::get(1), 3 - amount);
+		assert_eq!(LLMPolitics::<Test>::get(2), 2 + amount);
 	});
 }

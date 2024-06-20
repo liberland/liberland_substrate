@@ -73,13 +73,19 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 These calls can be made from any _Signed_ origin.
 
 * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
+* `send_llm_to_politipool`: Transfer LLM directly to account's politipool.
 * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock period. Affects political rights for an ElectionLock period.
 * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
+* `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
 
 #### Restricted
 
+* `treasury_lld_transfer`: Transfer LLD from treasury to specified account. Can only be called by selected accounts and Senate.
 * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called by selected accounts and Senate.
+* `treasury_llm_transfer_to_politipool`: Transfer LLM from treasury to specified account's politipool. Can only be called by selected accounts and Senate.
+* `force_transfer`: Force transfer LLM from between accounts. Can only be called by courts.
+* `set_courts`: Set courts. Can only be called by Root.
 
 ### Public functions
 
@@ -87,7 +93,6 @@ These calls can be made from any _Signed_ origin.
 * `get_llm_vault_account`: AccountId of **Vault** account. **Vault** account stores all LLM created initially on genesis and releases it to treasury on LLM Release Events.
 * `get_llm_treasury_account`: AccountId of **Treasury** account. **Treasury** accounts receives prereleased amount of LLM on genesis and part of LLM from **Vault** on LLM Release Events.
 * `get_llm_politipool_account`: AccountId of **Politipool** account. **Politipool** account stores LLM locked in politics by all other accounts.
-* `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
 
 ### LLM trait
 

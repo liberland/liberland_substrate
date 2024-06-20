@@ -106,6 +106,7 @@ pallet-registry = { path = "../../../frame/registry", default-features = false }
 pallet-office = { path = "../../../frame/office", default-features = false }
 pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
 pallet-contracts-registry = { path = "../../../frame/contracts-registry", default-features = false }
+liberland-extension-runtime = { path = "../../../../liberland-extension/runtime", default-features = false }
 
 # Sora Bridge:
 substrate-bridge-app = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
@@ -134,6 +135,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"liberland-extension-runtime/std",
 	"log/std",
 	"node-primitives/std",
 	"pallet-asset-conversion/std",

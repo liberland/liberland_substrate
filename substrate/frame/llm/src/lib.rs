@@ -1,141 +1,4 @@
-//! # Liberland Merit(LLM) Pallet
-//!
-//! ## Overview
-//!
-//! Liberland Merit is a Liberland currency that gives political power to citizens.
-//!
-//! The LLM pallet handles:
-//!
-//! * creating LLM asset in `pallet-assets` on genesis
-//! * LLM release from **Vault** to **Treasury**
-//! * locking, a.k.a. politipooling the LLM for use in politics
-//! * verifying citizenship status
-//!
-//! ## LLM lifecycle
-//!
-//! On Genesis (see `fn create_llm`):
-//!
-//! * LLM is created in `pallet-assets`
-//! * configured `TotalSupply` amount of LLM is created and transferred to **Vault**
-//! * configured `PreReleasedAmount` is transferred from **Vault** to **Treasury**
-//!
-//! Every `InflationEventInterval` (see `fn maybe_release`):
-//!
-//! * `InflationEventReleaseFactor` of **Vault** balance is transferred to **Treasury**
-//!
-//! Accounts are free to locks in politics, a.k.a. politipool any amount of LLM at any time.
-//!
-//! Accounts may unlock 10% of locked LLM once every `Withdrawlock` duration (see [Genesis
-//! Config](#genesis-config)), but it will suspend their politics rights for `Electionlock`
-//! duration.
-//!
-//! Accounts may freely transfer their not-locked LLM to other accounts.
-//!
-//! ### Special accounts:
-//!
-//! * **Treasury**:
-//!     * gets `PreReleasedAmount` LLM on genesis and 10% of **Vault** balance periodically (_LLM
-//!       Release Event_)
-//!     * may hold LLD
-//!     * derived from PalletID `lltreasu`: `5EYCAe5hveooUENA5d7dwq3caqM4LLBzktNumMKmhNRXu4JE`
-//!
-//! * **Vault**:
-//!     * gets initial supply of LLM on genesis
-//!     * releases 10% of it's balance to **Trasury** on LLM Release Event (yearly)
-//!     * derived from PalletID `llm/safe`: `5EYCAe5hvejUE1BUTDSnxDfCqVkADRicSKqbcJrduV1KCDmk`
-//!
-//! * **Politipool**,
-//!     * gets LLM locked in politics by other accounts (`politics_lock`)
-//!     * releases locked LLM back on `politics_unlock`
-//!     * derived from PalletID `politilock`: `5EYCAe5ijGqt3WEM9aKUBdth51NEBNz9P84NaUMWZazzWt7c`
-//!
-//! ## Internal Storage:
-//!
-//! * `LastRelease`: block number for next LLM Release Event (transfer from **Vault** to
-//!   **Treasury**)
-//! * `LLMPolitics`: amount of LLM each account has allocated into politics
-//! * `Withdrawlock`: block number until which account can't do another `politics_unlock`
-//! * `Electionlock`: block number until which account can't participate in politics directly
-//! * `Citizens`: number of valid citizens
-//!
-//! ## Runtime config
-//!
-//! * `RuntimeEvent`: Event type to use.
-//! * `TotalSupply`: Total amount of LLM to be created on genesis. That's all LLM that will ever
-//!   exit. It will be stored in **Vault**.
-//! * `PreReleasedAmount`: Amount of LLM that should be released (a.k.a. transferred from **Vault**
-//!   to **Treasury**) on genesis.
-//! * `CitizenshipMinimumPooledLLM`: Minimum amount of pooled LLM for valid citizens.
-//! * `UnlockFactor`: How much to unlock on politics_unlock
-//! * `AssetId`: LLM AssetId.
-//! * `AssetName`: LLM Asset name.
-//! * `AssetSymbol`: LLM Asset symbol.
-//! * `InflationEventInterval`: How often should 90% of vault be released to trasury.
-//! * `OnLLMPoliticsUnlock`: Handler for unlocks - for example to remove votes and delegeations in
-//!   democracy.
-//!
-//! ## Genesis Config
-//!
-//! * `unpooling_withdrawlock_duration`: duration, in blocks, for which additional unlocks should
-//!   be locked after `politics_unlock`
-//! * `unpooling_electionlock_duration`: duration, in blocks, for which politics rights should be
-//!   suspended after `politics_unlock`
-//!
-//! ## Interface
-//!
-//! ### Dispatchable Functions
-//!
-//! #### Public
-//!
-//! These calls can be made from any _Signed_ origin.
-//!
-//! * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
-//! * `send_llm`: Transfer LLM to another account's politipool.
-//! * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
-//! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
-//!   period. Affects political rights for an ElectionLock period.
-//! * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
-//! * `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
-//!
-//! #### Restricted
-//!
-//! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called
-//!   by Senate.
-//! * `treasury_llm_transfer`: Transfer LLM from treasury to specified account's politipool. Can
-//!   only be called by Senate.
-//!
-//! ### Public functions
-//!
-//! * `llm_id`: Asset ID of the LLM asset for `pallet-assets`
-//! * `get_llm_vault_account`: AccountId of **Vault** account. **Vault** account stores all LLM
-//!   created initially on genesis and releases it to treasury on LLM Release Events.
-//! * `get_llm_treasury_account`: AccountId of **Treasury** account. **Treasury** accounts receives
-//!   prereleased amount of LLM on genesis and part of LLM from **Vault** on LLM Release Events.
-//! * `get_llm_politipool_account`: AccountId of **Politipool** account. **Politipool** account
-//!   stores LLM locked in politics by all other accounts.
-//!
-//! ### LLM trait
-//!
-//! LLM pallet implements LLM trait with following functions available for other pallets:
-//!
-//! * `check_pooled_llm`: Checks if given account has any LLM locked in politics.
-//! * `is_election_unlocked`: Checks if given account has rights to participate in politics
-//!   unlocked. They may be locked after `politics_unlock`. This does NOT check if account is a
-//!   valid citizen - use `CitizenshipChecker` trait for that.
-//! * `get_politi_pooled_amount`: Get total amount of locked LLM across all accounts.
-//! * `get_llm_politics`: Get amount of locked LLM for given account.
-//!
-//! ### CitizenshipChecker trait
-//!
-//! LLM pallet implements CitizenshipChecker trait with following functions available for other
-//! pallets:
-//!
-//! * `ensure_politics_allowed`: Checks if given account can participate in
-//! politics actions. It verifies that it's a valid citizen, doesn't have
-//! election rights locked and has 5000 LLM locked in politics.
-//!
-//! License: MIT
-
+#![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use pallet::*;
 
@@ -163,8 +26,17 @@ type Assets<T> = pallet_assets::Pallet<T>;
 type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::RuntimeDebug;
 
-#[frame_support::pallet]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub enum LLMAccount<AccountId> {
+	Liquid(AccountId),
+	Locked(AccountId),
+}
+
+#[frame_support::pallet(dev_mode)] // FIXME
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
 	use super::*;
@@ -233,6 +105,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn citizens)]
 	pub(super) type Citizens<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn courts)]
+	pub(super) type Courts<T: Config> =
+		StorageValue<_, BoundedVec<T::AccountId, T::MaxCourts>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -308,6 +185,7 @@ pub mod pallet {
 
 		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
 		type WeightInfo: WeightInfo;
+		type MaxCourts: Get<u32>;
 	}
 
 	pub type AssetId<T> = <T as Config>::AssetId;
@@ -330,6 +208,8 @@ pub mod pallet {
 		NonCitizen,
 		/// Temporary locked after unpooling LLM
 		Locked,
+		/// Caller isn't an authorized court
+		NotCourt,
 	}
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
@@ -373,7 +253,7 @@ pub mod pallet {
 		/// `Gottawait` otherwise.
 		///
 		/// Emits:
-		/// * `LLMPoliticsLocked`
+		/// * `LLMPoliticsUnlocked`
 		/// * `Transferred` from `pallet-assets`
 		#[pallet::call_index(1)]
 		#[pallet::weight(<T as Config>::WeightInfo::politics_unlock())]
@@ -505,6 +385,66 @@ pub mod pallet {
 		#[pallet::weight(<T as Config>::WeightInfo::remark(data.len() as u32))]
 		pub fn remark(_origin: OriginFor<T>, data: RemarkData) -> DispatchResult {
 			Self::deposit_event(Event::<T>::Remarked(data));
+			Ok(())
+		}
+
+		/// Force transfer LLM. Can only be called by Courts.
+		///
+		/// - `from`: Account to transfer from.
+		/// - `to`: Account to transfer to.
+		/// - `amount`: Amount to transfer.
+		///
+		/// Emits:
+		/// * `LLMPoliticsLocked`
+		/// * `LLMPoliticsUnlocked`
+		#[pallet::call_index(8)]
+		#[pallet::weight(<T as Config>::WeightInfo::force_transfer())]
+		pub fn force_transfer(
+			origin: OriginFor<T>,
+			from: LLMAccount<T::AccountId>,
+			to: LLMAccount<T::AccountId>,
+			amount: T::Balance,
+		) -> DispatchResult {
+			let caller: T::AccountId = ensure_signed(origin)?;
+			ensure!(Courts::<T>::get().contains(&caller), Error::<T>::NotCourt);
+
+			let politipool_account = Self::get_llm_politipool_account();
+			let transfer_from = match from {
+				LLMAccount::Liquid(_) => return Err(Error::<T>::InvalidAccount.into()),
+				LLMAccount::Locked(account) => {
+					let politics_balance = LLMPolitics::<T>::get(account.clone());
+					ensure!(politics_balance >= amount, Error::<T>::LowBalance);
+
+					LLMPolitics::<T>::mutate(account.clone(), |b| *b -= amount);
+					Self::deposit_event(Event::<T>::LLMPoliticsUnlocked(account, amount));
+					politipool_account.clone()
+				},
+			};
+			let transfer_to = match to {
+				LLMAccount::Liquid(account) => account,
+				LLMAccount::Locked(account) => {
+					LLMPolitics::<T>::mutate(account.clone(), |b| *b += amount);
+					Self::deposit_event(Event::<T>::LLMPoliticsLocked(account, amount));
+					politipool_account
+				},
+			};
+			if transfer_from != transfer_to {
+				Self::transfer(transfer_from, transfer_to, amount)?;
+			}
+			Ok(())
+		}
+
+		/// Set Courts. Can only be called by Root
+		///
+		/// - `courts`: New set of authorized courts
+		#[pallet::call_index(9)]
+		#[pallet::weight(<T as Config>::WeightInfo::set_courts(courts.len() as u32))]
+		pub fn set_courts(
+			origin: OriginFor<T>,
+			courts: BoundedVec<T::AccountId, T::MaxCourts>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Courts::<T>::set(courts);
 			Ok(())
 		}
 	}

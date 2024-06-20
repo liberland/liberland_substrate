@@ -13,7 +13,8 @@ use super::*;
 use crate::{LLMPolitics, Pallet as LLM};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_system::RawOrigin;
-use sp_runtime::Saturating;
+use sp_core::Get;
+use sp_runtime::{BoundedVec, Saturating};
 use sp_std::prelude::*;
 
 const SEED: u32 = 0;
@@ -108,6 +109,32 @@ benchmarks! {
 	verify {
 		let e: <T as Config>::RuntimeEvent = Event::Remarked(data).into();
 		frame_system::Pallet::<T>::assert_last_event(e.into());
+	}
+
+	force_transfer {
+		let user: T::AccountId = account("user", 0, SEED);
+		let user2: T::AccountId = account("user", 1, SEED);
+		let amount: T::Balance = 10000u32.into();
+		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
+		LLM::<T>::set_courts(RawOrigin::Root.into(), vec![user.clone()].try_into().unwrap()).unwrap();
+		let origin = RawOrigin::Signed(user.clone());
+		LLM::<T>::politics_lock(origin.clone().into(), amount.clone()).unwrap();
+		assert_eq!(LLMPolitics::<T>::get(&user), amount.clone());
+	}: _(origin, LLMAccount::Locked(user.clone()), LLMAccount::Liquid(user2.clone()), amount.clone())
+	verify {
+		assert_eq!(LLMPolitics::<T>::get(&user), 0u8.into());
+	}
+
+	set_courts {
+		let l in 1 .. T::MaxCourts::get();
+		let mut courts: Vec<T::AccountId> = vec![];
+		for i in 1..=l {
+			courts.push(account("court", i, SEED));
+		}
+		let courts: BoundedVec<T::AccountId, T::MaxCourts> = courts.try_into().unwrap();
+	}: _(RawOrigin::Root, courts.clone())
+	verify {
+		assert_eq!(Courts::<T>::get(), courts);
 	}
 }
 

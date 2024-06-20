@@ -1,0 +1,41 @@
+name: Run contracts tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C debug-assertions=y"
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup update --no-self-update 1.78.0
+          rustup component add --toolchain 1.78.0 rustfmt rust-src
+          rustup target add wasm32-unknown-unknown
+          rustup default 1.78.0
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
+          workspaces: "contracts -> contracts/target"
+        
+      - name: Run tests
+        working-directory: contracts
+        run: cargo test

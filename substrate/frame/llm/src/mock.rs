@@ -124,6 +124,7 @@ impl pallet_llm::Config for Test {
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
+	type MaxCourts = ConstU32<3>;
 }
 
 parameter_types! {
@@ -207,6 +208,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		setup_citizenships(balances.into_iter().map(|(acc, _)| acc).collect());
 		LLM::transfer_from_vault(1, 6000).unwrap();
 		LLM::transfer_from_vault(2, 6000).unwrap();
+		LLM::set_courts(RuntimeOrigin::root(), vec![1].try_into().unwrap()).unwrap();
 	});
 	ext
 }

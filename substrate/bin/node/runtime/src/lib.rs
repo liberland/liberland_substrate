@@ -44,7 +44,7 @@ use frame_support::{
         tokens::nonfungibles_v2::Inspect,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32, MapSuccess,
 		Currency, EitherOf, EitherOfDiverse, Imbalance, InstanceFilter,
-		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced
+		KeyOwnerProofSystem, LockIdentifier, OnUnbalanced
 	},
 	weights::{
 		constants::{
@@ -111,7 +111,7 @@ mod migrations;
 use impls::{
 	Author, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember, CouncilAccountCallFilter, EnsureCmp, SenateAccountCallFilter,
+	ContainsMember, CouncilAccountCallFilter, EnsureCmp, ContractsCallFilter, SenateAccountCallFilter,
 };
 
 /// Constant values used within the runtime.
@@ -1078,20 +1078,14 @@ impl pallet_contracts::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
-	/// The safest default is to allow no calls at all.
-	///
-	/// Runtimes should whitelist dispatchables that are allowed to be called from contracts
-	/// and make sure they are stable. Dispatchables exposed to contracts are not allowed to
-	/// change because that would break already deployed contracts. The `Call` structure itself
-	/// is not allowed to change the indices of existing pallets, too.
-	type CallFilter = Nothing;
+	type CallFilter = ContractsCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
 	type DefaultDepositLimit = DefaultDepositLimit;
 	type CallStack = [pallet_contracts::Frame<Self>; 5];
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = ();
+	type ChainExtension = liberland_extension_runtime::LiberlandExtension;
 	type Schedule = Schedule;
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
 	type MaxCodeLen = ConstU32<{ 123 * 1024 }>;
@@ -1362,6 +1356,7 @@ impl pallet_llm::Config for Runtime {
 	>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 	type WeightInfo = ();
+	type MaxCourts = ConstU32<2>;
 }
 
 parameter_types! {
