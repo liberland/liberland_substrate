@@ -1359,6 +1359,7 @@ impl pallet_llm::Config for Runtime {
 		EnsureRoot<AccountId>,
 		EnsureSenateMajority
 	>;
+	type ForceOrigin = EnsureRoot<AccountId>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 	type WeightInfo = ();
 }
