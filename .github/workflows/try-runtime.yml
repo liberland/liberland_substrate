@@ -23,14 +23,13 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
 
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rustfmt, clippy
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup update --no-self-update 1.78.0
+          rustup component add --toolchain 1.78.0 rustfmt rust-src
+          rustup target add wasm32-unknown-unknown
+          rustup default 1.78.0
 
       - name: Checkout
         uses: actions/checkout@v4
