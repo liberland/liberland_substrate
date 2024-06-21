@@ -488,6 +488,7 @@ parameter_types! {
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
+	pub const MaxHolds: u32 = 2;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -503,7 +504,7 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
 	type RuntimeHoldReason = RuntimeHoldReason;
-	type MaxHolds = ();
+	type MaxHolds = MaxHolds;
 }
 
 parameter_types! {
