@@ -1,0 +1,1118 @@
+{
+  "source": {
+    "hash": "0x544526dd2a6450409297baf5ccd05e0afa71cc0b1e2490a80607e3fe364071c4",
+    "language": "ink! 4.3.0",
+    "compiler": "rustc 1.71.1",
+    "build_info": {
+      "build_mode": "Release",
+      "cargo_contract_version": "3.2.0",
+      "rust_toolchain": "stable-x86_64-unknown-linux-gnu",
+      "wasm_opt_settings": {
+        "keep_debug_symbols": false,
+        "optimization_passes": "Z"
+      }
+    }
+  },
+  "contract": {
+    "name": "wrapped-lld",
+    "version": "1.0.0",
+    "authors": [
+      "Cardinal",
+      "Liberland"
+    ],
+    "description": "Smart contract for LLD coin wrapped as a PSP22 token",
+    "repository": "https://github.com/liberland/liberland_substrate",
+    "homepage": "https://github.com/liberland/liberland_substrate"
+  },
+  "image": "paritytech/contracts-verifiable:3.2.0",
+  "spec": {
+    "constructors": [
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "new",
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink_primitives",
+            "ConstructorResult"
+          ],
+          "type": 1
+        },
+        "selector": "0x9bae9d5e"
+      }
+    ],
+    "docs": [],
+    "environment": {
+      "accountId": {
+        "displayName": [
+          "AccountId"
+        ],
+        "type": 13
+      },
+      "balance": {
+        "displayName": [
+          "Balance"
+        ],
+        "type": 0
+      },
+      "blockNumber": {
+        "displayName": [
+          "BlockNumber"
+        ],
+        "type": 19
+      },
+      "chainExtension": {
+        "displayName": [
+          "ChainExtension"
+        ],
+        "type": 20
+      },
+      "hash": {
+        "displayName": [
+          "Hash"
+        ],
+        "type": 17
+      },
+      "maxEventTopics": 4,
+      "timestamp": {
+        "displayName": [
+          "Timestamp"
+        ],
+        "type": 18
+      }
+    },
+    "events": [
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "owner",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "spender",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "amount",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "docs": [],
+        "label": "Approval"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "from",
+            "type": {
+              "displayName": [
+                "Option"
+              ],
+              "type": 16
+            }
+          },
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "to",
+            "type": {
+              "displayName": [
+                "Option"
+              ],
+              "type": 16
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "docs": [],
+        "label": "Transfer"
+      }
+    ],
+    "lang_error": {
+      "displayName": [
+        "ink",
+        "LangError"
+      ],
+      "type": 3
+    },
+    "messages": [
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "WrappedLLD::deposit",
+        "mutates": true,
+        "payable": true,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0x39ac31f4"
+      },
+      {
+        "args": [
+          {
+            "label": "value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "WrappedLLD::withdraw",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0x7822f9d4"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "PSP22Metadata::token_name",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 8
+        },
+        "selector": "0x3d261bd4"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "PSP22Metadata::token_symbol",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 8
+        },
+        "selector": "0x34205be5"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "PSP22Metadata::token_decimals",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 10
+        },
+        "selector": "0x7271b782"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::total_supply",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 12
+        },
+        "selector": "0x162df8c2"
+      },
+      {
+        "args": [
+          {
+            "label": "owner",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::balance_of",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 12
+        },
+        "selector": "0x6568382f"
+      },
+      {
+        "args": [
+          {
+            "label": "owner",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "spender",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::allowance",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 12
+        },
+        "selector": "0x4d47d921"
+      },
+      {
+        "args": [
+          {
+            "label": "to",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          },
+          {
+            "label": "_data",
+            "type": {
+              "displayName": [
+                "Vec"
+              ],
+              "type": 15
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::transfer",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0xdb20f9f5"
+      },
+      {
+        "args": [
+          {
+            "label": "from",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "to",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          },
+          {
+            "label": "_data",
+            "type": {
+              "displayName": [
+                "Vec"
+              ],
+              "type": 15
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::transfer_from",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0x54b3c76e"
+      },
+      {
+        "args": [
+          {
+            "label": "spender",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::approve",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0xb20f1bbd"
+      },
+      {
+        "args": [
+          {
+            "label": "spender",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "delta_value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::increase_allowance",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0x96d6b57a"
+      },
+      {
+        "args": [
+          {
+            "label": "spender",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "label": "delta_value",
+            "type": {
+              "displayName": [
+                "u128"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "PSP22::decrease_allowance",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 4
+        },
+        "selector": "0xfecb57d5"
+      }
+    ]
+  },
+  "storage": {
+    "root": {
+      "layout": {
+        "struct": {
+          "fields": [
+            {
+              "layout": {
+                "struct": {
+                  "fields": [
+                    {
+                      "layout": {
+                        "leaf": {
+                          "key": "0x00000000",
+                          "ty": 0
+                        }
+                      },
+                      "name": "total_supply"
+                    },
+                    {
+                      "layout": {
+                        "root": {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x45c746d4",
+                              "ty": 0
+                            }
+                          },
+                          "root_key": "0x45c746d4"
+                        }
+                      },
+                      "name": "balances"
+                    },
+                    {
+                      "layout": {
+                        "root": {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x00efb3a1",
+                              "ty": 0
+                            }
+                          },
+                          "root_key": "0x00efb3a1"
+                        }
+                      },
+                      "name": "allowances"
+                    }
+                  ],
+                  "name": "PSP22Data"
+                }
+              },
+              "name": "data"
+            }
+          ],
+          "name": "Wlld"
+        }
+      },
+      "root_key": "0x00000000"
+    }
+  },
+  "types": [
+    {
+      "id": 0,
+      "type": {
+        "def": {
+          "primitive": "u128"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 2
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 2
+          },
+          {
+            "name": "E",
+            "type": 3
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": {
+        "def": {
+          "tuple": []
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 1,
+                "name": "CouldNotReadInput"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "LangError"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 5
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 5
+          },
+          {
+            "name": "E",
+            "type": 3
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 2
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 6
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 2
+          },
+          {
+            "name": "E",
+            "type": 6
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 7,
+                    "typeName": "String"
+                  }
+                ],
+                "index": 0,
+                "name": "Custom"
+              },
+              {
+                "index": 1,
+                "name": "InsufficientBalance"
+              },
+              {
+                "index": 2,
+                "name": "InsufficientAllowance"
+              },
+              {
+                "index": 3,
+                "name": "ZeroRecipientAddress"
+              },
+              {
+                "index": 4,
+                "name": "ZeroSenderAddress"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 7,
+                    "typeName": "String"
+                  }
+                ],
+                "index": 5,
+                "name": "SafeTransferCheckFailed"
+              }
+            ]
+          }
+        },
+        "path": [
+          "psp22",
+          "errors",
+          "PSP22Error"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": {
+        "def": {
+          "primitive": "str"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 9
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 9
+          },
+          {
+            "name": "E",
+            "type": 3
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 7
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 7
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 11
+          },
+          {
+            "name": "E",
+            "type": 3
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "def": {
+          "primitive": "u8"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 3
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 14,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "AccountId"
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": {
+        "def": {
+          "array": {
+            "len": 32,
+            "type": 11
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 11
+          }
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 13
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 13
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 14,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "Hash"
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "type": {
+        "def": {
+          "primitive": "u64"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": {
+        "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": {
+        "def": {
+          "variant": {}
+        },
+        "path": [
+          "ink_env",
+          "types",
+          "NoChainExtension"
+        ]
+      }
+    }
+  ],
+  "version": "4"
+}
