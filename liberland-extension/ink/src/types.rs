@@ -1,7 +1,9 @@
 use ink::env::Environment;
 
-type AccountId = <ink::env::DefaultEnvironment as Environment>::AccountId;
-type Balance = <ink::env::DefaultEnvironment as Environment>::Balance;
+pub type AccountId = <ink::env::DefaultEnvironment as Environment>::AccountId;
+pub type Balance = <ink::env::DefaultEnvironment as Environment>::Balance;
+pub type AssetsBalance = u128;
+pub type AssetId = u32;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[ink::scale_derive(Encode, Decode, TypeInfo)]
