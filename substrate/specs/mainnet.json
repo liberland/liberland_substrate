@@ -3,9 +3,9 @@
   "id": "liberland",
   "chainType": "Live",
   "bootNodes": [
-    "/ip4/164.92.169.230/tcp/30333/p2p/12D3KooWMfrCnSxWf5g1xrQ5MpzHJx75rmQqjwkjiRn6bBnooxke",
-    "/ip4/167.99.254.151/tcp/30333/p2p/12D3KooWLyiY3xdj2vJepd6rwLqJXReH4P5s7qtQKVRGbuWWymxY",
-    "/ip4/64.226.109.187/tcp/30333/p2p/12D3KooWFkFW6LwWHf8FwvbbT1D5yukto12GX5z5QUmB5eXXn5Bn"
+    "/dns/bootnode-1.mainnet.liberland.org/tcp/30333/p2p/12D3KooWMfrCnSxWf5g1xrQ5MpzHJx75rmQqjwkjiRn6bBnooxke",
+    "/dns/bootnode-2.mainnet.liberland.org/tcp/30333/p2p/12D3KooWLyiY3xdj2vJepd6rwLqJXReH4P5s7qtQKVRGbuWWymxY",
+    "/dns/bootnode-3.mainnet.liberland.org/tcp/30333/p2p/12D3KooWFkFW6LwWHf8FwvbbT1D5yukto12GX5z5QUmB5eXXn5Bn"
   ],
   "telemetryEndpoints": null,
   "protocolId": null,
