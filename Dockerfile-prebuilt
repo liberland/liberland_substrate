@@ -7,7 +7,7 @@ RUN curl -sSL https://api.github.com/repos/liberland/liberland_substrate/release
 RUN curl -sSL "$(jq -r '.assets[] | select(.name == "linux_x86_build") | .browser_download_url' < relinfo)" -o node
 
 FROM debian:bullseye-slim
-EXPOSE 30333 9933 9944
+EXPOSE 30333 9944
 VOLUME /data
 RUN useradd -Ms /bin/bash liberland
 COPY --from=downloader /app/node /node

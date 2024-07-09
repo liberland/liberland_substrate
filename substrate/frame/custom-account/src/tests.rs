@@ -9,7 +9,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 #![cfg(test)]
 
-use crate::{mock::*, Event};
+use crate::{mock::*, Event, NegativeImbalanceOf};
+use frame_support::traits::{Imbalance, OnUnbalanced, SortedMembers};
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use sp_runtime::traits::{AccountIdConversion, Hash};
 
@@ -63,5 +64,29 @@ fn execute_works() {
 
 		assert_ok!(CustomAccount::execute(RuntimeOrigin::root(), call));
 		System::assert_has_event(frame_system::Event::<Test>::Remarked { sender, hash }.into());
+	});
+}
+
+#[test]
+fn execute_unbalanced() {
+	new_test_ext().execute_with(|| {
+		let imbalance = NegativeImbalanceOf::<Test, ()>::new(100u64);
+		let amount = imbalance.peek();
+		let call_account_id: u64 = CustomAccountPalletId::get().into_account_truncating();
+		let balance_before = Balances::free_balance(call_account_id);
+		CustomAccount::on_unbalanced(imbalance);
+		let balance_after = Balances::free_balance(call_account_id);
+		assert_eq!(balance_before, balance_after - 100);
+		System::assert_last_event(Event::<Test>::Deposit { value: amount }.into());
+	});
+}
+
+#[test]
+fn sorted_members_are_correct() {
+	new_test_ext().execute_with(|| {
+		let call_account_id: u64 = CustomAccountPalletId::get().into_account_truncating();
+		let members = CustomAccount::sorted_members();
+		assert_eq!(members.len(), 1);
+		assert_eq!(members[0], call_account_id)
 	});
 }

@@ -1,0 +1,46 @@
+name: Try Runtime
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  tryruntime:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C debug-assertions=y"
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
+
+      - name: Build try-runtime bastiat runtime
+        run: cargo build --release --features try-runtime,testnet-runtime -p kitchensink-runtime
+      
+      - name: Install try-runtime CLI
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --locked
+
+      - name: try-runtime bastiat
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-idempotency-checks --no-weight-warnings live --uri wss://archive.testchain.liberland.org:443
+        
+      - name: Build try-runtime mainnet runtime
+        run: cargo build --release --features try-runtime -p kitchensink-runtime
+
+      - name: try-runtime mainnet
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-idempotency-checks --no-weight-warnings live --uri wss://mainnet.liberland.org:443

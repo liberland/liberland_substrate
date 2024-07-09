@@ -27,7 +27,7 @@ use kitchensink_runtime::{
 	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
 	BabeConfig, BalancesConfig, Block, CouncilConfig,
 	DemocracyConfig, ElectionsConfig, ImOnlineConfig,
-	MaxNominations, SessionConfig, SessionKeys, SocietyConfig,
+	MaxNominations, SessionConfig, SessionKeys,
 	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
 	TechnicalCommitteeConfig, LiberlandInitializerConfig,
 	CompanyRegistryOfficePalletId, CompanyRegistryOfficeConfig,
@@ -35,7 +35,7 @@ use kitchensink_runtime::{
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, EthLLDBridgeConfig, EthLLMBridgeConfig,
+	SenateConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -417,7 +417,6 @@ pub fn testnet_genesis(
 		grandpa: Default::default(),
 		technical_membership: Default::default(),
 		treasury: Default::default(),
-		society: SocietyConfig { pot: 0 },
 		assets: pallet_assets::GenesisConfig {
 			// This asset is used by the NIS pallet as counterpart currency.
 			assets: vec![(9, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1)],
@@ -460,16 +459,8 @@ pub fn testnet_genesis(
 			admin: offices_admin,
 			clerks: nfts_clerks,
 		},
-		eth_lld_bridge: EthLLDBridgeConfig {
-			admin: Some(root_key.clone()),
-			super_admin: Some(root_key.clone()),
-			..Default::default()
-		},
-		eth_llm_bridge: EthLLMBridgeConfig {
-			admin: Some(root_key.clone()),
-			super_admin: Some(root_key),
-			..Default::default()
-		},
+		substrate_bridge_outbound_channel: Default::default(),
+		sora_bridge_app: Default::default(),
 	}
 }
 

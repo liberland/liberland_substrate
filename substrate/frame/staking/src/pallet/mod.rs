@@ -31,6 +31,7 @@ use frame_support::{
 		Currency, Defensive, DefensiveResult, DefensiveSaturating, EnsureOrigin,
 		EstimateNextNewSession, Get, LockIdentifier, LockableCurrency, OnUnbalanced, TryCollect,
 		UnixTime,
+		tokens::ExistenceRequirement,
 	},
 	weights::Weight,
 	BoundedVec,
@@ -780,6 +781,8 @@ pub mod pallet {
 		CommissionTooLow,
 		/// Some bound is not met.
 		BoundNotMet,
+		/// Transfer failed
+		TransferFailed,
 	}
 
 	#[pallet::hooks]
@@ -1105,7 +1108,7 @@ pub mod pallet {
 		pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
 			let controller = ensure_signed(origin)?;
 			if CitizenshipRequired::<T>::get() {
-				T::Citizenship::ensure_politics_allowed(&controller)?;
+				T::Citizenship::ensure_validate_allowed(&controller)?;
 			}
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
@@ -1810,6 +1813,44 @@ pub mod pallet {
 			ensure_root(origin)?;
 			CitizenshipRequired::<T>::put(citizenship_required);
 			Ok(())
+		}
+
+		/// Take the to origin as a caller and lock up `value` of its balance in `to` account as a stash.
+		/// A `value` is transferred into `to` account and then bounded using `bond` or `bond_extra`.
+		///
+		/// `value` must be more than the `minimum_balance` specified by `T::Currency`.
+		///
+		/// The dispatch origin for this call must be _Signed_ account.
+		///
+		/// Emits `Bonded`.
+		#[pallet::call_index(101)]
+		#[pallet::weight(T::WeightInfo::bond_to())]
+		pub fn bond_to(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResult {
+			let sender: T::AccountId = ensure_signed(origin)?; 
+			T::Currency::transfer(
+				&sender,
+				&to,
+				value,
+				ExistenceRequirement::KeepAlive,
+			).map_err(|_| Error::<T>::TransferFailed)?;
+
+			let recipient = T::RuntimeOrigin::from(Some(to.clone()).into());
+			if Bonded::<T>::contains_key(&to) {
+				return Pallet::<T>::bond_extra(
+					recipient,
+					value
+				)
+			}
+			
+			Pallet::<T>::bond(
+				recipient,
+				value,
+				RewardDestination::Staked,
+			)
 		}
 	}
 }

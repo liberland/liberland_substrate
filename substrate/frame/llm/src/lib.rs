@@ -9,7 +9,7 @@
 //! * creating LLM asset in `pallet-assets` on genesis
 //! * LLM release from **Vault** to **Treasury**
 //! * locking, a.k.a. politipooling the LLM for use in politics
-//! * veryfing citizenship status
+//! * verifying citizenship status
 //!
 //! ## LLM lifecycle
 //!
@@ -19,9 +19,9 @@
 //! * configured `TotalSupply` amount of LLM is created and transferred to **Vault**
 //! * configured `PreReleasedAmount` is transferred from **Vault** to **Treasury**
 //!
-//! On yearly basis (see `fn try_release`):
+//! Every `InflationEventInterval` (see `fn maybe_release`):
 //!
-//! * 90% of **Vault** balance is transferred to **Treasury**
+//! * `InflationEventReleaseFactor` of **Vault** balance is transferred to **Treasury**
 //!
 //! Accounts are free to locks in politics, a.k.a. politipool any amount of LLM at any time.
 //!
@@ -51,7 +51,7 @@
 //!
 //! ## Internal Storage:
 //!
-//! * `NextRelease`: block number for next LLM Release Event (transfer of 10% from **Vault** to
+//! * `LastRelease`: block number for next LLM Release Event (transfer from **Vault** to
 //!   **Treasury**)
 //! * `LLMPolitics`: amount of LLM each account has allocated into politics
 //! * `Withdrawlock`: block number until which account can't do another `politics_unlock`
@@ -95,6 +95,7 @@
 //! * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock
 //!   period. Affects political rights for an ElectionLock period.
 //! * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
+//! * `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
 //!
 //! #### Restricted
 //!
@@ -181,14 +182,16 @@ pub mod pallet {
 	use scale_info::prelude::vec;
 	use sp_runtime::{
 		traits::{AccountIdConversion, StaticLookup},
-		AccountId32, Permill,
+		AccountId32, Perbill, Permill,
 	};
 	use sp_std::vec::Vec;
 
-	/// block number for next LLM release event (transfer of 10% from **Vault** to **Treasury**)
+	pub type RemarkData = BoundedVec<u8, ConstU32<256>>;
+
+	/// block number of last LLM release event (transfer from **Vault** to **Treasury**)
 	#[pallet::storage]
-	#[pallet::getter(fn next_release)]
-	pub(super) type NextRelease<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>; // ValueQuery ,  OnEmpty = 0
+	#[pallet::getter(fn last_release)]
+	pub(super) type LastRelease<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>; // ValueQuery ,  OnEmpty = 0
 
 	/// amount of LLM each account has allocated into politics
 	#[pallet::storage]
@@ -296,8 +299,13 @@ pub mod pallet {
 		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
 		type AssetName: Get<Vec<u8>>;
 		type AssetSymbol: Get<Vec<u8>>;
+
 		#[pallet::constant]
 		type InflationEventInterval: Get<BlockNumberFor<Self>>;
+
+		#[pallet::constant]
+		type InflationEventReleaseFactor: Get<Perbill>;
+
 		type OnLLMPoliticsUnlock: OnLLMPoliticsUnlock<Self::AccountId>;
 		type WeightInfo: WeightInfo;
 	}
@@ -324,7 +332,7 @@ pub mod pallet {
 		Locked,
 	}
 
-	const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
 
 	#[pallet::pallet]
 	#[pallet::storage_version(STORAGE_VERSION)]
@@ -333,7 +341,9 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(b: BlockNumberFor<T>) -> Weight {
-			Self::maybe_release(b);
+			if let Err(e) = Self::maybe_release(b) {
+				log::error!("LLM maybe_release failure: {e:?}");
+			};
 			Weight::zero()
 		}
 	}
@@ -489,6 +499,14 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)
 		}
+
+		/// Emit Remarked event. Used by Liberland tooling to annotate transfers.
+		#[pallet::call_index(7)]
+		#[pallet::weight(<T as Config>::WeightInfo::remark(data.len() as u32))]
+		pub fn remark(_origin: OriginFor<T>, data: RemarkData) -> DispatchResult {
+			Self::deposit_event(Event::<T>::Remarked(data));
+			Ok(())
+		}
 	}
 
 	#[pallet::event]
@@ -502,6 +520,8 @@ pub mod pallet {
 		LLMPoliticsLocked(T::AccountId, T::Balance),
 		/// sent to user account, amount
 		LLMPoliticsUnlocked(T::AccountId, T::Balance),
+		/// Remark
+		Remarked(RemarkData),
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -524,7 +544,6 @@ pub mod pallet {
 
 		fn get_unlock_amount(balance: T::Balance) -> Result<T::Balance, Error<T>> {
 			let factor = T::UnlockFactor::get();
-			let balance: u64 = balance.try_into().map_err(|_| Error::<T>::InvalidAmount)?;
 			let amount = factor.mul_floor(balance);
 			amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
@@ -607,9 +626,7 @@ pub mod pallet {
 			let vaultac: T::AccountId = Self::get_llm_vault_account();
 			let supply = T::TotalSupply::get().try_into().map_err(|_| Error::<T>::InvalidAmount)?;
 			Assets::<T>::mint_into(asset_id, &vaultac, supply)?;
-
-			let nextblock = Self::get_future_block();
-			NextRelease::<T>::put(nextblock);
+			LastRelease::<T>::put(frame_system::Pallet::<T>::block_number());
 
 			// Release a.k.a. transfer to treasury
 			let prereleased =
@@ -642,30 +659,30 @@ pub mod pallet {
 			PalletId(*b"polilock").into_account_truncating()
 		}
 
-		fn get_future_block() -> BlockNumberFor<T> {
-			let current_block_number = frame_system::Pallet::<T>::block_number();
-			current_block_number + T::InflationEventInterval::get()
-		}
-
-		// each time we release (should be each year), release 10% from vault
-		fn get_release_amount() -> T::Balance {
+		fn get_release_amount() -> Result<T::Balance, Error<T>> {
 			let asset_id = Self::llm_id().into();
 			let vault_account = Self::get_llm_vault_account();
 			let unreleased_amount = Assets::<T>::balance(asset_id, vault_account);
-			let release_amount = unreleased_amount / 10u8.into();
-			release_amount
+
+			let factor = T::InflationEventReleaseFactor::get();
+			let release_amount = factor.mul_floor(unreleased_amount);
+			release_amount.try_into().map_err(|_| Error::<T>::InvalidAmount)
 		}
 
-		fn maybe_release(block: BlockNumberFor<T>) -> bool {
-			if block < NextRelease::<T>::get() {
-				return false;
+		fn maybe_release(block: BlockNumberFor<T>) -> DispatchResult {
+			let next_release = LastRelease::<T>::get() + T::InflationEventInterval::get();
+			if block < next_release {
+				return Ok(());
 			}
-			NextRelease::<T>::put(Self::get_future_block());
 
-			let release_amount = Self::get_release_amount();
-			Self::release_tokens_from_vault(release_amount).unwrap();
+			LastRelease::<T>::put(next_release);
+			let release_amount = Self::get_release_amount()?;
+			if release_amount > 0u8.into() {
+				log::info!("LLM - releasing {release_amount:?} from vault");
+				Self::release_tokens_from_vault(release_amount)?;
+			}
 
-			true
+			Ok(())
 		}
 
 		/// Release tokens to the treasury account. Sends tokens from the llm/vault to the treasury
@@ -750,6 +767,12 @@ pub mod pallet {
 		fn ensure_politics_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::is_election_unlocked(account), Error::<T>::Locked);
+			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
+			Ok(())
+		}
+
+		fn ensure_validate_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
+			ensure!(Self::is_known_good(account), Error::<T>::NonCitizen);
 			ensure!(Self::check_pooled_llm(account), Error::<T>::NoPolLLM);
 			Ok(())
 		}

@@ -19,15 +19,6 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
 
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rustfmt, clippy
-
       # this is needed to make sure that cargo uses the cached target files,
       # which will have an older date than the checked out source code.
       - name: Restore files timestamps

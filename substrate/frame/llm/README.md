@@ -47,7 +47,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 ## Internal Storage:
 
-* `NextRelease`: block number for next LLM Release Event (transfer of 10% from **Vault** to **Treasury**)
+* `LastRelease`: block number for last LLM Release Event (transfer from **Vault** to **Treasury**)
 * `LLMPolitics`: amount of LLM each account has allocated into politics
 * `Withdrawlock`: block number until which account can't do another `politics_unlock`
 * `Electionlock`: block number until which account can't participate in politics directly
@@ -87,6 +87,7 @@ These calls can be made from any _Signed_ origin.
 * `get_llm_vault_account`: AccountId of **Vault** account. **Vault** account stores all LLM created initially on genesis and releases it to treasury on LLM Release Events.
 * `get_llm_treasury_account`: AccountId of **Treasury** account. **Treasury** accounts receives prereleased amount of LLM on genesis and part of LLM from **Vault** on LLM Release Events.
 * `get_llm_politipool_account`: AccountId of **Politipool** account. **Politipool** account stores LLM locked in politics by all other accounts.
+* `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
 
 ### LLM trait
 

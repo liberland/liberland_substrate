@@ -20,9 +20,8 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSigned};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
-	BuildStorage,
-	RuntimeDebug,
 	traits::{BlakeTwo256, IdentityLookup},
+	BuildStorage, RuntimeDebug,
 };
 
 #[cfg(feature = "std")]

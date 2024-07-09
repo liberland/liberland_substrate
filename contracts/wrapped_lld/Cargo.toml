@@ -1,0 +1,32 @@
+[package]
+name = "wrapped-lld"
+version = "1.0.0"
+edition = "2021"
+authors = ["Cardinal", "Liberland"]
+homepage = "https://github.com/liberland/liberland_substrate"
+repository = "https://github.com/liberland/liberland_substrate"
+license-file = "LICENSE.md"
+readme = "README.md"
+description = "Smart contract for LLD coin wrapped as a PSP22 token"
+exclude = [ ".github/*" ]
+
+[dependencies]
+ink = { version = "=4.3.0", default-features = false }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.9", default-features = false, features = ["derive"], optional = true }
+
+psp22 = { version = "=0.2.2", default-features = false }
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+    "psp22/std",
+]
+ink-as-dependency = []
