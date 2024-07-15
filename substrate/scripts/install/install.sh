@@ -85,7 +85,7 @@ fi
 node_url="$(jq -r ".assets[] | select(.name == \"linux_x86_build\") | .browser_download_url" < $release_info)"
 rm $release_info
 
-if [ -n "$(ls -A /opt/liberland/data/chains &>/dev/null)" ]; then
+if [ -n "$(ls -A /opt/liberland/data/chains 2>/dev/null)" ]; then
 	keychain_exists=1
 else
 	keychain_exists=0
