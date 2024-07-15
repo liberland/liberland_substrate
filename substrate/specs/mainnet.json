@@ -7,7 +7,12 @@
     "/dns/bootnode-2.mainnet.liberland.org/tcp/30333/p2p/12D3KooWLyiY3xdj2vJepd6rwLqJXReH4P5s7qtQKVRGbuWWymxY",
     "/dns/bootnode-3.mainnet.liberland.org/tcp/30333/p2p/12D3KooWFkFW6LwWHf8FwvbbT1D5yukto12GX5z5QUmB5eXXn5Bn"
   ],
-  "telemetryEndpoints": null,
+  "telemetryEndpoints": [
+    [
+      "wss://telemetry.polkadot.io/submit/",
+      1
+    ]
+  ],
   "protocolId": null,
   "properties": {
     "displayName": "Liberland",

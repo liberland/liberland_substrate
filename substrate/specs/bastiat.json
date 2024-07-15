@@ -7,7 +7,12 @@
     "/dns/bootnode-2.testchain.liberland.org/tcp/30333/p2p/12D3KooWNUFT7agTugfRJMbVp22Y5MHpUvnjZU6n6rVH1ovHhGxm",
     "/dns/bootnode-3.testchain.liberland.org/tcp/30333/p2p/12D3KooWBVTvE4yx6WnGCAkBEMxLMDiHbgyh3WKFcBeyhrvJMT3k"
   ],
-  "telemetryEndpoints": null,
+  "telemetryEndpoints": [
+    [
+      "wss://telemetry.polkadot.io/submit/",
+      1
+    ]
+  ],
   "protocolId": null,
   "properties": {
     "displayName": "Bastiat",
