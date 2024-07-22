@@ -4048,7 +4048,7 @@ dependencies = [
 
 [[package]]
 name = "kitchensink-runtime"
-version = "25.0.0"
+version = "25.1.0"
 dependencies = [
  "bridge-data-signer",
  "bridge-types",
