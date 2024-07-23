@@ -704,29 +704,16 @@ fn cant_force_transfer_from_liquid() {
 }
 
 #[test]
-fn force_updates_balances_correctly_to_liquid() {
+fn cant_force_transfer_to_liquid() {
 	new_test_ext().execute_with(|| {
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 3));
+
 		let court = RuntimeOrigin::signed(1);
-		let id = LLM::llm_id();
-		let politipool = LLM::get_llm_politipool_account();
 		let from = LLMAccount::Locked(1);
 		let to = LLMAccount::Liquid(2);
-		let amount = 2;
+		let amount = 1;
 
-		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 3));
-		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(2), 2));
-		let politipool_before = Assets::balance(id, politipool);
-		let from_before = Assets::balance(id, 1);
-		let to_before = Assets::balance(id, 2);
-
-		assert_ok!(LLM::force_transfer(court, from, to, amount));
-
-		assert_eq!(Assets::balance(id, politipool), politipool_before - amount);
-		assert_eq!(Assets::balance(id, 1), from_before);
-		assert_eq!(Assets::balance(id, 2), to_before + amount);
-
-		assert_eq!(LLMPolitics::<Test>::get(1), 3 - amount);
-		assert_eq!(LLMPolitics::<Test>::get(2), 2);
+		assert_noop!(LLM::force_transfer(court, from, to, amount), Error::<Test>::InvalidAccount);
 	});
 }
 

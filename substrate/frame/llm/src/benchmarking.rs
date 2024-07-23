@@ -120,7 +120,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(user.clone());
 		LLM::<T>::politics_lock(origin.clone().into(), amount.clone()).unwrap();
 		assert_eq!(LLMPolitics::<T>::get(&user), amount.clone());
-	}: _(origin, LLMAccount::Locked(user.clone()), LLMAccount::Liquid(user2.clone()), amount.clone())
+	}: _(origin, LLMAccount::Locked(user.clone()), LLMAccount::Locked(user2.clone()), amount.clone())
 	verify {
 		assert_eq!(LLMPolitics::<T>::get(&user), 0u8.into());
 	}

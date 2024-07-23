@@ -421,7 +421,7 @@ pub mod pallet {
 				},
 			};
 			let transfer_to = match to {
-				LLMAccount::Liquid(account) => account,
+				LLMAccount::Liquid(_) => return Err(Error::<T>::InvalidAccount.into()),
 				LLMAccount::Locked(account) => {
 					LLMPolitics::<T>::mutate(account.clone(), |b| *b += amount);
 					Self::deposit_event(Event::<T>::LLMPoliticsLocked(account, amount));
