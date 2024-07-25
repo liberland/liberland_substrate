@@ -36,7 +36,7 @@ pub enum LLMAccount<AccountId> {
 	Locked(AccountId),
 }
 
-#[frame_support::pallet(dev_mode)] // FIXME
+#[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
 	use super::*;
