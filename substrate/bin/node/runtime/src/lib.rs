@@ -1920,7 +1920,8 @@ mod staking_v12 {
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 type Migrations = (
-	crate::migrations::add_senate_account_pallet::Migration<Runtime>,
+	// Migrations for spec version 26 - delete when bumping to v27
+	crate::migrations::add_onchain_identities::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<
