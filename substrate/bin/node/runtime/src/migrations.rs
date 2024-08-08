@@ -43,6 +43,7 @@ pub mod add_onchain_identities {
 				("5EYCAe5iXF2YZpCZr7ALYUUYaNpMXde3NUXxYn1Sc1YRM4gV", b"Ministry of Finance Office".to_vec()),
 				("5FBQRNJfzsttYvw1XnSwxwSUmb7A3EYm4q8aiscADREqvzYz", b"Wrapped LLD Token Contract".to_vec()),
 				("5EYCAe5ijGqt3WEM9aKUBdth51NEBNz9P84NaUMWZazzWt7c", b"LLM Politipool Technical Account".to_vec()),
+				("5GsBCWqN6mnrq4arSMBuT4uQ8GJKwgeBsa5UyCvTN6DyVj3S", b"Emirex".to_vec()),
 			];
 			let mut weight = DbWeight::get().reads(0);
 			for (addr, display) in identities {
