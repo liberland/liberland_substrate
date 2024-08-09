@@ -998,4 +998,23 @@ impl<T: Config> Pallet<T> {
 		IdentityOf::<T>::get(who)
 			.map_or(false, |registration| (registration.info.fields().0.bits() & fields) == fields)
 	}
+
+	/// Set identity for some account
+	pub fn set_identity_no_deposit(
+		target: &T::AccountId,
+		judgements: sp_runtime::BoundedVec<(u32, Judgement<BalanceOf<T>>), T::MaxRegistrars>,
+		info: IdentityInfo<T::MaxAdditionalFields>
+	) -> frame_support::pallet_prelude::Weight {
+		let id = Registration {
+			judgements,
+			deposit: 0u8.into(),
+			info,
+		};
+		let weight = T::WeightInfo::set_identity(
+			id.judgements.len() as u32,
+			id.info.additional.len() as u32,
+		);
+		IdentityOf::<T>::insert(target, id);
+		weight
+	}
 }
