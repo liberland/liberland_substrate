@@ -3,10 +3,7 @@ name: Fork test
 on:
   pull_request:
   workflow_dispatch:
-  push:
-    branches:
-      - develop
-      - main
+  workflow_call:
 
 jobs:
   forktest:
