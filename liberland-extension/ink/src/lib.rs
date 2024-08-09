@@ -11,6 +11,30 @@ pub trait Liberland {
 
 	#[ink(function = 1)]
 	fn llm_force_transfer(args: LLMForceTransferArguments);
+
+	#[ink(function = 2)]
+	fn asset_balance_of(asset_id: AssetId, account: AccountId) -> AssetsBalance;
+
+	#[ink(function = 3)]
+	fn asset_total_supply_of(asset_id: AssetId) -> AssetsBalance;
+
+	#[ink(function = 4)]
+	fn asset_approve_transfer(asset_id: AssetId, delegate: AccountId, amount: Balance);
+
+	#[ink(function = 5)]
+	fn asset_cancel_approval(asset_id: AssetId, delegate: AccountId);
+
+	#[ink(function = 6)]
+	fn asset_transfer(asset_id: AssetId, target: AccountId, amount: Balance);
+	#[ink(function = 7)]
+	fn asset_transfer_approved(
+		asset_id: AssetId,
+		owner: AccountId,
+		destination: AccountId,
+		amount: Balance,
+	);
+	#[ink(function = 8)]
+	fn asset_transfer_keep_alive(asset_id: AssetId, target: AccountId, amount: Balance);
 }
 
 impl ink::env::chain_extension::FromStatusCode for Error {
