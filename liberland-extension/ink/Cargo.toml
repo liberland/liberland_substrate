@@ -1,0 +1,19 @@
+[package]
+name = "liberland-extension"
+version = "1.0.0"
+authors.workspace = true
+description = "Liberland chain extension."
+edition.workspace = true
+license = "MIT"
+repository.workspace = true
+publish = false
+
+[dependencies]
+ink = { version = "5.0.0", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+]
+ink-as-dependency = []

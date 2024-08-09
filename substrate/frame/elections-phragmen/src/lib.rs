@@ -1458,6 +1458,7 @@ mod tests {
 		type OnLLMPoliticsUnlock = ();
 		type SenateOrigin = EnsureRoot<u64>;
 		type WeightInfo = ();
+	type MaxCourts = ConstU32<1>;
 	}
 
 	pub struct TestChangeMembers;
