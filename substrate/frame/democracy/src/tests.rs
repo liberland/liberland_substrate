@@ -264,6 +264,7 @@ impl pallet_llm::Config for Test {
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
+	type MaxCourts = ConstU32<1>;
 }
 
 parameter_types! {

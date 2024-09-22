@@ -512,6 +512,17 @@ impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
 	}
 }
 
+#[derive(
+	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo, Serialize, Deserialize,
+)]
+pub struct ContractsCallFilter;
+
+impl Contains<RuntimeCall> for ContractsCallFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::LLM(pallet_llm::Call::force_transfer { .. }))
+	}
+}
+
 // Sora Bridge
 pub struct GenericTimepointProvider;
 

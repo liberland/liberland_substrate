@@ -44,7 +44,7 @@ use frame_support::{
         tokens::nonfungibles_v2::Inspect,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32, MapSuccess,
 		Currency, EitherOf, EitherOfDiverse, Imbalance, InstanceFilter,
-		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced
+		KeyOwnerProofSystem, LockIdentifier, OnUnbalanced
 	},
 	weights::{
 		constants::{
@@ -111,7 +111,7 @@ mod migrations;
 use impls::{
 	Author, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember, CouncilAccountCallFilter, EnsureCmp, SenateAccountCallFilter,
+	ContainsMember, CouncilAccountCallFilter, EnsureCmp, ContractsCallFilter, SenateAccountCallFilter,
 };
 
 /// Constant values used within the runtime.
@@ -155,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 25,
+	spec_version: 26,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 25,
+	spec_version: 26,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1078,20 +1078,14 @@ impl pallet_contracts::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
-	/// The safest default is to allow no calls at all.
-	///
-	/// Runtimes should whitelist dispatchables that are allowed to be called from contracts
-	/// and make sure they are stable. Dispatchables exposed to contracts are not allowed to
-	/// change because that would break already deployed contracts. The `Call` structure itself
-	/// is not allowed to change the indices of existing pallets, too.
-	type CallFilter = Nothing;
+	type CallFilter = ContractsCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
 	type DefaultDepositLimit = DefaultDepositLimit;
 	type CallStack = [pallet_contracts::Frame<Self>; 5];
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = ();
+	type ChainExtension = liberland_extension_runtime::LiberlandExtension;
 	type Schedule = Schedule;
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
 	type MaxCodeLen = ConstU32<{ 123 * 1024 }>;
@@ -1362,6 +1356,7 @@ impl pallet_llm::Config for Runtime {
 	>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 	type WeightInfo = ();
+	type MaxCourts = ConstU32<2>;
 }
 
 parameter_types! {
@@ -1855,72 +1850,11 @@ pub type Executive = frame_executive::Executive<
 	Migrations,
 >;
 
-
-// staking is only expected to be used by polkadot/kusama/et al., so they didn't
-// bother to bump the default storage version. as such, we have V7_0_0 version
-// set, but it's actually the layout of V12. Fix it before running V13 migration.
-mod staking_v12 {
-	use super::*;
-	use frame_support::{storage_alias, traits::OnRuntimeUpgrade, pallet_prelude::*};
-
-	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	enum ObsoleteReleases {
-		V1_0_0Ancient,
-		V2_0_0,
-		V3_0_0,
-		V4_0_0,
-		V5_0_0,
-		V6_0_0,
-		V7_0_0,
-		V8_0_0,
-		V9_0_0,
-		V10_0_0,
-		V11_0_0,
-		V12_0_0,
-	}
-
-	impl Default for ObsoleteReleases {
-		fn default() -> Self {
-			Self::V12_0_0
-		}
-	}
-
-	#[storage_alias]
-	type StorageVersion<T: pallet_staking::Config> = StorageValue<pallet_staking::Pallet<T>, ObsoleteReleases, ValueQuery>;
-
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			frame_support::ensure!(
-                StorageVersion::<T>::get() == ObsoleteReleases::V7_0_0,
-                "Expected v7 before upgrading to v12"
-            );
-
-            Ok(Default::default())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			StorageVersion::<T>::put(ObsoleteReleases::V12_0_0);
-			log::info!("Migrated pallet-staking StorageVersion to V12");
-			T::DbWeight::get().reads_writes(1, 1)
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			frame_support::ensure!(
-                StorageVersion::<T>::get() == ObsoleteReleases::V12_0_0,
-                "Failed to upgrade to v12"
-            );
-			Ok(())
-		}
-	}
-}
-
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
 type Migrations = (
-	crate::migrations::add_senate_account_pallet::Migration<Runtime>,
+	// Migrations for spec version 26 - delete when bumping to v27
+	crate::migrations::add_onchain_identities::Migration<Runtime>,
 );
 
 type EventRecord = frame_system::EventRecord<

@@ -1,12 +1,19 @@
-name: Build runtimes & draft release
+name: Release new version
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "v*.*.*"
 
 jobs:
+  check-formatting:
+    uses: ./.github/workflows/check-formatting.yml
+  fork-test:
+    uses: ./.github/workflows/fork-test.yml
+  test-contracts:
+    uses: ./.github/workflows/test-contracts.yml
+  test:
+    uses: ./.github/workflows/test.yml
+  try-runtime:
+    uses: ./.github/workflows/try-runtime.yml
   build_binary:
     # use old ubuntu for GLIBC compatibility
     runs-on: ubuntu-20.04
@@ -14,7 +21,7 @@ jobs:
       RUST_BACKTRACE: 1
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
@@ -30,7 +37,7 @@ jobs:
           git restore-mtime
 
       - name: Setup caching for rust/cargo
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -55,7 +62,7 @@ jobs:
   build_runtimes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Srtool build mainnet runtime
         id: srtool_build
@@ -66,18 +73,22 @@ jobs:
           runtime_dir: ./substrate/bin/node/runtime
           tag: "1.74.0"
 
+      - name: Check version
+        id: version
+        run: echo "version=v$(cargo pkgid -p node-cli | cut -d'@' -f2)" >> "$GITHUB_OUTPUT"
+
       - name: Mainnet Summary
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq . > liberland-srtool-digest.mainnet.json
           cat liberland-srtool-digest.mainnet.json
-          cp "${{ steps.srtool_build.outputs.wasm_compressed }}" ./mainnet-${{github.ref_name}}.wasm
+          cp "${{ steps.srtool_build.outputs.wasm_compressed }}" ./mainnet-${{ steps.version.outputs.version }}.wasm
           ls
 
       - name: Upload mainnet runtime
         uses: actions/upload-artifact@v3
         with:
-          name: mainnet-${{github.ref_name}}.wasm
-          path: mainnet-${{github.ref_name}}.wasm
+          name: mainnet-${{ steps.version.outputs.version }}.wasm
+          path: mainnet-${{ steps.version.outputs.version }}.wasm
 
       - name: Srtool build bastiat runtime
         id: srtool_build_bastiat
@@ -94,23 +105,33 @@ jobs:
         run: |
           echo '${{ steps.srtool_build_bastiat.outputs.json }}' | jq . > liberland-srtool-digest.bastiat.json
           cat liberland-srtool-digest.bastiat.json
-          cp "${{ steps.srtool_build_bastiat.outputs.wasm_compressed }}" ./bastiat-${{github.ref_name}}.wasm
+          cp "${{ steps.srtool_build_bastiat.outputs.wasm_compressed }}" ./bastiat-${{ steps.version.outputs.version }}.wasm
           ls
 
       - name: Upload Bastiat runtime
         uses: actions/upload-artifact@v3
         with:
-          name: bastiat-${{github.ref_name}}.wasm
-          path: bastiat-${{github.ref_name}}.wasm
+          name: bastiat-${{ steps.version.outputs.version }}.wasm
+          path: bastiat-${{ steps.version.outputs.version }}.wasm
 
   release:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     needs:
       - build_runtimes
       - build_binary
+      - check-formatting
+      - fork-test
+      - test-contracts
+      - test
+      - try-runtime
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Check version
+        id: version
+        run: echo "version=v$(cargo pkgid -p node-cli | cut -d'@' -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Download binary
         uses: actions/download-artifact@v3
@@ -120,19 +141,20 @@ jobs:
       - name: Download Bastiat runtime
         uses: actions/download-artifact@v3
         with:
-          name: bastiat-${{github.ref_name}}.wasm
+          name: bastiat-${{ steps.version.outputs.version }}.wasm
 
       - name: Download mainnet runtime
         uses: actions/download-artifact@v3
         with:
-          name: mainnet-${{github.ref_name}}.wasm
+          name: mainnet-${{ steps.version.outputs.version }}.wasm
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          draft: true
           generate_release_notes: true
+          tag_name: ${{ steps.version.outputs.version }}
+          target_commitish: "${{ github.sha }}"
           files: |
             linux_x86_build
-            mainnet-${{github.ref_name}}.wasm
-            bastiat-${{github.ref_name}}.wasm
+            mainnet-${{ steps.version.outputs.version }}.wasm
+            bastiat-${{ steps.version.outputs.version }}.wasm

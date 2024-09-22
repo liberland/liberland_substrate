@@ -21,6 +21,8 @@ members = [
 	"substrate/frame/llm",
 	"substrate/frame/liberland-legislation",
 	"substrate/frame/contracts-registry",
+	"liberland-extension/runtime",
+	"liberland-extension/ink",
 ]
 
 [profile.release]

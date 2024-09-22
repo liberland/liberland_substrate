@@ -3,10 +3,7 @@ name: Try Runtime
 on:
   pull_request:
   workflow_dispatch:
-  push:
-    branches:
-      - develop
-      - main
+  workflow_call:
 
 jobs:
   tryruntime:
@@ -36,11 +33,17 @@ jobs:
       - name: Install try-runtime CLI
         run: cargo install --git https://github.com/paritytech/try-runtime-cli --locked
 
-      - name: try-runtime bastiat
-        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-idempotency-checks --no-weight-warnings live --uri wss://archive.testchain.liberland.org:443
+      - name: try-runtime on-runtime-upgrade bastiat
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade live --uri wss://archive.testchain.liberland.org:443
+
+      - name: try-runtime fast-forward bastiat
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm fast-forward --n-blocks 5 --blocktime 6000 live --uri wss://archive.testchain.liberland.org:443
         
       - name: Build try-runtime mainnet runtime
         run: cargo build --release --features try-runtime -p kitchensink-runtime
 
-      - name: try-runtime mainnet
-        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-idempotency-checks --no-weight-warnings live --uri wss://mainnet.liberland.org:443
+      - name: try-runtime on-runtime-upgrade mainnet
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade live --uri wss://mainnet.liberland.org:443
+
+      - name: try-runtime fast-forward mainnet
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm fast-forward --n-blocks 5 --blocktime 6000 live --uri wss://mainnet.liberland.org:443
