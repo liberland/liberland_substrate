@@ -519,7 +519,14 @@ pub struct ContractsCallFilter;
 
 impl Contains<RuntimeCall> for ContractsCallFilter {
 	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c, RuntimeCall::LLM(pallet_llm::Call::force_transfer { .. }))
+		matches!(c,
+			RuntimeCall::LLM(pallet_llm::Call::force_transfer { .. }) |
+			RuntimeCall::Assets(pallet_assets::Call::approve_transfer { .. }) |
+			RuntimeCall::Assets(pallet_assets::Call::cancel_approval { .. }) |
+			RuntimeCall::Assets(pallet_assets::Call::transfer { .. }) |
+			RuntimeCall::Assets(pallet_assets::Call::transfer_approved { .. }) |
+			RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive { .. })
+		)
 	}
 }
 
@@ -949,6 +956,101 @@ mod council_filter_tests {
 
 			let call = RuntimeCall::Balances(pallet_balances::Call::transfer { dest: acc(), value: 1u8.into() });
 			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+}
+
+#[cfg(test)]
+mod contracts_filter_tests {
+	use super::{ContractsCallFilter, RuntimeCall};
+	use frame_support::{PalletId, traits::Contains};
+	use sp_runtime::{traits::AccountIdConversion, AccountId32};
+
+	fn accid() -> AccountId32 {
+		PalletId(*b"12345678").into_account_truncating()
+	}
+
+	fn acc() -> sp_runtime::MultiAddress<AccountId32, ()> {
+		accid().into()
+	}
+
+	#[test]
+	fn allows_llm_force_transfer() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::LLM(pallet_llm::Call::force_transfer {
+				from: pallet_llm::LLMAccount::Liquid(accid()),
+				to: pallet_llm::LLMAccount::Liquid(accid()),
+				amount: 1u8.into(),
+			});
+			assert!(ContractsCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_assets_approve_transfer() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Assets(pallet_assets::Call::approve_transfer {
+				id: 0.into(),
+				delegate: acc(),
+				amount: 1u8.into(),
+			});
+			assert!(ContractsCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_assets_cancel_approval() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Assets(pallet_assets::Call::cancel_approval {
+				id: 0.into(),
+				delegate: acc(),
+			});
+			assert!(ContractsCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_assets_transfer() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Assets(pallet_assets::Call::transfer {
+				id: 0.into(),
+				target: acc(),
+				amount: 1u8.into(),
+			});
+			assert!(ContractsCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_assets_transfer_approved() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Assets(pallet_assets::Call::transfer_approved {
+				id: 0.into(),
+				owner: acc(),
+				destination: acc(),
+				amount: 1u8.into(),
+			});
+			assert!(ContractsCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn allows_assets_transfer_keep_alive() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Assets(pallet_assets::Call::transfer_keep_alive {
+				id: 0.into(),
+				target: acc(),
+				amount: 1u8.into(),
+			});
+			assert!(ContractsCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_other_stuff() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::System(frame_system::Call::remark { remark: vec![].try_into().unwrap() });
+			assert!(!ContractsCallFilter::contains(&call));
 		});
 	}
 }
