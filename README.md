@@ -48,6 +48,9 @@ cd liberland_substrate
 ```
 cargo test --features runtime-benchmarks --no-fail-fast
 ```
+> [!NOTE]
+> When run on a powerful machine `benchmark_machine_fails_with_slow_hardware`
+> test may fail. It is safe to ignore this.
 
 ### Build and run development node
 ```
@@ -64,5 +67,5 @@ accounts (Alice, Bob, etc.) are endowed with assets. To interact with it, visit
 
 
 ## Licensing
-All code that is committed on behalf of Liberland is distributed under the MIT license. 
+All code that is committed on behalf of Liberland is distributed under the MIT license.
 You may find a copy of the MIT license [here](https://github.com/liberland/liberland_substrate/blob/main/LICENSE-MIT). Alternatively, you may visit [OpenSource.org](https://opensource.org/licenses/MIT).
