@@ -35,7 +35,7 @@ use kitchensink_runtime::{
 	IdentityOfficePalletId, AssetRegistryOfficeConfig,
 	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
 	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig,
+	SenateConfig, MinistryOfFinanceOfficeConfig,
 	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -454,6 +454,10 @@ pub fn testnet_genesis(
 		metaverse_land_registry_office: MetaverseLandRegistryOfficeConfig {
 			admin: offices_admin.clone(),
 			clerks: nfts_clerks.clone(),
+		},
+		ministry_of_finance_office: MinistryOfFinanceOfficeConfig {
+			admin: offices_admin.clone(),
+			clerks: vec![],
 		},
 		asset_registry_office: AssetRegistryOfficeConfig {
 			admin: offices_admin,
