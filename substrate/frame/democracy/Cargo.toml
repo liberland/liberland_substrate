@@ -36,7 +36,7 @@ liberland-traits = { path = "../liberland-traits", default-features = false}
 pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-scheduler = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-preimage = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-assets = { path = "../assets" }
 pallet-nfts = { path = "../nfts" }
 
 [features]

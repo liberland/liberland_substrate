@@ -34,7 +34,7 @@ log = { version = "0.4.17", default-features = false }
 pallet-llm = { default-features = false, path = "../llm" }
 pallet-liberland-initializer = { default-features = false, path = "../liberland-initializer" }
 liberland-traits = { path = "../liberland-traits", default-features = false}
-pallet-assets = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-assets = { default-features = false, path = "../assets" }
 pallet-identity = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 # Optional imports for benchmarking
