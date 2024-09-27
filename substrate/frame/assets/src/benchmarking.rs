@@ -548,5 +548,21 @@ benchmarks_instance_pallet! {
 		assert_last_event::<T, I>(Event::Blocked { asset_id: asset_id.into(), who: caller }.into());
 	}
 
+	set_parameters {
+		let (asset_id, caller, _) = create_default_asset::<T, I>(true);
+		let parameters = AssetParameters { eresidency_required: true };
+	}: _(SystemOrigin::Signed(caller), asset_id, parameters)
+	verify {
+		assert_last_event::<T, I>(Event::ParametersSet { asset_id: asset_id.into(), parameters }.into());
+	}
+
+	force_set_parameters {
+		let (asset_id, caller, _) = create_default_asset::<T, I>(true);
+		let parameters = AssetParameters { eresidency_required: true };
+	}: _(SystemOrigin::Root, asset_id, parameters)
+	verify {
+		assert_last_event::<T, I>(Event::ParametersSet { asset_id: asset_id.into(), parameters }.into());
+	}
+
 	impl_benchmark_test_suite!(Assets, crate::mock::new_test_ext(), crate::mock::Test)
 }

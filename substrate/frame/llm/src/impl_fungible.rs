@@ -11,7 +11,7 @@ use frame_support::{
 };
 
 impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
-	type Balance = T::Balance;
+	type Balance = BalanceOfAssets<T>;
 
 	fn total_issuance() -> Self::Balance {
 		let id = Self::llm_id();

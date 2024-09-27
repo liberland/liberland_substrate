@@ -54,6 +54,7 @@ frame-benchmarking = { tag = "polkadot-v1.1.0", git = "https://github.com/parity
 frame-election-provider-support = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 rand_chacha = { version = "0.2" }
 pallet-nfts = { path = "../nfts" }
+pallet-asset-conversion = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 [features]
 default = [ "std" ]
@@ -80,6 +81,7 @@ std = [
 	"pallet-identity/std",
 	"pallet-llm/std",
 	"pallet-liberland-initializer/std",
+	"pallet-asset-conversion/std",
 	"liberland-traits/std",
 	"sp-std/std",
 	"sp-tracing/std",
@@ -99,6 +101,7 @@ runtime-benchmarks = [
 	"pallet-liberland-initializer/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",

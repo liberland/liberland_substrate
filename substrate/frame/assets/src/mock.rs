@@ -31,6 +31,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	BuildStorage,
 };
+use liberland_traits::MockCitizenshipChecker;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -131,6 +132,11 @@ impl AssetsCallbackHandle {
 	}
 }
 
+parameter_types! {
+	pub MockCitizenOne: AccountId = 100u64;
+	pub MockCitizenTwo: AccountId = 101u64;
+}
+
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = u64;
@@ -152,6 +158,7 @@ impl Config for Test {
 	type RemoveItemsLimit = ConstU32<5>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type Citizenship = MockCitizenshipChecker<Self::AccountId, MockCitizenOne, MockCitizenTwo>;
 }
 
 use std::collections::HashMap;

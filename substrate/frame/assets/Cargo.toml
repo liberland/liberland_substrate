@@ -25,6 +25,7 @@ frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "http
 frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-benchmarking = { default-features = false, optional = true, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sp-core = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+liberland-traits = { default-features = false, path = "../liberland-traits" }
 
 [dev-dependencies]
 sp-std = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }

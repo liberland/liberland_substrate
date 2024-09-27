@@ -155,6 +155,7 @@ mod functions;
 mod impl_fungibles;
 mod impl_stored_map;
 mod types;
+mod eresidency;
 pub use types::*;
 
 use scale_info::TypeInfo;
@@ -322,6 +323,8 @@ pub mod pallet {
 		/// Helper trait for benchmarks.
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper: BenchmarkHelper<Self::AssetIdParameter>;
+
+		type Citizenship: liberland_traits::CitizenshipChecker<Self::AccountId>;
 	}
 
 	#[pallet::storage]
@@ -365,6 +368,16 @@ pub mod pallet {
 		Blake2_128Concat,
 		T::AssetId,
 		AssetMetadata<DepositBalanceOf<T, I>, BoundedVec<u8, T::StringLimit>>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	/// Eresidency requirements of asset
+	pub(super) type Parameters<T: Config<I>, I: 'static = ()> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AssetId,
+		AssetParameters,
 		ValueQuery,
 	>;
 
@@ -524,6 +537,11 @@ pub mod pallet {
 		Touched { asset_id: T::AssetId, who: T::AccountId, depositor: T::AccountId },
 		/// Some account `who` was blocked.
 		Blocked { asset_id: T::AssetId, who: T::AccountId },
+		/// Asset Parameters set
+		ParametersSet {
+			asset_id: T::AssetId,
+			parameters: AssetParameters,
+		},
 	}
 
 	#[pallet::error]
@@ -1635,6 +1653,42 @@ pub mod pallet {
 
 			Self::deposit_event(Event::<T, I>::Blocked { asset_id: id, who });
 			Ok(())
+		}
+
+		/// Set the parameters for an asset.
+		///
+		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
+		///
+		/// Emits `ParametersSet`.
+		///
+		/// Weight: `O(1)`
+		#[pallet::call_index(100)]
+		#[pallet::weight(T::WeightInfo::set_parameters())]
+		pub fn set_parameters(
+			origin: OriginFor<T>,
+			id: T::AssetIdParameter,
+			parameters: AssetParameters,
+		) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+			let id: T::AssetId = id.into();
+			Self::do_set_parameters(id, parameters, Some(signer))
+		}
+
+		/// Force set the parameters for an asset.
+		///
+		/// Origin must be ForceOrigin.
+		///
+		/// Weight: `O(1)`
+		#[pallet::call_index(101)]
+		#[pallet::weight(T::WeightInfo::force_set_parameters())]
+		pub fn force_set_parameters(
+			origin: OriginFor<T>,
+			id: T::AssetIdParameter,
+			parameters: AssetParameters,
+		) -> DispatchResult {
+			T::ForceOrigin::ensure_origin(origin)?;
+			let id: T::AssetId = id.into();
+			Self::do_set_parameters(id, parameters, None)
 		}
 	}
 

@@ -84,6 +84,8 @@ pub trait WeightInfo {
 	fn refund() -> Weight;
 	fn refund_other() -> Weight;
 	fn block() -> Weight;
+	fn set_parameters() -> Weight;
+	fn force_set_parameters() -> Weight;
 }
 
 /// Weights for pallet_assets using the Substrate node and recommended hardware.
@@ -525,6 +527,29 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+	/// Storage: `Assets::Asset` (r:1 w:0)
+	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
+	/// Storage: `Assets::Parameters` (r:0 w:1)
+	/// Proof: `Assets::Parameters` (`max_values`: None, `max_size`: Some(21), added: 2496, mode: `MaxEncodedLen`)
+	fn set_parameters() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `348`
+		//  Estimated: `3675`
+		// Minimum execution time: 18_124_000 picoseconds.
+		Weight::from_parts(18_495_000, 3675)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Assets::Parameters` (r:0 w:1)
+	/// Proof: `Assets::Parameters` (`max_values`: None, `max_size`: Some(21), added: 2496, mode: `MaxEncodedLen`)
+	fn force_set_parameters() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 11_723_000 picoseconds.
+		Weight::from_parts(12_263_000, 0)
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
 }
 
 // For backwards compatibility and tests
@@ -963,6 +988,29 @@ impl WeightInfo for () {
 		// Minimum execution time: 17_692_000 picoseconds.
 		Weight::from_parts(18_253_000, 3675)
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Assets::Asset` (r:1 w:0)
+	/// Proof: `Assets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
+	/// Storage: `Assets::Parameters` (r:0 w:1)
+	/// Proof: `Assets::Parameters` (`max_values`: None, `max_size`: Some(21), added: 2496, mode: `MaxEncodedLen`)
+	fn set_parameters() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `348`
+		//  Estimated: `3675`
+		// Minimum execution time: 18_124_000 picoseconds.
+		Weight::from_parts(18_495_000, 3675)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Assets::Parameters` (r:0 w:1)
+	/// Proof: `Assets::Parameters` (`max_values`: None, `max_size`: Some(21), added: 2496, mode: `MaxEncodedLen`)
+	fn force_set_parameters() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 11_723_000 picoseconds.
+		Weight::from_parts(12_263_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 }
