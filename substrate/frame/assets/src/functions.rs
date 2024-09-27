@@ -19,6 +19,7 @@
 
 use super::*;
 use frame_support::{defensive, traits::Get, BoundedVec};
+use liberland_traits::CitizenshipChecker;
 
 #[must_use]
 pub(super) enum DeadConsequence {
@@ -135,6 +136,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		if increase_supply && details.supply.checked_add(&amount).is_none() {
 			return DepositConsequence::Overflow
 		}
+
+		let AssetParameters { eresidency_required } = Parameters::<T, I>::get(&id);
+		if eresidency_required && T::Citizenship::ensure_stocks_allowed(who).is_err() {
+			return DepositConsequence::Blocked
+		}
+
 		if let Some(account) = Account::<T, I>::get(id, who) {
 			if account.status.is_blocked() {
 				return DepositConsequence::Blocked

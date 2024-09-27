@@ -79,9 +79,11 @@ pub mod pallet {
 	use ::{frame_support::traits::Currency, sp_runtime::traits::Bounded};
 
 	#[cfg(any(test, feature = "runtime-benchmarks"))]
-	type BalanceOf<T> = <<T as pallet_identity::Config>::Currency as Currency<
+	type BalanceOfIdentity<T> = <<T as pallet_identity::Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
 	>>::Balance;
+
+	type BalanceOfAssets<T> = <T as pallet_assets::Config>::Balance;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -95,7 +97,7 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub citizenship_registrar: Option<T::AccountId>,
-		pub initial_citizens: Vec<(T::AccountId, T::Balance, T::Balance)>,
+		pub initial_citizens: Vec<(T::AccountId, BalanceOfAssets<T>, BalanceOfAssets<T>)>,
 		pub land_registrar: Option<T::AccountId>,
 		pub metaverse_land_registrar: Option<T::AccountId>,
 		pub asset_registrar: Option<T::AccountId>,
@@ -233,12 +235,12 @@ pub mod pallet {
 		}
 
 		/// Sends `amount` of LLM to `citizen`.
-		fn give_llm(citizen: T::AccountId, amount: T::Balance) {
+		fn give_llm(citizen: T::AccountId, amount: BalanceOfAssets<T>) {
 			pallet_llm::Pallet::<T>::transfer_from_treasury(citizen, amount).unwrap();
 		}
 
 		/// Politipools `amount` of `citizen`'s LLM.
-		fn politics_lock_llm(citizen: T::AccountId, amount: T::Balance) {
+		fn politics_lock_llm(citizen: T::AccountId, amount: BalanceOfAssets<T>) {
 			let origin = frame_system::RawOrigin::Signed(citizen.clone()).into();
 			pallet_llm::Pallet::<T>::politics_lock(origin, amount).unwrap();
 		}
@@ -259,7 +261,7 @@ pub mod pallet {
 			};
 
 			if <T as pallet_identity::Config>::Currency::free_balance(&account) == 0u8.into() {
-				let balance = BalanceOf::<T>::max_value() / 2u8.into();
+				let balance = BalanceOfIdentity::<T>::max_value() / 2u8.into();
 				<T as pallet_identity::Config>::Currency::make_free_balance_be(&account, balance);
 			}
 

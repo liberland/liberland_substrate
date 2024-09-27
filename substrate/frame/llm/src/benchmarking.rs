@@ -22,7 +22,7 @@ const SEED: u32 = 0;
 benchmarks! {
 	politics_lock {
 		let user: T::AccountId = account("user", 0, SEED);
-		let amount: T::Balance = 100u8.into();
+		let amount: BalanceOfAssets<T> = 100u8.into();
 		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
 		let origin = RawOrigin::Signed(user.clone());
 		assert_eq!(LLMPolitics::<T>::get(&user), 0u8.into());
@@ -33,7 +33,7 @@ benchmarks! {
 
 	politics_unlock {
 		let user: T::AccountId = account("user", 0, SEED);
-		let amount: T::Balance = 10000u32.into();
+		let amount: BalanceOfAssets<T> = 10000u32.into();
 		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
 		let origin = RawOrigin::Signed(user.clone());
 		LLM::<T>::politics_lock(origin.clone().into(), amount.clone()).unwrap();
@@ -45,7 +45,7 @@ benchmarks! {
 
 	treasury_llm_transfer {
 		let user: T::AccountId = account("user", 0, SEED);
-		let amount: T::Balance = 100u32.into();
+		let amount: BalanceOfAssets<T> = 100u32.into();
 		assert_eq!(LLM::<T>::balance(user.clone()), 0u8.into());
 	}: _(RawOrigin::Root, user.clone(), amount.clone())
 	verify {
@@ -54,7 +54,7 @@ benchmarks! {
 
 	treasury_llm_transfer_to_politipool {
 		let user: T::AccountId = account("user", 0, SEED);
-		let amount: T::Balance = 100u32.into();
+		let amount: BalanceOfAssets<T> = 100u32.into();
 		assert_eq!(LLMPolitics::<T>::get(&user), 0u8.into());
 	}: _(RawOrigin::Root, user.clone(), amount.clone())
 	verify {
@@ -63,7 +63,7 @@ benchmarks! {
 
 	send_llm_to_politipool {
 		let user: T::AccountId = account("user", 0, SEED);
-		let amount: T::Balance = 100u8.into();
+		let amount: BalanceOfAssets<T> = 100u8.into();
 		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
 		let origin = RawOrigin::Signed(user.clone());
 
@@ -76,7 +76,7 @@ benchmarks! {
 
 	send_llm {
 		let user: T::AccountId = account("user", 0, SEED);
-		let amount: T::Balance = 100u8.into();
+		let amount: BalanceOfAssets<T> = 100u8.into();
 		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
 		let origin = RawOrigin::Signed(user.clone());
 
@@ -114,7 +114,7 @@ benchmarks! {
 	force_transfer {
 		let user: T::AccountId = account("user", 0, SEED);
 		let user2: T::AccountId = account("user", 1, SEED);
-		let amount: T::Balance = 10000u32.into();
+		let amount: BalanceOfAssets<T> = 10000u32.into();
 		LLM::<T>::transfer_from_treasury(user.clone(), amount.clone()).unwrap();
 		LLM::<T>::set_courts(RawOrigin::Root.into(), vec![user.clone()].try_into().unwrap()).unwrap();
 		let origin = RawOrigin::Signed(user.clone());

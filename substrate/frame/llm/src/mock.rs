@@ -5,8 +5,10 @@ use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{AsEnsureOriginWithArg, ConstU32, ConstU64, EitherOfDiverse},
 	weights::Weight,
+	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
+use pallet_asset_conversion::{NativeOrAssetId, NativeOrAssetIdConverter};
 use pallet_identity::{Data, IdentityInfo};
 use sp_core::{ConstU16, H256};
 use sp_runtime::{
@@ -24,8 +26,10 @@ frame_support::construct_runtime!(
 		Assets: pallet_assets,
 		Identity: pallet_identity,
 		LLM: pallet_llm,
+		AssetConversion: pallet_asset_conversion,
 	}
 );
+
 impl pallet_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = u64;
@@ -47,6 +51,7 @@ impl pallet_assets::Config for Test {
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type Citizenship = ();
 }
 
 parameter_types! {
@@ -152,6 +157,39 @@ impl pallet_identity::Config for Test {
 	type ForceOrigin = EnsureTwoOrRoot;
 	type WeightInfo = ();
 	type Citizenship = LLM;
+}
+
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	pub AllowMultiAssetPools: bool = true;
+	pub const PoolSetupFee: u64 = 1;
+	pub const MintMinLiquidity: u64 = 100;
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_parts(0);
+}
+
+impl pallet_asset_conversion::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AssetBalance = <Self as pallet_balances::Config>::Balance;
+	type HigherPrecisionBalance = u128;
+	type Assets = Assets;
+	type Balance = u64;
+	type PoolAssets = Assets;
+	type AssetId = <Self as pallet_assets::Config>::AssetId;
+	type MultiAssetId = NativeOrAssetId<u32>;
+	type PoolAssetId = <Self as pallet_assets::Config>::AssetId;
+	type PalletId = AssetConversionPalletId;
+	type LPFee = ConstU32<5>; // means 0.5%;
+	type PoolSetupFee = PoolSetupFee;
+	type PoolSetupFeeReceiver = ();
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type WeightInfo = pallet_asset_conversion::weights::SubstrateWeight<Test>;
+	type AllowMultiAssetPools = AllowMultiAssetPools;
+	type MaxSwapPathLength = ConstU32<4>;
+	type MintMinLiquidity = MintMinLiquidity;
+	type MultiAssetIdConverter = NativeOrAssetIdConverter<u32>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 pub fn setup_citizenships(accounts: Vec<u64>) {

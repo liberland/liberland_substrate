@@ -22,6 +22,7 @@ use crate::{mock::*, Error};
 use frame_support::{
 	assert_noop, assert_ok,
 	dispatch::GetDispatchInfo,
+	error::BadOrigin,
 	traits::{fungibles::InspectEnumerable, tokens::Preservation::Protect, Currency},
 };
 use pallet_balances::Error as BalancesError;
@@ -1773,5 +1774,64 @@ fn asset_destroy_refund_existence_deposit() {
 		assert_eq!(Balances::reserved_balance(&account2), 0);
 		assert_eq!(Balances::reserved_balance(&account3), 0);
 		assert_eq!(Balances::reserved_balance(&admin), 0);
+	});
+}
+
+#[test]
+fn only_owner_can_set_parameters() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Assets::force_create(RuntimeOrigin::root(), 0, 1, false, 1));
+		let admin_origin = RuntimeOrigin::signed(1);
+		assert_ok!(Assets::set_parameters(admin_origin, 0, AssetParameters { eresidency_required: true }));
+
+		let nonadmin_origin = RuntimeOrigin::signed(2);
+		assert_noop!(
+			Assets::set_parameters(nonadmin_origin, 0, AssetParameters { eresidency_required: true }),
+			Error::<Test>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn only_root_can_force_set_parameters() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Assets::force_create(RuntimeOrigin::root(), 0, 1, false, 1));
+		let root_origin = RuntimeOrigin::root();
+		assert_ok!(Assets::force_set_parameters(root_origin, 0, AssetParameters { eresidency_required: true }));
+
+		let admin_origin = RuntimeOrigin::signed(1);
+		assert_noop!(
+			Assets::force_set_parameters(admin_origin, 0, AssetParameters { eresidency_required: true }),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn eresident_can_receive_eresidency_only_asset() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Assets::force_create(RuntimeOrigin::root(), 0, 1, true, 1));
+		let root_origin = RuntimeOrigin::root();
+		assert_ok!(Assets::force_set_parameters(root_origin, 0, AssetParameters { eresidency_required: true }));
+		assert_ok!(Assets::mint(RuntimeOrigin::signed(1), 0, 100, 100));
+		assert_ok!(Assets::transfer(RuntimeOrigin::signed(100), 0, 101, 100));
+	});
+}
+
+#[test]
+fn non_eresident_cant_receive_eresidency_only_asset() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Assets::force_create(RuntimeOrigin::root(), 0, 1, true, 1));
+		assert_ok!(Assets::force_set_parameters(RuntimeOrigin::root(), 0, AssetParameters { eresidency_required: true }));
+		assert_ok!(Assets::mint(RuntimeOrigin::signed(1), 0, 100, 100));
+
+		assert_noop!(Assets::mint(RuntimeOrigin::signed(1), 0, 1, 100), TokenError::Blocked);
+		assert_noop!(Assets::transfer(RuntimeOrigin::signed(100), 0, 1, 100), TokenError::Blocked);
+		assert_noop!(Assets::transfer_keep_alive(RuntimeOrigin::signed(100), 0, 1, 50), TokenError::Blocked);
+		assert_noop!(Assets::force_transfer(RuntimeOrigin::signed(1), 0, 100, 1, 100), TokenError::Blocked);
+
+		Balances::make_free_balance_be(&100, 100);
+		assert_ok!(Assets::approve_transfer(RuntimeOrigin::signed(100), 0, 1, 50));
+		assert_noop!(Assets::transfer_approved(RuntimeOrigin::signed(1), 0, 100, 1, 50), TokenError::Blocked);
 	});
 }
