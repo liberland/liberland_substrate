@@ -35,7 +35,7 @@ sp-staking = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/pol
 [dev-dependencies]
 frame-benchmarking = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-identity = { path = "../identity" }
-pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-assets = { path = "../assets" }
 pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-nfts = { path = "../nfts" }
 sp-tracing = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }

@@ -27,7 +27,7 @@ frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https
 sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false }
+pallet-assets = { path = "../assets", default-features = false }
 pallet-balances =  { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false }
 pallet-identity = { path = "../identity", default-features = false }
 liberland-traits = { path = "../liberland-traits", default-features = false}
