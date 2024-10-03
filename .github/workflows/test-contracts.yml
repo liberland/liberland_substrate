@@ -31,8 +31,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: "true"
-          workspaces: "contracts -> contracts/target"
+          workspaces: |-
+            contracts/msig_court -> contracts/msig_court/target
+            contracts/wrapped_lld -> contracts/wrapped_lld/target
         
-      - name: Run tests
-        working-directory: contracts
+      - name: Run msig_court tests
+        working-directory: contracts/msig_court
+        run: cargo test
+
+      - name: Run wrapped_lld tests
+        working-directory: contracts/wrapped_lld
         run: cargo test
