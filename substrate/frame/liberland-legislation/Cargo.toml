@@ -31,12 +31,13 @@ liberland-traits = { path = "../liberland-traits", default-features = false}
 
 [dev-dependencies]
 pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-assets = { path = "../assets" }
 pallet-scheduler = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-liberland-initializer = { path = "../liberland-initializer" }
 pallet-democracy = { path = "../democracy" }
 pallet-nfts = { path = "../nfts" }
 pallet-identity = { path = "../identity" }
+pallet-asset-conversion = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 [features]
 default = ["std"]
@@ -49,6 +50,7 @@ std = [
 	"pallet-llm/std",
 	"pallet-democracy/std",
 	"pallet-nfts/std",
+	"pallet-asset-conversion/std",
 	"log/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -59,6 +61,8 @@ std = [
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-llm/runtime-benchmarks",
 	"pallet-liberland-initializer/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",

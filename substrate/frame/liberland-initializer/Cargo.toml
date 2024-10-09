@@ -31,6 +31,7 @@ pallet-identity = { default-features = false, path = "../identity" }
 pallet-nfts = { default-features = false, path = "../nfts" }
 pallet-registry = { default-features = false, path = "../registry" }
 pallet-llm = { default-features = false, path = "../llm" }
+pallet-assets = { default-features = false, path = "../assets" }
 liberland-traits = { path = "../liberland-traits", default-features = false}
 
 [dev-dependencies]
@@ -47,6 +48,7 @@ std = [
 	"pallet-nfts/std",
 	"pallet-registry/std",
 	"pallet-llm/std",
+	"pallet-assets/std",
 	"log/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -61,6 +63,7 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"pallet-llm/try-runtime",
+	"pallet-assets/try-runtime",
 	"pallet-identity/try-runtime",
 	"pallet-registry/try-runtime",
 	"pallet-nfts/try-runtime",

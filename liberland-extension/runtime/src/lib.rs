@@ -5,11 +5,13 @@ use log::{error, trace};
 use pallet_contracts::chain_extension::{ChainExtension, Environment, Ext, InitState, RetVal};
 use sp_runtime::DispatchError;
 
+type BalanceOfAssets<T> = <T as pallet_assets::Config>::Balance;
+
 #[derive(Decode, Encode, MaxEncodedLen)]
 pub struct LLMForceTransferArguments<T: pallet_llm::Config> {
 	from: pallet_llm::LLMAccount<T::AccountId>,
 	to: pallet_llm::LLMAccount<T::AccountId>,
-	amount: T::Balance,
+	amount: BalanceOfAssets<T>,
 }
 
 /// Contract extension for the Liberland Chain

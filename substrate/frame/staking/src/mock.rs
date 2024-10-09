@@ -34,6 +34,7 @@ use frame_support::{
 		OnUnbalanced, OneSessionHandler,
 	},
 	weights::constants::RocksDbWeight,
+	PalletId,
 };
 use sp_core::H256;
 use sp_io;
@@ -45,6 +46,7 @@ use sp_runtime::{
 	BuildStorage,
 };
 use sp_staking::offence::{DisableStrategy, OffenceDetails, OnOffenceHandler};
+use pallet_asset_conversion::{NativeOrAssetId, NativeOrAssetIdConverter};
 
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
@@ -109,6 +111,7 @@ frame_support::construct_runtime!(
 		Identity: pallet_identity,
 		LLM: pallet_llm,
 		LiberlandInitializer: pallet_liberland_initializer,
+		AssetConversion: pallet_asset_conversion,
 	}
 );
 
@@ -203,6 +206,39 @@ impl pallet_timestamp::Config for Test {
 	type OnTimestampSet = ();
 	type MinimumPeriod = ConstU64<5>;
 	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	pub AllowMultiAssetPools: bool = true;
+	pub const PoolSetupFee: u64 = 1;
+	pub const MintMinLiquidity: u64 = 100;
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_parts(0);
+}
+
+impl pallet_asset_conversion::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AssetBalance = <Self as pallet_balances::Config>::Balance;
+	type HigherPrecisionBalance = u128;
+	type Assets = Assets;
+	type Balance = u128;
+	type PoolAssets = Assets;
+	type AssetId = <Self as pallet_assets::Config>::AssetId;
+	type MultiAssetId = NativeOrAssetId<u32>;
+	type PoolAssetId = <Self as pallet_assets::Config>::AssetId;
+	type PalletId = AssetConversionPalletId;
+	type LPFee = ConstU32<5>; // means 0.5%;
+	type PoolSetupFee = PoolSetupFee;
+	type PoolSetupFeeReceiver = ();
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type WeightInfo = pallet_asset_conversion::weights::SubstrateWeight<Test>;
+	type AllowMultiAssetPools = AllowMultiAssetPools;
+	type MaxSwapPathLength = ConstU32<4>;
+	type MintMinLiquidity = MintMinLiquidity;
+	type MultiAssetIdConverter = NativeOrAssetIdConverter<u32>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -321,6 +357,7 @@ impl pallet_assets::Config for Test {
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type Citizenship = ();
 }
 
 pallet_staking_reward_curve::build! {
