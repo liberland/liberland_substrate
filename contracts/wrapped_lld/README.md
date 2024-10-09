@@ -11,3 +11,9 @@ Contract is deployed on:
 # Attribution
 
 This contract was forked from [wAZERO](https://github.com/Cardinal-Cryptography/wAZERO) by Cardinal Cryptography.
+
+# Verifying integrity
+
+```
+cargo contract verify --contract=./artifacts/wrapped_lld.contract
+```

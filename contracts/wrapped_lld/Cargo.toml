@@ -10,6 +10,8 @@ readme = "README.md"
 description = "Smart contract for LLD coin wrapped as a PSP22 token"
 exclude = [ ".github/*" ]
 
+[workspace]
+
 [dependencies]
 ink = { version = "=4.3.0", default-features = false }
 
