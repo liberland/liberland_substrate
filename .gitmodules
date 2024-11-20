@@ -16,3 +16,6 @@
 [submodule "solidity/lib/openzeppelin-contracts"]
 	path = solidity/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "solidity/lib/solidity-BigNumber"]
+	path = solidity/lib/solidity-BigNumber
+	url = https://github.com/firoorg/solidity-BigNumber
