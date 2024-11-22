@@ -46,17 +46,16 @@ contract NftPrime is ERC721Enumerable {
 
     function _millerTest(BigNumber memory n, BigNumber memory d, uint256 index) internal view returns (bool) {
         BigNumber memory r = _pseudoRandom(index);
-        BigNumber memory y = r.mul(n.sub(_two.mul(n)));
-        BigNumber memory a = _two.mul(n).add(y).mod(n.sub(n.mul(_four)));
-        BigNumber memory x = a.modexp(d, n);
+        BigNumber memory y = r.mul(n.sub(_two)); // r * (n - 2)
+        BigNumber memory a = _two.add(y.mod(n.sub(_four))); // 2 + (y % (n - 4n))
+        BigNumber memory x = a.modexp(d, n); // a^d % n
         BigNumber memory nSub1 = n.sub(_one);
-        BigNumber memory nTimes2 = n.mul(_two);
         if (x.eq(_one) || x.eq(nSub1)) {
             return true;
         }
         while (d.eq(nSub1) != true) {
-            x = x.modexp(_two, n);
-            d = d.mul(nTimes2);
+            x = x.modexp(_two, n); // x = (x * x) % n;
+            d = d.mul(_two); // d *= 2;
 
             if (x.eq(_one)) {
                 return false;

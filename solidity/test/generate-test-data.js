@@ -1,12 +1,14 @@
 const { assert } = require("console");
 const fs = require("fs");
 
+// NO NEED TO RUN THIS FILE, ONLY HERE AS A TEST RESOURCES GENERATOR
+
 BigInt.prototype.toJSON = function toJSON() { return this.toString(); };
 
 /**
  * @type number[]
  */
-const smallPrimes = JSON.parse(fs.readFileSync("./first-primes.json", { encoding: "utf-8" }));
+const smallPrimes = JSON.parse(fs.readFileSync("./small-primes.json", { encoding: "utf-8" }));
 /**
  * @type string[]
  */
@@ -15,7 +17,7 @@ const largePrimes = JSON.parse(fs.readFileSync("./large-primes.json", { encoding
 /**
  * @type number[]
  */
-const smallComposites = JSON.parse(fs.readFileSync("./first-composites.json", { encoding: "utf-8" }));
+const smallComposites = JSON.parse(fs.readFileSync("./small-composites.json", { encoding: "utf-8" }));
 /**
  * @type string[]
  */

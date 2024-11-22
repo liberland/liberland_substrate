@@ -30,3 +30,4 @@ substrate.code-workspace
 .direnv/
 /.envrc
 solidity/bin
+solidity/test/node_modules
