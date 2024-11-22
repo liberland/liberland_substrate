@@ -19,6 +19,8 @@ frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https
 log = { version = "0.4.17", default-features = false }
 
 pallet-llm = { default-features = false, path = "../../substrate/frame/llm" }
+pallet-assets = { default-features = false, path = "../../substrate/frame/assets" }
+pallet-asset-conversion = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 [features]
 default = ["std"]
@@ -32,4 +34,6 @@ std = [
 	"frame-system/std",
 	"log/std",
 	"pallet-llm/std",
+	"pallet-assets/std",
+	"pallet-asset-conversion/std",
 ]
