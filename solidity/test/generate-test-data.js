@@ -1,22 +1,25 @@
 const { assert } = require("console");
 const fs = require("fs");
-/**
- * @type number[]
- */
-const smallPrimes = JSON.parse(fs.openSync("./first-primes.json", "r"));
-/**
- * @type string[]
- */
-const largePrimes = JSON.parse(fs.openSync("./large-primes.json", "r"));
+
+BigInt.prototype.toJSON = function toJSON() { return this.toString(); };
 
 /**
  * @type number[]
  */
-const smallComposites = JSON.parse(fs.openSync("./first-composites.json", "r"));
+const smallPrimes = JSON.parse(fs.readFileSync("./first-primes.json", { encoding: "utf-8" }));
 /**
  * @type string[]
  */
-const largeComposites = JSON.parse(fs.openSync("./large-composites.json", "r"));
+const largePrimes = JSON.parse(fs.readFileSync("./large-primes.json", { encoding: "utf-8" }));
+
+/**
+ * @type number[]
+ */
+const smallComposites = JSON.parse(fs.readFileSync("./first-composites.json", { encoding: "utf-8" }));
+/**
+ * @type string[]
+ */
+const largeComposites = JSON.parse(fs.readFileSync("./large-composites.json", { encoding: "utf-8" }));
 
 const results = {
     smallPrimes: [],
@@ -25,21 +28,36 @@ const results = {
     largeComposites: [],
 };
 
-smallPrimes.forEach((value) => {
-    const [numberIsPrime, d, s] = isPrime(BigInt(value));
-    assert(numberIsPrime);
-    results.smallPrimes.push({ n: value.toString(), d, s });
-});
+// Javascript program Miller-Rabin primality test
+// based on JavaScript code found at https://www.geeksforgeeks.org/primality-test-set-3-miller-rabin/
 
-largePrimes.forEach((value) => {
-    const [numberIsPrime, d, s] = isPrime(BigInt(value));
-    assert(numberIsPrime);
-    results.largePrimes.push({ n: value.toString(), d, s });
-});
+// Utility function to do
+// modular exponentiation.
+// It returns (x^y) % p
+function power(x, y, p)
+{
+	
+	// Initialize result 
+    // (JML- all literal integers converted to use n suffix denoting BigInt)
+	let res = 1n;
+	
+	// Update x if it is more than or
+	// equal to p
+	x = x % p;
+	while (y > 0n)
+	{
+		
+		// If y is odd, multiply
+		// x with result
+		if (y & 1n)
+			res = (res*x) % p;
 
-smallComposites.forEach((value) => {
-    
-});
+		// y must be even now
+		y = y/2n; // (JML- original code used a shift operator, but division is clearer)
+		x = (x*x) % p;
+	}
+	return res;
+}
 
 // This function is called
 // for all k trials. It returns
@@ -116,7 +134,33 @@ function isPrime(n, k=14)
     // Iterate given nber of 'k' times
     for (let i = 0; i < k; i++)
         if (!millerTest(d, n))
-            return [false];
+            return [false, d, s];
 
     return [true, d, s];
 }
+
+smallPrimes.forEach((n) => {
+    const [numberIsPrime, d, s] = isPrime(BigInt(n));
+    assert(numberIsPrime);
+    results.smallPrimes.push({ n, d, s });
+});
+
+largePrimes.forEach((n) => {
+    const [numberIsPrime, d, s] = isPrime(BigInt(n));
+    assert(numberIsPrime);
+    results.largePrimes.push({ n, d, s });
+});
+
+smallComposites.forEach((n) => {
+    const [numberIsPrime, d, s] = isPrime(BigInt(n));
+    assert(!numberIsPrime);
+    results.smallComposites.push({ n, d, s });
+});
+
+largeComposites.forEach((n) => {
+    const [numberIsPrime, d, s] = isPrime(BigInt(n));
+    assert(!numberIsPrime);
+    results.largeComposites.push({ n, d, s });
+});
+
+fs.writeFileSync("./tests.json", JSON.stringify(results));

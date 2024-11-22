@@ -87,7 +87,7 @@ contract NftPrime is ERC721Enumerable {
         }
 
         // n − 1 as 2s·d
-        require(s > 1 && d.gt(_one), "s and d must be greate than one");
+        require(d.gt(_one), "d must be greater than one");
         require(d.mod(_two).eq(_one), "d must be odd");
         require(n.sub(_one).eq(_two.pow(s).mul(d)), "Invalid parameters d and s");
 
@@ -105,6 +105,7 @@ contract NftPrime is ERC721Enumerable {
     }
 
     function mint(bytes calldata number, bytes calldata d, uint256 s) public {
+        require(s > 0, "s must be greater than 0");
         uint256 hash = uint256(keccak256(number));
         require(!_found[hash], "Prime was mined already");
         require(number.length >= _minimumBytes, "Number not large enough");
