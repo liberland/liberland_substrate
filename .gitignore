@@ -31,3 +31,4 @@ substrate.code-workspace
 /.envrc
 solidity/bin
 solidity/test/node_modules
+solidity/test/test.log

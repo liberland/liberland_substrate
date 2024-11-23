@@ -27,10 +27,10 @@ contract NftPrime is ERC721Enumerable {
 
     constructor(string memory uri, uint256 verificationCount, uint256 minimumBytes) ERC721("NFT Prime", "NFTP") {
         _uri = uri;
-        _one = BigNumbers.init(BigNumbers.ONE, false, BigNumbers.ONE.length);
-        _two = BigNumbers.init(BigNumbers.TWO, false, BigNumbers.TWO.length);
-        _three = BigNumbers.init(THREE, false, THREE.length);
-        _four = BigNumbers.init(FOUR, false, FOUR.length);
+        _one = BigNumbers.init(BigNumbers.ONE, false);
+        _two = BigNumbers.init(BigNumbers.TWO, false);
+        _three = BigNumbers.init(THREE, false);
+        _four = BigNumbers.init(FOUR, false);
         _verificationCount = verificationCount;
         _minimumBytes = minimumBytes;
     }
@@ -39,13 +39,13 @@ contract NftPrime is ERC721Enumerable {
         return _uri;
     }
 
-    function _pseudoRandom(uint256 seed) internal view returns(BigNumber memory) {
+    function _pseudoRandom(uint256 seed, BigNumber memory n) internal view returns(BigNumber memory) {
         bytes memory b = abi.encodePacked(uint256(keccak256(abi.encode(seed, block.prevrandao))));
-        return BigNumbers.init(b, false, b.length);
+        return BigNumbers.init(b, false).mod(n);
     }
 
     function _millerTest(BigNumber memory n, BigNumber memory d, uint256 index) internal view returns (bool) {
-        BigNumber memory r = _pseudoRandom(index);
+        BigNumber memory r = _pseudoRandom(index, n);
         BigNumber memory y = r.mul(n.sub(_two)); // r * (n - 2)
         BigNumber memory a = _two.add(y.mod(n.sub(_four))); // 2 + (y % (n - 4n))
         BigNumber memory x = a.modexp(d, n); // a^d % n
@@ -68,8 +68,8 @@ contract NftPrime is ERC721Enumerable {
     }
 
     function _isPrime(bytes memory number, bytes memory dN, uint256 s) internal view returns (bool, BigNumber memory) {
-        BigNumber memory n = BigNumbers.init(number, false, number.length);
-        BigNumber memory d = BigNumbers.init(dN, false, dN.length);
+        BigNumber memory n = BigNumbers.init(number, false);
+        BigNumber memory d = BigNumbers.init(dN, false);
         n.verify();
         d.verify();
 
@@ -86,7 +86,7 @@ contract NftPrime is ERC721Enumerable {
         }
 
         // n − 1 as 2s·d
-        require(d.gt(_one), "d must be greater than one");
+        require(d.gt(_one) || d.eq(_one), "d must be greater or equal to one");
         require(d.mod(_two).eq(_one), "d must be odd");
         require(n.sub(_one).eq(_two.pow(s).mul(d)), "Invalid parameters d and s");
 

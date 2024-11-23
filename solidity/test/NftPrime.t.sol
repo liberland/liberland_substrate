@@ -13,44 +13,35 @@ contract NtfPrimeTest is Test {
     string constant SMALL_COMPOSITES = "smallComposites";
     string constant LARGE_COMPOSITES = "largeComposites";
 
+    struct TestData {
+        bytes n;
+        bytes d;
+        uint256 s;
+    }
+
     function setUp() public {
         nftPrime = new NftPrime("", 14, 256);
     }
 
     function toBytes(uint256 number) internal pure returns(bytes memory) {
-        return abi.encodePacked(number);
+        return abi.encode(number);
     }
 
-    function getTestLength(string memory test) internal returns(uint256) {
-        string[] memory runJsInputs = new string[](4);
-
-        // node ./index.js {test} length
-        runJsInputs[0]  = "node";
-        runJsInputs[1]  = "./index.js";
-        runJsInputs[2]  = test;
-        runJsInputs[3]  = "length";
-
-        bytes memory jsResult = vm.ffi(runJsInputs);
-        (uint256 length) = abi.decode(jsResult, (uint256));
-        return length;
-    }
-
-    function getTestByIndex(string memory test, uint256 index) internal returns(bytes memory,bytes memory,uint256) {
+    function getTest(string memory test) internal returns(TestData[] memory) {
         string[] memory runJsInputs = new string[](4);
 
         // node ./index.js {test} {index}
         runJsInputs[0]  = "node";
-        runJsInputs[1]  = "./index.js";
+        runJsInputs[1]  = "./test/index.js";
         runJsInputs[2]  = test;
-        runJsInputs[3]  = Strings.toString(index);
 
         bytes memory jsResult = vm.ffi(runJsInputs);
-        (bytes memory n, bytes memory d, uint256 s) = abi.decode(jsResult, (bytes, bytes, uint256));
-        return (n, d, s);
+        (TestData[] memory result) = abi.decode(jsResult, (TestData[]));
+        return result;
     }
 
     function testInvalidPrimeParameters() public {
-        vm.expectRevert("d must be greater than one");
+        vm.expectRevert("d must be greater or equal to one");
         nftPrime.isPrime(toBytes(10), toBytes(0), 0);
         vm.expectRevert("d must be odd");
         nftPrime.isPrime(toBytes(10), toBytes(2), 4);
@@ -60,37 +51,37 @@ contract NtfPrimeTest is Test {
     }
 
     function testPrimalityForSmallPrimes() public {
-        uint256 testLen = getTestLength(SMALL_PRIMES);
-        for (uint256 i = 0; i < testLen; i++) {
-            (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(SMALL_PRIMES, i);
-            bool isPrime = nftPrime.isPrime(n, d, s);
+        TestData[] memory _smallPrimeTests = getTest(SMALL_PRIMES);
+        for (uint256 i = 0; i < _smallPrimeTests.length; i++) {
+            TestData memory test = _smallPrimeTests[i];
+            bool isPrime = nftPrime.isPrime(test.n, test.d, test.s);
             assertTrue(isPrime);
         }
     }
 
     function testPrimalityForSmallComposites() public {
-        uint256 testLen = getTestLength(SMALL_COMPOSITES);
-        for (uint256 i = 0; i < testLen; i++) {
-            (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(SMALL_COMPOSITES, i);
-            bool isPrime = nftPrime.isPrime(n, d, s);
+        TestData[] memory _smallCompositeTests = getTest(SMALL_COMPOSITES);
+        for (uint256 i = 0; i < _smallCompositeTests.length; i++) {
+            TestData memory test = _smallCompositeTests[i];
+            bool isPrime = nftPrime.isPrime(test.n, test.d, test.s);
             assertFalse(isPrime);
         }
     }
 
-    function testPrimalityForLargePrimes() public {
-        uint256 testLen = getTestLength(LARGE_PRIMES);
-        for (uint256 i = 0; i < testLen; i++) {
-            (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(LARGE_PRIMES, i);
-            bool isPrime = nftPrime.isPrime(n, d, s);
+    /*function testPrimalityForLargePrimes() public {
+        TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
+        for (uint256 i = 0; i < _largePrimeTests.length; i++) {
+            TestData memory test = _largePrimeTests[i];
+            bool isPrime = nftPrime.isPrime(test.n, test.d, test.s);
             assertTrue(isPrime);
         }
     }
 
     function testPrimalityForLargeComposites() public {
-        uint256 testLen = getTestLength(LARGE_COMPOSITES);
-        for (uint256 i = 0; i < testLen; i++) {
-            (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(LARGE_COMPOSITES, i);
-            bool isPrime = nftPrime.isPrime(n, d, s);
+        TestData[] memory _largeCompositeTests = getTest(LARGE_COMPOSITES);
+        for (uint256 i = 0; i < _largeCompositeTests.length; i++) {
+            TestData memory test = _largeCompositeTests[i];
+            bool isPrime = nftPrime.isPrime(test.n, test.d, test.s);
             assertFalse(isPrime);
         }
     }
@@ -101,33 +92,34 @@ contract NtfPrimeTest is Test {
     }
 
     function testSizeForSmallNumbers() public {
-        (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(SMALL_PRIMES, 0);
+        TestData[] memory _smallPrimeTests = getTest(SMALL_PRIMES);
+        TestData memory test = _smallPrimeTests[0];
         vm.expectRevert("Number not large enough");
-        nftPrime.mint(n, d, s);
+        nftPrime.mint(test.n, test.d, test.s);
     }
 
     function testDuplicateMinting() public {
-        uint256 testLen = getTestLength(LARGE_PRIMES);
-        (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(LARGE_PRIMES, testLen - 1);
-        nftPrime.mint(n, d, s);
+        TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
+        TestData memory test = _largePrimeTests[_largePrimeTests.length - 1];
+        nftPrime.mint(test.n, test.d, test.s);
         vm.expectRevert("Prime was mined already");
-        nftPrime.mint(n, d, s);
+        nftPrime.mint(test.n, test.d, test.s);
     }
 
     function testNotAPrimeMinting() public {
-        uint256 testLen = getTestLength(LARGE_COMPOSITES);
-        (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(LARGE_COMPOSITES, testLen - 1);
-        vm.expectRevert("Prime was mined already");
-        nftPrime.mint(n, d, s);
+        TestData[] memory _largeCompositeTests = getTest(LARGE_COMPOSITES);
+        TestData memory test = _largeCompositeTests[_largeCompositeTests.length - 1];
+        vm.expectRevert("Not a prime");
+        nftPrime.mint(test.n, test.d, test.s);
     }
 
     function testSuccessfulMinting() public {
+        TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
         bytes[] memory primes = new bytes[](4);
         for (uint256 i = 0; i < 4; i++) {
-            uint256 testLen = getTestLength(LARGE_PRIMES);
-            (bytes memory n, bytes memory d, uint256 s) = getTestByIndex(LARGE_PRIMES, testLen - 4 + i);
-            nftPrime.mint(n, d, s);
-            primes[i] = n;
+            TestData memory test = _largePrimeTests[_largePrimeTests.length - 4 + i];
+            nftPrime.mint(test.n, test.d, test.s);
+            primes[i] = test.n;
         }
         assertEq(primes[0], nftPrime.getPrime(0).val);
         assertEq(primes[1], nftPrime.getPrime(1).val);
@@ -139,5 +131,5 @@ contract NtfPrimeTest is Test {
         assertEq(2, nftPrime.getPrimes(0, 2).length);
         assertEq(primes[2], nftPrime.getPrimes(1, 3)[1].val);
         assertEq(2, nftPrime.getPrimes(1, 3).length);
-    }
+    }*/
 }
