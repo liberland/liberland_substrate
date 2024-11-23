@@ -117,7 +117,7 @@ contract NftPrime is ERC721Enumerable {
         require(number.length >= _minimumBytes, "Number not large enough");
         (bool numberIsPrime,BigNumber memory p) = _isPrime(number, d, s);
         require(numberIsPrime, "Not a prime");
-        uint256 nextId = totalSupply() + 1;
+        uint256 nextId = totalSupply();
         _primes.push(p);
         _mapped[nextId] = p;
         _found[hash] = true;
