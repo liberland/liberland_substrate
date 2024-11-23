@@ -4,20 +4,29 @@ pragma solidity ^0.8.17;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {BigNumbers,BigNumber} from "@BigNumber/BigNumbers.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-using BigNumbers for bytes;
-using BigNumbers for BigNumber;
+contract NftPrimeEvents {
+    event SetFee(uint256 indexed fee);
+    event Withdraw(uint256 indexed amount);
+}
 
-contract NftPrime is ERC721Enumerable {
+contract NftPrime is NftPrimeEvents,ERC721Enumerable,Ownable {
+    using BigNumbers for bytes;
+    using BigNumbers for BigNumber;
+
     string private _uri;
     uint256 private _verificationCount;
-
+    uint256 _minimumBytes;
+    uint256 _fee;
+    uint256 _paid;
     BigNumber[] private _primes;
     mapping(uint256 => bool) private _found;
     mapping(uint256 => BigNumber) private _mapped;
-    uint256 _minimumBytes;
 
-    bytes constant THREE = hex"0000000000000000000000000000000000000000000000000000000000000004";
+    bytes constant ONE = hex"0000000000000000000000000000000000000000000000000000000000000001";
+    bytes constant TWO = hex"0000000000000000000000000000000000000000000000000000000000000002";
+    bytes constant THREE = hex"0000000000000000000000000000000000000000000000000000000000000003";
     bytes constant FOUR = hex"0000000000000000000000000000000000000000000000000000000000000004";
 
     BigNumber private _one;
@@ -25,14 +34,15 @@ contract NftPrime is ERC721Enumerable {
     BigNumber private _four;
     BigNumber private _three;
 
-    constructor(string memory uri, uint256 verificationCount, uint256 minimumBytes) ERC721("NFT Prime", "NFTP") {
+    constructor(string memory uri, uint256 verificationCount, uint256 minimumBytes, uint256 fee) ERC721("NFT Prime", "NFTP") Ownable(msg.sender) {
         _uri = uri;
-        _one = BigNumbers.init(BigNumbers.ONE, false);
-        _two = BigNumbers.init(BigNumbers.TWO, false);
-        _three = BigNumbers.init(THREE, false);
-        _four = BigNumbers.init(FOUR, false);
+        _one = ONE.init(false);
+        _two = TWO.init(false);
+        _three = THREE.init(false);
+        _four = FOUR.init(false);
         _verificationCount = verificationCount;
         _minimumBytes = minimumBytes;
+        _fee = fee;
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -41,7 +51,7 @@ contract NftPrime is ERC721Enumerable {
 
     function _pseudoRandom(uint256 seed, BigNumber memory n) internal view returns(BigNumber memory) {
         bytes memory b = abi.encodePacked(uint256(keccak256(abi.encode(seed, block.prevrandao))));
-        return BigNumbers.init(b, false).mod(n);
+        return b.init(false).mod(n);
     }
 
     function _millerTest(BigNumber memory n, BigNumber memory d, uint256 index) internal view returns (bool) {
@@ -76,8 +86,8 @@ contract NftPrime is ERC721Enumerable {
     }
 
     function _isPrime(bytes memory number, bytes memory dN, uint256 s) internal view returns (bool, BigNumber memory) {
-        BigNumber memory n = BigNumbers.init(number, false);
-        BigNumber memory d = BigNumbers.init(dN, false);
+        BigNumber memory n = number.init(false);
+        BigNumber memory d = dN.init(false);
         n.verify();
         d.verify();
 
@@ -110,7 +120,8 @@ contract NftPrime is ERC721Enumerable {
         return numberIsPrime;
     }
 
-    function mint(bytes calldata number, bytes calldata d, uint256 s) public {
+    function mint(bytes calldata number, bytes calldata d, uint256 s) public payable {
+        require(msg.value == _fee, "Minting fee must be paid");
         require(s > 0, "s must be greater than 0");
         uint256 hash = uint256(keccak256(number));
         require(!_found[hash], "Prime was mined already");
@@ -122,6 +133,7 @@ contract NftPrime is ERC721Enumerable {
         _mapped[nextId] = p;
         _found[hash] = true;
         _mint(msg.sender, nextId);
+        _paid += msg.value;
     }
 
     function getPrime(uint256 tokenId) public view returns (BigNumber memory) {
@@ -134,9 +146,30 @@ contract NftPrime is ERC721Enumerable {
 
     function getPrimes(uint256 from, uint256 to) public view returns (BigNumber[] memory) {
         BigNumber[] memory acc = new BigNumber[](to - from);
-        for (uint256 i = from; i < to; i++) {
-            acc[i] = _primes[i];
+        for (uint256 i = 0; i < (to - from); i++) {
+            acc[i] = _primes[i + from];
         }
         return acc;
+    }
+
+    function getFee() public view returns(uint256) {
+        return _fee;
+    }
+
+    function setFee(uint256 fee) public onlyOwner() {
+        _fee = fee;
+        emit SetFee(fee);
+    }
+
+    function getPaid() public view returns(uint256) {
+        return _paid;
+    }
+
+    function withdraw() public onlyOwner() {
+        require(_paid > 0, "no funds found");
+        (bool ok,) = msg.sender.call{ value: _paid }("");
+        require(ok, "transaction failed");
+        emit Withdraw(_paid);
+        _paid = 0;
     }
 }

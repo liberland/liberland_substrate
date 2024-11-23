@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {NftPrime} from "../src/NftPrime.sol";
 
 contract NtfPrimeTest is Test {
     NftPrime public nftPrime;
+
+    address private _owner;
 
     string constant SMALL_PRIMES = "smallPrimes";
     string constant LARGE_PRIMES = "largePrimes";
@@ -20,7 +23,19 @@ contract NtfPrimeTest is Test {
     }
 
     function setUp() public {
-        nftPrime = new NftPrime("", 14, 256);
+        address owner = makeAccount(5, 10000);
+        vm.prank(owner);
+        nftPrime = new NftPrime("", 14, 256, 0);
+        _owner = owner;
+    }
+
+    function makeAccount(uint32 random, uint256 funds) internal returns(address) {
+        string memory mnemonic = "test test test test test test test test test test test junk";
+        uint256 privateKey = vm.deriveKey(mnemonic, random);
+        address addr = vm.addr(privateKey);
+        (bool ok,) = addr.call{ value: funds }("");
+        require(ok, "Address funds not transfered");
+        return addr;
     }
 
     function toBytes(uint256 number) internal pure returns(bytes memory) {
@@ -128,15 +143,53 @@ contract NtfPrimeTest is Test {
             nftPrime.mint(test.n, test.d, test.s);
             primes[i] = test.n;
         }
+        assertEq(4, nftPrime.getPrimesCount());
         assertEq(primes[0], nftPrime.getPrime(0).val);
-        // assertEq(primes[1], nftPrime.getPrime(1).val);
-        // assertEq(primes[2], nftPrime.getPrime(2).val);
-        // assertEq(primes[3], nftPrime.getPrime(3).val);
-        // assertEq(primes[0], nftPrime.getPrimes(0, 1)[0].val);
-        // assertEq(1, nftPrime.getPrimes(0, 1).length);
-        // assertEq(primes[1], nftPrime.getPrimes(0, 2)[1].val);
-        // assertEq(2, nftPrime.getPrimes(0, 2).length);
-        // assertEq(primes[2], nftPrime.getPrimes(1, 3)[1].val);
-        // assertEq(2, nftPrime.getPrimes(1, 3).length);
+        assertEq(primes[1], nftPrime.getPrime(1).val);
+        assertEq(primes[2], nftPrime.getPrime(2).val);
+        assertEq(primes[3], nftPrime.getPrime(3).val);
+        assertEq(primes[0], nftPrime.getPrimes(0, 1)[0].val);
+        assertEq(1, nftPrime.getPrimes(0, 1).length);
+        assertEq(2, nftPrime.getPrimes(0, 2).length);
+        assertEq(2, nftPrime.getPrimes(1, 3).length);
+        assertEq(primes[1], nftPrime.getPrimes(0, 2)[1].val);
+        assertEq(primes[2], nftPrime.getPrimes(1, 3)[1].val);
+    }
+
+    function testRestrictedAccess() public {
+        address testAccount = makeAccount(2, 500);
+        vm.prank(testAccount);
+        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        nftPrime.setFee(5);
+
+        vm.prank(testAccount);
+        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        nftPrime.withdraw();
+    }
+
+    function testPrimeMintingWithFees() public {
+        address testAccount = makeAccount(2, 500);
+
+        vm.prank(_owner);
+        nftPrime.setFee(10);
+        assertEq(10, nftPrime.getFee());
+
+        TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
+        for (uint256 i = 0; i < 4; i++) {
+            TestData memory test = _largePrimeTests[_largePrimeTests.length - 4 + i];
+            vm.prank(testAccount);
+            nftPrime.mint{ value: 10 }(test.n, test.d, test.s);
+        }
+
+        assertEq(nftPrime.getPaid(), 40);
+        vm.prank(_owner);
+        vm.expectCall(_owner, 40, bytes(""));
+        nftPrime.withdraw();
+
+        assertEq(nftPrime.getPaid(), 0);
+
+        vm.prank(_owner);
+        vm.expectRevert("no funds found");
+        nftPrime.withdraw();
     }
 }
