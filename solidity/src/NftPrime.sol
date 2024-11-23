@@ -48,13 +48,13 @@ contract NftPrime is ERC721Enumerable {
         BigNumber memory r = _pseudoRandom(index, n);
         BigNumber memory y = r.mul(n.sub(_two)); // r * (n - 2)
         BigNumber memory a = _two.add(y.mod(n.sub(_four))); // 2 + (y % (n - 4n))
-        BigNumber memory x = a.modexp(d, n); // a^d % n
+        BigNumber memory x = _safeModExp(a, d, n); // a^d % n
         BigNumber memory nSub1 = n.sub(_one);
         if (x.eq(_one) || x.eq(nSub1)) {
             return true;
         }
         while (d.eq(nSub1) != true) {
-            x = x.modexp(_two, n); // x = (x * x) % n;
+            x = _safeModExp(x, _two, n); // x = (x * x) % n;
             d = d.mul(_two); // d *= 2;
 
             if (x.eq(_one)) {
@@ -65,6 +65,14 @@ contract NftPrime is ERC721Enumerable {
             }
         }
         return false;
+    }
+
+    function _safeModExp(BigNumber memory n, BigNumber memory exponent, BigNumber memory m) internal view returns(BigNumber memory) {
+        return exponent.isZero() ? _one : n.modexp(exponent, m);
+    }
+
+    function _safePow(BigNumber memory n, uint256 exponent) internal view returns (BigNumber memory) {
+        return exponent == 0 ? _one : n.pow(exponent);
     }
 
     function _isPrime(bytes memory number, bytes memory dN, uint256 s) internal view returns (bool, BigNumber memory) {
@@ -85,10 +93,9 @@ contract NftPrime is ERC721Enumerable {
             return (false,n);
         }
 
-        // n − 1 as 2s·d
         require(d.gt(_one) || d.eq(_one), "d must be greater or equal to one");
         require(d.mod(_two).eq(_one), "d must be odd");
-        require(n.sub(_one).eq(_two.pow(s).mul(d)), "Invalid parameters d and s");
+        require(n.sub(_one).eq(_safePow(_two, s).mul(d)), "Invalid parameters d and s");
 
         for (uint256 i = 0; i < _verificationCount; i++) {
             if (!_millerTest(n, d, i)) {

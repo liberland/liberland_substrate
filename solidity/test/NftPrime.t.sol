@@ -68,7 +68,7 @@ contract NtfPrimeTest is Test {
         }
     }
 
-    /*function testPrimalityForLargePrimes() public {
+    function testPrimalityForLargePrimes() public {
         TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
         for (uint256 i = 0; i < _largePrimeTests.length; i++) {
             TestData memory test = _largePrimeTests[i];
@@ -98,6 +98,13 @@ contract NtfPrimeTest is Test {
         nftPrime.mint(test.n, test.d, test.s);
     }
 
+    function testSizeForLargeNumbers() public {
+        TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
+        TestData memory test = _largePrimeTests[21];
+        vm.expectRevert("Number not large enough");
+        nftPrime.mint(test.n, test.d, test.s);
+    }
+
     function testDuplicateMinting() public {
         TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
         TestData memory test = _largePrimeTests[_largePrimeTests.length - 1];
@@ -122,14 +129,14 @@ contract NtfPrimeTest is Test {
             primes[i] = test.n;
         }
         assertEq(primes[0], nftPrime.getPrime(0).val);
-        assertEq(primes[1], nftPrime.getPrime(1).val);
-        assertEq(primes[2], nftPrime.getPrime(2).val);
-        assertEq(primes[3], nftPrime.getPrime(3).val);
-        assertEq(primes[0], nftPrime.getPrimes(0, 1)[0].val);
-        assertEq(1, nftPrime.getPrimes(0, 1).length);
-        assertEq(primes[1], nftPrime.getPrimes(0, 2)[1].val);
-        assertEq(2, nftPrime.getPrimes(0, 2).length);
-        assertEq(primes[2], nftPrime.getPrimes(1, 3)[1].val);
-        assertEq(2, nftPrime.getPrimes(1, 3).length);
-    }*/
+        // assertEq(primes[1], nftPrime.getPrime(1).val);
+        // assertEq(primes[2], nftPrime.getPrime(2).val);
+        // assertEq(primes[3], nftPrime.getPrime(3).val);
+        // assertEq(primes[0], nftPrime.getPrimes(0, 1)[0].val);
+        // assertEq(1, nftPrime.getPrimes(0, 1).length);
+        // assertEq(primes[1], nftPrime.getPrimes(0, 2)[1].val);
+        // assertEq(2, nftPrime.getPrimes(0, 2).length);
+        // assertEq(primes[2], nftPrime.getPrimes(1, 3)[1].val);
+        // assertEq(2, nftPrime.getPrimes(1, 3).length);
+    }
 }
