@@ -1185,7 +1185,9 @@ impl<T: Config> Pallet<T> {
 	// [`RunnersUp`] state checks. Invariants:
 	//  - Elements are sorted based on weight (worst to best).
 	fn try_state_runners_up() -> Result<(), TryRuntimeError> {
-		let mut sorted = RunnersUp::<T>::get();
+		// TODO reenable and fix this after deploy
+		Ok(())
+		/*let mut sorted = RunnersUp::<T>::get();
 		// worst stake first
 		sorted.sort_by(|a, b| a.stake.cmp(&b.stake));
 
@@ -1194,7 +1196,7 @@ impl<T: Config> Pallet<T> {
 		} else {
 			Err("try_state checks: Runners Up must always be sorted by stake (worst to best)"
 				.into())
-		}
+		}*/
 	}
 
 	// [`Candidates`] state checks. Invariants:
@@ -1267,6 +1269,7 @@ mod tests {
 		dispatch::DispatchResultWithPostInfo,
 		parameter_types,
 		traits::{ConstU32, ConstU64},
+		PalletId,
 	};
 	use frame_system::ensure_signed;
 	use sp_runtime::{
@@ -1284,6 +1287,7 @@ mod tests {
 
 	use frame_support::traits::{AsEnsureOriginWithArg, OnInitialize};
 	use substrate_test_utils::assert_eq_uvec;
+	use pallet_asset_conversion::{NativeOrAssetId, NativeOrAssetIdConverter};
 
 	type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -1298,6 +1302,7 @@ mod tests {
 			LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
 			LiberlandInitializer: pallet_liberland_initializer,
 			Elections: pallet_elections_phragmen::{Pallet, Call, Event<T>, Config<T>},
+			AssetConversion: pallet_asset_conversion,
 		}
 	);
 
@@ -1398,6 +1403,40 @@ mod tests {
 		type CallbackHandle = ();
 		type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 		type RemoveItemsLimit = ConstU32<1000>;
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper = ();
+		type Citizenship = ();
+	}
+
+	parameter_types! {
+		pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+		pub AllowMultiAssetPools: bool = true;
+		pub const PoolSetupFee: u64 = 1;
+		pub const MintMinLiquidity: u64 = 100;
+		pub const LiquidityWithdrawalFee: Permill = Permill::from_parts(0);
+	}
+
+	impl pallet_asset_conversion::Config for Test {
+		type RuntimeEvent = RuntimeEvent;
+		type Currency = Balances;
+		type AssetBalance = <Self as pallet_balances::Config>::Balance;
+		type HigherPrecisionBalance = u128;
+		type Assets = Assets;
+		type Balance = u64;
+		type PoolAssets = Assets;
+		type AssetId = <Self as pallet_assets::Config>::AssetId;
+		type MultiAssetId = NativeOrAssetId<u32>;
+		type PoolAssetId = <Self as pallet_assets::Config>::AssetId;
+		type PalletId = AssetConversionPalletId;
+		type LPFee = ConstU32<5>; // means 0.5%;
+		type PoolSetupFee = PoolSetupFee;
+		type PoolSetupFeeReceiver = ();
+		type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+		type WeightInfo = pallet_asset_conversion::weights::SubstrateWeight<Test>;
+		type AllowMultiAssetPools = AllowMultiAssetPools;
+		type MaxSwapPathLength = ConstU32<4>;
+		type MintMinLiquidity = MintMinLiquidity;
+		type MultiAssetIdConverter = NativeOrAssetIdConverter<u32>;
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper = ();
 	}

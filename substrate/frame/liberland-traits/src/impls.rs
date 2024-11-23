@@ -12,6 +12,11 @@ where
 	C1: Get<T>,
 	C2: Get<T>,
 {
+	fn ensure_stocks_allowed(account: &T) -> Result<(), DispatchError> {
+		ensure!(Self::is_citizen(account), DispatchError::Other("NotCitizen"));
+		Ok(())
+	}
+
 	fn ensure_politics_allowed(account: &T) -> Result<(), DispatchError> {
 		ensure!(Self::is_citizen(account), DispatchError::Other("NotCitizen"));
 		Ok(())
@@ -48,6 +53,10 @@ impl<T> OnLLMPoliticsUnlock<T> for () {
 /// Noop implementation of CitizenshipChecker - mostly to be used in tests to
 /// prevent circular dependencies
 impl<T> CitizenshipChecker<T> for () {
+	fn ensure_stocks_allowed(_account: &T) -> Result<(), DispatchError> {
+		Ok(())
+	}
+
 	fn ensure_politics_allowed(_account: &T) -> Result<(), DispatchError> {
 		Ok(())
 	}

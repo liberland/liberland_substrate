@@ -31,7 +31,7 @@ jobs:
         run: cargo build --release --features try-runtime,testnet-runtime -p kitchensink-runtime
       
       - name: Install try-runtime CLI
-        run: cargo install --git https://github.com/paritytech/try-runtime-cli --locked
+        run: cargo install --git https://github.com/paritytech/try-runtime-cli --locked --tag v0.7.0
 
       - name: try-runtime on-runtime-upgrade bastiat
         run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade live --uri wss://archive.testchain.liberland.org:443
