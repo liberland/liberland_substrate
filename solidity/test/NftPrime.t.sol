@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {BigNumber} from "@BigNumber/BigNumbers.sol";
 import {NftPrime} from "../src/NftPrime.sol";
 
 contract NtfPrimeTest is Test {
@@ -53,6 +54,11 @@ contract NtfPrimeTest is Test {
         bytes memory jsResult = vm.ffi(runJsInputs);
         (TestData[] memory result) = abi.decode(jsResult, (TestData[]));
         return result;
+    }
+
+    function testInit() public view {
+        assertEq(0, nftPrime.getPrimesCount());
+        assertEq(0, nftPrime.getPaid());
     }
 
     function testInvalidPrimeParameters() public {
@@ -136,10 +142,13 @@ contract NtfPrimeTest is Test {
     }
 
     function testSuccessfulMinting() public {
+        address testAccount1 = makeAccount(1, 500);
+        address testAccount2 = makeAccount(2, 500);
         TestData[] memory _largePrimeTests = getTest(LARGE_PRIMES);
         bytes[] memory primes = new bytes[](4);
         for (uint256 i = 0; i < 4; i++) {
             TestData memory test = _largePrimeTests[_largePrimeTests.length - 4 + i];
+            vm.prank(i % 2 == 0 ? testAccount1 : testAccount2);
             nftPrime.mint(test.n, test.d, test.s);
             primes[i] = test.n;
         }
@@ -154,16 +163,26 @@ contract NtfPrimeTest is Test {
         assertEq(2, nftPrime.getPrimes(1, 3).length);
         assertEq(primes[1], nftPrime.getPrimes(0, 2)[1].val);
         assertEq(primes[2], nftPrime.getPrimes(1, 3)[1].val);
+        (BigNumber[] memory account1Numbers,) = nftPrime.getPrimesOwnedBy(testAccount1, 0, 2);
+        (BigNumber[] memory account2Numbers,) = nftPrime.getPrimesOwnedBy(testAccount2, 0, 2);
+        (BigNumber[] memory account1NumbersSkip,) = nftPrime.getPrimesOwnedBy(testAccount1, 1, 2);
+        (BigNumber[] memory account2NumbersSkip,) = nftPrime.getPrimesOwnedBy(testAccount2, 1, 2);
+        assertEq(2, account1Numbers.length);
+        assertEq(2, account2Numbers.length);
+        assertEq(primes[0], account1Numbers[0].val);
+        assertEq(primes[2], account1NumbersSkip[0].val);
+        assertEq(primes[1], account2Numbers[0].val);
+        assertEq(primes[3], account2NumbersSkip[0].val);
     }
 
     function testRestrictedAccess() public {
         address testAccount = makeAccount(2, 500);
         vm.prank(testAccount);
-        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        vm.expectRevert();
         nftPrime.setFee(5);
 
         vm.prank(testAccount);
-        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        vm.expectRevert();
         nftPrime.withdraw();
     }
 

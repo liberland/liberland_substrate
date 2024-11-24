@@ -22,7 +22,7 @@ contract NftPrime is NftPrimeEvents,ERC721Enumerable,Ownable {
     uint256 _paid;
     BigNumber[] private _primes;
     mapping(uint256 => bool) private _found;
-    mapping(uint256 => BigNumber) private _mapped;
+    mapping(uint256 => uint256) private _mapped;
 
     bytes constant ONE = hex"0000000000000000000000000000000000000000000000000000000000000001";
     bytes constant TWO = hex"0000000000000000000000000000000000000000000000000000000000000002";
@@ -130,18 +130,29 @@ contract NftPrime is NftPrimeEvents,ERC721Enumerable,Ownable {
         require(numberIsPrime, "Not a prime");
         uint256 nextId = totalSupply();
         _primes.push(p);
-        _mapped[nextId] = p;
+        _mapped[nextId] = _primes.length - 1;
         _found[hash] = true;
         _mint(msg.sender, nextId);
         _paid += msg.value;
     }
 
     function getPrime(uint256 tokenId) public view returns (BigNumber memory) {
-        return _mapped[tokenId];
+        return _primes[_mapped[tokenId]];
     }
 
     function getPrimesCount() public view returns(uint256) {
         return _primes.length;
+    }
+
+    function getPrimesOwnedBy(address owner, uint256 from, uint256 to) public view returns(BigNumber[] memory,uint256[] memory) {
+        BigNumber[] memory numbers = new BigNumber[](to - from);
+        uint256[] memory ids = new uint256[](to - from);
+        for (uint256 i = 0; i < (to - from); i++) {
+            uint256 id = tokenOfOwnerByIndex(owner, i + from);
+            ids[i] = id;
+            numbers[i] = _primes[_mapped[id]];
+        }
+        return (numbers,ids);
     }
 
     function getPrimes(uint256 from, uint256 to) public view returns (BigNumber[] memory) {
