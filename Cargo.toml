@@ -100,6 +100,17 @@ x25519-dalek = { opt-level = 3 }
 yamux = { opt-level = 3 }
 zeroize = { opt-level = 3 }
 
+[workspace.dependencies]
+rand_core = { version = "0.6", default-features = false }
+zeroize = { version = "1.0", default-features = false, features = [ "zeroize_derive" ] }
+ark-std = { version = "0.5", default-features = false }
+ark-ff = { version = "0.5", default-features = false }
+ark-ec = { version = "0.5", default-features = false }
+ark-serialize = { version = "0.5", default-features = false, features = [ "derive" ] }
+ark-scale = { version = "0.0.12", default-features = false, features = ["ec"] }
+digest = { version = "0.10", default-features = false }
+getrandom_or_panic = { version = "0.0.3", default-features = false }
+
 [patch."https://github.com/paritytech/polkadot-sdk"]
 kitchensink-runtime = { path = "substrate/bin/node/runtime" }
 node-cli = { path = "substrate/bin/node/cli" }
