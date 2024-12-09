@@ -1,33 +1,32 @@
-// This file is part of the SORA network and Polkaswap app.
+// // This file is part of the SORA network and Polkaswap app.
 
-// Copyright (c) 2020, 2021, Polka Biome Ltd. All rights reserved.
-// SPDX-License-Identifier: BSD-4-Clause
+// // Copyright (c) 2020, 2021, Polka Biome Ltd. All rights reserved.
+// // SPDX-License-Identifier: BSD-4-Clause
 
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
+// // Redistribution and use in source and binary forms, with or without modification,
+// // are permitted provided that the following conditions are met:
 
-// Redistributions of source code must retain the above copyright notice, this list
-// of conditions and the following disclaimer.
-// Redistributions in binary form must reproduce the above copyright notice, this
-// list of conditions and the following disclaimer in the documentation and/or other
-// materials provided with the distribution.
-//
-// All advertising materials mentioning features or use of this software must display
-// the following acknowledgement: This product includes software developed by Polka Biome
-// Ltd., SORA, and Polkaswap.
-//
-// Neither the name of the Polka Biome Ltd. nor the names of its contributors may be used
-// to endorse or promote products derived from this software without specific prior written permission.
+// // Redistributions of source code must retain the above copyright notice, this list
+// // of conditions and the following disclaimer.
+// // Redistributions in binary form must reproduce the above copyright notice, this
+// // list of conditions and the following disclaimer in the documentation and/or other
+// // materials provided with the distribution.
+// //
+// // All advertising materials mentioning features or use of this software must display
+// // the following acknowledgement: This product includes software developed by Polka Biome
+// // Ltd., SORA, and Polkaswap.
+// //
+// // Neither the name of the Polka Biome Ltd. nor the names of its contributors may be used
+// // to endorse or promote products derived from this software without specific prior written permission.
 
-// THIS SOFTWARE IS PROVIDED BY Polka Biome Ltd. AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES,
-// INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Polka Biome Ltd. BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-// USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+// // THIS SOFTWARE IS PROVIDED BY Polka Biome Ltd. AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES,
+// // INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// // A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Polka Biome Ltd. BE LIABLE FOR ANY
+// // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// // BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+// // OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+// // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+// // USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bridge_types::traits::TimepointProvider;
@@ -40,7 +39,8 @@ use bridge_types::LiberlandAssetId;
 use frame_support::fail;
 use frame_support::pallet_prelude::*;
 use frame_support::traits::fungibles::{
-    metadata::Mutate as MetadataMutate, Create, Inspect, InspectMetadata, Mutate, Transfer,
+    metadata::Inspect as InspectMetadata, metadata::Mutate as MetadataMutate, Create, Inspect,
+    Mutate,
 };
 use frame_support::traits::Currency;
 use frame_support::traits::ExistenceRequirement;
@@ -49,6 +49,9 @@ use sp_core::H256;
 use sp_io::hashing::blake2_256;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
+use log;
+
+use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 
 #[derive(Clone, RuntimeDebug, Encode, Decode, PartialEq, Eq, TypeInfo)]
 #[scale_info(skip_type_params(T))]
@@ -74,6 +77,7 @@ pub mod pallet {
     use bridge_types::GenericNetworkId;
     use bridge_types::LiberlandAssetId;
     use frame_support::pallet_prelude::{ValueQuery, *};
+    use frame_system::pallet_prelude::*;
     use sp_core::H256;
     use sp_runtime::traits::Convert;
     use sp_runtime::AccountId32;
@@ -81,7 +85,6 @@ pub mod pallet {
     pub type AssetIdOf<T> = <T as Config>::AssetId;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -157,6 +160,9 @@ pub mod pallet {
         WrongAccount,
         WrongSidechainAsset,
     }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     impl<T: Config> Pallet<T> {
         pub fn refund(
@@ -250,6 +256,8 @@ where
     }
 
     fn get_raw_info(asset_id: LiberlandAssetId) -> bridge_types::types::RawAssetInfo {
+        use frame_support::traits::fungibles::metadata::Inspect;
+
         match asset_id {
             LiberlandAssetId::LLD => bridge_types::types::RawAssetInfo {
                 name: b"Liberland".to_vec(),
@@ -258,10 +266,10 @@ where
             },
             LiberlandAssetId::Asset(asset_id) => {
                 let name = <pallet_assets::Pallet<T> as InspectMetadata<T::AccountId>>::name(
-                    &asset_id.into(),
+                    asset_id.into(),
                 );
-                let symbol = pallet_assets::Pallet::<T>::symbol(&asset_id.into());
-                let precision = pallet_assets::Pallet::<T>::decimals(&asset_id.into());
+                let symbol = pallet_assets::Pallet::<T>::symbol(asset_id.into());
+                let precision = pallet_assets::Pallet::<T>::decimals(asset_id.into());
                 bridge_types::types::RawAssetInfo {
                     name,
                     symbol,
@@ -304,12 +312,12 @@ impl<T: Config> bridge_types::traits::BridgeAssetLocker<T::AccountId> for Pallet
             LiberlandAssetId::Asset(asset) => {
                 match asset_kind {
                     bridge_types::types::AssetKind::Thischain => {
-                        <pallet_assets::Pallet<T> as Transfer<T::AccountId>>::transfer(
+                        <pallet_assets::Pallet<T> as Mutate<T::AccountId>>::transfer(
                             (*asset).into(),
                             who,
                             &tech_acc,
                             *amount,
-                            true,
+                            Preservation::Expendable,
                         )?;
                     },
                     bridge_types::types::AssetKind::Sidechain => {
@@ -317,6 +325,8 @@ impl<T: Config> bridge_types::traits::BridgeAssetLocker<T::AccountId> for Pallet
                             (*asset).into(),
                             who,
                             *amount,
+                            Precision::Exact,
+                            Fortitude::Polite,
                         )?;
                     },
                 }
@@ -350,12 +360,12 @@ impl<T: Config> bridge_types::traits::BridgeAssetLocker<T::AccountId> for Pallet
             LiberlandAssetId::Asset(asset) => {
                 match asset_kind {
                     bridge_types::types::AssetKind::Thischain => {
-                        <pallet_assets::Pallet<T> as Transfer<T::AccountId>>::transfer(
+                        <pallet_assets::Pallet<T> as Mutate<T::AccountId>>::transfer(
                             (*asset).into(),
                             &tech_acc,
                             who,
                             *amount,
-                            true,
+                            Preservation::Expendable,
                         )?;
                     },
                     bridge_types::types::AssetKind::Sidechain => {
@@ -369,24 +379,6 @@ impl<T: Config> bridge_types::traits::BridgeAssetLocker<T::AccountId> for Pallet
             }
         }
         Ok(())
-    }
-
-    fn refund_fee(
-            _network_id: GenericNetworkId,
-            _who: &T::AccountId,
-            _asset_id: &Self::AssetId,
-            _amount: &Self::Balance,
-        ) -> DispatchResult {
-            Err(DispatchError::Unavailable)
-    }
-
-    fn withdraw_fee(
-            _network_id: GenericNetworkId,
-            _who: &T::AccountId,
-            _asset_id: &Self::AssetId,
-            _amount: &Self::Balance,
-        ) -> DispatchResult {
-            Err(DispatchError::Unavailable)
     }
 }
 
@@ -403,7 +395,7 @@ impl<T: Config>
         let sender = match Senders::<T>::get(network_id, message_id) {
             Some(sender) => sender,
             None => {
-                frame_support::log::warn!(
+                log::warn!(
                     "Message status update called for unknown message: {:?} {:?}",
                     network_id,
                     message_id
@@ -464,7 +456,7 @@ impl<T: Config>
             direction: MessageDirection::Inbound,
         };
 
-        Transactions::<T>::insert((network_id, &dest), message_id, bridge_request);
+        Transactions::<T>::insert((&network_id, &dest), message_id, bridge_request);
     }
 
     fn outbound_request(

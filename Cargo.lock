@@ -9274,6 +9274,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal 0.4.1",
+ "log",
  "pallet-assets",
  "pallet-balances",
  "parity-scale-codec",

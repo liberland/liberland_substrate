@@ -29,7 +29,7 @@ liberland-traits = { default-features = false, path = "../liberland-traits" }
 [dev-dependencies]
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-keystore = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 

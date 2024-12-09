@@ -26,6 +26,7 @@ sp-runtime = { default-features = false, git = "https://github.com/paritytech/po
 pallet-assets = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 bridge-types = { git = "https://github.com/sora-xor/sora2-common", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+log = { version = "0.4.17", default-features = false }
 
 [dev-dependencies]
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }

@@ -59,7 +59,7 @@ sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-
 sp-keystore = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-consensus = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-transaction-storage-proof = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
 # client dependencies
 sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
