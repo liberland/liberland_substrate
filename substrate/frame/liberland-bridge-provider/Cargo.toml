@@ -1,0 +1,60 @@
+[package]
+name = "sora-liberland-bridge-provider"
+description = "Wrapper for liberland assets and balances"
+version = "0.1.1"
+edition = "2021"
+authors = ['Polka Biome Ltd. <jihoon@tutanota.de>']
+repository = "https://github.com/sora-xor/sora2-common"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+serde = { version = "1.0.101", optional = true }
+codec = { version = "3", package = "parity-scale-codec", default-features = false, features = [
+    "derive",
+] }
+scale-info = { version = "2", default-features = false, features = ["derive"] }
+
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+pallet-assets = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+pallet-balances = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+bridge-types = { git = "https://github.com/sora-xor/sora2-common", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+
+[dev-dependencies]
+sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+hex-literal = { version = "0.4.1" }
+
+[features]
+default = ["std"]
+std = [
+    "pallet-assets/std",
+    "serde",
+    "codec/std",
+    "scale-info/std",
+    "frame-support/std",
+    "frame-system/std",
+    "frame-benchmarking/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "bridge-types/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "sp-runtime/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "bridge-types/runtime-benchmarks",
+    "pallet-assets/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+]
+
+try-runtime = ["frame-support/try-runtime"]
