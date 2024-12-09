@@ -100,7 +100,7 @@ x25519-dalek = { opt-level = 3 }
 yamux = { opt-level = 3 }
 zeroize = { opt-level = 3 }
 
-[patch."https://github.com/paritytech/polkadot-sdk"]
+[patch."https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0"]
 kitchensink-runtime = { path = "substrate/bin/node/runtime" }
 node-cli = { path = "substrate/bin/node/cli" }
 pallet-democracy = { path = "substrate/frame/democracy" }
@@ -108,6 +108,8 @@ pallet-identity = { path = "substrate/frame/identity" }
 pallet-elections-phragmen = { path = "substrate/frame/elections-phragmen" }
 pallet-staking = { path = "substrate/frame/staking" }
 pallet-nfts = { path = "substrate/frame/nfts" }
+
+[patch."https://github.com/paritytech/polkadot-sdk"]
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 frame-system = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
