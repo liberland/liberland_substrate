@@ -85,16 +85,16 @@ sc-storage-monitor = { git = "https://github.com/paritytech/polkadot-sdk?branch=
 sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
 # frame dependencies
-frame-system = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
+frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
 pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-pallet-asset-conversion-tx-payment = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+pallet-asset-conversion-tx-payment = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
 pallet-im-online = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
 # node-specific dependencies
 kitchensink-runtime = { path = "../runtime" }
 node-rpc = { path = "../rpc" }
-node-primitives = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+node-primitives = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
 node-executor = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
 # CLI-specific dependencies
@@ -110,7 +110,7 @@ sc-client-db = { git = "https://github.com/paritytech/polkadot-sdk?branch=releas
 sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sc-consensus-babe = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sc-consensus-epochs = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sc-service-test = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+sc-service-test = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
 sc-block-builder = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-tracing = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-blockchain = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
@@ -181,6 +181,7 @@ try-runtime = [
 	"substrate-cli-test-utils/try-runtime",
 	"try-runtime-cli/try-runtime",
 ]
+std = []
 
 [[bench]]
 name = "transaction_pool"
