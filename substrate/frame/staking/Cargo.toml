@@ -30,10 +30,10 @@ pallet-session = { default-features = false, features = [
 pallet-authorship = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", features = ["serde"] }
 frame-election-provider-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-log = { version = "0.4.22", default-features = false }
+log = { version = "0.4.17", default-features = false }
 pallet-llm = { default-features = false, path = "../llm" }
 pallet-liberland-initializer = { default-features = false, path = "../liberland-initializer" }
-liberland-traits = { path = "../liberland-traits", default-features = false }
+liberland-traits = { path = "../liberland-traits", default-features = false}
 pallet-assets = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 pallet-identity = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
@@ -50,7 +50,7 @@ pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk?branch=re
 pallet-staking-reward-curve = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 pallet-bags-list = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 substrate-test-utils = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 frame-election-provider-support = { git = "https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 rand_chacha = { version = "0.2" }
 pallet-nfts = { path = "../nfts" }
