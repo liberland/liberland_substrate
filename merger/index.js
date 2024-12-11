@@ -20,15 +20,16 @@ const mergePaths = {
 
 const startup = [
     "cd ./polkadot-sdk",
-    "git fetch origin",
     `git checkout ${argv[2]}`,
 ];
 
 execSync(startup.join("; "), {
-    stdio: 'inherit',
+    stdio: "inherit",
 });
 
 Object.entries(mergePaths).forEach(([our, their]) => {
     const theirs = sync(`./polkadot-sdk/${their}/**/*`);
-    console.log(theirs);
+    theirs.forEach((file) => {
+        execSync(`cp -rf ./${file} ../${our}`, { stdio: "inherit" })
+    });
 });
