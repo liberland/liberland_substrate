@@ -26,7 +26,7 @@ const mergePaths = [
 const startup = [
     "git remote add polkadot-sdk-upstream https://github.com/paritytech/polkadot-sdk.git",
     "git remote update",
-    "cd ./polkadot-sdk",
+    `cd ${__dirname}/polkadot-sdk`,
     "git fetch origin",
 ];
 
@@ -49,9 +49,8 @@ try {
 
 const diffed = execOutput("git diff --name-only").split("\n");
 diffed.forEach(diff => {
-    if (!theirs[diff]) {
+    if (!theirs[diff] && diff) {
         execSync(`git restore --staged ${diff}`);
+        execSync(`git restore ${diff}`);
     }
-})
-
-execSync(`git restore .`);
+});
