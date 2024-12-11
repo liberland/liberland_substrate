@@ -1,9 +1,12 @@
 const { execSync: execSyncInternal } = require('child_process');
 const { sync } = require("glob");
-const { commitId, newBranch, currentBranch } = require("./config.json");
+const { newBranch } = require("./config.json");
 
 const execSync = (command) => execSyncInternal(command, {
     stdio: 'inherit',
+});
+const execOutput = (command) => execSyncInternal(command, {
+    encoding: "utf-8",
 });
 
 const mergePaths = [
@@ -25,7 +28,6 @@ const startup = [
     "git remote update",
     "cd ./polkadot-sdk",
     "git fetch origin",
-    `git checkout ${commitId}`,
 ];
 
 execSync(startup.join("; "));
@@ -45,7 +47,7 @@ try {
     execSync(`git merge --allow-unrelated-histories --no-commit polkadot-sdk-upstream/${newBranch};`);
 } catch {}
 
-const diffed = execSync("git diff --name-only").toString("utf-8").split("\n");
+const diffed = execOutput("git diff --name-only").split("\n");
 diffed.forEach(diff => {
     if (!theirs[diff]) {
         execSync(`git restore --staged ${diff}`);
