@@ -19,3 +19,6 @@
 [submodule "solidity/lib/solidity-BigNumber"]
 	path = solidity/lib/solidity-BigNumber
 	url = https://github.com/firoorg/solidity-BigNumber
+[submodule "merger/polkadot-sdk"]
+	path = merger/polkadot-sdk
+	url = https://github.com/paritytech/polkadot-sdk.git
