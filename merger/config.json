@@ -1,6 +1,5 @@
 {
     "commitId": "65a434a",
     "newBranch": "release-polkadot-v1.1.0",
-    "currentBranch": "features/add-solidity-pallet-support",
-    "lastMergeCommit": "970b785"
+    "currentBranch": "features/add-solidity-pallet-support"
 }
