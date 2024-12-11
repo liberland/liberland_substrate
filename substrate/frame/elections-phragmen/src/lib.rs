@@ -1271,7 +1271,7 @@ mod tests {
 	use frame_system::ensure_signed;
 	use sp_runtime::{
 		Permill,
-		testing::{TestSignature, H256},
+		testing::{TestSignature, Header, H256},
 		traits::{BlakeTwo256, IdentityLookup},
 		BuildStorage,
 	};
@@ -1285,10 +1285,11 @@ mod tests {
 	use frame_support::traits::{AsEnsureOriginWithArg, OnInitialize};
 	use substrate_test_utils::assert_eq_uvec;
 
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 	type Block = frame_system::mocking::MockBlock<Test>;
 
 	construct_runtime!(
-		pub enum Test
+		pub enum Test where
 		{
 			System: frame_system::{Pallet, Call, Storage, Event<T>},
 			Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -1438,7 +1439,6 @@ mod tests {
 		pub const AssetName: &'static str = "LiberTest Merit";
 		pub const AssetSymbol: &'static str = "LTM";
 		pub const InflationEventInterval: u64 = 1000;
-		pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
 	}
 
 	impl pallet_liberland_initializer::Config for Test {}
@@ -1454,11 +1454,9 @@ mod tests {
 		type AssetName = AssetName;
 		type AssetSymbol = AssetSymbol;
 		type InflationEventInterval = InflationEventInterval;
-		type InflationEventReleaseFactor = InflationEventReleaseFactor;
 		type OnLLMPoliticsUnlock = ();
 		type SenateOrigin = EnsureRoot<u64>;
 		type WeightInfo = ();
-	type MaxCourts = ConstU32<1>;
 	}
 
 	pub struct TestChangeMembers;

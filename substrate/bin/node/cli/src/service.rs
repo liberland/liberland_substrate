@@ -100,9 +100,6 @@ pub fn create_extrinsic(
 		)),
 		frame_system::CheckNonce::<kitchensink_runtime::Runtime>::from(nonce),
 		frame_system::CheckWeight::<kitchensink_runtime::Runtime>::new(),
-		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<kitchensink_runtime::Runtime>::from(
-			0, None,
-		),
 	);
 
 	let raw_payload = kitchensink_runtime::SignedPayload::from_raw(
@@ -114,7 +111,6 @@ pub fn create_extrinsic(
 			kitchensink_runtime::VERSION.transaction_version,
 			genesis_hash,
 			best_hash,
-			(),
 			(),
 			(),
 		),
@@ -795,8 +791,6 @@ mod tests {
 				let check_era = frame_system::CheckEra::from(Era::Immortal);
 				let check_nonce = frame_system::CheckNonce::from(index);
 				let check_weight = frame_system::CheckWeight::new();
-				let tx_payment =
-					pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::from(0, None);
 				let extra = (
 					check_non_zero_sender,
 					check_spec_version,
@@ -805,7 +799,6 @@ mod tests {
 					check_era,
 					check_nonce,
 					check_weight,
-					tx_payment,
 				);
 				let raw_payload = SignedPayload::from_raw(
 					function,

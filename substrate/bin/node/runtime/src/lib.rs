@@ -44,7 +44,7 @@ use frame_support::{
         tokens::nonfungibles_v2::Inspect,
 		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU16, ConstU32, MapSuccess,
 		Currency, EitherOf, EitherOfDiverse, Imbalance, InstanceFilter,
-		KeyOwnerProofSystem, LockIdentifier, OnUnbalanced
+		KeyOwnerProofSystem, LockIdentifier, Nothing, OnUnbalanced
 	},
 	weights::{
 		constants::{
@@ -76,7 +76,7 @@ use sp_runtime::{
 	curve::PiecewiseLinear,
 	generic, impl_opaque_keys,
 	traits::{
-		self, BlakeTwo256, Block as BlockT, Bounded, NumberFor, OpaqueKeys,
+		self, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, NumberFor, OpaqueKeys,
 		SaturatedConversion, StaticLookup, AccountIdConversion, AccountIdLookup,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
@@ -107,12 +107,10 @@ pub use sp_runtime::BuildStorage;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
-mod migrations;
 use impls::{
-	Author, ToAccountId,
+	Author, CreditToBlockAuthor, ToAccountId,
 	IdentityCallFilter, RegistryCallFilter, NftsCallFilter, OnLLMPoliticsUnlock,
-	ContainsMember, CouncilAccountCallFilter, EnsureCmp, ContractsCallFilter, SenateAccountCallFilter,
-	MinistryOfFinanceCallFilter,
+	ContainsMember, CouncilAccountCallFilter, EnsureCmp
 };
 
 /// Constant values used within the runtime.
@@ -156,7 +154,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 27,
+	spec_version: 16,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -173,7 +171,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 27,
+	spec_version: 16,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -279,23 +277,25 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 14 * DAYS;
 	pub const VotingPeriod: BlockNumber = 14 * DAYS;
-	pub const TermDuration: BlockNumber = 3 * 30 * DAYS;
+	pub const TermDuration: BlockNumber = 168 * DAYS;
 	pub const EnactmentPeriod: BlockNumber = 14 * DAYS;
 	pub const AssetName: &'static str = "Liberland Merit";
 	pub const AssetSymbol: &'static str = "LLM";
-	pub const SpendPeriod: BlockNumber = 7 * DAYS;
+	pub const SpendPeriod: BlockNumber = 168 * DAYS;
 }
 
 #[cfg(feature = "testnet-runtime")]
 parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
-	pub const TermDuration: BlockNumber = 10 * DAYS;
+	pub const TermDuration: BlockNumber = 14 * DAYS;
 	pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
 	pub const AssetName: &'static str = "Liberland Kuna";
 	pub const AssetSymbol: &'static str = "LKN";
-	pub const SpendPeriod: BlockNumber = 60 * MINUTES;
+	pub const SpendPeriod: BlockNumber = 60 * DAYS;
 }
+
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_utility::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -418,11 +418,6 @@ type EnsureRootOrHalfSenate = EitherOfDiverse<
 	EnsureSenateMajority,
 >;
 
-type EnsureRootOrHalfSenateOrCustomCouncil = EitherOfDiverse<
-	EnsureRootOrHalfSenate,
-	EnsureSignedBy<CouncilAccount, AccountId>
->;
-
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
 		RuntimeBlockWeights::get().max_block;
@@ -434,7 +429,7 @@ impl pallet_scheduler::Config for Runtime {
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
-	type ScheduleOrigin = EnsureRootOrHalfSenateOrCustomCouncil;
+	type ScheduleOrigin = EnsureRootOrHalfSenate;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxScheduledPerBlock = ConstU32<512>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -505,7 +500,7 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
 	type RuntimeHoldReason = RuntimeHoldReason;
-	type MaxHolds = MaxHolds;
+	type MaxHolds = ();
 }
 
 parameter_types! {
@@ -535,11 +530,13 @@ impl pallet_transaction_payment::Config for Runtime {
 	>;
 }
 
-impl pallet_asset_conversion_tx_payment::Config for Runtime {
+impl pallet_asset_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = Assets;
-	type OnChargeAssetTransaction =
-		pallet_asset_conversion_tx_payment::AssetConversionAdapter<Balances, AssetConversion>;
+	type OnChargeAssetTransaction = pallet_asset_tx_payment::FungiblesAdapter<
+		pallet_assets::BalanceToAssetBalance<Balances, Runtime, ConvertInto, ()>,
+		CreditToBlockAuthor,
+	>;
 }
 
 parameter_types! {
@@ -623,7 +620,7 @@ impl pallet_staking::Config for Runtime {
 	type CurrencyToVote = sp_staking::currency_to_vote::U128CurrencyToVote;
 	type RewardRemainder = CouncilAccount;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = CouncilAccount;
+	type Slash = Treasury;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -791,7 +788,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxRefunds = ConstU32<3>;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight = MinerMaxWeight;
-	type SlashHandler = CouncilAccount; // burn slashes
+	type SlashHandler = Treasury; // burn slashes
 	type RewardHandler = (); // nothing to do upon rewards
 	type DataProvider = Staking;
 	type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
@@ -890,7 +887,7 @@ impl pallet_democracy::Config for Runtime {
 	type MaxBlacklisted = ConstU32<100>;
 	type DelegateeFilter = ContainsMember<Runtime, CouncilCollective>;
 
-	type ProposalFee = CouncilAccount;
+	type ProposalFee = Treasury;
 	type ProposalFeeAmount = ProposalFeeAmount;
 }
 
@@ -920,8 +917,8 @@ parameter_types! {
 	pub const VotingBondBase: Balance = deposit(1, 64);
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = deposit(0, 32);
-	pub const DesiredMembers: u32 = 7;
-	pub const DesiredRunnersUp: u32 = 7;
+	pub const DesiredMembers: u32 = 4;
+	pub const DesiredRunnersUp: u32 = 3;
 	pub const MaxVotesPerVoter: u32 = 16;
 	pub const MaxVoters: u32 = 10 * 1000;
 	pub const MaxCandidates: u32 = 1000;
@@ -1015,7 +1012,7 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-	pub const Burn: Permill = Permill::from_percent(0);
+	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 1 * DOLLARS;
@@ -1060,11 +1057,44 @@ parameter_types! {
 	pub const CuratorDepositMax: Balance = 100 * DOLLARS;
 }
 
+impl pallet_bounties::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type BountyDepositBase = BountyDepositBase;
+	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
+	type BountyUpdatePeriod = BountyUpdatePeriod;
+	type CuratorDepositMultiplier = CuratorDepositMultiplier;
+	type CuratorDepositMin = CuratorDepositMin;
+	type CuratorDepositMax = CuratorDepositMax;
+	type BountyValueMinimum = BountyValueMinimum;
+	type DataDepositPerByte = DataDepositPerByte;
+	type MaximumReasonLength = MaximumReasonLength;
+	type WeightInfo = pallet_bounties::weights::SubstrateWeight<Runtime>;
+	type ChildBountyManager = ChildBounties;
+}
+
 parameter_types! {
 	pub const ChildBountyValueMinimum: Balance = 1 * DOLLARS;
 }
 
+impl pallet_child_bounties::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxActiveChildBountyCount = ConstU32<5>;
+	type ChildBountyValueMinimum = ChildBountyValueMinimum;
+	type WeightInfo = pallet_child_bounties::weights::SubstrateWeight<Runtime>;
+}
 
+///*
+impl pallet_tips::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type DataDepositPerByte = DataDepositPerByte;
+	type MaximumReasonLength = MaximumReasonLength;
+	type Tippers = Elections;
+	type TipCountdown = TipCountdown;
+	type TipFindersFee = TipFindersFee;
+	type TipReportDepositBase = TipReportDepositBase;
+	type WeightInfo = pallet_tips::weights::SubstrateWeight<Runtime>;
+}
+//*/
 parameter_types! {
 	pub const DepositPerItem: Balance = deposit(1, 0);
 	pub const DepositPerByte: Balance = deposit(0, 1);
@@ -1146,7 +1176,6 @@ where
 			frame_system::CheckEra::<Runtime>::from(era),
 			frame_system::CheckNonce::<Runtime>::from(nonce),
 			frame_system::CheckWeight::<Runtime>::new(),
-			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
 		);
 		let raw_payload = SignedPayload::new(call, extra)
 			.map_err(|e| {
@@ -1235,6 +1264,60 @@ impl pallet_identity::Config for Runtime {
 	type Citizenship = LLM;
 }
 
+parameter_types! {
+	pub const ConfigDepositBase: Balance = 5 * DOLLARS;
+	pub const FriendDepositFactor: Balance = 50 * CENTS;
+	pub const MaxFriends: u16 = 9;
+	pub const RecoveryDeposit: Balance = 5 * DOLLARS;
+}
+
+impl pallet_recovery::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_recovery::weights::SubstrateWeight<Runtime>;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ConfigDepositBase = ConfigDepositBase;
+	type FriendDepositFactor = FriendDepositFactor;
+	type MaxFriends = MaxFriends;
+	type RecoveryDeposit = RecoveryDeposit;
+}
+
+parameter_types! {
+	pub const GraceStrikes: u32 = 10;
+	pub const SocietyVotingPeriod: BlockNumber = 80 * HOURS;
+	pub const ClaimPeriod: BlockNumber = 80 * HOURS;
+	pub const PeriodSpend: Balance = 500 * DOLLARS;
+	pub const MaxLockDuration: BlockNumber = 36 * 30 * DAYS;
+	pub const ChallengePeriod: BlockNumber = 7 * DAYS;
+	pub const MaxPayouts: u32 = 10;
+	pub const MaxBids: u32 = 10;
+	pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
+}
+
+impl pallet_society::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = SocietyPalletId;
+	type Currency = Balances;
+	type Randomness = RandomnessCollectiveFlip;
+	type GraceStrikes = GraceStrikes;
+	type PeriodSpend = PeriodSpend;
+	type VotingPeriod = SocietyVotingPeriod;
+	type ClaimPeriod = ClaimPeriod;
+	type MaxLockDuration = MaxLockDuration;
+	type FounderSetOrigin = EnsureCouncilMajority;
+	type ChallengePeriod = ChallengePeriod;
+	type MaxPayouts = MaxPayouts;
+	type MaxBids = MaxBids;
+	type WeightInfo = pallet_society::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_mmr::Config for Runtime {
+    const INDEXING_PREFIX: &'static [u8] = b"mmr";
+    type Hashing = <Runtime as frame_system::Config>::Hashing;
+    type LeafData = pallet_mmr::ParentNumberAndHash<Self>;
+    type OnNewRoot = ();
+    type WeightInfo = ();
+}
 
 parameter_types! {
 	pub const AssetDeposit: Balance = 100 * DOLLARS;
@@ -1333,8 +1416,7 @@ parameter_types! {
 	pub const CitizenshipMinimum: Balance = 5_000u128 * GRAINS_IN_LLM;
 	pub const UnlockFactor: Permill = Permill::from_parts(8742);
 	pub const AssetId: u32 = 1;
-	pub const InflationEventInterval: BlockNumber = 30 * DAYS;
-	pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
+	pub const InflationEventInterval: BlockNumber = 365 * DAYS;
 }
 
 impl pallet_liberland_initializer::Config for Runtime {}
@@ -1350,14 +1432,12 @@ impl pallet_llm::Config for Runtime {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
-	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type SenateOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EnsureSenateMajority
 	>;
 	type OnLLMPoliticsUnlock = OnLLMPoliticsUnlock;
 	type WeightInfo = ();
-	type MaxCourts = ConstU32<2>;
 }
 
 parameter_types! {
@@ -1437,6 +1517,19 @@ impl pallet_liberland_legislation::Config for Runtime {
 	type WeightInfo = pallet_liberland_legislation::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_liberland_legislation::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Citizenship = LLM;
+	type ConstitutionOrigin = pallet_democracy::EnsureReferendumProportionAtLeast<Self, 2, 3>;
+	type InternationalTreatyOrigin = EnsureRootOrHalfCouncil;
+	type LowTierDeleteOrigin = EitherOf<
+		EnsureRoot<AccountId>,
+		EnsureSenateMajority
+	>;
+	type LLInitializer = LiberlandInitializer;
+	type WeightInfo = pallet_liberland_legislation::weights::SubstrateWeight<Runtime>;
+}
+
 parameter_types! {
 	pub CompanyRegistryReserveIdentifier: &'static [u8; 8] = b"compregi";
 	pub CompanyRegistryMaxRegistrars: u32 = 10u32;
@@ -1477,7 +1570,6 @@ parameter_types! {
 	pub const LandRegistryOfficePalletId: PalletId = PalletId(*b"off/land");
 	pub const MetaverseLandRegistryOfficePalletId: PalletId = PalletId(*b"off/meta");
 	pub const AssetRegistryOfficePalletId: PalletId = PalletId(*b"off/asse");
-	pub const MinistryOfFinanceOfficePalletId: PalletId = PalletId(*b"off/fina");
 }
 
 type IdentityOfficeInstance = pallet_office::Instance1;
@@ -1485,7 +1577,6 @@ type CompanyRegistryOfficeInstance = pallet_office::Instance2;
 type LandRegistryOfficeInstance = pallet_office::Instance3;
 type MetaverseLandRegistryOfficeInstance = pallet_office::Instance4;
 type AssetRegistryOfficeInstance = pallet_office::Instance5;
-type MinistryOfFinanceOfficeInstance = pallet_office::Instance6;
 
 impl pallet_office::Config<IdentityOfficeInstance> for Runtime {
 	type RuntimeCall = RuntimeCall;
@@ -1537,16 +1628,6 @@ impl pallet_office::Config<AssetRegistryOfficeInstance> for Runtime {
 	type WeightInfo = ();
 }
 
-impl pallet_office::Config<MinistryOfFinanceOfficeInstance> for Runtime {
-	type RuntimeCall = RuntimeCall;
-	type RuntimeEvent = RuntimeEvent;
-	type PalletId = MinistryOfFinanceOfficePalletId;
-	type ForceOrigin = EnsureRoot<AccountId>;
-	type AdminOrigin = EnsureSigned<AccountId>;
-	type CallFilter = MinistryOfFinanceCallFilter;
-	type WeightInfo = ();
-}
-
 parameter_types! {
 	pub const LLDBridgePalletId: PalletId = PalletId(*b"lldbridg");
 	pub const LLMBridgePalletId: PalletId = PalletId(*b"llmbridg");
@@ -1582,6 +1663,48 @@ parameter_types! {
 	pub const BridgeMinimumVotesRequired: u32 = 3;
 }
 
+type EthLLDBridgeInstance = pallet_federated_bridge::Instance1;
+impl pallet_federated_bridge::Config<EthLLDBridgeInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Token = Balances;
+	type PalletId = LLDBridgePalletId;
+	type MaxRelays = MaxRelays;
+	type MaxWatchers = MaxWatchers;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type WithdrawalDelay = WithdrawalDelay;
+	type WithdrawalRateLimit = LLDRateLimit;
+	type MaxTotalLocked = LLDMaxTotalLocked;
+	type MinimumTransfer = LLDMinimumTransfer;
+	type MinimumFee = BridgeMinimumFee;
+	type MaximumFee = BridgeMaximumFee;
+	type MinimumVotesRequired = BridgeMinimumVotesRequired;
+	type WeightInfo = ();
+}
+
+type EthLLMBridgeInstance = pallet_federated_bridge::Instance2;
+impl pallet_federated_bridge::Config<EthLLMBridgeInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = CouncilAccountPalletId;
+	type ExecuteOrigin = EnsureCouncilMajority;
+	type CallFilter = CouncilAccountCallFilter;
+	type WeightInfo = ();
+	type Currency = Balances;
+	type Token = LLM;
+	type PalletId = LLMBridgePalletId;
+	type MaxRelays = MaxRelays;
+	type MaxWatchers = MaxWatchers;
+	type ForceOrigin = EnsureRoot<Self::AccountId>;
+	type WithdrawalDelay = WithdrawalDelay;
+	type WithdrawalRateLimit = LLMRateLimit;
+	type MaxTotalLocked = LLMMaxTotalLocked;
+	type MinimumTransfer = LLMMinimumTransfer;
+	type MinimumFee = BridgeMinimumFee;
+	type MaximumFee = BridgeMaximumFee;
+	type MinimumVotesRequired = BridgeMinimumVotesRequired;
+	type WeightInfo = ();
+}
+
 parameter_types! {
 	pub const CouncilAccountPalletId: PalletId = PalletId(*b"councilc");
 }
@@ -1593,21 +1716,6 @@ impl pallet_custom_account::Config<pallet_custom_account::Instance1> for Runtime
 	type ExecuteOrigin = EnsureCouncilMajority;
 	type CallFilter = CouncilAccountCallFilter;
 	type WeightInfo = ();
-	type Currency = Balances;
-}
-
-parameter_types! {
-	pub const SenateAccountPalletId: PalletId = PalletId(*b"lltreasu");
-}
-
-impl pallet_custom_account::Config<pallet_custom_account::Instance2> for Runtime {
-	type RuntimeCall = RuntimeCall;
-	type RuntimeEvent = RuntimeEvent;
-	type PalletId = SenateAccountPalletId;
-	type ExecuteOrigin = EnsureSenateMajority;
-	type CallFilter = SenateAccountCallFilter;
-	type WeightInfo = ();
-	type Currency = Balances;
 }
 
 pub struct IntoAuthor;
@@ -1617,141 +1725,6 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for IntoAuthor {
 			let _ = <Balances as Balanced<_>>::resolve(&author, credit);
 		}
 	}
-}
-
-parameter_types! {
-	pub ContractRegistryReserveIdentifier: &'static [u8; 8] = b"contregi";
-	pub ContractRegistryBaseDeposit: Balance = 1 * CENTS;
-	pub ContractRegistryByteDeposit: Balance = 10 * MILLICENTS;
-}
-
-impl pallet_contracts_registry::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type MaxContractContentLen = ConstU32<{ 2u32 * 1024u32 * 1024u32 }>;
-	type MaxParties = ConstU32<16u32>;
-	type AddJudgeOrigin = EnsureRoot<AccountId>;
-	type SubmitOrigin = EnsureSigned<AccountId>;
-	type WeightInfo = pallet_contracts_registry::weights::SubstrateWeight<Runtime>;
-	type Currency = Balances;
-	type BaseDeposit = ContractRegistryBaseDeposit;
-	type ByteDeposit = ContractRegistryByteDeposit;
-	type ReserveIdentifier = ContractRegistryReserveIdentifier;
-}
-
-// Sora Bridge
-parameter_types! {
-	pub const BridgeMaxMessagePayloadSize: u32 = 256;
-	pub const BridgeMaxMessagesPerCommit: u32 = 20;
-	pub const ThisNetworkId: bridge_types::GenericNetworkId = bridge_types::GenericNetworkId::Sub(bridge_types::SubNetworkId::Liberland);
-	pub const BridgeMaxPeers: u32 = 50;
-	// Not as important as some essential transactions (e.g. im_online or similar ones)
-	pub DataSignerPriority: TransactionPriority = Perbill::from_percent(10) * TransactionPriority::max_value();
-	// We don't want to have not relevant imports be stuck in transaction pool
-	// for too long
-	pub DataSignerLongevity: TransactionLongevity = EPOCH_DURATION_IN_BLOCKS as u64;
-	pub const MinAssetBalance: u32 = 1;
-	pub SoraMainnetTechAcc: AccountId = impls::get_account_id_from_string_hash("Sora");
-}
-
-// Sora Bridge
-impl leaf_provider::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Hashing = Keccak256;
-	type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
-	type Randomness = pallet_babe::RandomnessFromTwoEpochsAgo<Self>;
-}
-
-// Sora Bridge
-impl substrate_bridge_app::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type OutboundChannel = SubstrateBridgeOutboundChannel;
-	type CallOrigin = dispatch::EnsureAccount<
-		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>,
-	>;
-	type MessageStatusNotifier = SoraBridgeProvider;
-	type AssetRegistry = SoraBridgeProvider;
-	type AccountIdConverter = impls::SoraAccountIdConverter;
-	type AssetIdConverter = impls::SoraAssetIdConverter;
-	type BalancePrecisionConverter = impls::GenericBalancePrecisionConverter;
-	type BridgeAssetLocker = SoraBridgeProvider;
-	type WeightInfo = substrate_bridge_app::weights::SubstrateWeight<Runtime>;
-}
-
-// Sora Bridge
-impl bridge_data_signer::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type OutboundChannel = SubstrateBridgeOutboundChannel;
-	type CallOrigin = dispatch::EnsureAccount<
-		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>,
-	>;
-	type MaxPeers = BridgeMaxPeers;
-	type UnsignedPriority = DataSignerPriority;
-	type UnsignedLongevity = DataSignerLongevity;
-	type WeightInfo = bridge_data_signer::weights::SubstrateWeight<Runtime>;
-}
-
-// Sora Bridge
-impl multisig_verifier::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type CallOrigin = dispatch::EnsureAccount<
-		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>,
-	>;
-	type OutboundChannel = SubstrateBridgeOutboundChannel;
-	type MaxPeers = BridgeMaxPeers;
-	type WeightInfo = multisig_verifier::weights::SubstrateWeight<Runtime>;
-	type ThisNetworkId = ThisNetworkId;
-}
-
-// Sora Bridge
-impl dispatch::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type OriginOutput =
-		bridge_types::types::CallOriginOutput<bridge_types::SubNetworkId, sp_core::H256, ()>;
-	type Origin = RuntimeOrigin;
-	type MessageId = bridge_types::types::MessageId;
-	type Hashing = Keccak256;
-	type Call = impls::DispatchableSubstrateBridgeCall;
-	type CallFilter = impls::SoraBridgeCallFilter;
-	type WeightInfo = dispatch::weights::SubstrateWeight<Runtime>;
-}
-
-// Sora Bridge
-impl substrate_bridge_channel::inbound::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Verifier = impls::MultiVerifier;
-	type MessageDispatch = SubstrateDispatch;
-	type UnsignedPriority = DataSignerPriority;
-	type UnsignedLongevity = DataSignerLongevity;
-	type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
-	type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
-	type ThisNetworkId = ThisNetworkId;
-	type WeightInfo = substrate_bridge_channel::inbound::weights::SubstrateWeight<Runtime>;
-}
-
-// Sora Bridge
-impl substrate_bridge_channel::outbound::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type MessageStatusNotifier = SoraBridgeProvider;
-	type MaxMessagePayloadSize = BridgeMaxMessagePayloadSize;
-	type MaxMessagesPerCommit = BridgeMaxMessagesPerCommit;
-	type AuxiliaryDigestHandler = LeafProvider;
-	type AssetId = bridge_types::LiberlandAssetId;
-	type Balance = Balance;
-	type TimepointProvider = impls::GenericTimepointProvider;
-	type ThisNetworkId = ThisNetworkId;
-	type WeightInfo = substrate_bridge_channel::outbound::weights::SubstrateWeight<Runtime>;
-}
-
-// Sora Bridge
-impl sora_liberland_bridge_provider::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type MinBalance = MinAssetBalance;
-	type Balances = Balances;
-	type AssetId = LiberlandAssetId;
-	type SoraApp = SoraBridgeApp;
-	type AccountIdConverter = sp_runtime::traits::Identity;
-	type TimepointProvider = impls::GenericTimepointProvider;
-	type SoraMainnetTechAcc = SoraMainnetTechAcc;
 }
 
 construct_runtime!(
@@ -1766,6 +1739,7 @@ construct_runtime!(
 		Authorship: pallet_authorship = 4,
 		Balances: pallet_balances = 6,
 		TransactionPayment: pallet_transaction_payment = 7,
+		AssetTxPayment: pallet_asset_tx_payment = 8,
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 9,
 		Democracy: pallet_democracy = 10,
 		Council: pallet_collective::<Instance1> = 11,
@@ -1779,15 +1753,23 @@ construct_runtime!(
 		AuthorityDiscovery: pallet_authority_discovery = 19,
 		Offences: pallet_offences = 20,
 		Historical: pallet_session_historical::{Pallet} = 21,
+		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 22,
 		Identity: pallet_identity = 23,
+		Society: pallet_society = 24,
+		Recovery: pallet_recovery = 25,
 		Scheduler: pallet_scheduler = 27,
 		Preimage: pallet_preimage = 28,
 		Proxy: pallet_proxy = 29,
 		Multisig: pallet_multisig = 30,
+		Bounties: pallet_bounties = 31,
+		Tips: pallet_tips = 32,
 		Assets: pallet_assets = 33,
+		Mmr: pallet_mmr = 34,
 		Nfts: pallet_nfts = 38,
 		TransactionStorage: pallet_transaction_storage = 39,
 		VoterList: pallet_bags_list::<Instance1> = 40,
+		ChildBounties: pallet_child_bounties = 42,
+		Whitelist: pallet_whitelist = 45,
 		LLM: pallet_llm = 46,
 		LiberlandLegislation: pallet_liberland_legislation = 47,
 		LiberlandInitializer: pallet_liberland_initializer = 48,
@@ -1801,23 +1783,11 @@ construct_runtime!(
 		MetaverseLandRegistryOffice: pallet_office::<Instance4> = 56,
 		AssetRegistryOffice: pallet_office::<Instance5> = 57,
 		Senate: pallet_collective::<Instance3> = 58,
+		EthLLDBridge: pallet_federated_bridge::<Instance1> = 59,
+		EthLLMBridge: pallet_federated_bridge::<Instance2> = 60,
 		CouncilAccount: pallet_custom_account::<Instance1> = 61,
 		AssetConversion: pallet_asset_conversion = 62,
 		PoolAssets: pallet_assets::<Instance2> = 63,
-		AssetConversionTxPayment: pallet_asset_conversion_tx_payment = 64,
-		ContractsRegistry: pallet_contracts_registry = 65,
-		SenateAccount: pallet_custom_account::<Instance2> = 66,
-		MinistryOfFinanceOffice: pallet_office::<Instance6> = 67,
-
-		// Sora Bridge:
-		LeafProvider: leaf_provider = 80,
-		SoraBridgeApp: substrate_bridge_app = 81,
-		SubstrateBridgeInboundChannel: substrate_bridge_channel::inbound = 82,
-		SubstrateBridgeOutboundChannel: substrate_bridge_channel::outbound = 83,
-		SubstrateDispatch: dispatch = 84,
-		BridgeDataSigner: bridge_data_signer = 85,
-		MultisigVerifier: multisig_verifier = 86,
-		SoraBridgeProvider: sora_liberland_bridge_provider = 87,
 	}
 );
 
@@ -1844,7 +1814,6 @@ pub type SignedExtra = (
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
-	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 );
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1864,12 +1833,106 @@ pub type Executive = frame_executive::Executive<
 	Migrations,
 >;
 
+
+// staking is only expected to be used by polkadot/kusama/et al., so they didn't
+// bother to bump the default storage version. as such, we have V7_0_0 version
+// set, but it's actually the layout of V12. Fix it before running V13 migration.
+mod staking_v12 {
+	use super::*;
+	use frame_support::{storage_alias, traits::OnRuntimeUpgrade, pallet_prelude::*};
+
+	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	enum ObsoleteReleases {
+		V1_0_0Ancient,
+		V2_0_0,
+		V3_0_0,
+		V4_0_0,
+		V5_0_0,
+		V6_0_0,
+		V7_0_0,
+		V8_0_0,
+		V9_0_0,
+		V10_0_0,
+		V11_0_0,
+		V12_0_0,
+	}
+
+	impl Default for ObsoleteReleases {
+		fn default() -> Self {
+			Self::V12_0_0
+		}
+	}
+
+	#[storage_alias]
+	type StorageVersion<T: pallet_staking::Config> = StorageValue<pallet_staking::Pallet<T>, ObsoleteReleases, ValueQuery>;
+
+	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
+	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			frame_support::ensure!(
+                StorageVersion::<T>::get() == ObsoleteReleases::V7_0_0,
+                "Expected v7 before upgrading to v12"
+            );
+
+            Ok(Default::default())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			StorageVersion::<T>::put(ObsoleteReleases::V12_0_0);
+			log::info!("Migrated pallet-staking StorageVersion to V12");
+			T::DbWeight::get().reads_writes(1, 1)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			frame_support::ensure!(
+                StorageVersion::<T>::get() == ObsoleteReleases::V12_0_0,
+                "Failed to upgrade to v12"
+            );
+			Ok(())
+		}
+	}
+}
+
+// see commit 9957da3cbb027f9b754c453a4d58a62665e532ef for details
+mod bounties_v4 {
+	use super::*;
+	use frame_support::{traits::OnRuntimeUpgrade, pallet_prelude::*};
+
+	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
+	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migration<T> {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			frame_support::ensure!(
+				Bounties::on_chain_storage_version() == 0,
+                "Expected v0 before upgrading to v4"
+            );
+
+            Ok(Default::default())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			log::info!("Migrated pallet-bounties PalletVersion to 4");
+			Bounties::current_storage_version().put::<Bounties>();
+			T::DbWeight::get().reads_writes(1, 1)
+
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			frame_support::ensure!(
+				Bounties::on_chain_storage_version() == 4,
+                "Failed to update to v4"
+            );
+			Ok(())
+		}
+	}
+}
+
 // All migrations executed on runtime upgrade as a nested tuple of types implementing
 // `OnRuntimeUpgrade`.
-type Migrations = (
-	// Migrations for spec version 27 - delete when bumping to v28
-	crate::migrations::add_ministry_of_finance_office_pallet::Migration<Runtime>,
-);
+type Migrations = (pallet_llm::migrations::v3::Migration<Runtime>,);
 
 type EventRecord = frame_system::EventRecord<
 	<Runtime as frame_system::Config>::RuntimeEvent,
@@ -1884,6 +1947,8 @@ mod benches {
 		[pallet_babe, Babe]
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
+		[pallet_bounties, Bounties]
+		[pallet_child_bounties, ChildBounties]
 		[pallet_collective, Council]
 		[pallet_contracts, Contracts]
 		[pallet_democracy, Democracy]
@@ -1895,10 +1960,12 @@ mod benches {
 		[pallet_identity, Identity]
 		[pallet_im_online, ImOnline]
 		[pallet_membership, TechnicalMembership]
+		[pallet_mmr, Mmr]
 		[pallet_multisig, Multisig]
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
+		[pallet_recovery, Recovery]
 		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_staking, Staking]
@@ -1909,12 +1976,13 @@ mod benches {
 		[pallet_treasury, Treasury]
 		[pallet_nfts, Nfts]
 		[pallet_utility, Utility]
+		[pallet_whitelist, Whitelist]
 		[pallet_registry, CompanyRegistry]
 		[pallet_office, IdentityOffice]
 		[pallet_liberland_legislation, LiberlandLegislation]
+		[pallet_federated_bridge, EthLLDBridge]
 		[pallet_llm, LLM]
 		[pallet_custom_account, CouncilAccount]
-		[pallet_contracts_registry, ContractsRegistry]
 	);
 }
 

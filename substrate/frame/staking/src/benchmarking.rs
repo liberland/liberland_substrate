@@ -949,18 +949,6 @@ benchmarks! {
 		assert_eq!(CitizenshipRequired::<T>::get(), true);
 	}
 
-	bond_to {
-		let stash = create_funded_user::<T>("stash", USER_SEED, 100);
-		let stash_two = create_funded_user::<T>("stash", 3, 100);
-		let amount = T::Currency::minimum_balance() * 10u32.into();
-		whitelist_account!(stash);
-		whitelist_account!(stash_two);
-	}: _(RawOrigin::Signed(stash), stash_two.clone(), amount)
-	verify {
-		assert!(Bonded::<T>::contains_key(stash_two.clone()));
-		assert!(Ledger::<T>::contains_key(stash_two));
-	}
-
 	impl_benchmark_test_suite!(
 		Staking,
 		crate::mock::ExtBuilder::default().has_stakers(true),
