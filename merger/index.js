@@ -33,11 +33,25 @@ execSync(startup.join("; "));
 const theirs = mergePaths.reduce((theirs, their) => {
     theirs.push(...sync(`${__dirname}/polkadot-sdk/${their}/**/*`));
     return theirs;
-}, []).map((their) => their.replace(`${__dirname}/polkadot-sdk/`, ""));
+}, []).map((their) => their.replace(`${__dirname}/polkadot-sdk/`, "")).reduce(
+    (theirs, path) => {
+        theirs[path] = true;
+        return theirs;
+    },
+    {},
+);
 
 execSync(`git checkout ${lastMergeCommit}; git switch --create features/merge-from-${newBranch}`);
 
-execSync(`git checkout polkadot-sdk-upstream/${newBranch} ${theirs.join(' ')}`);
+execSync(`git merge --allow-unrelated-histories --no-commit polkadot-sdk-upstream/${newBranch};`);
+
+const diffed = execSync("git diff --name-only").toString("utf-8").split("\n");
+diffed.forEach(diff => {
+    if (theirs[diff]) {
+        execSync(`git add ${diff}`);
+    }
+})
+
 execSync(`git commit -m "Merge from ${newBranch}"; git reset --hard HEAD`);
 
 execSync(`git switch ${currentBranch}; git merge features/merge-from-${newBranch}`);
