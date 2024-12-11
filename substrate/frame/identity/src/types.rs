@@ -15,11 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
-
 use super::*;
 use codec::{Decode, Encode, MaxEncodedLen};
 use enumflags2::{bitflags, BitFlags};

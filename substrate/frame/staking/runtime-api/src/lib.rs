@@ -15,17 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(all(feature = "std", not(feature = "metadata-hash")))]
-fn main() {
-	substrate_wasm_builder::WasmBuilder::build_using_defaults()
-}
+//! Runtime API definition for the staking pallet.
 
-#[cfg(all(feature = "std", feature = "metadata-hash"))]
-fn main() {
-	substrate_wasm_builder::WasmBuilder::init_with_defaults()
-		.enable_metadata_hash("Test", 14)
-		.build()
-}
+#![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(not(feature = "std"))]
-fn main() {}
+use codec::Codec;
+
+sp_api::decl_runtime_apis! {
+	pub trait StakingApi<Balance>
+		where
+			Balance: Codec,
+	{
+		/// Returns the nominations quota for a nominator with a given balance.
+		fn nominations_quota(balance: Balance) -> u32;
+	}
+}

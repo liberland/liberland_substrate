@@ -15,17 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! Storage migrations for the preimage pallet.
 
 use crate::*;
 use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade, BoundedVec};
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_core::H256;
-use sp_runtime::traits::CheckedMul;
 
 /// The log target.
 const TARGET: &'static str = "runtime::democracy::migration::v1";
@@ -57,46 +52,6 @@ mod v0 {
 
 pub mod v1 {
 	use super::*;
-
-	#[derive(Encode, MaxEncodedLen, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-	pub struct Tally<Balance> {
-		/// The number of aye votes, expressed in terms of post-conviction lock-vote.
-		pub ayes: Balance,
-		/// The number of nay votes, expressed in terms of post-conviction lock-vote.
-		pub nays: Balance,
-		/// The amount of funds currently expressing its opinion. Pre-conviction.
-		pub turnout: Balance,
-	}
-
-	#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-	pub struct ReferendumStatus<BlockNumber, Proposal, Balance> {
-		pub end: BlockNumber,
-		pub proposal: Proposal,
-		pub threshold: VoteThreshold,
-		pub delay: BlockNumber,
-		pub tally: v1::Tally<Balance>,
-	}
-
-	#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-	pub enum ReferendumInfo<BlockNumber, Proposal, Balance> {
-		Ongoing(v1::ReferendumStatus<BlockNumber, Proposal, Balance>),
-		Finished { approved: bool, end: BlockNumber },
-	}
-
-	#[storage_alias]
-	pub type PublicProps<T: Config> = StorageValue<
-		Pallet<T>,
-		BoundedVec<(PropIndex, BoundedCallOf<T>, <T as frame_system::Config>::AccountId), <T as pallet::Config>::MaxProposals>,
-		ValueQuery,
-	>;
-
-	#[storage_alias]
-	pub type ReferendumInfoOf<T: Config> = StorageMap<
-		Pallet<T>,
-		Twox64Concat,
-		ReferendumIndex,
-		v1::ReferendumInfo<BlockNumberFor<T>, BoundedCallOf<T>, BalanceOf<T>>,
-	>;
 
 	/// Migration for translating bare `Hash`es into `Bounded<Call>`s.
 	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
@@ -134,7 +89,7 @@ pub mod v1 {
 					log::info!(target: TARGET, "migrating referendum #{:?}", &index);
 					Some(match old {
 						ReferendumInfo::Ongoing(status) =>
-							ReferendumInfo::Ongoing(v1::ReferendumStatus {
+							ReferendumInfo::Ongoing(ReferendumStatus {
 								end: status.end,
 								proposal: Bounded::from_legacy_hash(status.proposal),
 								threshold: status.threshold,
@@ -152,7 +107,7 @@ pub mod v1 {
 				.map(|(i, hash, a)| (i, Bounded::from_legacy_hash(hash), a))
 				.collect::<Vec<_>>();
 			let bounded = BoundedVec::<_, T::MaxProposals>::truncate_from(props.clone());
-			v1::PublicProps::<T>::put(bounded);
+			PublicProps::<T>::put(bounded);
 			weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
 
 			if props.len() as u32 > T::MaxProposals::get() {
@@ -180,232 +135,16 @@ pub mod v1 {
 
 			let (old_props_count, old_ref_count): (u32, u32) =
 				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state; qed");
-			let new_props_count = v1::PublicProps::<T>::get().len() as u32;
-			assert_eq!(new_props_count, old_props_count, "must migrate all public proposals");
-			let new_ref_count = v1::ReferendumInfoOf::<T>::iter().count() as u32;
-			assert_eq!(new_ref_count, old_ref_count, "must migrate all referenda");
+			let new_props_count = crate::PublicProps::<T>::get().len() as u32;
+			ensure!(new_props_count == old_props_count, "must migrate all public proposals");
+			let new_ref_count = crate::ReferendumInfoOf::<T>::iter().count() as u32;
+			ensure!(new_ref_count == old_ref_count, "must migrate all referenda");
 
 			log::info!(
 				target: TARGET,
 				"{} public proposals migrated, {} referenda migrated",
 				new_props_count,
 				new_ref_count,
-			);
-			Ok(())
-		}
-	}
-}
-
-pub mod v2 {
-	use super::*;
-	use crate::vote::PriorLock;
-
-	#[derive(
-		Encode, MaxEncodedLen, Decode, Default, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo,
-	)]
-	pub struct Delegations<Balance> {
-		pub votes: Balance,
-		pub capital: Balance,
-	}
-
-	#[derive(Encode, MaxEncodedLen, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-	pub enum Voting<Balance, AccountId, BlockNumber, MaxVotes: Get<u32>> {
-		Direct {
-			votes: BoundedVec<(ReferendumIndex, AccountVote<Balance>), MaxVotes>,
-			delegations: v2::Delegations<Balance>,
-			prior: PriorLock<BlockNumber, Balance>,
-		},
-		Delegating {
-			balance: Balance,
-			target: AccountId,
-			conviction: Conviction,
-			delegations: v2::Delegations<Balance>,
-			prior: PriorLock<BlockNumber, Balance>,
-		},
-	}
-
-	#[storage_alias]
-	pub type VotingOf<T: Config> = StorageMap<
-		Pallet<T>,
-		Twox64Concat,
-		<T as frame_system::Config>::AccountId,
-		v2::Voting<BalanceOf<T>, <T as frame_system::Config>::AccountId, BlockNumberFor<T>, <T as pallet::Config>::MaxVotes>,
-	>;
-
-	/// Migration for adding origin type to proposals and referendums.
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-
-	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			assert_eq!(StorageVersion::get::<Pallet<T>>(), 1, "can only upgrade from version 1");
-
-			let props_count = v0::PublicProps::<T>::get().len();
-			log::info!(target: TARGET, "{} public proposals will be migrated.", props_count,);
-			let referenda_count = v0::ReferendumInfoOf::<T>::iter().count();
-			log::info!(target: TARGET, "{} referenda will be migrated.", referenda_count);
-
-			Ok((props_count as u32, referenda_count as u32).encode())
-		}
-
-		#[allow(deprecated)]
-		fn on_runtime_upgrade() -> Weight {
-			let mut weight = T::DbWeight::get().reads(1);
-			if StorageVersion::get::<Pallet<T>>() != 1 {
-				log::warn!(
-					target: TARGET,
-					"skipping on_runtime_upgrade: executed on wrong storage version.\
-				Expected version 1"
-				);
-				return weight
-			}
-
-			ReferendumInfoOf::<T>::translate::<v1::ReferendumInfo::<BlockNumberFor<T>, BoundedCallOf<T>, BalanceOf<T>>, _>(
-				|index, old: v1::ReferendumInfo<BlockNumberFor<T>, BoundedCallOf<T>, BalanceOf<T>>| {
-					weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
-					log::info!(target: TARGET, "migrating referendum #{:?}", &index);
-					Some(match old {
-						v1::ReferendumInfo::Ongoing(status) =>
-							ReferendumInfo::Ongoing(ReferendumStatus {
-								end: status.end,
-								proposal: status.proposal,
-								threshold: status.threshold,
-								delay: status.delay,
-								dispatch_origin: DispatchOrigin::Root,
-								tally: Tally {
-									ayes: status.tally.ayes,
-									nays: status.tally.nays,
-									aye_voters: status.tally.ayes.checked_mul(&10000u32.into())?.try_into().unwrap_or_default(), // this is OK - voters are only used for DispatchOrigin::Rich, so we lose nothing if these are invalid
-									nay_voters: status.tally.nays.checked_mul(&10000u32.into())?.try_into().unwrap_or_default(), // FIXME but what about underflow when votes are removed?
-									turnout: status.tally.turnout,
-								}
-							}),
-						v1::ReferendumInfo::Finished { approved, end } =>
-							ReferendumInfo::Finished { approved, end },
-					})
-				},
-			);
-
-			let props = v1::PublicProps::<T>::take()
-				.into_iter()
-				.map(|(i, c, a)| (i, c, a, DispatchOrigin::Root))
-				.collect::<Vec<_>>();
-			let bounded = BoundedVec::<_, T::MaxProposals>::truncate_from(props.clone());
-			PublicProps::<T>::put(bounded);
-			weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
-
-			if props.len() as u32 > T::MaxProposals::get() {
-				log::error!(
-					target: TARGET,
-					"truncated {} public proposals to {}; continuing",
-					props.len(),
-					T::MaxProposals::get()
-				);
-			}
-
-			StorageVersion::new(2).put::<Pallet<T>>();
-
-			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "must upgrade");
-
-			let (old_props_count, old_ref_count): (u32, u32) =
-				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state; qed");
-			let new_props_count = PublicProps::<T>::get().len() as u32;
-			assert_eq!(new_props_count, old_props_count, "must migrate all public proposals");
-			let new_ref_count = ReferendumInfoOf::<T>::iter().count() as u32;
-			assert_eq!(new_ref_count, old_ref_count, "must migrate all referenda");
-
-			log::info!(
-				target: TARGET,
-				"{} public proposals migrated, {} referenda migrated",
-				new_props_count,
-				new_ref_count,
-			);
-			Ok(())
-		}
-	}
-}
-
-pub mod v3 {
-	use super::*;
-	pub struct Migration<T>(sp_std::marker::PhantomData<T>);
-
-	impl<T: Config> OnRuntimeUpgrade for Migration<T> {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			assert_eq!(StorageVersion::get::<Pallet<T>>(), 2, "can only upgrade from version 2");
-
-			let voting_of_count = v2::VotingOf::<T>::iter().count();
-			log::info!(target: TARGET, "{} votings will be migrated.", voting_of_count,);
-
-			Ok((voting_of_count as u32).encode())
-		}
-
-		#[allow(deprecated)]
-		fn on_runtime_upgrade() -> Weight {
-			let mut weight = T::DbWeight::get().reads(1);
-			if StorageVersion::get::<Pallet<T>>() != 2 {
-				log::warn!(
-					target: TARGET,
-					"skipping on_runtime_upgrade: executed on wrong storage version.\
-				Expected version 2"
-				);
-				return weight
-			}
-
-			VotingOf::<T>::translate::<v2::Voting::<BalanceOf<T>, T::AccountId, BlockNumberFor<T>, T::MaxVotes>, _>(
-				|_acc, old: v2::Voting::<BalanceOf<T>, T::AccountId, BlockNumberFor<T>, T::MaxVotes>| {
-					weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
-					log::info!(target: TARGET, "migrating votingof");
-					Some(match old {
-						v2::Voting::Direct { votes, delegations, prior } =>
-							Voting::Direct {
-								votes,
-								delegations: Delegations {
-									voters: 1,
-									votes: delegations.votes,
-									capital: delegations.capital,
-								},
-								prior
-							} ,
-						v2::Voting::Delegating { balance, target, conviction, delegations, prior } =>
-							Voting::Delegating {
-								balance,
-								target,
-								conviction,
-								delegations: Delegations {
-									voters: 1,
-									votes: delegations.votes,
-									capital: delegations.capital,
-								},
-								prior,
-							},
-					})
-				},
-			);
-
-			StorageVersion::new(3).put::<Pallet<T>>();
-
-			weight.saturating_add(T::DbWeight::get().reads_writes(1, 1))
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			assert_eq!(StorageVersion::get::<Pallet<T>>(), 3, "must upgrade");
-
-			let old_votings: u32 =
-				Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state; qed");
-			let new_votings = VotingOf::<T>::iter().count() as u32;
-			assert_eq!(new_votings, old_votings, "must migrate all votings");
-
-			log::info!(
-				target: TARGET,
-				"{} votings migrated",
-				new_votings,
 			);
 			Ok(())
 		}

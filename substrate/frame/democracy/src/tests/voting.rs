@@ -15,10 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! The tests for normal voting functionality.
 
 use super::*;
@@ -28,8 +24,8 @@ fn overvoting_should_fail() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
 		assert_noop!(
-			Democracy::vote(RuntimeOrigin::signed(1), r, vote_aye(5001)),
-			Error::<Test>::InsufficientLLM
+			Democracy::vote(RuntimeOrigin::signed(1), r, aye(2)),
+			Error::<Test>::InsufficientFunds
 		);
 	});
 }
@@ -38,15 +34,15 @@ fn overvoting_should_fail() {
 fn split_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
-		let v = AccountVote::Split { aye: 4000, nay: 1001 };
+		let v = AccountVote::Split { aye: 40, nay: 20 };
 		assert_noop!(
 			Democracy::vote(RuntimeOrigin::signed(5), r, v),
-			Error::<Test>::InsufficientLLM
+			Error::<Test>::InsufficientFunds
 		);
-		let v = AccountVote::Split { aye: 4000, nay: 1000 };
+		let v = AccountVote::Split { aye: 30, nay: 20 };
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, v));
 
-		assert_eq!(tally(r), Tally { ayes: 4000, nays: 1000, turnout: 5000, aye_voters: 8000, nay_voters: 2000 });
+		assert_eq!(tally(r), Tally { ayes: 3, nays: 2, turnout: 50 });
 	});
 }
 
@@ -57,7 +53,7 @@ fn split_vote_cancellation_should_work() {
 		let v = AccountVote::Split { aye: 30, nay: 20 };
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, v));
 		assert_ok!(Democracy::remove_vote(RuntimeOrigin::signed(5), r));
-		assert_eq!(tally(r), Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 });
+		assert_eq!(tally(r), Tally { ayes: 0, nays: 0, turnout: 0 });
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
 		assert_eq!(Balances::locks(5), vec![]);
 	});
@@ -73,7 +69,7 @@ fn single_proposal_should_work() {
 
 		// start of 2 => next referendum scheduled.
 		fast_forward_to(2);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(2)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, aye(1)));
 
 		assert_eq!(Democracy::referendum_count(), 1);
 		assert_eq!(
@@ -81,10 +77,9 @@ fn single_proposal_should_work() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 200, nays: 0, turnout: 200, aye_voters: 10000, nay_voters: 0  },
+				tally: Tally { ayes: 1, nays: 0, turnout: 10 },
 			})
 		);
 
@@ -97,7 +92,6 @@ fn single_proposal_should_work() {
 		fast_forward_to(4);
 
 		assert_noop!(Democracy::referendum_status(0), Error::<Test>::ReferendumInvalid);
-
 		assert!(pallet_scheduler::Agenda::<Test>::get(6)[0].is_some());
 
 		// referendum passes and wait another two blocks for enactment.
@@ -113,19 +107,18 @@ fn controversial_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, vote_aye(5000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, vote_nay(5000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, vote_nay(5000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, vote_aye(5000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, vote_nay(4000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, vote_aye(5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, big_aye(1)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, big_nay(2)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, big_nay(3)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, big_aye(4)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, big_nay(5)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, big_aye(6)));
 
-		assert_eq!(tally(r), Tally { ayes: 15000, nays: 14000, turnout: 29000, aye_voters: 30000, nay_voters: 30000 });
+		assert_eq!(tally(r), Tally { ayes: 110, nays: 100, turnout: 210 });
 
 		next_block();
 		next_block();
@@ -140,14 +133,13 @@ fn controversial_low_turnout_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, big_nay(5)));
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, big_aye(6)));
 
-		assert_eq!(tally(r), Tally { ayes: 600, nays: 500, turnout: 1100, aye_voters: 10000, nay_voters: 10000  });
+		assert_eq!(tally(r), Tally { ayes: 60, nays: 50, turnout: 110 });
 
 		next_block();
 		next_block();
@@ -160,19 +152,18 @@ fn controversial_low_turnout_voting_should_work() {
 fn passing_low_turnout_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Balances::free_balance(42), 0);
-		assert_eq!(Balances::total_issuance(), 2100);
+		assert_eq!(Balances::total_issuance(), 210);
 
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root, 
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, vote_aye(5000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, vote_nay(5000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, vote_aye(5000)));
-		assert_eq!(tally(r), Tally { ayes: 10000, nays: 5000, turnout: 15000, aye_voters: 20000, nay_voters: 10000 });
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, big_aye(4)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, big_nay(5)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(6), r, big_aye(6)));
+		assert_eq!(tally(r), Tally { ayes: 100, nays: 50, turnout: 150 });
 
 		next_block();
 		next_block();

@@ -18,42 +18,36 @@ codec = { package = "parity-scale-codec", version = "3.6.1", default-features = 
 	"derive",
 ] }
 scale-info = { version = "2.5.0", default-features = false, features = ["derive", "serde"] }
-sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", features = ["serde"]  }
-sp-staking = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", features = ["serde"]  }
-sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-session = { default-features = false, features = [
+sp-io = { path = "../../primitives/io", default-features = false}
+sp-runtime = { path = "../../primitives/runtime", default-features = false, features = ["serde"] }
+sp-staking = { path = "../../primitives/staking", default-features = false, features = ["serde"] }
+sp-std = { path = "../../primitives/std", default-features = false}
+frame-support = { path = "../support", default-features = false}
+frame-system = { path = "../system", default-features = false}
+pallet-session = { path = "../session", default-features = false, features = [
 	"historical",
-], tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-authorship = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-application-crypto = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", features = ["serde"] }
-frame-election-provider-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+]}
+pallet-authorship = { path = "../authorship", default-features = false}
+sp-application-crypto = { path = "../../primitives/application-crypto", default-features = false, features = ["serde"] }
+frame-election-provider-support = { path = "../election-provider-support", default-features = false}
 log = { version = "0.4.17", default-features = false }
-pallet-llm = { default-features = false, path = "../llm" }
-pallet-liberland-initializer = { default-features = false, path = "../liberland-initializer" }
-liberland-traits = { path = "../liberland-traits", default-features = false}
-pallet-assets = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-identity = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 # Optional imports for benchmarking
-frame-benchmarking = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", optional = true }
+frame-benchmarking = { path = "../benchmarking", default-features = false, optional = true }
 rand_chacha = { version = "0.2", default-features = false, optional = true }
 
 [dev-dependencies]
-sp-tracing = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-core = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-npos-elections = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-timestamp = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-staking-reward-curve = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-bags-list = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-substrate-test-utils = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-benchmarking = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-election-provider-support = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-tracing = { path = "../../primitives/tracing" }
+sp-core = { path = "../../primitives/core" }
+sp-npos-elections = { path = "../../primitives/npos-elections" }
+pallet-balances = { path = "../balances" }
+pallet-timestamp = { path = "../timestamp" }
+pallet-staking-reward-curve = { path = "reward-curve" }
+pallet-bags-list = { path = "../bags-list" }
+substrate-test-utils = { path = "../../test-utils" }
+frame-benchmarking = { path = "../benchmarking" }
+frame-election-provider-support = { path = "../election-provider-support" }
 rand_chacha = { version = "0.2" }
-pallet-nfts = { path = "../nfts" }
 
 [features]
 default = [ "std" ]
@@ -71,22 +65,17 @@ std = [
 	"pallet-timestamp/std",
 	"scale-info/std",
 	"serde/std",
+	"sp-application-crypto/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-npos-elections/std",
 	"sp-runtime/std",
 	"sp-staking/std",
-	"pallet-assets/std",
-	"pallet-identity/std",
-	"pallet-llm/std",
-	"pallet-liberland-initializer/std",
-	"liberland-traits/std",
 	"sp-std/std",
 	"sp-tracing/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
-	"pallet-assets/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
@@ -96,9 +85,6 @@ runtime-benchmarks = [
 	"rand_chacha",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
-	"pallet-liberland-initializer/runtime-benchmarks",
-	"liberland-traits/runtime-benchmarks",
-	"pallet-nfts/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",

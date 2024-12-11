@@ -15,10 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! The tests for fast-tracking functionality.
 
 use super::*;
@@ -32,14 +28,14 @@ fn fast_track_referendum_works() {
 			Democracy::fast_track(RuntimeOrigin::signed(5), h, 3, 2),
 			Error::<Test>::ProposalMissing
 		);
-		assert_ok!(Democracy::external_propose(
-			RuntimeOrigin::signed(2),
+		assert_ok!(Democracy::external_propose_majority(
+			RuntimeOrigin::signed(3),
 			set_balance_proposal(2)
 		));
 		let hash = note_preimage(1);
 		assert!(<MetadataOf<Test>>::get(MetadataOwner::External).is_none());
 		assert_ok!(Democracy::set_metadata(
-			RuntimeOrigin::signed(2),
+			RuntimeOrigin::signed(3),
 			MetadataOwner::External,
 			Some(hash),
 		),);
@@ -51,10 +47,9 @@ fn fast_track_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 2,
 				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
-				threshold: VoteThreshold::SuperMajorityApprove,
+				threshold: VoteThreshold::SimpleMajority,
 				delay: 0,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 		// metadata reset from the external proposal to the referendum.
@@ -72,8 +67,8 @@ fn instant_referendum_works() {
 			Democracy::fast_track(RuntimeOrigin::signed(5), h, 3, 2),
 			Error::<Test>::ProposalMissing
 		);
-		assert_ok!(Democracy::external_propose(
-			RuntimeOrigin::signed(2),
+		assert_ok!(Democracy::external_propose_majority(
+			RuntimeOrigin::signed(3),
 			set_balance_proposal(2)
 		));
 		assert_noop!(Democracy::fast_track(RuntimeOrigin::signed(1), h, 3, 2), BadOrigin);
@@ -93,10 +88,9 @@ fn instant_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 1,
 				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
-				threshold: VoteThreshold::SuperMajorityApprove,
+				threshold: VoteThreshold::SimpleMajority,
 				delay: 0,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 	});
@@ -107,7 +101,7 @@ fn instant_next_block_referendum_backed() {
 	new_test_ext().execute_with(|| {
 		// arrange
 		let start_block_number = 10;
-		let external_origin_id = 2;
+		let majority_origin_id = 3;
 		let instant_origin_id = 6;
 		let voting_period = 1;
 		let proposal = set_balance_proposal(2);
@@ -117,9 +111,9 @@ fn instant_next_block_referendum_backed() {
 		System::set_block_number(start_block_number);
 		InstantAllowed::set(true);
 
-		// propose with super majority origin
-		assert_ok!(Democracy::external_propose(
-			RuntimeOrigin::signed(external_origin_id),
+		// propose with majority origin
+		assert_ok!(Democracy::external_propose_majority(
+			RuntimeOrigin::signed(majority_origin_id),
 			proposal.clone()
 		));
 
@@ -137,10 +131,9 @@ fn instant_next_block_referendum_backed() {
 			Ok(ReferendumStatus {
 				end: start_block_number + voting_period,
 				proposal,
-				dispatch_origin: DispatchOrigin::Root, 
-				threshold: VoteThreshold::SuperMajorityApprove,
+				threshold: VoteThreshold::SimpleMajority,
 				delay,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 
@@ -158,21 +151,14 @@ fn instant_next_block_referendum_backed() {
 }
 
 #[test]
-fn fast_track_referendum_fails_when_no_super_majority() {
+fn fast_track_referendum_fails_when_no_simple_majority() {
 	new_test_ext().execute_with(|| {
 		System::set_block_number(0);
 		let h = set_balance_proposal(2).hash();
-		assert_ok!(Democracy::external_propose_majority(RuntimeOrigin::signed(3), set_balance_proposal(2)));
+		assert_ok!(Democracy::external_propose(RuntimeOrigin::signed(2), set_balance_proposal(2)));
 		assert_noop!(
 			Democracy::fast_track(RuntimeOrigin::signed(5), h, 3, 2),
-			Error::<Test>::NotSuperMajority
-		);
-
-		let h2 = set_balance_proposal(3).hash();
-		assert_ok!(Democracy::external_propose_default(RuntimeOrigin::signed(1), set_balance_proposal(3)));
-		assert_noop!(
-			Democracy::fast_track(RuntimeOrigin::signed(5), h2, 3, 2),
-			Error::<Test>::NotSuperMajority
+			Error::<Test>::NotSimpleMajority
 		);
 	});
 }

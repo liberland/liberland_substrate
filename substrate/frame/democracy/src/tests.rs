@@ -15,11 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under
-// the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! The crate's tests.
 
 use super::*;
@@ -27,21 +22,18 @@ use crate as pallet_democracy;
 use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstU32, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-		GenesisBuild, OnInitialize, SortedMembers, Everything,
+		ConstU32, ConstU64, Contains, EqualPrivilegeOnly, OnInitialize, SortedMembers,
+		StorePreimage,
 	},
 	weights::Weight,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
+use pallet_balances::{BalanceLock, Error as BalancesError};
 use sp_core::H256;
 use sp_runtime::{
-	testing::TestSignature,
 	traits::{BadOrigin, BlakeTwo256, Hash, IdentityLookup},
-	BuildStorage,
-	Perbill,
-	Permill,
+	BuildStorage, Perbill,
 };
-
 mod cancellation;
 mod decoders;
 mod delegation;
@@ -65,38 +57,11 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Nfts: pallet_nfts,
 		Preimage: pallet_preimage,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-		Democracy: pallet_democracy::{Pallet, Call, Origin<T>, Storage, Config<T>, Event<T>},
-		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
-		LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
-		LiberlandInitializer: pallet_liberland_initializer,
+		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}
 );
-impl pallet_assets::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
-	type Balance = u64;
-	type AssetId = u32;
-	type AssetIdParameter = codec::Compact<u32>;
-	type Currency = Balances;
-	type ForceOrigin = frame_system::EnsureRoot<u64>;
-	type AssetDeposit = ConstU64<1>;
-	type AssetAccountDeposit = ConstU64<10>;
-	type MetadataDepositBase = ConstU64<1>;
-	type MetadataDepositPerByte = ConstU64<1>;
-	type ApprovalDeposit = ConstU64<1>;
-	type StringLimit = ConstU32<50>;
-	type Freezer = ();
-	type WeightInfo = ();
-	type Extra = ();
-	type CallbackHandle = ();
-	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
-	type RemoveItemsLimit = ConstU32<1000>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
-}
 
 // Test that a fitlered call can be dispatched.
 pub struct BaseFilter;
@@ -178,42 +143,6 @@ impl pallet_balances::Config for Test {
 	type RuntimeHoldReason = ();
 	type MaxHolds = ();
 }
-
-use pallet_nfts::PalletFeatures;
-parameter_types! {
-	pub storage Features: PalletFeatures = PalletFeatures::all_enabled();
-	pub const MaxAttributesPerCall: u32 = 10;
-}
-impl pallet_nfts::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
-	type CollectionId = u32;
-	type ItemId = u32;
-	type Currency = Balances;
-	type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
-	type ForceOrigin = frame_system::EnsureRoot<u64>;
-	type Locker = ();
-	type CollectionDeposit = ConstU64<2>;
-	type ItemDeposit = ConstU64<1>;
-	type MetadataDepositBase = ConstU64<1>;
-	type AttributeDepositBase = ConstU64<1>;
-	type DepositPerByte = ConstU64<1>;
-	type StringLimit = ConstU32<50>;
-	type KeyLimit = ConstU32<50>;
-	type ValueLimit = ConstU32<50>;
-	type ApprovalsLimit = ConstU32<10>;
-	type ItemAttributesApprovalsLimit = ConstU32<2>;
-	type MaxTips = ConstU32<10>;
-	type MaxDeadlineDuration = ConstU64<10000>;
-	type Features = Features;
-	type WeightInfo = ();
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = ();
-	type Citizenship = ();
-	type MetadataValidator = ();
-	type MaxAttributesPerCall = MaxAttributesPerCall;
-	type OffchainSignature = TestSignature;
-	type OffchainPublic = <TestSignature as sp_runtime::traits::Verify>::Signer;
-}
 parameter_types! {
 	pub static PreimageByteDeposit: u64 = 0;
 	pub static InstantAllowed: bool = false;
@@ -233,58 +162,6 @@ impl SortedMembers<u64> for OneToFive {
 	}
 	#[cfg(feature = "runtime-benchmarks")]
 	fn add(_m: &u64) {}
-}
-
-parameter_types! {
-	pub const TOTALLLM: u64 = 70000000u64;
-	pub const PRERELEASELLM: u64 = 7000000u64;
-	pub const CitizenshipMinimum: u64 = 5000u64;
-	pub const UnlockFactor: Permill = Permill::from_percent(10);
-	pub const AssetId: u32 = 1;
-	pub const AssetName: &'static str = "LiberTest Merit";
-	pub const AssetSymbol: &'static str = "LTM";
-	pub const InflationEventInterval: u64 = 1000;
-}
-
-impl pallet_liberland_initializer::Config for Test {}
-
-impl pallet_llm::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type TotalSupply = TOTALLLM;
-	type PreReleasedAmount = PRERELEASELLM;
-	type CitizenshipMinimumPooledLLM = CitizenshipMinimum;
-	type UnlockFactor = UnlockFactor;
-	type AssetId = AssetId;
-	type AssetName = AssetName;
-	type AssetSymbol = AssetSymbol;
-	type InflationEventInterval = InflationEventInterval;
-	type OnLLMPoliticsUnlock = ();
-	type SenateOrigin = EnsureRoot<u64>;
-	type WeightInfo = ();
-}
-
-parameter_types! {
-	pub const MaxAdditionalFields: u32 = 2;
-	pub const MaxRegistrars: u32 = 20;
-}
-
-type EnsureOneOrRoot = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<One, u64>>;
-type EnsureTwoOrRoot = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<Two, u64>>;
-impl pallet_identity::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Slashed = ();
-	type BasicDeposit = ConstU64<0>;
-	type FieldDeposit = ConstU64<0>;
-	type SubAccountDeposit = ConstU64<0>;
-	type MaxSubAccounts = ConstU32<2>;
-	type MaxAdditionalFields = MaxAdditionalFields;
-	type MaxRegistrars = MaxRegistrars;
-	type RegistrarOrigin = EnsureOneOrRoot;
-	type ForceOrigin = EnsureTwoOrRoot;
-	type WeightInfo = ();
-	type Citizenship = LLM;
 }
 
 impl Config for Test {
@@ -308,6 +185,7 @@ impl Config for Test {
 	type CancelProposalOrigin = EnsureRoot<u64>;
 	type VetoOrigin = EnsureSignedBy<OneToFive, u64>;
 	type CooloffPeriod = ConstU64<2>;
+	type Slash = ();
 	type InstantOrigin = EnsureSignedBy<Six, u64>;
 	type InstantAllowed = InstantAllowed;
 	type Scheduler = Scheduler;
@@ -316,36 +194,18 @@ impl Config for Test {
 	type WeightInfo = ();
 	type MaxProposals = ConstU32<100>;
 	type Preimages = Preimage;
-	type MaxAdditionalFields = MaxAdditionalFields;
-	type MaxRegistrars = MaxRegistrars;
-	type Citizenship = LLM;
-	type LLM = LLM;
-	type LLInitializer = LiberlandInitializer;
-	type DelegateeFilter = Everything;
-	type ProposalFee = ();
-	type ProposalFeeAmount = ConstU64<10>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	let balances = vec![(1, 100), (2, 200), (3, 300), (4, 400), (5, 500), (6, 600)];
-	let mut llm_balances: Vec<(u64, u64, u64)> = balances.iter().map(|(id, _)| (*id, 6000, 5000)).collect();
-	llm_balances.push((7, 1000, 1000));
-
-	pallet_balances::GenesisConfig::<Test> { balances: balances.clone() }
-		.assimilate_storage(&mut t)
-		.unwrap();
-	pallet_democracy::GenesisConfig::<Test>::default()
-		.assimilate_storage(&mut t)
-		.unwrap();
-	pallet_llm::GenesisConfig::<Test>::default().assimilate_storage(&mut t).unwrap();
-	pallet_liberland_initializer::GenesisConfig::<Test> {
-		citizenship_registrar: Some(0),
-		initial_citizens: llm_balances,
-		..Default::default()
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Test> {
+		balances: vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
+	pallet_democracy::GenesisConfig::<Test>::default()
+		.assimilate_storage(&mut t)
+		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext
@@ -356,7 +216,7 @@ fn params_should_work() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Democracy::referendum_count(), 0);
 		assert_eq!(Balances::free_balance(42), 0);
-		assert_eq!(Balances::total_issuance(), 2100);
+		assert_eq!(Balances::total_issuance(), 210);
 	});
 }
 
@@ -392,7 +252,6 @@ fn fast_forward_to(n: u64) {
 
 fn begin_referendum() -> ReferendumIndex {
 	System::set_block_number(0);
-	Balances::make_free_balance_be(&1, 100);
 	assert_ok!(propose_set_balance(1, 2, 1));
 	fast_forward_to(2);
 	0
@@ -412,18 +271,6 @@ fn big_aye(who: u64) -> AccountVote<u64> {
 
 fn big_nay(who: u64) -> AccountVote<u64> {
 	AccountVote::Standard { vote: BIG_NAY, balance: Balances::free_balance(&who) }
-}
-
-fn vote(aye: bool, balance: u64) -> AccountVote<u64> {
-	AccountVote::Standard { vote: Vote { aye, conviction: Conviction::None }, balance }
-}
-
-fn vote_aye(balance: u64) -> AccountVote<u64> {
-	vote(true, balance)
-}
-
-fn vote_nay(balance: u64) -> AccountVote<u64> {
-	vote(false, balance)
 }
 
 fn tally(r: ReferendumIndex) -> Tally<u64> {

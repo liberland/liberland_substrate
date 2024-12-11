@@ -15,10 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! The tests for functionality concerning locking and lock-voting.
 
 use super::*;
@@ -37,6 +33,10 @@ fn nay(x: u8, balance: u64) -> AccountVote<u64> {
 	}
 }
 
+fn the_lock(amount: u64) -> BalanceLock<u64> {
+	BalanceLock { id: DEMOCRACY_ID, amount, reasons: pallet_balances::Reasons::All }
+}
+
 #[test]
 fn lock_voting_should_work() {
 	new_test_ext().execute_with(|| {
@@ -44,20 +44,19 @@ fn lock_voting_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 1000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 2000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 4000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
-		assert_eq!(tally(r), Tally { ayes: 9000, nays: 6000, turnout: 15000, aye_voters: 30000, nay_voters: 20000 });
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 10)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 20)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 30)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(4), r, aye(2, 40)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 50)));
+		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
 
-		// Liberland specific - voting shouldn't lock balances
+		// All balances are currently locked.
 		for i in 1..=5 {
-			assert_eq!(Balances::locks(i), vec![]);
+			assert_eq!(Balances::locks(i), vec![the_lock(i * 10)]);
 		}
 
 		fast_forward_to(3);
@@ -78,10 +77,11 @@ fn lock_voting_should_work() {
 		assert_ok!(Democracy::remove_vote(RuntimeOrigin::signed(2), r));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(2), 2));
 
-		// Liberland specific - no locking balances
-		for i in 1..=5 {
-			assert_eq!(Balances::locks(i), vec![]);
-		}
+		assert_eq!(Balances::locks(1), vec![]);
+		assert_eq!(Balances::locks(2), vec![the_lock(20)]);
+		assert_eq!(Balances::locks(3), vec![the_lock(30)]);
+		assert_eq!(Balances::locks(4), vec![the_lock(40)]);
+		assert_eq!(Balances::locks(5), vec![]);
 		assert_eq!(Balances::free_balance(42), 2);
 
 		fast_forward_to(7);
@@ -91,8 +91,7 @@ fn lock_voting_should_work() {
 			Error::<Test>::NoPermission
 		);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(1), 4));
-		// liberland doesn't lock balances
-		assert_eq!(Balances::locks(4), vec![]);
+		assert_eq!(Balances::locks(4), vec![the_lock(40)]);
 		fast_forward_to(8);
 		// 4 should now be able to reap and unlock
 		assert_ok!(Democracy::remove_other_vote(RuntimeOrigin::signed(1), 4, r));
@@ -105,7 +104,7 @@ fn lock_voting_should_work() {
 			Error::<Test>::NoPermission
 		);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(1), 3));
-		assert_eq!(Balances::locks(3), vec![]);
+		assert_eq!(Balances::locks(3), vec![the_lock(30)]);
 		fast_forward_to(14);
 		assert_ok!(Democracy::remove_other_vote(RuntimeOrigin::signed(1), 3, r));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(1), 3));
@@ -114,7 +113,7 @@ fn lock_voting_should_work() {
 		// 2 doesn't need to reap_vote here because it was already done before.
 		fast_forward_to(25);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(1), 2));
-		assert_eq!(Balances::locks(2), vec![]);
+		assert_eq!(Balances::locks(2), vec![the_lock(20)]);
 		fast_forward_to(26);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(1), 2));
 		assert_eq!(Balances::locks(2), vec![]);
@@ -128,7 +127,6 @@ fn no_locks_without_conviction_should_work() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -149,17 +147,16 @@ fn lock_voting_should_work_with_delegation() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 1000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 2000)));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 3000)));
-		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 4000));
-		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 5000)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(1), r, nay(5, 10)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(2), r, aye(4, 20)));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(3), r, aye(3, 30)));
+		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(4), 2, Conviction::Locked2x, 40));
+		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, nay(1, 50)));
 
-		assert_eq!(tally(r), Tally { ayes: 9000, nays: 6000, turnout: 15000, aye_voters: 30000, nay_voters: 20000 });
+		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
 
 		next_block();
 		next_block();
@@ -171,15 +168,15 @@ fn lock_voting_should_work_with_delegation() {
 fn setup_three_referenda() -> (u32, u32, u32) {
 	System::set_block_number(0);
 	let r1 =
-		Democracy::inject_referendum(2, set_balance_proposal(2), DispatchOrigin::Root, VoteThreshold::SimpleMajority, 0);
+		Democracy::inject_referendum(2, set_balance_proposal(2), VoteThreshold::SimpleMajority, 0);
 	assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r1, aye(4, 10)));
 
 	let r2 =
-		Democracy::inject_referendum(2, set_balance_proposal(2), DispatchOrigin::Root, VoteThreshold::SimpleMajority, 0);
+		Democracy::inject_referendum(2, set_balance_proposal(2), VoteThreshold::SimpleMajority, 0);
 	assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r2, aye(3, 20)));
 
 	let r3 =
-		Democracy::inject_referendum(2, set_balance_proposal(2), DispatchOrigin::Root, VoteThreshold::SimpleMajority, 0);
+		Democracy::inject_referendum(2, set_balance_proposal(2), VoteThreshold::SimpleMajority, 0);
 	assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r3, aye(2, 50)));
 
 	fast_forward_to(2);
@@ -201,30 +198,29 @@ fn prior_lockvotes_should_be_enforced() {
 			Error::<Test>::NoPermission
 		);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		// liberland doesn't lock balances
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(50)]);
 		fast_forward_to(8);
 		assert_ok!(Democracy::remove_other_vote(RuntimeOrigin::signed(1), 5, r.2));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(20)]);
 		fast_forward_to(13);
 		assert_noop!(
 			Democracy::remove_other_vote(RuntimeOrigin::signed(1), 5, r.1),
 			Error::<Test>::NoPermission
 		);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(20)]);
 		fast_forward_to(14);
 		assert_ok!(Democracy::remove_other_vote(RuntimeOrigin::signed(1), 5, r.1));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(10)]);
 		fast_forward_to(25);
 		assert_noop!(
 			Democracy::remove_other_vote(RuntimeOrigin::signed(1), 5, r.0),
 			Error::<Test>::NoPermission
 		);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(10)]);
 		fast_forward_to(26);
 		assert_ok!(Democracy::remove_other_vote(RuntimeOrigin::signed(1), 5, r.0));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
@@ -243,24 +239,23 @@ fn single_consolidation_of_lockvotes_should_work_as_before() {
 		fast_forward_to(7);
 		assert_ok!(Democracy::remove_vote(RuntimeOrigin::signed(5), r.2));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		// liberland doesn't use locks
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(50)]);
 		fast_forward_to(8);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(20)]);
 
 		fast_forward_to(13);
 		assert_ok!(Democracy::remove_vote(RuntimeOrigin::signed(5), r.1));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(20)]);
 		fast_forward_to(14);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(10)]);
 
 		fast_forward_to(25);
 		assert_ok!(Democracy::remove_vote(RuntimeOrigin::signed(5), r.0));
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert_eq!(Balances::locks(5), vec![the_lock(10)]);
 		fast_forward_to(26);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
 		assert_eq!(Balances::locks(5), vec![]);
@@ -281,12 +276,11 @@ fn multi_consolidation_of_lockvotes_should_be_conservative() {
 
 		fast_forward_to(8);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		// liberland doesn't use locks
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 20);
 
 		fast_forward_to(14);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 10);
 
 		fast_forward_to(26);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
@@ -301,31 +295,32 @@ fn locks_should_persist_from_voting_to_delegation() {
 		let r = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root, 
 			VoteThreshold::SimpleMajority,
 			0,
 		);
 		assert_ok!(Democracy::vote(RuntimeOrigin::signed(5), r, aye(4, 10)));
 		fast_forward_to(2);
 		assert_ok!(Democracy::remove_vote(RuntimeOrigin::signed(5), r));
+		// locked 10 until #26.
 
 		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(5), 1, Conviction::Locked3x, 20));
-		// liberland doesn't lock balances
-		assert_eq!(Balances::locks(5), vec![]);
+		// locked 20.
+		assert!(Balances::locks(5)[0].amount == 20);
 
 		assert_ok!(Democracy::undelegate(RuntimeOrigin::signed(5)));
+		// locked 20 until #14
 
 		fast_forward_to(13);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount == 20);
 
 		fast_forward_to(14);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 10);
 
 		fast_forward_to(25);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 10);
 
 		fast_forward_to(26);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
@@ -340,7 +335,6 @@ fn locks_should_persist_from_delegation_to_voting() {
 		assert_ok!(Democracy::delegate(RuntimeOrigin::signed(5), 1, Conviction::Locked5x, 5));
 		assert_ok!(Democracy::undelegate(RuntimeOrigin::signed(5)));
 		// locked 5 until 16 * 3 = #48
-		assert_eq!(Balances::locks(5), vec![]);
 
 		let r = setup_three_referenda();
 		// r.0 locked 10 until 2 + 8 * 3 = #26
@@ -353,16 +347,15 @@ fn locks_should_persist_from_delegation_to_voting() {
 
 		fast_forward_to(8);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		// liberland doesn't use locks
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 20);
 
 		fast_forward_to(14);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 10);
 
 		fast_forward_to(26);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));
-		assert_eq!(Balances::locks(5), vec![]);
+		assert!(Balances::locks(5)[0].amount >= 5);
 
 		fast_forward_to(48);
 		assert_ok!(Democracy::unlock(RuntimeOrigin::signed(5), 5));

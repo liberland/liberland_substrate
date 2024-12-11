@@ -15,10 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! Voting thresholds.
 
 use crate::Tally;
@@ -118,8 +114,8 @@ mod tests {
 	#[test]
 	fn should_work() {
 		assert!(!VoteThreshold::SuperMajorityApprove
-			.approved(Tally { ayes: 60, aye_voters: 10000, nay_voters: 10000, nays: 50, turnout: 110 }, 210));
+			.approved(Tally { ayes: 60, nays: 50, turnout: 110 }, 210));
 		assert!(VoteThreshold::SuperMajorityApprove
-			.approved(Tally { ayes: 100, aye_voters: 10000, nay_voters: 10000, nays: 50, turnout: 150 }, 210));
+			.approved(Tally { ayes: 100, nays: 50, turnout: 150 }, 210));
 	}
 }

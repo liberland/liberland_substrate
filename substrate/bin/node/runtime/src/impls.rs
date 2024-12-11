@@ -17,26 +17,20 @@
 
 //! Some configurable implementations as associated type for the substrate runtime.
 
-use super::*;
-use codec::{Encode, Decode};
 use frame_support::{
-	BoundedVec,
-	pallet_prelude::{ConstU32, PhantomData, Get, MaxEncodedLen},
+	pallet_prelude::*,
 	traits::{
 		fungibles::{Balanced, Credit},
-		Currency, OnUnbalanced, InstanceFilter,
-		Contains, PrivilegeCmp, EnsureOrigin,
+		Currency, OnUnbalanced,
 	},
 };
-use sp_runtime::{RuntimeDebug, AccountId32, DispatchError, traits::{TrailingZeroInput, Morph}};
+use pallet_alliance::{IdentityVerifier, ProposalIndex, ProposalProvider};
 use pallet_asset_tx_payment::HandleCredit;
-use sp_std::{vec, cmp::{max, min, Ordering}};
-
-use serde::{Deserialize, Serialize};
+use sp_std::prelude::*;
 
 use crate::{
-	AccountId, Assets, Authorship, Balances, NegativeImbalance, Runtime, RuntimeCall,
-	Democracy, RuntimeOrigin,
+	AccountId, AllianceMotion, Assets, Authorship, Balances, Hash, NegativeImbalance, Runtime,
+	RuntimeCall,
 };
 
 pub struct Author;
@@ -60,394 +54,59 @@ impl HandleCredit<AccountId, Assets> for CreditToBlockAuthor {
 	}
 }
 
-pub struct ToAccountId<T, R> {
-	_phantom: PhantomData<T>,
-	_phantom2: PhantomData<R>,
-}
+pub struct AllianceIdentityVerifier;
+impl IdentityVerifier<AccountId> for AllianceIdentityVerifier {
+	fn has_identity(who: &AccountId, fields: u64) -> bool {
+		crate::Identity::has_identity(who, fields)
+	}
 
-impl<T, R> Morph<T> for ToAccountId<T, R>
-where
-	R: Get<AccountId>,
-{
-	type Outcome = AccountId;
+	fn has_good_judgement(who: &AccountId) -> bool {
+		use pallet_identity::Judgement;
+		crate::Identity::identity(who)
+			.map(|registration| registration.judgements)
+			.map_or(false, |judgements| {
+				judgements
+					.iter()
+					.any(|(_, j)| matches!(j, Judgement::KnownGood | Judgement::Reasonable))
+			})
+	}
 
-	fn morph(_: T) -> Self::Outcome {
-		R::get()
+	fn super_account_id(who: &AccountId) -> Option<AccountId> {
+		crate::Identity::super_of(who).map(|parent| parent.0)
 	}
 }
 
-#[derive(
-	Clone,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
-	Serialize,
-	Deserialize,
-)]
-pub enum IdentityCallFilter {
-	Manager, // set_fee, set_account_id, set_fields, provide_judgement
-	Judgement, // provide_judgement
-}
-
-impl Default for IdentityCallFilter {
-	fn default() -> Self {
-		IdentityCallFilter::Judgement
+pub struct AllianceProposalProvider;
+impl ProposalProvider<AccountId, Hash, RuntimeCall> for AllianceProposalProvider {
+	fn propose_proposal(
+		who: AccountId,
+		threshold: u32,
+		proposal: Box<RuntimeCall>,
+		length_bound: u32,
+	) -> Result<(u32, u32), DispatchError> {
+		AllianceMotion::do_propose_proposed(who, threshold, proposal, length_bound)
 	}
-}
 
-impl InstanceFilter<RuntimeCall> for IdentityCallFilter {
-	fn filter(&self, c: &RuntimeCall) -> bool {
-		match self {
-			IdentityCallFilter::Manager =>
-				matches!(c,
-					RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) |
-					RuntimeCall::Balances(pallet_balances::Call::transfer { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
-				),
-			IdentityCallFilter::Judgement =>
-				matches!(c,
-					RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) |
-					RuntimeCall::Balances(pallet_balances::Call::transfer { .. }) |
-					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
-					RuntimeCall::System(frame_system::Call::remark { .. }) // for benchmarking
-				)
-		}
+	fn vote_proposal(
+		who: AccountId,
+		proposal: Hash,
+		index: ProposalIndex,
+		approve: bool,
+	) -> Result<bool, DispatchError> {
+		AllianceMotion::do_vote(who, proposal, index, approve)
 	}
-	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
-			(x, y) if x == y => true,
-			(IdentityCallFilter::Manager, _) => true,
-			(_, IdentityCallFilter::Manager) => false,
-			_ => false,
-		}
+
+	fn close_proposal(
+		proposal_hash: Hash,
+		proposal_index: ProposalIndex,
+		proposal_weight_bound: Weight,
+		length_bound: u32,
+	) -> DispatchResultWithPostInfo {
+		AllianceMotion::do_close(proposal_hash, proposal_index, proposal_weight_bound, length_bound)
 	}
-}
 
-#[derive(
-	Clone,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
-	Serialize,
-	Deserialize,
-)]
-pub enum RegistryCallFilter {
-	All, // registry_entity, set_registered_entity, unregister
-	RegisterOnly, // register_entity
-}
-
-impl Default for RegistryCallFilter {
-	fn default() -> Self {
-		RegistryCallFilter::RegisterOnly
-	}
-}
-
-impl InstanceFilter<RuntimeCall> for RegistryCallFilter {
-	fn filter(&self, c: &RuntimeCall) -> bool {
-		match self {
-			RegistryCallFilter::All =>
-				matches!(c,
-					RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }) |
-					RuntimeCall::CompanyRegistry(pallet_registry::Call::set_registered_entity { .. }) |
-					RuntimeCall::CompanyRegistry(pallet_registry::Call::unregister { .. })
-				),
-			RegistryCallFilter::RegisterOnly =>
-				matches!(c, RuntimeCall::CompanyRegistry(pallet_registry::Call::register_entity { .. }))
-		}
-	}
-	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
-			(x, y) if x == y => true,
-			(RegistryCallFilter::All, _) => true,
-			(_, RegistryCallFilter::All) => false,
-			_ => false,
-		}
-	}
-}
-
-#[derive(
-	Clone,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
-	Serialize,
-	Deserialize,
-)]
-pub enum NftsCallFilter {
-	Manager,
-	ManageItems,
-}
-
-impl Default for NftsCallFilter {
-	fn default() -> Self {
-		NftsCallFilter::ManageItems
-	}
-}
-
-impl InstanceFilter<RuntimeCall> for NftsCallFilter {
-	fn filter(&self, c: &RuntimeCall) -> bool {	
-		let matches_manage_items = matches!(c, 
-			RuntimeCall::Nfts(pallet_nfts::Call::mint { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::force_mint { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::burn { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::redeposit { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::approve_transfer { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::cancel_approval { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::clear_all_transfer_approvals { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::set_attribute { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::clear_attribute { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::approve_item_attributes { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::cancel_item_attributes_approval { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::set_metadata { .. }) |
-			RuntimeCall::Nfts(pallet_nfts::Call::clear_metadata { .. })
-		);
-		match self {
-			NftsCallFilter::Manager => matches_manage_items || matches!(c,
-					RuntimeCall::Nfts(pallet_nfts::Call::destroy { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_transfer { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::unlock_item_transfer { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::lock_collection { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::transfer_ownership { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_team { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::lock_item_properties { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_metadata { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::clear_collection_metadata { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_accept_ownership { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_collection_max_supply { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::update_mint_settings { .. }) |
-					RuntimeCall::Nfts(pallet_nfts::Call::set_citizenship_required { .. })
-				),
-			NftsCallFilter::ManageItems => matches_manage_items,
-		}
-	}
-	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
-			(x, y) if x == y => true,
-			(NftsCallFilter::Manager, _) => true,
-			(_, NftsCallFilter::Manager) => false,
-			_ => false,
-		}
-	}
-}
-
-#[derive(
-	Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, MaxEncodedLen, scale_info::TypeInfo, Serialize, Deserialize,
-)]
-pub struct CouncilAccountCallFilter;
-impl Contains<RuntimeCall> for CouncilAccountCallFilter {
-	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c,
-			RuntimeCall::LLM(pallet_llm::Call::send_llm_to_politipool { .. }) | 
-			RuntimeCall::LLM(pallet_llm::Call::send_llm { .. }) |
-			RuntimeCall::System(frame_system::Call::remark_with_event { .. }) // for benchmarking
-		)
-	}
-}
-
-pub struct ContainsMember<T, I>(
-    PhantomData<(T, I)>,
-);
-
-impl<T, I> Contains<T::AccountId> for ContainsMember<T, I>
-where
-	T: frame_system::Config + pallet_collective::Config<I>,
-	I: 'static
-{
-	fn contains(a: &T::AccountId) -> bool {
-		pallet_collective::Pallet::<T, I>::members().contains(a)
-	}
-}
-
-use pallet_democracy::Voting;
-pub struct OnLLMPoliticsUnlock;
-impl liberland_traits::OnLLMPoliticsUnlock<AccountId32> for OnLLMPoliticsUnlock
-{
-	fn on_llm_politics_unlock(account_id: &AccountId32) -> Result<(), DispatchError> {
-		let origin = RuntimeOrigin::signed(account_id.clone());
-
-		match Democracy::voting_of(account_id.clone()) {
-			Voting::Direct { votes, .. } => {
-				for (index, _) in votes {
-					Democracy::remove_vote(origin.clone(), index)?;
-				}
-			},
-			Voting::Delegating { .. } => {
-				Democracy::undelegate(origin.clone()).map_err(|e| e.error)?;
-			}
-		};
-
-		Ok(())
-	}
-}
-
-pub struct EnsureCmp<L>(sp_std::marker::PhantomData<L>);
-impl<L: EnsureOrigin<RuntimeOrigin>> PrivilegeCmp<OriginCaller> for EnsureCmp<L> {
-  fn cmp_privilege(left: &OriginCaller, _: &OriginCaller) -> Option<Ordering> {
-		if L::try_origin(
-			<OriginCaller as Into<RuntimeOrigin>>::into(left.clone())
-		).is_ok() {
-			Some(Ordering::Equal)
-		} else {
-			None
-		}
-	}
-}
-
-#[derive(
-	Clone,
-	Copy,
-	Eq,
-	PartialEq,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
-	Serialize,
-	Deserialize,
-)]
-pub struct Coords {
-	pub lat: i64,
-	pub long: i64,
-}
-
-#[derive(
-	Clone,
-	Encode,
-	Decode,
-	RuntimeDebug,
-	MaxEncodedLen,
-	scale_info::TypeInfo,
-	Serialize,
-	Deserialize,
-)]
-pub struct Metadata<MaxCoords: Get<u32>, MaxString: Get<u32>> {
-	demarcation: BoundedVec<Coords, MaxCoords>,
-	r#type: BoundedVec<u8, MaxString>,
-	status: BoundedVec<u8, MaxString>,
-}
-
-pub struct LandMetadataValidator<CoordsBounds: Get<(Coords, Coords)>>(PhantomData<CoordsBounds>);
-
-impl<CoordsBounds: Get<(Coords, Coords)>, StringLimit>
-	pallet_nfts::traits::MetadataValidator<u32, u32, StringLimit>
-	for LandMetadataValidator<CoordsBounds>
-{
-	fn validate_metadata(collection: u32, _: u32, data: &BoundedVec<u8, StringLimit>) -> bool {
-		// https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
-		#[derive(PartialEq, Eq)]
-		enum PointsOrientation {
-			Clockwise,
-			Counterclockwise,
-			Collinear,
-		}
-		fn intersection(p1: Coords, q1: Coords, p2: Coords, q2: Coords) -> bool {
-			fn on_segment(p: Coords, q: Coords, r: Coords) -> bool {
-				q.long <= max(p.long, r.long) &&
-				   q.long >= min(p.long, r.long) &&
-				   q.lat <= max(p.lat, r.lat) &&
-				   q.lat >= min(p.lat, r.lat)
-			}
-			fn orientation(p: Coords, q: Coords, r: Coords) -> PointsOrientation {
-				let val = ((q.lat - p.lat) * (r.long - q.long)) - ((q.long - p.long) * (r.lat - q.lat));
-				match val {
-					val if val > 0 => {
-						PointsOrientation::Clockwise
-					}
-					val if val < 0 => {
-						PointsOrientation::Counterclockwise
-					}
-					_ => {
-						PointsOrientation::Collinear
-					}
-				}
-			}
-
-			let o1 = orientation(p1, q1, p2);
-			let o2 = orientation(p1, q1, q2);
-			let o3 = orientation(p2, q2, p1);
-			let o4 = orientation(p2, q2, q1);
-			if (o1 != o2 && o3 != o4) ||
-			   (o1 == PointsOrientation::Collinear && on_segment(p1, p2, q1)) ||
-			   (o2 == PointsOrientation::Collinear && on_segment(p1, q2, q1)) ||
-			   (o3 == PointsOrientation::Collinear && on_segment(p2, p1, q2)) ||
-			   (o4 == PointsOrientation::Collinear && on_segment(p2, q1, q2))
-			{
-				return true
-			}
-
-			false
-		}
-
-		if collection != 0 && collection != 1 {
-			return true
-		}
-
-		let data = data.clone();
-		let data = Metadata::<ConstU32<100>, ConstU32<100>>::decode(&mut TrailingZeroInput::new(
-			&data[..],
-		));
-		if data.is_err() {
-			return false
-		}
-
-		let mut data = data.unwrap();
-
-		// pop last point if it's the same as first
-		if data.demarcation.len() > 1 &&
-		   data.demarcation.first() == data.demarcation.last()
-		{
-			data.demarcation.pop();
-		}
-
-		// does it have at least 3 points
-		if data.demarcation.len() < 3 {
-			return false
-		}
-
-		// is it roughly in the good place
-		let (a, b) = CoordsBounds::get();
-		for c in data.demarcation.iter() {
-			if c.lat < a.lat || c.lat > b.lat || c.long < a.long || c.long > b.long {
-				return false
-			}
-		}
-
-		// check self intersection. we do it by checking if any of line segments
-		// intersect with any other non-neighboring segment in the plot
-		let mut lines = vec![];
-		for i in 1..data.demarcation.len() {
-			lines.push((data.demarcation[i - 1].clone(), data.demarcation[i].clone()))
-		}
-		lines.push((data.demarcation[data.demarcation.len() - 1], data.demarcation[0]));
-
-		for i in 0..lines.len() {
-			let a = lines[i];
-			for j in (i + 2)..=(lines.len() + i - 2) {
-				let j = j % lines.len();
-				let b = lines[j];
-				if intersection(a.0, a.1, b.0, b.1) {
-					return false
-				}
-			}
-		}
-
-		true
+	fn proposal_of(proposal_hash: Hash) -> Option<RuntimeCall> {
+		AllianceMotion::proposal_of(proposal_hash)
 	}
 }
 
@@ -548,27 +207,6 @@ mod multiplier_tests {
 		});
 	}
 
-	pub use node_primitives::Signature;
-	use sp_core::{Public, Pair};
-	use sp_runtime::traits::{IdentifyAccount, Verify};
-
-	type AccountPublic = <Signature as Verify>::Signer;
-
-	/// Helper function to generate a crypto pair from seed
-	pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-		TPublic::Pair::from_string(&format!("//{}", seed), None)
-			.expect("static values are valid; qed")
-			.public()
-	}
-
-	/// Helper function to generate an account ID from seed
-	pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-	where
-		AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-	{
-		AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
-	}
-
 	#[test]
 	fn truth_value_update_poc_works() {
 		let fm = Multiplier::saturating_from_rational(1, 2);
@@ -651,8 +289,7 @@ mod multiplier_tests {
 			let mut fm = Multiplier::one();
 			// See the example in the doc of `TargetedFeeAdjustment`. are at least 0.234, hence
 			// `fm > 1.234`.
-			// we use 2 days, as our avg block time is 6sec instead of default 3 sec
-			for _ in 0..(2*DAYS) {
+			for _ in 0..DAYS {
 				let next = runtime_multiplier_update(fm);
 				fm = next;
 			}
@@ -848,134 +485,5 @@ mod multiplier_tests {
 				assert_eq!(fm, max_fm);
 			})
 		});
-	}
-
-	use super::{Coords, LandMetadataValidator, Metadata};
-	use codec::Encode;
-	use frame_support::{parameter_types, BoundedVec};
-	use pallet_nfts::traits::MetadataValidator;
-	use sp_core::ConstU32;
-
-	parameter_types! {
-		pub const TestCoords: (Coords, Coords) = (
-			Coords {
-				lat: 45_7686480,
-				long: 18_8821180,
-			},
-			Coords {
-				lat: 45_7785989,
-				long: 18_8892809,
-			},
-		);
-	}
-	#[test]
-	fn land_metadata_validator_is_sane() {
-		let good: BoundedVec<u8, ConstU32<1000>> = Metadata::<ConstU32<10>, ConstU32<10>> {
-			r#type: Default::default(),
-			status: Default::default(),
-			demarcation: vec![
-				Coords { lat: 45_7723532, long: 18_8870918 },
-				Coords { lat: 45_7721717, long: 18_8871917 },
-				Coords { lat: 45_7723330, long: 18_8877504 },
-				Coords { lat: 45_7724976, long: 18_8876859 },
-				Coords { lat: 45_7725234, long: 18_8876738 },
-				Coords { lat: 45_7723532, long: 18_8870918 },
-			]
-			.try_into()
-			.unwrap(),
-		}
-		.encode()
-		.try_into()
-		.unwrap();
-		let not_enough_coords: BoundedVec<u8, ConstU32<1000>> =
-			Metadata::<ConstU32<10>, ConstU32<10>> {
-				r#type: Default::default(),
-				status: Default::default(),
-				demarcation: vec![
-					Coords { lat: 45_7723532, long: 18_8870918 },
-					Coords { lat: 45_7721717, long: 18_8871917 },
-				]
-				.try_into()
-				.unwrap(),
-			}
-			.encode()
-			.try_into()
-			.unwrap();
-		let invalid_coord: BoundedVec<u8, ConstU32<1000>> =
-			Metadata::<ConstU32<10>, ConstU32<10>> {
-				r#type: Default::default(),
-				status: Default::default(),
-				demarcation: vec![
-					Coords { lat: 45_7723532, long: 18_8870918 },
-					Coords { lat: 45_7721717, long: 18_8871917 },
-					Coords { lat: 5_7723330, long: 18_8877504 },
-				]
-				.try_into()
-				.unwrap(),
-			}
-			.encode()
-			.try_into()
-			.unwrap();
-		let self_intersecting: BoundedVec<u8, ConstU32<1000>> =
-			Metadata::<ConstU32<10>, ConstU32<10>> {
-				r#type: Default::default(),
-				status: Default::default(),
-				demarcation: vec![
-					Coords { lat: 45_7723532, long: 18_8870918 },
-					Coords { lat: 45_7723330, long: 18_8877504 },
-					Coords { lat: 45_7721717, long: 18_8871917 },
-					Coords { lat: 45_7724976, long: 18_8876859 },
-				]
-				.try_into()
-				.unwrap(),
-			}
-			.encode()
-			.try_into()
-			.unwrap();
-
-		assert!(LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &good));
-		assert!(LandMetadataValidator::<TestCoords>::validate_metadata(99, 0, &not_enough_coords));
-		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(0, 1, &not_enough_coords));
-		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &not_enough_coords));
-		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &invalid_coord));
-		assert!(!LandMetadataValidator::<TestCoords>::validate_metadata(1, 1, &self_intersecting));
-	}
-
-	use frame_system::{EnsureRoot, RawOrigin};
-	use node_primitives::AccountId;
-	use core::cmp::Ordering;
-	use sp_runtime::testing::sr25519;
-	use crate::{EnsureCmp, OriginCaller, sp_api_hidden_includes_construct_runtime::hidden_include::traits::PrivilegeCmp};
-
-	#[test]
-	fn ensure_cmp_works_for_root() {
-		type OriginPrivilegeCmp = EnsureCmp<
-				EnsureRoot<AccountId>
-		>;
-
-		assert_eq!(
-			OriginPrivilegeCmp::cmp_privilege(
-				&OriginCaller::system(RawOrigin::Root), 
-				&OriginCaller::system(RawOrigin::Root)
-			),
-			Some(Ordering::Equal)
-		);
-	}
-
-	#[test]
-	fn ensure_cmp_do_not_works_for_account() {
-		let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
-
-		type OriginPrivilegeCmp = EnsureCmp<
-				EnsureRoot<AccountId>
-		>;
-
-		assert_eq!(
-			OriginPrivilegeCmp::cmp_privilege(
-				&OriginCaller::system(RawOrigin::Signed(alice)), 
-				&OriginCaller::system(RawOrigin::Root)
-			),
-			None
-		);
 	}
 }

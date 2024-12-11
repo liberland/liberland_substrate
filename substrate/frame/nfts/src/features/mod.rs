@@ -15,15 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 pub mod approvals;
 pub mod atomic_swap;
 pub mod attributes;
 pub mod buy_sell;
-pub mod citizenship;
 pub mod create_delete_collection;
 pub mod create_delete_item;
 pub mod lock;

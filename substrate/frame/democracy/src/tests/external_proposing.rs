@@ -15,10 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 //! The tests for functionality concerning the "external" origin.
 
 use super::*;
@@ -113,10 +109,9 @@ fn external_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 	});
@@ -140,10 +135,9 @@ fn external_majority_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SimpleMajority,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 	});
@@ -167,10 +161,9 @@ fn external_default_referendum_works() {
 			Ok(ReferendumStatus {
 				end: 4,
 				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
 				threshold: VoteThreshold::SuperMajorityAgainst,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 	});
@@ -185,27 +178,98 @@ fn external_and_public_interleaving_works() {
 
 		fast_forward_to(2);
 
-		// both waiting: both start.
+		// both waiting: external goes first.
 		assert_eq!(
 			Democracy::referendum_status(0),
 			Ok(ReferendumStatus {
 				end: 4,
-				proposal: set_balance_proposal(2),
-				dispatch_origin: DispatchOrigin::Root, 
+				proposal: set_balance_proposal(1),
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
+		// replenish external
+		assert_ok!(Democracy::external_propose(RuntimeOrigin::signed(2), set_balance_proposal(3),));
+
+		fast_forward_to(4);
+
+		// both waiting: public goes next.
 		assert_eq!(
 			Democracy::referendum_status(1),
 			Ok(ReferendumStatus {
-				end: 4,
-				proposal: set_balance_proposal(1),
-				dispatch_origin: DispatchOrigin::Root, 
+				end: 6,
+				proposal: set_balance_proposal(2),
 				threshold: VoteThreshold::SuperMajorityApprove,
 				delay: 2,
-				tally: Tally { ayes: 0, nays: 0, aye_voters: 00000, nay_voters: 00000, turnout: 0 },
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+			})
+		);
+		// don't replenish public
+
+		fast_forward_to(6);
+
+		// it's external "turn" again, though since public is empty that doesn't really matter
+		assert_eq!(
+			Democracy::referendum_status(2),
+			Ok(ReferendumStatus {
+				end: 8,
+				proposal: set_balance_proposal(3),
+				threshold: VoteThreshold::SuperMajorityApprove,
+				delay: 2,
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+			})
+		);
+		// replenish external
+		assert_ok!(Democracy::external_propose(RuntimeOrigin::signed(2), set_balance_proposal(5),));
+
+		fast_forward_to(8);
+
+		// external goes again because there's no public waiting.
+		assert_eq!(
+			Democracy::referendum_status(3),
+			Ok(ReferendumStatus {
+				end: 10,
+				proposal: set_balance_proposal(5),
+				threshold: VoteThreshold::SuperMajorityApprove,
+				delay: 2,
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+			})
+		);
+		// replenish both
+		assert_ok!(Democracy::external_propose(RuntimeOrigin::signed(2), set_balance_proposal(7),));
+		assert_ok!(propose_set_balance(6, 4, 2));
+
+		fast_forward_to(10);
+
+		// public goes now since external went last time.
+		assert_eq!(
+			Democracy::referendum_status(4),
+			Ok(ReferendumStatus {
+				end: 12,
+				proposal: set_balance_proposal(4),
+				threshold: VoteThreshold::SuperMajorityApprove,
+				delay: 2,
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
+			})
+		);
+		// replenish public again
+		assert_ok!(propose_set_balance(6, 6, 2));
+		// cancel external
+		let h = set_balance_proposal(7).hash();
+		assert_ok!(Democracy::veto_external(RuntimeOrigin::signed(3), h));
+
+		fast_forward_to(12);
+
+		// public goes again now since there's no external waiting.
+		assert_eq!(
+			Democracy::referendum_status(5),
+			Ok(ReferendumStatus {
+				end: 14,
+				proposal: set_balance_proposal(6),
+				threshold: VoteThreshold::SuperMajorityApprove,
+				delay: 2,
+				tally: Tally { ayes: 0, nays: 0, turnout: 0 },
 			})
 		);
 	});

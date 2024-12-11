@@ -34,6 +34,7 @@ use sc_executor::NativeElseWasmExecutor;
 use sc_network::{event::Event, NetworkEventStream, NetworkService};
 use sc_network_sync::{warp::WarpSyncParams, SyncingService};
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
+use sc_statement_store::Store as StatementStore;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_api::ProvideRuntimeApi;
@@ -89,6 +90,7 @@ pub fn create_extrinsic(
 		.checked_next_power_of_two()
 		.map(|c| c / 2)
 		.unwrap_or(2) as u64;
+	let tip = 0;
 	let extra: kitchensink_runtime::SignedExtra = (
 		frame_system::CheckNonZeroSender::<kitchensink_runtime::Runtime>::new(),
 		frame_system::CheckSpecVersion::<kitchensink_runtime::Runtime>::new(),
@@ -100,6 +102,10 @@ pub fn create_extrinsic(
 		)),
 		frame_system::CheckNonce::<kitchensink_runtime::Runtime>::from(nonce),
 		frame_system::CheckWeight::<kitchensink_runtime::Runtime>::new(),
+		pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<kitchensink_runtime::Runtime>::from(
+			tip, None,
+		),
+			frame_metadata_hash_extension::CheckMetadataHash::new(false),
 	);
 
 	let raw_payload = kitchensink_runtime::SignedPayload::from_raw(
@@ -113,6 +119,8 @@ pub fn create_extrinsic(
 			best_hash,
 			(),
 			(),
+			(),
+			None,
 		),
 	);
 	let signature = raw_payload.using_encoded(|e| sender.sign(e));
@@ -147,6 +155,7 @@ pub fn new_partial(
 			),
 			grandpa::SharedVoterState,
 			Option<Telemetry>,
+			Arc<StatementStore>,
 		),
 	>,
 	ServiceError,
@@ -229,6 +238,16 @@ pub fn new_partial(
 
 	let import_setup = (block_import, grandpa_link, babe_link);
 
+	let statement_store = sc_statement_store::Store::new_shared(
+		&config.data_path,
+		Default::default(),
+		client.clone(),
+		keystore_container.local_keystore(),
+		config.prometheus_registry(),
+		&task_manager.spawn_handle(),
+	)
+	.map_err(|e| ServiceError::Other(format!("Statement store error: {:?}", e)))?;
+
 	let (rpc_extensions_builder, rpc_setup) = {
 		let (_, grandpa_link, _) = &import_setup;
 
@@ -249,6 +268,7 @@ pub fn new_partial(
 		let chain_spec = config.chain_spec.cloned_box();
 
 		let rpc_backend = backend.clone();
+		let rpc_statement_store = statement_store.clone();
 		let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
 			let deps = node_rpc::FullDeps {
 				client: client.clone(),
@@ -267,6 +287,7 @@ pub fn new_partial(
 					subscription_executor,
 					finality_provider: finality_proof_provider.clone(),
 				},
+				statement_store: rpc_statement_store.clone(),
 				backend: rpc_backend.clone(),
 			};
 
@@ -284,7 +305,7 @@ pub fn new_partial(
 		select_chain,
 		import_queue,
 		transaction_pool,
-		other: (rpc_extensions_builder, import_setup, rpc_setup, telemetry),
+		other: (rpc_extensions_builder, import_setup, rpc_setup, telemetry, statement_store),
 	})
 }
 
@@ -328,7 +349,7 @@ pub fn new_full_base(
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (rpc_builder, import_setup, rpc_setup, mut telemetry),
+		other: (rpc_builder, import_setup, rpc_setup, mut telemetry, statement_store),
 	} = new_partial(&config)?;
 
 	let shared_voter_state = rpc_setup;
@@ -342,6 +363,16 @@ pub fn new_full_base(
 	net_config.add_notification_protocol(grandpa::grandpa_peers_set_config(
 		grandpa_protocol_name.clone(),
 	));
+
+	let statement_handler_proto = sc_network_statement::StatementHandlerPrototype::new(
+		client
+			.block_hash(0u32.into())
+			.ok()
+			.flatten()
+			.expect("Genesis block exists; qed"),
+		config.chain_spec.fork_id(),
+	);
+	net_config.add_notification_protocol(statement_handler_proto.set_config());
 
 	let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
@@ -537,6 +568,26 @@ pub fn new_full_base(
 		);
 	}
 
+	// Spawn statement protocol worker
+	let statement_protocol_executor = {
+		let spawn_handle = task_manager.spawn_handle();
+		Box::new(move |fut| {
+			spawn_handle.spawn("network-statement-validator", Some("networking"), fut);
+		})
+	};
+	let statement_handler = statement_handler_proto.build(
+		network.clone(),
+		sync_service.clone(),
+		statement_store.clone(),
+		prometheus_registry.as_ref(),
+		statement_protocol_executor,
+	)?;
+	task_manager.spawn_handle().spawn(
+		"network-statement-handler",
+		Some("networking"),
+		statement_handler.run(),
+	);
+
 	if enable_offchain_worker {
 		task_manager.spawn_handle().spawn(
 			"offchain-workers-runner",
@@ -552,7 +603,7 @@ pub fn new_full_base(
 				is_validator: role.is_authority(),
 				enable_http_requests: true,
 				custom_extensions: move |_| {
-					vec![]
+					vec![Box::new(statement_store.clone().as_statement_store_ext()) as Box<_>]
 				},
 			})
 			.run(client.clone(), task_manager.spawn_handle())
@@ -791,6 +842,9 @@ mod tests {
 				let check_era = frame_system::CheckEra::from(Era::Immortal);
 				let check_nonce = frame_system::CheckNonce::from(index);
 				let check_weight = frame_system::CheckWeight::new();
+				let tx_payment =
+					pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::from(0, None);
+				let metadata_hash = frame_metadata_hash_extension::CheckMetadataHash::new(false);
 				let extra = (
 					check_non_zero_sender,
 					check_spec_version,
@@ -799,11 +853,23 @@ mod tests {
 					check_era,
 					check_nonce,
 					check_weight,
+					tx_payment,
+					metadata_hash,
 				);
 				let raw_payload = SignedPayload::from_raw(
 					function,
 					extra,
-					((), spec_version, transaction_version, genesis_hash, genesis_hash, (), (), ()),
+					(
+						(),
+						spec_version,
+						transaction_version,
+						genesis_hash,
+						genesis_hash,
+						(),
+						(),
+						(),
+						None,
+					),
 				);
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 				let (function, extra, _) = raw_payload.deconstruct();

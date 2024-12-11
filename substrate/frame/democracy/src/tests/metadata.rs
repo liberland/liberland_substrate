@@ -19,8 +19,6 @@
 
 use super::*;
 
-use super::types::DispatchOrigin;
-
 #[test]
 fn set_external_metadata_works() {
 	new_test_ext().execute_with(|| {
@@ -143,7 +141,6 @@ fn set_referendum_metadata_by_root() {
 		let index = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
@@ -183,7 +180,6 @@ fn clear_referendum_metadata_works() {
 		let index = Democracy::inject_referendum(
 			2,
 			set_balance_proposal(2),
-			DispatchOrigin::Root,
 			VoteThreshold::SuperMajorityApprove,
 			0,
 		);
