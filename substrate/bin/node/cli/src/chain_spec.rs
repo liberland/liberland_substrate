@@ -18,36 +18,23 @@
 
 //! Substrate chain configurations.
 
-// File has been modified by Liberland in 2022. All modifications by Liberland are distributed under the MIT license.
-
-// You should have received a copy of the MIT license along with this program. If not, see https://opensource.org/licenses/MIT
-
 use grandpa_primitives::AuthorityId as GrandpaId;
 use kitchensink_runtime::{
-	constants::currency::*, constants::llm::*, wasm_binary_unwrap,
-	BabeConfig, BalancesConfig, Block, CouncilConfig,
-	DemocracyConfig, ElectionsConfig, ImOnlineConfig,
-	MaxNominations, SessionConfig, SessionKeys,
-	StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig, LiberlandInitializerConfig,
-	CompanyRegistryOfficePalletId, CompanyRegistryOfficeConfig,
-	LandRegistryOfficeConfig, IdentityOfficeConfig, CompanyRegistryConfig,
-	IdentityOfficePalletId, AssetRegistryOfficeConfig,
-	LandRegistryOfficePalletId, AssetRegistryOfficePalletId,
-	MetaverseLandRegistryOfficeConfig, MetaverseLandRegistryOfficePalletId,
-	SenateConfig, MinistryOfFinanceOfficeConfig,
-	impls::{RegistryCallFilter, IdentityCallFilter, NftsCallFilter},
+	constants::currency::*, wasm_binary_unwrap, BabeConfig, BalancesConfig, Block, CouncilConfig,
+	DemocracyConfig, ElectionsConfig, ImOnlineConfig, IndicesConfig, MaxNominations,
+	NominationPoolsConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus, StakingConfig,
+	SudoConfig, SystemConfig, TechnicalCommitteeConfig,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
-use sc_chain_spec::{ChainSpecExtension, Properties};
+use sc_chain_spec::ChainSpecExtension;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::{crypto::{Ss58Codec, UncheckedInto}, sr25519, Pair, Public};
+use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
 use sp_runtime::{
-	traits::{IdentifyAccount, Verify, AccountIdConversion},
+	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
 
@@ -75,6 +62,10 @@ pub struct Extensions {
 
 /// Specialized `ChainSpec`.
 pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
+/// Flaming Fir testnet generator
+pub fn flaming_fir_config() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../res/flaming-fir.json")[..])
+}
 
 fn session_keys(
 	grandpa: GrandpaId,
@@ -371,6 +362,7 @@ pub fn testnet_genesis(
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
 		},
+		indices: IndicesConfig { indices: vec![] },
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -394,7 +386,7 @@ pub fn testnet_genesis(
 		},
 		democracy: DemocracyConfig::default(),
 		elections: ElectionsConfig {
-			members: council_group
+			members: endowed_accounts
 				.iter()
 				.take((num_endowed_accounts + 1) / 2)
 				.cloned()
@@ -407,7 +399,7 @@ pub fn testnet_genesis(
 			members: technical_committee,
 			phantom: Default::default(),
 		},
-		sudo: SudoConfig { key: Some(root_key.clone()) },
+		sudo: SudoConfig { key: Some(root_key) },
 		babe: BabeConfig {
 			epoch_config: Some(kitchensink_runtime::BABE_GENESIS_EPOCH_CONFIG),
 			..Default::default()
@@ -417,6 +409,8 @@ pub fn testnet_genesis(
 		grandpa: Default::default(),
 		technical_membership: Default::default(),
 		treasury: Default::default(),
+		society: SocietyConfig { pot: 0 },
+		vesting: Default::default(),
 		assets: pallet_assets::GenesisConfig {
 			// This asset is used by the NIS pallet as counterpart currency.
 			assets: vec![(9, get_account_id_from_seed::<sr25519::Public>("Alice"), true, 1)],
@@ -425,6 +419,15 @@ pub fn testnet_genesis(
 		pool_assets: Default::default(),
 		transaction_storage: Default::default(),
 		transaction_payment: Default::default(),
+		alliance: Default::default(),
+		safe_mode: Default::default(),
+		tx_pause: Default::default(),
+		alliance_motion: Default::default(),
+		nomination_pools: NominationPoolsConfig {
+			min_create_bond: 10 * DOLLARS,
+			min_join_bond: 1 * DOLLARS,
+			..Default::default()
+		},
 		llm: Default::default(),
 		liberland_initializer: LiberlandInitializerConfig {
 			citizenship_registrar: Some(IdentityOfficePalletId::get().into_account_truncating()),
