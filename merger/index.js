@@ -51,15 +51,19 @@ const staged = execOutput("git diff --staged --name-only").split("\n");
 staged.forEach(diff => {
     if (!theirs[diff] && diff) {
         console.log(`Unstaging and removing ${diff}`);
-        execSync(`git restore --staged ${diff}`);
-        execSync(`git restore ${diff}`);
+        try {
+            execSync(`git restore --staged ${diff}`);
+            execSync(`git restore ${diff}`);
+        } catch {}
     }
 });
 
 const unstaged = execOutput("git diff --name-only").split("\n");
 unstaged.forEach(diff => {
-    if (!theirs[diff] && diff) {
-        console.log(`Removing ${diff}`);
-        execSync(`git restore ${diff}`);
-    }
+    try {
+        if (!theirs[diff] && diff) {
+            console.log(`Removing ${diff}`);
+            execSync(`git restore ${diff}`);
+        }
+    } catch {}
 });
