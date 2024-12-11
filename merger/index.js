@@ -38,6 +38,6 @@ const theirs = mergePaths.reduce((theirs, their) => {
 execSync(`git checkout ${lastMergeCommit}; git switch --create features/merge-from-${newBranch}`);
 
 execSync(`git checkout polkadot-sdk-upstream/${newBranch} ${theirs.join(' ')}`);
-execSync(`git commit -m "Merge from ${newBranch}"; git revert --hard`);
+execSync(`git commit -m "Merge from ${newBranch}"; git reset --hard HEAD`);
 
 execSync(`git switch ${currentBranch}; git merge features/merge-from-${newBranch}`);
