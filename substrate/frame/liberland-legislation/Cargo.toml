@@ -30,14 +30,14 @@ pallet-llm = { default-features = false, path = "../llm" }
 liberland-traits = { path = "../liberland-traits", default-features = false}
 
 [dev-dependencies]
-pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-balances = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-assets = { path = "../assets" }
-pallet-scheduler = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-scheduler = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-liberland-initializer = { path = "../liberland-initializer" }
 pallet-democracy = { path = "../democracy" }
 pallet-nfts = { path = "../nfts" }
 pallet-identity = { path = "../identity" }
-pallet-asset-conversion = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-asset-conversion = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 
 [features]
 default = ["std"]
