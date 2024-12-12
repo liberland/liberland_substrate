@@ -58,3 +58,5 @@ staged.forEach(diff => {
         }
     }
 });
+
+execSync("git status | grep 'deleted by us' | sed 's/deleted by us: //' | xargs git rm");

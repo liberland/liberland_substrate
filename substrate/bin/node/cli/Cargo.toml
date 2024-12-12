@@ -90,6 +90,8 @@ frame-system-rpc-runtime-api = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401
 pallet-assets = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-asset-tx-payment = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-im-online = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-metadata-hash-extension = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-asset-conversion-tx-payment = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 
 # node-specific dependencies
 kitchensink-runtime = { path = "../runtime" }
