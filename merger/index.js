@@ -47,23 +47,14 @@ try {
     execSync(`git merge --allow-unrelated-histories --no-commit polkadot-sdk-upstream/${newBranch};`);
 } catch {}
 
-const conflicted = execOutput("git diff --name-only --diff-filter=U --relative").split("\n").filter(Boolean);
-
-execSync("git add .");
-
 const staged = execOutput("git diff --staged --name-only").split("\n").filter(Boolean);
 staged.forEach(diff => {
     if (!theirs[diff]) {
-        console.log(`Unstaging and removing ${diff}`);
         try {
             execSync(`git restore --staged ${diff}`);
             execSync(`git restore ${diff}`);
-        } catch {}
+        } catch {
+            execSync(`rm -rf ${diff}`);
+        }
     }
-});
-
-conflicted.forEach((conflict) => {
-    try {
-        execSync(`git restore --staged ${conflict}`);
-    } catch {}
 });
