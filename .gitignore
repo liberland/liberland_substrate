@@ -32,3 +32,4 @@ substrate.code-workspace
 solidity/bin
 solidity/test/node_modules
 solidity/test/test.log
+merger/node_modules

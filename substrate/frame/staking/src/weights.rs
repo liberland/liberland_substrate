@@ -87,7 +87,6 @@ pub trait WeightInfo {
 	fn force_apply_min_commission() -> Weight;
 	fn set_min_commission() -> Weight;
 	fn set_citizenship_required() -> Weight;
-	fn bond_to() -> Weight;
 }
 
 /// Weights for pallet_staking using the Substrate node and recommended hardware.
@@ -809,27 +808,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(6_532_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
-	/// Storage: `Staking::Bonded` (r:1 w:1)
-	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Ledger` (r:1 w:1)
-	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::CurrentEra` (r:1 w:0)
-	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `Balances::Locks` (r:1 w:1)
-	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
-	/// Storage: `Balances::Freezes` (r:1 w:0)
-	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(49), added: 2524, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Payee` (r:0 w:1)
-	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
-	fn bond_to() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `1186`
-		//  Estimated: `4764`
-		// Minimum execution time: 139_385_000 picoseconds.
-		Weight::from_parts(153_192_000, 4764)
-			.saturating_add(RocksDbWeight::get().reads(5_u64))
-			.saturating_add(RocksDbWeight::get().writes(4_u64))
-	}
 }
 
 // For backwards compatibility and tests
@@ -1549,26 +1527,5 @@ impl WeightInfo for () {
 		// Minimum execution time: 6_352_000 picoseconds.
 		Weight::from_parts(6_532_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
-	}
-	/// Storage: `Staking::Bonded` (r:1 w:1)
-	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Ledger` (r:1 w:1)
-	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::CurrentEra` (r:1 w:0)
-	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `Balances::Locks` (r:1 w:1)
-	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
-	/// Storage: `Balances::Freezes` (r:1 w:0)
-	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(49), added: 2524, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Payee` (r:0 w:1)
-	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
-	fn bond_to() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `1186`
-		//  Estimated: `4764`
-		// Minimum execution time: 139_385_000 picoseconds.
-		Weight::from_parts(153_192_000, 4764)
-			.saturating_add(RocksDbWeight::get().reads(5_u64))
-			.saturating_add(RocksDbWeight::get().writes(4_u64))
 	}
 }

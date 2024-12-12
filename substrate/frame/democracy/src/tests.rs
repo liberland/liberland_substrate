@@ -28,7 +28,7 @@ use frame_support::{
 	assert_noop, assert_ok, ord_parameter_types, parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstU32, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-		OnInitialize, SortedMembers, Everything,
+		GenesisBuild, OnInitialize, SortedMembers, Everything,
 	},
 	weights::Weight,
 };
@@ -244,7 +244,6 @@ parameter_types! {
 	pub const AssetName: &'static str = "LiberTest Merit";
 	pub const AssetSymbol: &'static str = "LTM";
 	pub const InflationEventInterval: u64 = 1000;
-	pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
 }
 
 impl pallet_liberland_initializer::Config for Test {}
@@ -260,11 +259,9 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
-	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
-	type MaxCourts = ConstU32<1>;
 }
 
 parameter_types! {
@@ -330,7 +327,7 @@ impl Config for Test {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	let balances = vec![(1, 100), (2, 200), (3, 300), (4, 400), (5, 500), (6, 600)];
 	let mut llm_balances: Vec<(u64, u64, u64)> = balances.iter().map(|(id, _)| (*id, 6000, 5000)).collect();
 	llm_balances.push((7, 1000, 1000));
