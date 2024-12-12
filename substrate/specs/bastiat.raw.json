@@ -3,11 +3,16 @@
   "id": "bastiat",
   "chainType": "Live",
   "bootNodes": [
-    "/ip4/164.92.254.132/tcp/30333/p2p/12D3KooWFzt9D5Pbza9ahfVjfXfRHsbsQRXmkf64FgY3LrLCSV8N",
-    "/ip4/167.99.90.52/tcp/30333/p2p/12D3KooWNUFT7agTugfRJMbVp22Y5MHpUvnjZU6n6rVH1ovHhGxm",
-    "/ip4/207.154.237.18/tcp/30333/p2p/12D3KooWBVTvE4yx6WnGCAkBEMxLMDiHbgyh3WKFcBeyhrvJMT3k"
+    "/dns/bootnode-1.testchain.liberland.org/tcp/30333/p2p/12D3KooWFzt9D5Pbza9ahfVjfXfRHsbsQRXmkf64FgY3LrLCSV8N",
+    "/dns/bootnode-2.testchain.liberland.org/tcp/30333/p2p/12D3KooWNUFT7agTugfRJMbVp22Y5MHpUvnjZU6n6rVH1ovHhGxm",
+    "/dns/bootnode-3.testchain.liberland.org/tcp/30333/p2p/12D3KooWBVTvE4yx6WnGCAkBEMxLMDiHbgyh3WKFcBeyhrvJMT3k"
   ],
-  "telemetryEndpoints": null,
+  "telemetryEndpoints": [
+    [
+      "wss://telemetry.polkadot.io/submit/",
+      1
+    ]
+  ],
   "protocolId": null,
   "properties": {
     "displayName": "Bastiat",

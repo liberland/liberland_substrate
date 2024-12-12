@@ -2,8 +2,7 @@
 
 set -euo pipefail
 
-cargo build --release
-bin='cargo run -q --release --'
+bin=${LIBERLAND_NODE:-'cargo run -q --release --'}
 sr25519="babe imon audi"
 ed25519="gran"
 

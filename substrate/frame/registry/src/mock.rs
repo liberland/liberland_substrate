@@ -12,9 +12,8 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSigned};
 use sp_core::{ConstU16, Get, H256};
 use sp_runtime::{
-	BuildStorage,
 	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Morph},
-	BoundedVec, Perbill,
+	BoundedVec, BuildStorage, Perbill,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;

@@ -1,0 +1,56 @@
+name: Check formatting
+
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C debug-assertions=y"
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # this is needed to make sure that cargo uses the cached target files,
+      # which will have an older date than the checked out source code.
+      - name: Restore files timestamps
+        run: |
+          # set all dirs and files mtime to the fixed timestamp, this one was chosen
+          # symbolically as polkadot genesis block date
+          find . -exec touch -t 202005260100 {} +
+          # restore mtime based on git commit log
+          git restore-mtime
+
+      - name: Setup caching for rust/cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-rust-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Format code with rustfmt
+        run: cargo fmt --check -p pallet-liberland-initializer -p pallet-liberland-legislation -p liberland-traits -p pallet-llm -p pallet-office -p pallet-registry -p pallet-custom-account -p pallet-contracts-registry -p liberland-extension -p liberland-extension-runtime
+
+      - name: Format code with rustfmt
+        working-directory: contracts/
+        run: cargo fmt --check

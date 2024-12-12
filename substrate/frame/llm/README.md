@@ -47,7 +47,7 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 
 ## Internal Storage:
 
-* `NextRelease`: block number for next LLM Release Event (transfer of 10% from **Vault** to **Treasury**)
+* `LastRelease`: block number for last LLM Release Event (transfer from **Vault** to **Treasury**)
 * `LLMPolitics`: amount of LLM each account has allocated into politics
 * `Withdrawlock`: block number until which account can't do another `politics_unlock`
 * `Electionlock`: block number until which account can't participate in politics directly
@@ -73,13 +73,19 @@ Accounts may freely transfer their not-locked LLM to other accounts.
 These calls can be made from any _Signed_ origin.
 
 * `send_llm`: Transfer LLM. Wrapper over `pallet-assets`' `transfer`.
+* `send_llm_to_politipool`: Transfer LLM directly to account's politipool.
 * `politics_lock`: Lock LLM into politics pool, a.k.a. politipool.
 * `politics_unlock`: Unlock 10% of locked LLM. Can't be called again for a WithdrawalLock period. Affects political rights for an ElectionLock period.
 * `approve_transfer`: As an assembly member you can approve a transfer of LLM. Not implemented.
+* `remark`: Deposit Remarked event. Used by Liberland tooling for annotating transfers.
 
 #### Restricted
 
+* `treasury_lld_transfer`: Transfer LLD from treasury to specified account. Can only be called by selected accounts and Senate.
 * `treasury_llm_transfer`: Transfer LLM from treasury to specified account. Can only be called by selected accounts and Senate.
+* `treasury_llm_transfer_to_politipool`: Transfer LLM from treasury to specified account's politipool. Can only be called by selected accounts and Senate.
+* `force_transfer`: Force transfer LLM from between accounts. Can only be called by courts.
+* `set_courts`: Set courts. Can only be called by Root.
 
 ### Public functions
 

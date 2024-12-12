@@ -1,11 +1,9 @@
-name: Build and Check
+name: Run tests
 
 on:
+  pull_request:
   workflow_dispatch:
-  push:
-    branches:
-      - develop
-      - main
+  workflow_call:
 
 jobs:
   test:
@@ -19,44 +17,18 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential git clang curl libssl-dev llvm libudev-dev make protobuf-compiler pkg-config git-restore-mtime
 
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
-          target: wasm32-unknown-unknown
-          components: rustfmt, clippy
-
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      # this is needed to make sure that cargo uses the cached target files,
-      # which will have an older date than the checked out source code.
-      - name: Restore files timestamps
-        run: |
-          # set all dirs and files mtime to the fixed timestamp, this one was chosen
-          # symbolically as polkadot genesis block date
-          find . -exec touch -t 202005260100 {} +
-          # restore mtime based on git commit log
-          git restore-mtime
-
-      - name: Setup caching for rust/cargo
-        uses: actions/cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-rust-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Format code with rustfmt
-        run: cargo fmt --check -p pallet-liberland-initializer -p pallet-liberland-legislation -p liberland-traits -p pallet-llm -p pallet-office -p pallet-registry
-
+          cache-all-crates: "true"
+        
       - name: Run cargo test suite
-        run: cargo test --features runtime-benchmarks
+        run: cargo test -j2 --features runtime-benchmarks

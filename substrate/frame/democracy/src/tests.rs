@@ -31,6 +31,7 @@ use frame_support::{
 		OnInitialize, SortedMembers, Everything,
 	},
 	weights::Weight,
+	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use sp_core::H256;
@@ -41,6 +42,7 @@ use sp_runtime::{
 	Perbill,
 	Permill,
 };
+use pallet_asset_conversion::{NativeOrAssetId, NativeOrAssetIdConverter};
 
 mod cancellation;
 mod decoders;
@@ -73,8 +75,41 @@ frame_support::construct_runtime!(
 		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 		LLM: pallet_llm::{Pallet, Call, Storage, Config<T>, Event<T>},
 		LiberlandInitializer: pallet_liberland_initializer,
+		AssetConversion: pallet_asset_conversion,
 	}
 );
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	pub AllowMultiAssetPools: bool = true;
+	pub const PoolSetupFee: u64 = 1;
+	pub const MintMinLiquidity: u64 = 100;
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_parts(0);
+}
+
+impl pallet_asset_conversion::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AssetBalance = <Self as pallet_balances::Config>::Balance;
+	type HigherPrecisionBalance = u128;
+	type Assets = Assets;
+	type Balance = u64;
+	type PoolAssets = Assets;
+	type AssetId = <Self as pallet_assets::Config>::AssetId;
+	type MultiAssetId = NativeOrAssetId<u32>;
+	type PoolAssetId = <Self as pallet_assets::Config>::AssetId;
+	type PalletId = AssetConversionPalletId;
+	type LPFee = ConstU32<5>; // means 0.5%;
+	type PoolSetupFee = PoolSetupFee;
+	type PoolSetupFeeReceiver = ();
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type WeightInfo = pallet_asset_conversion::weights::SubstrateWeight<Test>;
+	type AllowMultiAssetPools = AllowMultiAssetPools;
+	type MaxSwapPathLength = ConstU32<4>;
+	type MintMinLiquidity = MintMinLiquidity;
+	type MultiAssetIdConverter = NativeOrAssetIdConverter<u32>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
 impl pallet_assets::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = u64;
@@ -96,6 +131,7 @@ impl pallet_assets::Config for Test {
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type Citizenship = ();
 }
 
 // Test that a fitlered call can be dispatched.
@@ -244,6 +280,7 @@ parameter_types! {
 	pub const AssetName: &'static str = "LiberTest Merit";
 	pub const AssetSymbol: &'static str = "LTM";
 	pub const InflationEventInterval: u64 = 1000;
+	pub const InflationEventReleaseFactor: Perbill = Perbill::from_parts(8741611);
 }
 
 impl pallet_liberland_initializer::Config for Test {}
@@ -259,9 +296,11 @@ impl pallet_llm::Config for Test {
 	type AssetName = AssetName;
 	type AssetSymbol = AssetSymbol;
 	type InflationEventInterval = InflationEventInterval;
+	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
+	type MaxCourts = ConstU32<1>;
 }
 
 parameter_types! {

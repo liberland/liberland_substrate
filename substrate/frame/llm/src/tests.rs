@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use crate::{
-	mock::*, Electionlock, ElectionlockDuration, Error, Event, LLMPolitics, NextRelease,
-	Withdrawlock, WithdrawlockDuration,
+	mock::*, Config, Courts, Electionlock, ElectionlockDuration, Error, Event, LLMAccount,
+	LLMPolitics, LastRelease, RemarkData, Withdrawlock, WithdrawlockDuration,
 };
 use codec::Compact;
 use frame_support::{
@@ -45,23 +45,66 @@ fn releases_on_future_block() {
 		let id = LLM::llm_id();
 		let treasury = LLM::get_llm_treasury_account();
 		let vault = LLM::get_llm_vault_account();
-		let next_block = NextRelease::<Test>::get();
+		let next_block =
+			LastRelease::<Test>::get() + <Test as Config>::InflationEventInterval::get();
 		let treasury_before = Assets::balance(id, treasury);
 		let vault_before = Assets::balance(id, vault);
 
 		System::set_block_number(next_block);
 		LLM::on_initialize(next_block);
 
-		let expected_release = vault_before / 10;
+		let factor = <Test as Config>::InflationEventReleaseFactor::get();
+		let expected_release = factor.mul_floor(vault_before);
 		let treasury_change = Assets::balance(id, treasury) - treasury_before;
 		let vault_change = vault_before - Assets::balance(id, vault);
 
-		assert!(next_block != NextRelease::<Test>::get());
+		assert!(next_block == LastRelease::<Test>::get());
 		assert_eq!(treasury_change, expected_release);
 		assert_eq!(vault_change, expected_release);
 		assert_eq!(Assets::total_supply(id), TOTALLLM::get());
 
 		System::assert_has_event(Event::ReleasedLLM(treasury, expected_release).into());
+	});
+}
+
+#[test]
+fn releases_multiple_times_if_behind() {
+	new_test_ext().execute_with(|| {
+		let id = LLM::llm_id();
+		let treasury = LLM::get_llm_treasury_account();
+		let vault = LLM::get_llm_vault_account();
+		let last_release = LastRelease::<Test>::get();
+		let interval = <Test as Config>::InflationEventInterval::get();
+
+		let mut future_block = last_release + interval * 5;
+
+		for i in 1..=5 {
+			let treasury_before = Assets::balance(id, treasury);
+			let vault_before = Assets::balance(id, vault);
+
+			System::set_block_number(future_block);
+			LLM::on_initialize(future_block);
+
+			let factor = <Test as Config>::InflationEventReleaseFactor::get();
+			let expected_release = factor.mul_floor(vault_before);
+			let treasury_change = Assets::balance(id, treasury) - treasury_before;
+			let vault_change = vault_before - Assets::balance(id, vault);
+
+			assert_eq!(LastRelease::<Test>::get(), last_release + interval * i);
+			assert_eq!(treasury_change, expected_release);
+			assert_eq!(vault_change, expected_release);
+			assert_eq!(Assets::total_supply(id), TOTALLLM::get());
+			System::assert_has_event(Event::ReleasedLLM(treasury, expected_release).into());
+
+			future_block += 1;
+		}
+
+		let vault_before = Assets::balance(id, vault);
+		System::set_block_number(future_block);
+		LLM::on_initialize(future_block);
+		let vault_change = vault_before - Assets::balance(id, vault);
+		assert_eq!(vault_change, 0u64);
+		assert_eq!(LastRelease::<Test>::get(), last_release + interval * 5);
 	});
 }
 
@@ -445,6 +488,11 @@ fn ensure_politics_allowed_succeeds_for_valid_citizen() {
 	});
 }
 
+fn assert_approx_eq(amount1: u64, amount2: u64, epsilon: u64) {
+	assert!(amount1 > amount2 - epsilon);
+	assert!(amount1 < amount2 + epsilon);
+}
+
 #[test]
 fn releases_correct_amounts() {
 	new_test_ext().execute_with(|| {
@@ -461,14 +509,32 @@ fn releases_correct_amounts() {
 
 		let expected = [13_300_000, 18_970_000, 24_073_000, 28_665_700];
 
-		for expected_treasury_balance in expected {
-			let next_block = NextRelease::<Test>::get();
-			System::set_block_number(next_block);
-			LLM::on_initialize(next_block);
+		// we can be off by 1 grain per month due to rounding issues
+		let epsilon = 12;
+		let mut cumulative_epsilon = 0;
 
-			assert_eq!(Assets::balance(id, treasury), expected_treasury_balance);
-			assert_eq!(Assets::balance(id, vault), 70_000_000 - expected_treasury_balance);
-			assert_eq!(Assets::total_supply(id), TOTALLLM::get());
+		for expected_treasury_balance in expected {
+			for _ in 1..=12 {
+				// trigger 12 release events, simulating 1 year
+				let next_block =
+					LastRelease::<Test>::get() + <Test as Config>::InflationEventInterval::get();
+				System::set_block_number(next_block);
+				LLM::on_initialize(next_block);
+			}
+
+			cumulative_epsilon += epsilon;
+
+			assert_approx_eq(
+				Assets::balance(id, treasury),
+				expected_treasury_balance,
+				cumulative_epsilon,
+			);
+			assert_approx_eq(
+				Assets::balance(id, vault),
+				70_000_000 - expected_treasury_balance,
+				cumulative_epsilon,
+			);
+			assert_approx_eq(Assets::total_supply(id), TOTALLLM::get(), cumulative_epsilon);
 		}
 	});
 }
@@ -572,5 +638,108 @@ fn fungible_traits_work() {
 			<LLM as Inspect<<Test as frame_system::Config>::AccountId>>::balance(&999),
 			<u8 as Into<<Test as pallet_assets::Config>::Balance>>::into(100u8)
 		);
+	});
+}
+
+#[test]
+fn remark_deposits_event() {
+	new_test_ext().execute_with(|| {
+		let origin = RuntimeOrigin::signed(1);
+		let data: RemarkData = vec![1, 2, 3].try_into().unwrap();
+		assert_ok!(LLM::remark(origin.clone(), data.clone()));
+		System::assert_last_event(Event::Remarked(data).into());
+	});
+}
+
+#[test]
+fn set_courts_works() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(LLM::set_courts(RuntimeOrigin::root(), vec![105, 110].try_into().unwrap()));
+		assert_eq!(Courts::<Test>::get(), vec![105, 110]);
+	});
+}
+
+#[test]
+fn only_approved_accounts_can_call_force_transfer() {
+	new_test_ext().execute_with(|| {
+		let unapproved = RuntimeOrigin::signed(2);
+		let approved = RuntimeOrigin::signed(1);
+
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 1;
+
+		assert_noop!(
+			LLM::force_transfer(unapproved, from.clone(), to.clone(), amount),
+			Error::<Test>::NotCourt
+		);
+
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 1));
+		assert_ok!(LLM::force_transfer(approved, from, to, amount));
+	});
+}
+
+#[test]
+fn cant_force_transfer_more_than_balance() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 1;
+
+		assert_noop!(LLM::force_transfer(court, from, to, amount), Error::<Test>::LowBalance);
+	});
+}
+
+#[test]
+fn cant_force_transfer_from_liquid() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let from = LLMAccount::Liquid(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 1;
+
+		assert_noop!(LLM::force_transfer(court, from, to, amount), Error::<Test>::InvalidAccount);
+	});
+}
+
+#[test]
+fn cant_force_transfer_to_liquid() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 3));
+
+		let court = RuntimeOrigin::signed(1);
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Liquid(2);
+		let amount = 1;
+
+		assert_noop!(LLM::force_transfer(court, from, to, amount), Error::<Test>::InvalidAccount);
+	});
+}
+
+#[test]
+fn force_updates_balances_correctly_to_locked() {
+	new_test_ext().execute_with(|| {
+		let court = RuntimeOrigin::signed(1);
+		let id = LLM::llm_id();
+		let politipool = LLM::get_llm_politipool_account();
+		let from = LLMAccount::Locked(1);
+		let to = LLMAccount::Locked(2);
+		let amount = 2;
+
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(1), 3));
+		assert_ok!(LLM::politics_lock(RuntimeOrigin::signed(2), 2));
+		let politipool_before = Assets::balance(id, politipool);
+		let from_before = Assets::balance(id, 1);
+		let to_before = Assets::balance(id, 2);
+
+		assert_ok!(LLM::force_transfer(court, from, to, amount));
+
+		assert_eq!(Assets::balance(id, politipool), politipool_before);
+		assert_eq!(Assets::balance(id, 1), from_before);
+		assert_eq!(Assets::balance(id, 2), to_before);
+
+		assert_eq!(LLMPolitics::<Test>::get(1), 3 - amount);
+		assert_eq!(LLMPolitics::<Test>::get(2), 2 + amount);
 	});
 }
