@@ -1348,6 +1348,7 @@ impl pallet_assets::Config for Runtime {
 	type RemoveItemsLimit = ConstU32<1000>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type Citizenship = LLM;
 }
 
 ord_parameter_types! {
@@ -1375,6 +1376,7 @@ impl pallet_assets::Config<Instance2> for Runtime {
 	type CallbackHandle = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
+	type Citizenship = LLM;
 }
 
 parameter_types! {

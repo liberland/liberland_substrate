@@ -28,6 +28,11 @@ pub trait LLM<AccountId, Balance> {
 
 /// trait for more abstract methods that take data from multiple sources
 pub trait CitizenshipChecker<AccountId> {
+	/// Checks if account can receive stocks. Accounts needs to:
+	/// * have valid citizen or eresident identity
+	/// * have a KnownGood judgement
+	fn ensure_stocks_allowed(account: &AccountId) -> Result<(), DispatchError>;
+
 	/// Checks if account has politics allowed. For politics to be allowed, account needs to:
 	/// * have LLM politipooled
 	/// * not have LLM Electionlock

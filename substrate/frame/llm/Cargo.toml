@@ -21,15 +21,16 @@ sp-keyring = { default-features = false, optional = true, git = "https://github.
 sp-core = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 hex-literal = "0.3.4"
 
-frame-benchmarking =  { git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false, optional = true }
-frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
-pallet-balances =  { git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", default-features = false }
+frame-benchmarking =  { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true }
+frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-assets = { path = "../assets", default-features = false }
+pallet-balances =  { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false }
 pallet-identity = { path = "../identity", default-features = false }
+pallet-asset-conversion = {  tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false  }
 liberland-traits = { path = "../liberland-traits", default-features = false}
 
 
@@ -51,10 +52,12 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"liberland-traits/std",
+	"pallet-asset-conversion/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
 ]
 try-runtime = ["frame-support/try-runtime"]

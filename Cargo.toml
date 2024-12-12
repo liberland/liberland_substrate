@@ -108,3 +108,4 @@ pallet-identity = { path = "substrate/frame/identity" }
 pallet-elections-phragmen = { path = "substrate/frame/elections-phragmen" }
 pallet-staking = { path = "substrate/frame/staking" }
 pallet-nfts = { path = "substrate/frame/nfts" }
+pallet-assets = { path = "substrate/frame/assets" }

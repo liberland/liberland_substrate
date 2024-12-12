@@ -5259,7 +5259,10 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "merkleized-metadata",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-contracts",
+ "pallet-llm",
  "parity-scale-codec",
  "scale-info",
  "sp-api",
@@ -6829,12 +6832,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "kvdb"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7d770dcb02bf6835887c3a979b5107a04ff4bbde97a5f0928d27404a155add9"
+name = "pallet-assets"
+version = "4.0.0-dev"
 dependencies = [
- "smallvec",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "liberland-traits",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -7055,12 +7067,22 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm",
  "log",
- "lru 0.10.1",
- "quick-protobuf",
- "quick-protobuf-codec",
- "smallvec",
- "thiserror",
- "void",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-liberland-initializer",
+ "pallet-llm",
+ "pallet-nfts",
+ "pallet-preimage",
+ "pallet-scheduler",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -7122,12 +7144,23 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm",
  "log",
- "rand 0.8.5",
- "smallvec",
- "socket2 0.4.9",
- "tokio",
- "trust-dns-proto",
- "void",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-liberland-initializer",
+ "pallet-llm",
+ "pallet-nfts",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+ "sp-tracing",
+ "substrate-test-utils",
 ]
 
 [[package]]
@@ -7198,12 +7231,19 @@ dependencies = [
  "libp2p-identity",
  "libp2p-tls",
  "log",
- "parking_lot 0.12.1",
- "quinn-proto",
- "rand 0.8.5",
- "rustls 0.20.8",
- "thiserror",
- "tokio",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-llm",
+ "pallet-nfts",
+ "pallet-registry",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -7212,14 +7252,27 @@ version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ffdb374267d42dc5ed5bc53f6e601d4a64ac5964779c6e40bb9e4f14c1e30d5"
 dependencies = [
- "async-trait",
- "futures",
- "instant",
- "libp2p-core",
- "libp2p-identity",
- "libp2p-swarm",
- "rand 0.8.5",
- "smallvec",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "liberland-traits",
+ "log",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-democracy",
+ "pallet-identity",
+ "pallet-liberland-initializer",
+ "pallet-llm",
+ "pallet-nfts",
+ "pallet-scheduler",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -7237,10 +7290,17 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm-derive",
  "log",
- "rand 0.8.5",
- "smallvec",
- "tokio",
- "void",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-identity",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -7441,12 +7501,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "link-cplusplus"
-version = "1.0.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d240c6f7e1ba3a28b0249f774e6a9dd0175054b52dfbb61b16eb8505c3785c9"
+name = "pallet-staking"
+version = "4.0.0-dev"
 dependencies = [
- "cc",
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "liberland-traits",
+ "log",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-authorship",
+ "pallet-bags-list",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-liberland-initializer",
+ "pallet-llm",
+ "pallet-nfts",
+ "pallet-session",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rand_chacha 0.2.2",
+ "scale-info",
+ "serde",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+ "sp-tracing",
+ "substrate-test-utils",
 ]
 
 [[package]]
