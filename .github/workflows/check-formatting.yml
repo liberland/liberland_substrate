@@ -52,5 +52,9 @@ jobs:
         run: cargo fmt --check -p pallet-liberland-initializer -p pallet-liberland-legislation -p liberland-traits -p pallet-llm -p pallet-office -p pallet-registry -p pallet-custom-account -p pallet-contracts-registry -p liberland-extension -p liberland-extension-runtime
 
       - name: Format code with rustfmt
-        working-directory: contracts/
+        working-directory: contracts/msig_court/
+        run: cargo fmt --check
+
+      - name: Format code with rustfmt
+        working-directory: contracts/wrapped_lld/
         run: cargo fmt --check

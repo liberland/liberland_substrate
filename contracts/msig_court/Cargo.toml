@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
 
+[workspace]
+
 [dependencies]
 ink = { version = "5.0.0", default-features = false }
 liberland-extension = { path = "../../liberland-extension/ink", default-features = false}
