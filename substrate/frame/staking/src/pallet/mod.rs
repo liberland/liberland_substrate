@@ -31,7 +31,6 @@ use frame_support::{
 		Currency, Defensive, DefensiveResult, DefensiveSaturating, EnsureOrigin,
 		EstimateNextNewSession, Get, LockIdentifier, LockableCurrency, OnUnbalanced, TryCollect,
 		UnixTime,
-		tokens::ExistenceRequirement,
 	},
 	weights::Weight,
 	BoundedVec,
