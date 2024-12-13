@@ -13,9 +13,9 @@ readme = "README.md"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
-frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 
 
 [dev-dependencies]
