@@ -180,7 +180,6 @@ std = [
 	"node-primitives/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-tx-payment/std",
-	"sp-statement-store/std",
 	"pallet-assets/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
