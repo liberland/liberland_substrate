@@ -112,7 +112,6 @@ pallet-transaction-storage = { default-features = false, rev = "65a434a0ed474c14
 pallet-whitelist = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-nfts-runtime-api = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-staking-runtime-api = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-federated-bridge = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-benchmarking-pallet-pov = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-metadata-hash-extension = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-alliance = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
@@ -142,6 +141,7 @@ pallet-uniques = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f
 pallet-vesting = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-tx-pause = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-safe-mode = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-ethereum = { git = "https://github.com/polkadot-evm/frontier", version = "4.0.0-dev" }
 
 [build-dependencies]
 substrate-wasm-builder = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk", optional = true}
@@ -198,7 +198,6 @@ std = [
 	"pallet-election-provider-multi-phase/std",
 	"pallet-election-provider-support-benchmarking?/std",
 	"pallet-elections-phragmen/std",
-	"pallet-federated-bridge/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
 	"pallet-im-online/std",
@@ -276,7 +275,6 @@ runtime-benchmarks = [
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
 	"pallet-elections-phragmen/runtime-benchmarks",
-	"pallet-federated-bridge/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-im-online/runtime-benchmarks",
@@ -328,7 +326,6 @@ try-runtime = [
 	"pallet-democracy/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-elections-phragmen/try-runtime",
-	"pallet-federated-bridge/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
 	"pallet-im-online/try-runtime",
