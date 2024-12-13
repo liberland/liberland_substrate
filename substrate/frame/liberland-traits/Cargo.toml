@@ -21,7 +21,7 @@ frame-support = { default-features = false, git = "https://github.com/paritytech
 [dev-dependencies]
 
 [features]
-default = ["std"]
-std = [ "sp-runtime/std", "sp-std/std", "frame-support/std" ]
+default = [ "std" ]
+std = [ "frame-support/std", "sp-runtime/std", "sp-std/std" ]
 runtime-benchmarks = []
 try-runtime = []

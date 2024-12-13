@@ -30,21 +30,21 @@ pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", rev = "6
 pallet-collective = { git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-balances/std",
 	"scale-info/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"pallet-balances/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [ "frame-support/try-runtime" ]

@@ -27,7 +27,7 @@ sp-io = { default-features = false, git = "https://github.com/paritytech/polkado
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk", rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401" }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
@@ -39,7 +39,5 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 ]
-runtime-benchmarks = [
-	"frame-benchmarking/runtime-benchmarks",
-]
-try-runtime = ["frame-support/try-runtime"]
+runtime-benchmarks = [ "frame-benchmarking/runtime-benchmarks" ]
+try-runtime = [ "frame-support/try-runtime" ]

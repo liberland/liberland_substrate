@@ -45,6 +45,23 @@ sp-transaction-pool = { default-features = false, rev = "65a434a0ed474c14f692dcf
 sp-version = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 sp-io = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 
+# overrides
+pallet-nfts = { default-features = false, path = "../../../frame/nfts" }
+pallet-staking = { default-features = false, path = "../../../frame/staking" }
+pallet-democracy = { default-features = false, path = "../../../frame/democracy" }
+pallet-elections-phragmen = { default-features = false, path = "../../../frame/elections-phragmen" }
+pallet-identity = { default-features = false, path = "../../../frame/identity" }
+pallet-llm = { path = "../../../frame/llm", default-features = false }
+pallet-liberland-legislation = { path = "../../../frame/liberland-legislation", default-features = false }
+pallet-liberland-initializer = { path = "../../../frame/liberland-initializer", default-features = false }
+liberland-traits = { path = "../../../frame/liberland-traits", default-features = false }
+pallet-registry = { path = "../../../frame/registry", default-features = false }
+pallet-office = { path = "../../../frame/office", default-features = false }
+pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
+pallet-assets = { default-features = false, path = "../../../frame/assets" }
+pallet-contracts-registry = { path = "../../../frame/contracts-registry", default-features = false }
+liberland-extension-runtime = { path = "../../../../liberland-extension/runtime", default-features = false }
+
 # frame dependencies
 frame-executive = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-benchmarking = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk", optional = true }
@@ -55,7 +72,6 @@ frame-election-provider-support = { default-features = false, rev = "65a434a0ed4
 frame-system-rpc-runtime-api = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-try-runtime = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk", optional = true }
 pallet-asset-conversion = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-assets = { default-features = false, path = "../../../frame/assets" }
 pallet-authority-discovery = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-authorship = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-babe = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
@@ -96,29 +112,14 @@ pallet-transaction-storage = { default-features = false, rev = "65a434a0ed474c14
 pallet-whitelist = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-nfts-runtime-api = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-staking-runtime-api = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-nfts = { default-features = false, path = "../../../frame/nfts" }
-pallet-staking = { default-features = false, path = "../../../frame/staking" }
-pallet-democracy = { default-features = false, path = "../../../frame/democracy" }
-pallet-elections-phragmen = { default-features = false, path = "../../../frame/elections-phragmen" }
-pallet-identity = { default-features = false, path = "../../../frame/identity" }
-pallet-llm = { path = "../../../frame/llm", default-features = false }
-pallet-liberland-legislation = { path = "../../../frame/liberland-legislation", default-features = false }
-pallet-liberland-initializer = { path = "../../../frame/liberland-initializer", default-features = false }
-liberland-traits = { path = "../../../frame/liberland-traits", default-features = false }
-pallet-registry = { path = "../../../frame/registry", default-features = false }
-pallet-office = { path = "../../../frame/office", default-features = false }
 pallet-federated-bridge = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-custom-account = { path = "../../../frame/custom-account", default-features = false }
-frame-executive = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 frame-benchmarking-pallet-pov = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-metadata-hash-extension = { path = "../../../frame/metadata-hash-extension", default-features = false }
+frame-metadata-hash-extension = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-alliance = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-asset-rate = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-broker = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-conviction-voting = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-core-fellowship = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-election-provider-multi-phase =  = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-election-provider-support-benchmarking = { path = "../../../frame/election-provider-support/benchmarking", default-features = false, optional = true }
 pallet-fast-unstake = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-nis = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-indices = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
@@ -130,7 +131,6 @@ pallet-nomination-pools-benchmarking = { default-features = false, rev = "65a434
 pallet-nomination-pools-runtime-api = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-glutton = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-ranked-collective = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-recovery = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-referenda = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-remark = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-root-testing = { default-features = false, rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
@@ -146,12 +146,25 @@ pallet-safe-mode = { default-features = false, rev = "65a434a0ed474c14f692dcf9f6
 [build-dependencies]
 substrate-wasm-builder = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk", optional = true}
 
+# Sora Bridge:
+substrate-bridge-app = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+substrate-bridge-channel = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+leaf-provider = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+dispatch = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+bridge-data-signer = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+multisig-verifier = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+bridge-types = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false }
+sora-liberland-bridge-provider = { git = "https://github.com/sora-xor/sora2-common.git", branch = "polkadotsdk-lib-1.1.0", default-features = false, package = "liberland-bridge-provider" }
+
 [features]
-default = ["std"]
+default = [ "std" ]
 testnet-runtime = []
 with-tracing = [ "frame-executive/with-tracing" ]
 std = [
+	"bridge-data-signer/std",
+	"bridge-types/std",
 	"codec/std",
+	"dispatch/std",
 	"frame-benchmarking?/std",
 	"frame-election-provider-support/std",
 	"frame-executive/std",
@@ -161,8 +174,10 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"leaf-provider/std",
 	"liberland-extension-runtime/std",
 	"log/std",
+	"multisig-verifier/std",
 	"node-primitives/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-tx-payment/std",
@@ -216,6 +231,7 @@ std = [
 	"pallet-utility/std",
 	"pallet-whitelist/std",
 	"scale-info/std",
+	"sora-liberland-bridge-provider/std",
 	"sp-api/std",
 	"sp-authority-discovery/std",
 	"sp-block-builder/std",
@@ -230,25 +246,20 @@ std = [
 	"sp-std/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
-	"substrate-wasm-builder",
-
 	# Sora Bridge:
 	"substrate-bridge-app/std",
 	"substrate-bridge-channel/std",
-	"leaf-provider/std",
-	"dispatch/std",
-	"bridge-data-signer/std",
-	"bridge-types/std",
-	"multisig-verifier/std",
-	"sora-liberland-bridge-provider/std",
+	"substrate-wasm-builder",
 ]
 runtime-benchmarks = [
+	# Sora Bridge
+	"dispatch/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
-	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"multisig-verifier/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
@@ -293,10 +304,6 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
-
-	# Sora Bridge
-	"dispatch/runtime-benchmarks",
-	"multisig-verifier/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -352,4 +359,4 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-metadata-hash = ["substrate-wasm-builder/metadata-hash"]
+metadata-hash = [ "substrate-wasm-builder/metadata-hash" ]

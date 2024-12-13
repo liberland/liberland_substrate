@@ -12,8 +12,6 @@ publish = false
 ink = { version = "5.0.0", default-features = false }
 
 [features]
-default = ["std"]
-std = [
-    "ink/std",
-]
+default = [ "std" ]
+std = [ "ink/std" ]
 ink-as-dependency = []

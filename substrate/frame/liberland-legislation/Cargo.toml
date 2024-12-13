@@ -40,35 +40,32 @@ pallet-identity = { path = "../identity" }
 pallet-asset-conversion = { rev = "65a434a0ed474c14f692dcf9f69f8da66a99d401", git = "https://github.com/paritytech/polkadot-sdk" }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
 	"codec/std",
-	"scale-info/std",
+	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
-	"frame-benchmarking?/std",
-	"pallet-llm/std",
-	"pallet-democracy/std",
-	"pallet-nfts/std",
-	"pallet-asset-conversion/std",
+	"liberland-traits/std",
 	"log/std",
+	"pallet-asset-conversion/std",
+	"pallet-democracy/std",
+	"pallet-llm/std",
+	"pallet-nfts/std",
+	"scale-info/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"liberland-traits/std",
 ]
 
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
-	"pallet-assets/runtime-benchmarks",
-	"pallet-asset-conversion/runtime-benchmarks",
-	"pallet-llm/runtime-benchmarks",
-	"pallet-liberland-initializer/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
-	"pallet-nfts/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"pallet-democracy/runtime-benchmarks",
+	"pallet-liberland-initializer/runtime-benchmarks",
+	"pallet-llm/runtime-benchmarks",
+	"pallet-nfts/runtime-benchmarks",
 ]
-try-runtime = [
-	"frame-support/try-runtime",
-	"pallet-llm/try-runtime",
-]
+try-runtime = [ "frame-support/try-runtime", "pallet-llm/try-runtime" ]

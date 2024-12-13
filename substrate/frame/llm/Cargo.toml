@@ -37,27 +37,27 @@ liberland-traits = { path = "../liberland-traits", default-features = false}
 [dev-dependencies]
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
+	"liberland-traits/std",
 	"log/std",
+	"pallet-asset-conversion/std",
+	"pallet-assets/std",
 	"pallet-balances/std",
 	"pallet-identity/std",
-	"pallet-assets/std",
 	"scale-info/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"liberland-traits/std",
-	"pallet-asset-conversion/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
-	"pallet-assets/runtime-benchmarks",
-	"pallet-asset-conversion/runtime-benchmarks",
 	"liberland-traits/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [ "frame-support/try-runtime" ]
