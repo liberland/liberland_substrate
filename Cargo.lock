@@ -5655,7 +5655,6 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "futures",
- "getrandom 0.2.10",
  "jsonrpsee",
  "kitchensink-runtime",
  "log",
@@ -5778,7 +5777,6 @@ dependencies = [
 name = "node-rpc"
 version = "3.0.0-dev"
 dependencies = [
- "getrandom 0.2.10",
  "jsonrpsee",
  "node-primitives",
  "pallet-transaction-payment-rpc",
