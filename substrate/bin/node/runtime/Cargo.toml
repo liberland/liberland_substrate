@@ -144,8 +144,18 @@ pallet-vesting = { branch = "release-polkadot-v1.1.0", git = "https://github.com
 pallet-whitelist = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
 pallet-tx-pause = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
 pallet-safe-mode = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
+
 [build-dependencies]
 substrate-wasm-builder = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", optional = true}
+
+# Sora Bridge:
+parachain-bridge-app = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
+substrate-bridge-channel = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
+leaf-provider = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
+dispatch = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
+bridge-data-signer = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
+multisig-verifier = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
+bridge-types = { git = "https://github.com/sora-xor/sora2-common.git", branch = "liberland-1.1.0", default-features = false }
 
 [features]
 default = [ "std" ]
@@ -262,6 +272,15 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+
+	# Sora Bridge:
+	"parachain-bridge-app/std",
+	"substrate-bridge-channel/std",
+	"leaf-provider/std",
+	"dispatch/std",
+	"bridge-data-signer/std",
+	"bridge-types/std",
+	"multisig-verifier/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking-pallet-pov/runtime-benchmarks",
@@ -333,6 +352,10 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
+
+	# Sora Bridge
+	"dispatch/runtime-benchmarks",
+	"multisig-verifier/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-benchmarking-pallet-pov/try-runtime",
@@ -410,6 +433,15 @@ try-runtime = [
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"sp-runtime/try-runtime",
+
+	# Sora Bridge:
+	"parachain-bridge-app/try-runtime",
+	"substrate-bridge-channel/try-runtime",
+	"leaf-provider/try-runtime",
+	"dispatch/try-runtime",
+	"bridge-data-signer/try-runtime",
+	"bridge-types/try-runtime",
+	"multisig-verifier/try-runtime",
 ]
 
 metadata-hash = ["substrate-wasm-builder/metadata-hash"]
