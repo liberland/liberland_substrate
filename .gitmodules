@@ -10,3 +10,6 @@
 [submodule "substrate/eth-bridge/contracts/lib/openzeppelin-contracts"]
 	path = substrate/eth-bridge/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "merger/polkadot-sdk"]
+	path = merger/polkadot-sdk
+	url = https://github.com/paritytech/polkadot-sdk.git

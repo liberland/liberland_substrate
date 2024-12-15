@@ -8,6 +8,7 @@ pwasm-libc/target/
 pwasm-alloc/Cargo.lock
 pwasm-libc/Cargo.lock
 bin/node/runtime/wasm/target/
+merger/node_modules
 **/._*
 **/.criterion/
 .vscode

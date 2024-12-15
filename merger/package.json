@@ -1,0 +1,12 @@
+{
+  "name": "merger",
+  "version": "1.0.0",
+  "description": "Merges specific parts of polkadot SDK repo",
+  "main": "index.js",
+  "repository": "https://github.com/liberland/liberland_substrate.git",
+  "author": "jindra12.underdark <jindra12.underdark@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "glob": "^11.0.0"
+  }
+}
