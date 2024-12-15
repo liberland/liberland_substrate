@@ -405,12 +405,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "assert_matches"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
-
-[[package]]
 name = "async-channel"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4141,7 +4135,6 @@ dependencies = [
  "pallet-contracts",
  "pallet-contracts-primitives",
  "pallet-contracts-registry",
- "pallet-conviction-voting",
  "pallet-core-fellowship",
  "pallet-custom-account",
  "pallet-democracy",
@@ -4174,7 +4167,6 @@ dependencies = [
  "pallet-recovery",
  "pallet-referenda",
  "pallet-registry",
- "pallet-remark",
  "pallet-root-testing",
  "pallet-safe-mode",
  "pallet-salary",
@@ -4184,7 +4176,6 @@ dependencies = [
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-staking-runtime-api",
- "pallet-statement",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -6172,21 +6163,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-conviction-voting"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#65a434a0ed474c14f692dcf9f69f8da66a99d401"
-dependencies = [
- "assert_matches",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-core-fellowship"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#65a434a0ed474c14f692dcf9f69f8da66a99d401"
@@ -6781,21 +6757,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-remark"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#65a434a0ed474c14f692dcf9f69f8da66a99d401"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-root-testing"
 version = "1.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#65a434a0ed474c14f692dcf9f69f8da66a99d401"
@@ -6953,24 +6914,6 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot
 dependencies = [
  "parity-scale-codec",
  "sp-api",
-]
-
-[[package]]
-name = "pallet-statement"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#65a434a0ed474c14f692dcf9f69f8da66a99d401"
-dependencies = [
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-statement-store",
- "sp-std",
 ]
 
 [[package]]
