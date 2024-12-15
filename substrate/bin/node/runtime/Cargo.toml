@@ -98,9 +98,6 @@ pallet-multisig = { branch = "release-polkadot-v1.1.0", git = "https://github.co
 pallet-nfts = { path = "../../../frame/nfts", default-features = false}
 pallet-nfts-runtime-api = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
 pallet-nft-fractionalization = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
-pallet-nomination-pools = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
-pallet-nomination-pools-benchmarking = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true}
-pallet-nomination-pools-runtime-api = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
 pallet-offences = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
 pallet-offences-benchmarking = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false, optional = true }
 pallet-office = { path = "../../../frame/office", default-features = false }
