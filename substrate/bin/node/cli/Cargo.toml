@@ -85,11 +85,13 @@ sc-storage-monitor = { tag = "polkadot-v1.1.0", git = "https://github.com/parity
 sc-offchain = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 # frame dependencies
-frame-system = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-system-rpc-runtime-api = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-assets = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-asset-conversion-tx-payment = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-im-online = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-metadata-hash-extension = { path = "../../../frame/metadata-hash-extension" }
+frame-system = { path = "../../../frame/system" }
+frame-system-rpc-runtime-api = { path = "../../../frame/system/rpc/runtime-api" }
+pallet-assets = { path = "../../../frame/assets" }
+pallet-asset-conversion-tx-payment = { path = "../../../frame/transaction-payment/asset-conversion-tx-payment" }
+pallet-asset-tx-payment = { path = "../../../frame/transaction-payment/asset-tx-payment" }
+pallet-im-online = { path = "../../../frame/im-online", default-features = false}
 
 # node-specific dependencies
 kitchensink-runtime = { path = "../runtime" }
