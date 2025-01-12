@@ -235,7 +235,7 @@ std = [
 	"sora-liberland-bridge-provider/std",
 
 	# Frontier
-	"pallet-evm/std"
+	"pallet-evm/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -287,7 +287,7 @@ runtime-benchmarks = [
 	"multisig-verifier/runtime-benchmarks",
 
 	# Frontier
-	"pallet-evm/runtime-benchmarks"
+	"pallet-evm/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -346,7 +346,7 @@ try-runtime = [
 	"sora-liberland-bridge-provider/try-runtime",
 
 	# Frontier
-	"pallet-evm/try-runtime"
+	"pallet-evm/try-runtime",
 ]
 
 metadata-hash = ["substrate-wasm-builder/metadata-hash"]
