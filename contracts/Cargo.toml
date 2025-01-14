@@ -3,4 +3,5 @@ resolver = "2"
 members = [
 	"msig_court",
 	"wrapped_lld",
+	"staking_lld"
 ]
