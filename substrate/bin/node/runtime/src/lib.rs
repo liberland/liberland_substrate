@@ -1363,7 +1363,7 @@ impl pallet_llm::Config for Runtime {
 }
 
 parameter_types! {
-	pub const CollectionDeposit: Balance = 100 * DOLLARS;
+	pub const CollectionDeposit: Balance = 10 * DOLLARS;
 	pub const ItemDeposit: Balance = 1 * DOLLARS;
 	pub const ApprovalsLimit: u32 = 20;
 	pub const ItemAttributesApprovalsLimit: u32 = 20;
