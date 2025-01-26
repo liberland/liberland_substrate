@@ -20,10 +20,10 @@ jobs:
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
-          rustup update --no-self-update 1.83.0
-          rustup component add --toolchain 1.83.0 rustfmt rust-src
+          rustup update --no-self-update 1.78.0
+          rustup component add --toolchain 1.78.0 rustfmt rust-src
           rustup target add wasm32-unknown-unknown
-          rustup default 1.83.0
+          rustup default 1.78.0
 
       - name: Checkout
         uses: actions/checkout@v4
