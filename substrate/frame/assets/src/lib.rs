@@ -381,6 +381,16 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
+	#[pallet::storage]
+    	/// Related company of asset
+    	pub(super) type RelatedCompany<T: Config<I>, I: 'static = ()> = StorageMap<
+    		_,
+    		Blake2_128Concat,
+    		T::AssetId,
+    		AssetRelatedCompany,
+    		ValueQuery,
+    	>;
+
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -541,6 +551,11 @@ pub mod pallet {
 		ParametersSet {
 			asset_id: T::AssetId,
 			parameters: AssetParameters,
+		},
+		/// Related company set
+		RelatedCompanySet {
+			asset_id: T::AssetId,
+			company: AssetRelatedCompany,
 		},
 	}
 
@@ -1690,6 +1705,51 @@ pub mod pallet {
 			let id: T::AssetId = id.into();
 			Self::do_set_parameters(id, parameters, None)
 		}
+		/// Set the related company for an asset.
+		///
+		/// Origin must be Signed and the sender should be the Owner of the asset `id`.
+		///
+		/// Emits `RelatedCompanySet`.
+		///
+		/// Weight: `O(1)`
+		#[pallet::call_index(102)]
+		#[pallet::weight(T::WeightInfo::set_parameters())]
+		pub fn set_related_company(
+			origin: OriginFor<T>,
+			id: T::AssetIdParameter,
+			company: AssetRelatedCompany,
+		) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+			let id: T::AssetId = id.into();
+			let asset = Asset::<T, I>::get(&id).ok_or(Error::<T, I>::Unknown)?;
+			ensure!(signer == asset.owner, Error::<T, I>::NoPermission);
+
+			RelatedCompany::<T, I>::insert(&id, company);
+			Self::deposit_event(Event::RelatedCompanySet { asset_id: id, company });
+			Ok(())
+		}
+
+		/// Force set the related company for an asset.
+		///
+		/// Origin must be ForceOrigin
+		///
+		/// Weight: `O(1)`
+		#[pallet::call_index(103)]
+		#[pallet::weight(T::WeightInfo::set_parameters())]
+		pub fn force_set_related_company(
+			origin: OriginFor<T>,
+			id: T::AssetIdParameter,
+			company: AssetRelatedCompany,
+		) -> DispatchResult {
+			T::ForceOrigin::ensure_origin(origin)?;
+			let id: T::AssetId = id.into();
+			let asset = Asset::<T, I>::get(&id).ok_or(Error::<T, I>::Unknown)?;
+
+			let id: T::AssetId = id.into();
+			RelatedCompany::<T, I>::insert(&id, company);
+			Ok(())
+		}
+
 	}
 
 	/// Implements [`AccountTouch`] trait.

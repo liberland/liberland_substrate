@@ -323,3 +323,9 @@ pub struct AssetParameters {
 	/// Is eresidency required to receive the asset
 	pub(super) eresidency_required: bool,
 }
+
+#[derive(Copy, Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub struct AssetRelatedCompany {
+	/// Company related to the asset
+	pub(super) related_company_id: u32,
+}
