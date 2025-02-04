@@ -382,14 +382,14 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-    	/// Related company of asset
-    	pub(super) type RelatedCompany<T: Config<I>, I: 'static = ()> = StorageMap<
-    		_,
-    		Blake2_128Concat,
-    		T::AssetId,
-    		AssetRelatedCompany,
-    		ValueQuery,
-    	>;
+		/// Related company of asset
+		pub(super) type RelatedCompany<T: Config<I>, I: 'static = ()> = StorageMap<
+			_,
+			Blake2_128Concat,
+			T::AssetId,
+			AssetRelatedCompany,
+			ValueQuery,
+		>;
 
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]

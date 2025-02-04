@@ -324,8 +324,4 @@ pub struct AssetParameters {
 	pub(super) eresidency_required: bool,
 }
 
-#[derive(Copy, Clone, Encode, Decode, Eq, PartialEq, Default, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub struct AssetRelatedCompany {
-	/// Company related to the asset
-	pub(super) related_company_id: u32,
-}
+pub type AssetRelatedCompany = u32;
