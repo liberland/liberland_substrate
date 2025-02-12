@@ -323,3 +323,5 @@ pub struct AssetParameters {
 	/// Is eresidency required to receive the asset
 	pub(super) eresidency_required: bool,
 }
+
+pub type AssetRelatedCompany = u32;
