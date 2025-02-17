@@ -54,7 +54,7 @@ jobs:
         run: cp target/release/substrate-node linux_x86_build
 
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux_x86_build
           path: linux_x86_build
@@ -85,7 +85,7 @@ jobs:
           ls
 
       - name: Upload mainnet runtime
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mainnet-${{ steps.version.outputs.version }}.wasm
           path: mainnet-${{ steps.version.outputs.version }}.wasm
@@ -109,7 +109,7 @@ jobs:
           ls
 
       - name: Upload Bastiat runtime
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bastiat-${{ steps.version.outputs.version }}.wasm
           path: bastiat-${{ steps.version.outputs.version }}.wasm
@@ -134,17 +134,17 @@ jobs:
         run: echo "version=v$(cargo pkgid -p node-cli | cut -d'@' -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Download binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: linux_x86_build
 
       - name: Download Bastiat runtime
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: bastiat-${{ steps.version.outputs.version }}.wasm
 
       - name: Download mainnet runtime
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: mainnet-${{ steps.version.outputs.version }}.wasm
 
