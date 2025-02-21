@@ -18,30 +18,30 @@ codec = { package = "parity-scale-codec", version = "3.6.1", default-features = 
 ] }
 log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.0.0", default-features = false, features = ["derive"] }
-frame-benchmarking = { default-features = false, optional = true, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-support = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-frame-system = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-core = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-io = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-npos-elections = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-runtime = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-std = { default-features = false, tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-benchmarking = { default-features = false, optional = true, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-support = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-system = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-core = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-io = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-npos-elections = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-runtime = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-std = { default-features = false, branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-llm = { default-features = false, path = "../llm" }
 pallet-identity = { path = "../identity", default-features = false }
 pallet-liberland-initializer = { path = "../liberland-initializer", default-features = false}
 liberland-traits = { path = "../liberland-traits", default-features = false}
-sp-staking = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
+sp-staking = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk", default-features = false}
 
 [dev-dependencies]
-frame-benchmarking = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+frame-benchmarking = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-identity = { path = "../identity" }
 pallet-assets = { path = "../assets" }
-pallet-balances = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-balances = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 pallet-nfts = { path = "../nfts" }
-sp-tracing = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-substrate-test-utils = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-sp-core = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
-pallet-asset-conversion = { tag = "polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-tracing = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+substrate-test-utils = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+sp-core = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
+pallet-asset-conversion = { branch = "release-polkadot-v1.1.0", git = "https://github.com/paritytech/polkadot-sdk" }
 
 [features]
 default = [ "std" ]
