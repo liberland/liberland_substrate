@@ -59,8 +59,8 @@ accounts (Alice, Bob, etc.) are endowed with assets. To interact with it, visit
 [Polkadot.js Apps](https://polkadot.js.org/apps/?rpc=ws://localhost:9944).
 
 ### Further reading
-* [Run a validator](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator)
-* [Run with Docker](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-developers-and-testers/docker)
+* [Run a validator](https://docs.liberland.org/blockchain/for-validators-nominators-and-stakers/run-a-validator)
+* [Run with Docker](https://docs.liberland.org/blockchain/for-developers-and-testers/docker)
 
 
 ## Licensing
