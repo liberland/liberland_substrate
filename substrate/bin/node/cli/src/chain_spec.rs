@@ -196,7 +196,7 @@ fn properties() -> sc_chain_spec::Properties {
 	p.insert("tokenSymbol".into(), "LLD".into());
 	p.insert("tokenDecimals".into(), 12.into());
 	p.insert("standardAccount".into(), "*25519".into());
-	p.insert("ss58Format".into(), 56.into());
+	p.insert("ss58Format".into(), 42.into());
 	p.insert("website".into(), "https://liberland.org".into());
 	p
 }
