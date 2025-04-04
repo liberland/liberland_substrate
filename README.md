@@ -15,8 +15,8 @@ We want to make all e-government services available to our citizens using our su
 This repository contains the substrate-based implementation of Liberland blockchain node.
 
 ## Documentation:
-* [Learn more about Liberland](https://liberland-1.gitbook.io/wiki/)
-* [Learn more about Liberland Blockchain](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain)
+* [Learn more about Liberland](https://docs.liberland.org)
+* [Learn more about Liberland Blockchain](https://docs.liberland.org/blockchain/white-paper)
 
 ## Interact with live testnets:
 * [PowellGoHome](https://polkadot.js.org/apps/?rpc=wss%253A%252F%252Ftestchain.liberland.org)
@@ -59,8 +59,8 @@ accounts (Alice, Bob, etc.) are endowed with assets. To interact with it, visit
 [Polkadot.js Apps](https://polkadot.js.org/apps/?rpc=ws://localhost:9944).
 
 ### Further reading
-* [Run a validator](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-validators-nominators-and-stakers/run_a_validator)
-* [Run with Docker](https://liberland-1.gitbook.io/wiki/v/public-documents/blockchain/for-developers-and-testers/docker)
+* [Run a validator](https://docs.liberland.org/blockchain/for-validators-nominators-and-stakers/run-a-validator)
+* [Run with Docker](https://docs.liberland.org/blockchain/for-developers-and-testers/docker)
 
 
 ## Licensing
