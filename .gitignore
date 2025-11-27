@@ -29,3 +29,6 @@ bin/node-template/Cargo.lock
 substrate.code-workspace
 .direnv/
 /.envrc
+solidity/bin
+solidity/test/node_modules
+solidity/test/test.log
