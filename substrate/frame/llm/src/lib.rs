@@ -70,13 +70,13 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn llm_politics)]
 	pub(super) type LLMPolitics<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOfAssets<T>, ValueQuery>;
+	StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOfAssets<T>, ValueQuery>;
 
 	/// block number until which account can't do another `politics_unlock`
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock)]
 	pub(super) type Withdrawlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberFor<T>, ValueQuery>; // account and blocknumber
+	StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberFor<T>, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
 	pub fn WithdrawlockDurationOnEmpty<T: Config>() -> BlockNumberFor<T> {
@@ -86,13 +86,13 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_lock_duration)]
 	pub(super) type WithdrawlockDuration<T: Config> =
-		StorageValue<_, BlockNumberFor<T>, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
+	StorageValue<_, BlockNumberFor<T>, ValueQuery, WithdrawlockDurationOnEmpty<T>>; // seconds
 
 	/// block number until which account can't participate in politics directly
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock)]
 	pub(super) type Electionlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberFor<T>, ValueQuery>; // account and blocknumber
+	StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberFor<T>, ValueQuery>; // account and blocknumber
 
 	#[pallet::type_value]
 	pub fn ElectionlockDurationOnEmpty<T: Config>() -> BlockNumberFor<T> {
@@ -101,7 +101,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn election_lock_duration)]
 	pub(super) type ElectionlockDuration<T: Config> =
-		StorageValue<_, BlockNumberFor<T>, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
+	StorageValue<_, BlockNumberFor<T>, ValueQuery, ElectionlockDurationOnEmpty<T>>; // seconds
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizens)]
@@ -110,7 +110,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn courts)]
 	pub(super) type Courts<T: Config> =
-		StorageValue<_, BoundedVec<T::AccountId, T::MaxCourts>, ValueQuery>;
+	StorageValue<_, BoundedVec<T::AccountId, T::MaxCourts>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -146,10 +146,10 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config:
-		pallet_assets::Config
-		+ frame_system::Config
-		+ pallet_identity::Config
-		+ pallet_asset_conversion::Config
+	pallet_assets::Config
+	+ frame_system::Config
+	+ pallet_identity::Config
+	+ pallet_asset_conversion::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -173,8 +173,8 @@ pub mod pallet {
 		#[pallet::constant]
 		type UnlockFactor: Get<Permill>;
 
-		/// Senate origin - can transfer from treasury
-		type SenateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		/// Governance origin allowed to perform privileged Merit operations
+		type MeritGovernanceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		#[pallet::constant]
 		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
@@ -302,7 +302,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: BalanceOfAssets<T>,
 		) -> DispatchResult {
-			T::SenateOrigin::ensure_origin(origin)?;
+			T::MeritGovernanceOrigin::ensure_origin(origin)?;
 			Self::transfer_from_treasury(to_account, amount)
 		}
 
@@ -320,7 +320,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: BalanceOfAssets<T>,
 		) -> DispatchResult {
-			T::SenateOrigin::ensure_origin(origin)?;
+			T::MeritGovernanceOrigin::ensure_origin(origin)?;
 
 			Self::transfer_from_treasury(to_account.clone(), amount)?;
 			Self::do_politics_lock(to_account, amount)
@@ -377,7 +377,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: <<T as Config>::Currency as Currency<T::AccountId>>::Balance,
 		) -> DispatchResult {
-			T::SenateOrigin::ensure_origin(origin)?;
+			T::MeritGovernanceOrigin::ensure_origin(origin)?;
 			<T as Config>::Currency::transfer(
 				&Self::get_llm_treasury_account(),
 				&to_account,
@@ -621,7 +621,7 @@ pub mod pallet {
 		fn maybe_release(block: BlockNumberFor<T>) -> DispatchResult {
 			let next_release = LastRelease::<T>::get() + T::InflationEventInterval::get();
 			if block < next_release {
-				return Ok(())
+				return Ok(());
 			}
 
 			LastRelease::<T>::put(next_release);
@@ -658,7 +658,7 @@ pub mod pallet {
 			if Electionlock::<T>::contains_key(account) {
 				let current_block_number = frame_system::Pallet::<T>::block_number();
 				let unlocked_on_block = Electionlock::<T>::get(account);
-				return current_block_number > unlocked_on_block
+				return current_block_number > unlocked_on_block;
 			}
 			true
 		}
@@ -745,7 +745,7 @@ pub mod pallet {
 	impl<T: Config> CitizenshipChecker<T::AccountId> for Pallet<T> {
 		fn ensure_stocks_allowed(account: &T::AccountId) -> Result<(), DispatchError> {
 			if Self::is_dex_pool(account) {
-				return Ok(())
+				return Ok(());
 			}
 
 			let identity =
@@ -795,9 +795,9 @@ pub mod pallet {
 			identity
 				.as_ref()
 				.map(|identity| {
-					Self::is_citizen_identity(identity) &&
-						Self::is_known_good(identity) &&
-						Self::is_eligible_identity(identity)
+					Self::is_citizen_identity(identity)
+						&& Self::is_known_good(identity)
+						&& Self::is_eligible_identity(identity)
 				})
 				.unwrap_or(false)
 		}

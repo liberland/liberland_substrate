@@ -127,7 +127,7 @@ impl pallet_llm::Config for Test {
 	type InflationEventInterval = InflationEventInterval;
 	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type OnLLMPoliticsUnlock = ();
-	type SenateOrigin = EnsureRoot<u64>;
+	type MeritGovernanceOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
 	type MaxCourts = ConstU32<3>;
 }
@@ -222,7 +222,7 @@ pub fn setup_citizenships(accounts: Vec<u64>) {
 			pallet_identity::Judgement::KnownGood,
 			BlakeTwo256::hash_of(&info),
 		)
-		.unwrap();
+			.unwrap();
 	}
 }
 
@@ -238,8 +238,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		unpooling_electionlock_duration: 190,
 		_phantom: Default::default(),
 	}
-	.assimilate_storage(&mut t)
-	.unwrap();
+		.assimilate_storage(&mut t)
+		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
 		System::set_block_number(1);
