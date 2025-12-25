@@ -250,9 +250,20 @@ pub mod pallet {
 		#[cfg(any(test, feature = "runtime-benchmarks"))]
 		fn make_test_citizen(account: &T::AccountId) {
 			if pallet_identity::Pallet::<T>::registrars().len() == 0 {
-				let registrar: T::AccountId =
-					frame_benchmarking::account("liberland_registrar", 0u32, 0u32);
-				Self::add_registrar(registrar);
+				#[cfg(test)]
+				{
+					use frame_support::PalletId;
+					use sp_runtime::traits::AccountIdConversion;
+					let pallet_id = PalletId(*b"llregstr");
+					let registrar: T::AccountId = pallet_id.into_account_truncating();
+					Self::add_registrar(registrar);
+				}
+				#[cfg(all(not(test), feature = "runtime-benchmarks"))]
+				{
+					use frame_benchmarking::account;
+					let registrar: T::AccountId = account("liberland_registrar", 0u32, 0u32);
+					Self::add_registrar(registrar);
+				}
 			}
 			let registrar = pallet_identity::Pallet::<T>::registrars()[0].clone().unwrap().account;
 			let amount = match T::CitizenshipMinimumPooledLLM::get().try_into() {
