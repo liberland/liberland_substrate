@@ -176,9 +176,6 @@ pub mod pallet {
 		/// Senate origin - can transfer from treasury
 		type SenateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		// Temporary peace accords origin
-		type PeaceAccordsOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-
 		#[pallet::constant]
 		type AssetId: Get<<Self as pallet_assets::Config>::AssetId>;
 		type AssetName: Get<Vec<u8>>;
@@ -305,7 +302,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: BalanceOfAssets<T>,
 		) -> DispatchResult {
-			T::PeaceAccordsOrigin::ensure_origin(origin)?;
+			T::SenateOrigin::ensure_origin(origin)?;
 			Self::transfer_from_treasury(to_account, amount)
 		}
 
@@ -323,7 +320,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: BalanceOfAssets<T>,
 		) -> DispatchResult {
-			T::PeaceAccordsOrigin::ensure_origin(origin)?;
+			T::SenateOrigin::ensure_origin(origin)?;
 
 			Self::transfer_from_treasury(to_account.clone(), amount)?;
 			Self::do_politics_lock(to_account, amount)
@@ -380,7 +377,7 @@ pub mod pallet {
 			to_account: T::AccountId,
 			amount: <<T as Config>::Currency as Currency<T::AccountId>>::Balance,
 		) -> DispatchResult {
-			T::PeaceAccordsOrigin::ensure_origin(origin)?;
+			T::SenateOrigin::ensure_origin(origin)?;
 			<T as Config>::Currency::transfer(
 				&Self::get_llm_treasury_account(),
 				&to_account,

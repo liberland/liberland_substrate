@@ -1,0 +1,1466 @@
+{
+  "source": {
+    "hash": "0x579b9ae60d89317888b099d92d05fc66a62ef45115b34fe168a5810cb7db4bf0",
+    "language": "ink! 5.0.0",
+    "compiler": "rustc 1.78.0",
+    "build_info": {
+      "build_mode": "Release",
+      "cargo_contract_version": "4.1.1",
+      "rust_toolchain": "stable-x86_64-unknown-linux-gnu",
+      "wasm_opt_settings": {
+        "keep_debug_symbols": false,
+        "optimization_passes": "Z"
+      }
+    }
+  },
+  "contract": {
+    "name": "msig_court",
+    "version": "0.1.0",
+    "authors": [
+      "[your_name] <[your_email]>"
+    ]
+  },
+  "image": "paritytech/contracts-verifiable:4.1.1",
+  "spec": {
+    "constructors": [
+      {
+        "args": [
+          {
+            "label": "threshold",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 0
+            }
+          },
+          {
+            "label": "judges",
+            "type": {
+              "displayName": [
+                "Vec"
+              ],
+              "type": 1
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "new",
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink_primitives",
+            "ConstructorResult"
+          ],
+          "type": 18
+        },
+        "selector": "0x9bae9d5e"
+      }
+    ],
+    "docs": [],
+    "environment": {
+      "accountId": {
+        "displayName": [
+          "AccountId"
+        ],
+        "type": 2
+      },
+      "balance": {
+        "displayName": [
+          "Balance"
+        ],
+        "type": 5
+      },
+      "blockNumber": {
+        "displayName": [
+          "BlockNumber"
+        ],
+        "type": 0
+      },
+      "chainExtension": {
+        "displayName": [
+          "ChainExtension"
+        ],
+        "type": 35
+      },
+      "hash": {
+        "displayName": [
+          "Hash"
+        ],
+        "type": 33
+      },
+      "maxEventTopics": 4,
+      "staticBufferSize": 16384,
+      "timestamp": {
+        "displayName": [
+          "Timestamp"
+        ],
+        "type": 34
+      }
+    },
+    "events": [
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "proposer",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "key",
+            "type": {
+              "displayName": [
+                "PropKey"
+              ],
+              "type": 3
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "proposal",
+            "type": {
+              "displayName": [
+                "Proposal"
+              ],
+              "type": 7
+            }
+          }
+        ],
+        "docs": [],
+        "label": "Proposed",
+        "module_path": "msig_court::msig_court",
+        "signature_topic": "0x543ee06c65ab4ef1af979218be448a430685daef48b40e5d6db0ede534bbb2c7"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "approver",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "key",
+            "type": {
+              "displayName": [
+                "PropKey"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "docs": [],
+        "label": "Approved",
+        "module_path": "msig_court::msig_court",
+        "signature_topic": "0x1f1cba7f32fff5da1287044afbd1ab48970d7df3b42e95d91fd3ed1eb38736be"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "approver",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "key",
+            "type": {
+              "displayName": [
+                "PropKey"
+              ],
+              "type": 3
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "result",
+            "type": {
+              "displayName": [
+                "Result"
+              ],
+              "type": 24
+            }
+          }
+        ],
+        "docs": [],
+        "label": "Executed",
+        "module_path": "msig_court::msig_court",
+        "signature_topic": "0xdf68ed5f995c70f39b68dc231e132530b7fff5b2aa77715146774f41abb115c0"
+      }
+    ],
+    "lang_error": {
+      "displayName": [
+        "ink",
+        "LangError"
+      ],
+      "type": 19
+    },
+    "messages": [
+      {
+        "args": [
+          {
+            "label": "proposal",
+            "type": {
+              "displayName": [
+                "Proposal"
+              ],
+              "type": 7
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "propose",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 20
+        },
+        "selector": "0xcb14b5b5"
+      },
+      {
+        "args": [
+          {
+            "label": "key",
+            "type": {
+              "displayName": [
+                "PropKey"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "approve",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 26
+        },
+        "selector": "0x681266a0"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "get_threshold",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 28
+        },
+        "selector": "0x23122a1d"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "get_judges",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 29
+        },
+        "selector": "0x04eb4ea1"
+      },
+      {
+        "args": [
+          {
+            "label": "key",
+            "type": {
+              "displayName": [
+                "PropKey"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "get_proposal",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 30
+        },
+        "selector": "0xba4dc5ec"
+      }
+    ]
+  },
+  "storage": {
+    "root": {
+      "layout": {
+        "struct": {
+          "fields": [
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 0
+                }
+              },
+              "name": "threshold"
+            },
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 1
+                }
+              },
+              "name": "judges"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "enum": {
+                      "dispatchKey": "0x8330565c",
+                      "name": "Proposal",
+                      "variants": {
+                        "0": {
+                          "fields": [
+                            {
+                              "layout": {
+                                "struct": {
+                                  "fields": [
+                                    {
+                                      "layout": {
+                                        "enum": {
+                                          "dispatchKey": "0x8330565c",
+                                          "name": "LLMAccount",
+                                          "variants": {
+                                            "0": {
+                                              "fields": [
+                                                {
+                                                  "layout": {
+                                                    "leaf": {
+                                                      "key": "0x8330565c",
+                                                      "ty": 2
+                                                    }
+                                                  },
+                                                  "name": "0"
+                                                }
+                                              ],
+                                              "name": "Liquid"
+                                            },
+                                            "1": {
+                                              "fields": [
+                                                {
+                                                  "layout": {
+                                                    "leaf": {
+                                                      "key": "0x8330565c",
+                                                      "ty": 2
+                                                    }
+                                                  },
+                                                  "name": "0"
+                                                }
+                                              ],
+                                              "name": "Locked"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "name": "from"
+                                    },
+                                    {
+                                      "layout": {
+                                        "enum": {
+                                          "dispatchKey": "0x8330565c",
+                                          "name": "LLMAccount",
+                                          "variants": {
+                                            "0": {
+                                              "fields": [
+                                                {
+                                                  "layout": {
+                                                    "leaf": {
+                                                      "key": "0x8330565c",
+                                                      "ty": 2
+                                                    }
+                                                  },
+                                                  "name": "0"
+                                                }
+                                              ],
+                                              "name": "Liquid"
+                                            },
+                                            "1": {
+                                              "fields": [
+                                                {
+                                                  "layout": {
+                                                    "leaf": {
+                                                      "key": "0x8330565c",
+                                                      "ty": 2
+                                                    }
+                                                  },
+                                                  "name": "0"
+                                                }
+                                              ],
+                                              "name": "Locked"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "name": "to"
+                                    },
+                                    {
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0x8330565c",
+                                          "ty": 5
+                                        }
+                                      },
+                                      "name": "amount"
+                                    }
+                                  ],
+                                  "name": "LLMForceTransferArguments"
+                                }
+                              },
+                              "name": "0"
+                            }
+                          ],
+                          "name": "LLMForceTransfer"
+                        },
+                        "1": {
+                          "fields": [
+                            {
+                              "layout": {
+                                "leaf": {
+                                  "key": "0x8330565c",
+                                  "ty": 0
+                                }
+                              },
+                              "name": "threshold"
+                            },
+                            {
+                              "layout": {
+                                "leaf": {
+                                  "key": "0x8330565c",
+                                  "ty": 1
+                                }
+                              },
+                              "name": "judges"
+                            }
+                          ],
+                          "name": "SetGovernance"
+                        }
+                      }
+                    }
+                  },
+                  "root_key": "0x8330565c",
+                  "ty": 6
+                }
+              },
+              "name": "proposals"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "leaf": {
+                      "key": "0xd9d620ec",
+                      "ty": 1
+                    }
+                  },
+                  "root_key": "0xd9d620ec",
+                  "ty": 14
+                }
+              },
+              "name": "approvals"
+            }
+          ],
+          "name": "MsigCourt"
+        }
+      },
+      "root_key": "0x00000000",
+      "ty": 17
+    }
+  },
+  "types": [
+    {
+      "id": 0,
+      "type": {
+        "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 3,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "AccountId"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": {
+        "def": {
+          "array": {
+            "len": 32,
+            "type": 4
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": {
+        "def": {
+          "primitive": "u8"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "def": {
+          "primitive": "u128"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "params": [
+          {
+            "name": "K",
+            "type": 3
+          },
+          {
+            "name": "V",
+            "type": 7
+          },
+          {
+            "name": "KeyType",
+            "type": 10
+          }
+        ],
+        "path": [
+          "ink_storage",
+          "lazy",
+          "mapping",
+          "Mapping"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 8,
+                    "typeName": "LLMForceTransferArguments"
+                  }
+                ],
+                "index": 0,
+                "name": "LLMForceTransfer"
+              },
+              {
+                "fields": [
+                  {
+                    "name": "threshold",
+                    "type": 0,
+                    "typeName": "u32"
+                  },
+                  {
+                    "name": "judges",
+                    "type": 1,
+                    "typeName": "Vec<AccountId>"
+                  }
+                ],
+                "index": 1,
+                "name": "SetGovernance"
+              }
+            ]
+          }
+        },
+        "path": [
+          "msig_court",
+          "msig_court",
+          "Proposal"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "from",
+                "type": 9,
+                "typeName": "LLMAccount<AccountId>"
+              },
+              {
+                "name": "to",
+                "type": 9,
+                "typeName": "LLMAccount<AccountId>"
+              },
+              {
+                "name": "amount",
+                "type": 5,
+                "typeName": "Balance"
+              }
+            ]
+          }
+        },
+        "path": [
+          "liberland_extension",
+          "types",
+          "LLMForceTransferArguments"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 2,
+                    "typeName": "AccountId"
+                  }
+                ],
+                "index": 0,
+                "name": "Liquid"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 2,
+                    "typeName": "AccountId"
+                  }
+                ],
+                "index": 1,
+                "name": "Locked"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "AccountId",
+            "type": 2
+          }
+        ],
+        "path": [
+          "liberland_extension",
+          "types",
+          "LLMAccount"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "params": [
+          {
+            "name": "L",
+            "type": 11
+          },
+          {
+            "name": "R",
+            "type": 12
+          }
+        ],
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ResolverKey"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "AutoKey"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "params": [
+          {
+            "name": "ParentKey",
+            "type": 13
+          }
+        ],
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ManualKey"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": {
+        "def": {
+          "tuple": []
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "params": [
+          {
+            "name": "K",
+            "type": 3
+          },
+          {
+            "name": "V",
+            "type": 1
+          },
+          {
+            "name": "KeyType",
+            "type": 15
+          }
+        ],
+        "path": [
+          "ink_storage",
+          "lazy",
+          "mapping",
+          "Mapping"
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "params": [
+          {
+            "name": "L",
+            "type": 11
+          },
+          {
+            "name": "R",
+            "type": 16
+          }
+        ],
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ResolverKey"
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "def": {
+          "composite": {}
+        },
+        "params": [
+          {
+            "name": "ParentKey",
+            "type": 13
+          }
+        ],
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ManualKey"
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "threshold",
+                "type": 0,
+                "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<1056223660u32, ()>,>>::Type"
+              },
+              {
+                "name": "judges",
+                "type": 1,
+                "typeName": "<Vec<AccountId> as::ink::storage::traits::AutoStorableHint<::\nink::storage::traits::ManualKey<1747827666u32, ()>,>>::Type"
+              },
+              {
+                "name": "proposals",
+                "type": 6,
+                "typeName": "<Mapping<PropKey, Proposal> as::ink::storage::traits::\nAutoStorableHint<::ink::storage::traits::ManualKey<1549152387u32,\n()>,>>::Type"
+              },
+              {
+                "name": "approvals",
+                "type": 14,
+                "typeName": "<Mapping<PropKey, Vec<AccountId>> as::ink::storage::traits::\nAutoStorableHint<::ink::storage::traits::ManualKey<3961575129u32,\n()>,>>::Type"
+              }
+            ]
+          }
+        },
+        "path": [
+          "msig_court",
+          "msig_court",
+          "MsigCourt"
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 13
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 13
+          },
+          {
+            "name": "E",
+            "type": 19
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 1,
+                "name": "CouldNotReadInput"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "LangError"
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 21
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 21
+          },
+          {
+            "name": "E",
+            "type": 19
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 22
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 25
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 22
+          },
+          {
+            "name": "E",
+            "type": 25
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "type": {
+        "def": {
+          "tuple": [
+            3,
+            23
+          ]
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "PendingApprovals"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 24,
+                    "typeName": "Result<()>"
+                  }
+                ],
+                "index": 1,
+                "name": "Executed"
+              }
+            ]
+          }
+        },
+        "path": [
+          "msig_court",
+          "msig_court",
+          "ProposalState"
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 13
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 25
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 13
+          },
+          {
+            "name": "E",
+            "type": 25
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "Unauthorized"
+              },
+              {
+                "index": 1,
+                "name": "AlreadyExists"
+              },
+              {
+                "index": 2,
+                "name": "NotFound"
+              },
+              {
+                "index": 3,
+                "name": "AlreadyApproved"
+              },
+              {
+                "index": 4,
+                "name": "CallFailed"
+              },
+              {
+                "index": 5,
+                "name": "InvalidParameters"
+              }
+            ]
+          }
+        },
+        "path": [
+          "msig_court",
+          "msig_court",
+          "Error"
+        ]
+      }
+    },
+    {
+      "id": 26,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 27
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 27
+          },
+          {
+            "name": "E",
+            "type": 19
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 27,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 23
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 25
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 23
+          },
+          {
+            "name": "E",
+            "type": 25
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 28,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 19
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 29,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 1
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 1
+          },
+          {
+            "name": "E",
+            "type": 19
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 30,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 31
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 31
+          },
+          {
+            "name": "E",
+            "type": 19
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 31,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 32
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 32
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "type": {
+        "def": {
+          "tuple": [
+            7,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "id": 33,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 3,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "Hash"
+        ]
+      }
+    },
+    {
+      "id": 34,
+      "type": {
+        "def": {
+          "primitive": "u64"
+        }
+      }
+    },
+    {
+      "id": 35,
+      "type": {
+        "def": {
+          "variant": {}
+        },
+        "path": [
+          "liberland_extension",
+          "Liberland"
+        ]
+      }
+    }
+  ],
+  "version": 5
+}

@@ -128,7 +128,6 @@ impl pallet_llm::Config for Test {
 	type InflationEventReleaseFactor = InflationEventReleaseFactor;
 	type OnLLMPoliticsUnlock = ();
 	type SenateOrigin = EnsureRoot<u64>;
-	type PeaceAccordsOrigin = EnsureRoot<u64>;
 	type WeightInfo = ();
 	type MaxCourts = ConstU32<3>;
 }
