@@ -8,9 +8,8 @@ jobs:
     uses: ./.github/workflows/check-formatting.yml
   fork-test:
     uses: ./.github/workflows/fork-test.yml
-  # TODO: Re-enable once dependency problem is solved for contracts
-  # test-contracts:
-  #   uses: ./.github/workflows/test-contracts.yml
+  test-contracts:
+    uses: ./.github/workflows/test-contracts.yml
   test:
     uses: ./.github/workflows/test.yml
   try-runtime:
@@ -126,8 +125,7 @@ jobs:
       - build_binary
       - check-formatting
       - fork-test
-      # TODO: Re-enable once dependency problem is solved for contracts
-      # - test-contracts
+      - test-contracts
       - test
       - try-runtime
     steps:

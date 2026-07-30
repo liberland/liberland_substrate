@@ -22,10 +22,10 @@ jobs:
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
-          rustup update --no-self-update 1.78.0
-          rustup component add --toolchain 1.78.0 rustfmt rust-src
+          rustup update --no-self-update 1.89.0
+          rustup component add --toolchain 1.89.0 rustfmt rust-src
           rustup target add wasm32-unknown-unknown
-          rustup default 1.78.0
+          rustup default 1.89.0
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,4 +37,6 @@ jobs:
 
       - name: Run tests
         working-directory: contracts
-        run: cargo test
+        # --locked fails the build if Cargo.lock is stale or missing entries, instead of
+        # silently re-resolving to the newest crates on every run.
+        run: cargo test --locked
