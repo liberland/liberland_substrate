@@ -19,7 +19,7 @@ jobs:
       RUST_BACKTRACE: 1
     steps:
       - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.9.1
+        uses: styfle/cancel-workflow-action@0.13.1
         with:
           access_token: ${{ github.token }}
 
@@ -30,7 +30,7 @@ jobs:
         run: rustup component add --toolchain $RUSTUP_TOOLCHAIN rustfmt
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # this is needed to make sure that cargo uses the cached target files,
       # which will have an older date than the checked out source code.
