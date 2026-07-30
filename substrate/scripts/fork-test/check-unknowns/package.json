@@ -3,7 +3,7 @@
   "packageManager": "yarn@1.22.19",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node"
+    "start": "yarn build && node dist/index.js"
   },
   "dependencies": {
     "@polkadot/api": "^10.11.2"

@@ -37,22 +37,64 @@ jobs:
       - name: Run check-unknowns test on mainnet fork
         run: |
             ./run-fork.sh mainnet.config.sh &
+            fork_pid=$!
+            trap 'killall -9 substrate-node 2>/dev/null || true' EXIT
             cd check-unknowns
-            timeout 5m npx ts-node src/index.ts
+            yarn build
+            for attempt in $(seq 1 90); do
+              response="$(curl --fail --silent \
+                --header 'content-type: application/json' \
+                --data '{"jsonrpc":"2.0","id":1,"method":"chain_getHeader","params":[]}' \
+                http://127.0.0.1:9944 2>/dev/null || true)"
+              if [[ "$response" == *'"result"'* ]]; then
+                echo "Mainnet fork RPC is ready"
+                break
+              fi
+              if ! kill -0 "$fork_pid" 2>/dev/null; then
+                status=1
+                wait "$fork_pid" || status=$?
+                echo "Mainnet fork exited before RPC readiness (status $status)" >&2
+                exit "$status"
+              fi
+              if [ "$attempt" -eq 90 ]; then
+                echo "Mainnet fork RPC did not become ready within 180 seconds" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+            timeout 5m node dist/index.js
         working-directory: substrate/scripts/fork-test
-
-      - name: Kill mainnet node
-        run: killall -9 substrate-node
         
       - name: Standard prod build - bastiat
         run: cargo build --release -F testnet-runtime
 
-      - name: Run check-unknowns test on mainnet fork
+      - name: Run check-unknowns test on Bastiat fork
         run: |
             ./run-fork.sh bastiat.config.sh &
+            fork_pid=$!
+            trap 'killall -9 substrate-node 2>/dev/null || true' EXIT
             cd check-unknowns
-            timeout 5m npx ts-node src/index.ts
+            yarn build
+            for attempt in $(seq 1 90); do
+              response="$(curl --fail --silent \
+                --header 'content-type: application/json' \
+                --data '{"jsonrpc":"2.0","id":1,"method":"chain_getHeader","params":[]}' \
+                http://127.0.0.1:9944 2>/dev/null || true)"
+              if [[ "$response" == *'"result"'* ]]; then
+                echo "Bastiat fork RPC is ready"
+                break
+              fi
+              if ! kill -0 "$fork_pid" 2>/dev/null; then
+                status=1
+                wait "$fork_pid" || status=$?
+                echo "Bastiat fork exited before RPC readiness (status $status)" >&2
+                exit "$status"
+              fi
+              if [ "$attempt" -eq 90 ]; then
+                echo "Bastiat fork RPC did not become ready within 180 seconds" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+            timeout 5m node dist/index.js
         working-directory: substrate/scripts/fork-test
-
-      - name: Kill bastiat node
-        run: killall -9 substrate-node
