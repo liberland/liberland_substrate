@@ -30,6 +30,51 @@ jobs:
         with:
           cache-all-crates: "true"
 
+      # try-runtime requires a strictly greater spec version by default, which
+      # rejects non-runtime PRs where both versions are equal. We disable that
+      # check below, but still reject an actual version regression here.
+      - name: Reject runtime version regressions
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          source = Path("substrate/bin/node/runtime/src/lib.rs").read_text()
+          versions = dict(re.findall(
+              r'pub const VERSION: RuntimeVersion = RuntimeVersion \{.*?'
+              r'spec_name: create_runtime_str!\("([^"]+)"\).*?'
+              r'spec_version:\s*(\d+)',
+              source,
+              re.S,
+          ))
+          endpoints = {
+              "Liberland_testnet": "https://testchain.liberland.org:443",
+              "Liberland": "https://mainnet.liberland.org:443",
+          }
+
+          for spec_name, endpoint in endpoints.items():
+              request = urllib.request.Request(
+                  endpoint,
+                  data=json.dumps({
+                      "jsonrpc": "2.0",
+                      "id": 1,
+                      "method": "state_getRuntimeVersion",
+                      "params": [],
+                  }).encode(),
+                  headers={"content-type": "application/json"},
+              )
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  on_chain = json.load(response)["result"]
+
+              local_version = int(versions[spec_name])
+              on_chain_version = int(on_chain["specVersion"])
+              print(f"{spec_name}: local={local_version}, on-chain={on_chain_version}")
+              if local_version < on_chain_version:
+                  raise SystemExit(f"{spec_name} spec version regressed")
+          PY
+
       - name: Build try-runtime bastiat runtime
         run: cargo build --release --features try-runtime,testnet-runtime -p kitchensink-runtime
 
@@ -37,16 +82,16 @@ jobs:
         run: cargo +1.79.0 install --git https://github.com/paritytech/try-runtime-cli --locked --tag v0.7.0
 
       - name: try-runtime on-runtime-upgrade bastiat
-        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade live --uri wss://archive.testchain.liberland.org:443
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-spec-version-check live --uri wss://testchain.liberland.org:443
 
       - name: try-runtime fast-forward bastiat
-        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm fast-forward --n-blocks 5 --blocktime 6000 live --uri wss://archive.testchain.liberland.org:443
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm fast-forward --n-blocks 5 --blocktime 6000 live --uri wss://testchain.liberland.org:443
 
       - name: Build try-runtime mainnet runtime
         run: cargo build --release --features try-runtime -p kitchensink-runtime
 
       - name: try-runtime on-runtime-upgrade mainnet
-        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade live --uri wss://mainnet.liberland.org:443
+        run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm on-runtime-upgrade --disable-spec-version-check live --uri wss://mainnet.liberland.org:443
 
       - name: try-runtime fast-forward mainnet
         run: try-runtime --runtime ./target/release/wbuild/kitchensink-runtime/kitchensink_runtime.wasm fast-forward --n-blocks 5 --blocktime 6000 live --uri wss://mainnet.liberland.org:443
