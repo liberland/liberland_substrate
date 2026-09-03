@@ -885,7 +885,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Remove a referendum.
+		/// Remove an ongoing referendum.
 		///
 		/// The dispatch origin of this call must be _Root_.
 		///
@@ -899,6 +899,7 @@ pub mod pallet {
 			#[pallet::compact] ref_index: ReferendumIndex,
 		) -> DispatchResult {
 			ensure_root(origin)?;
+			Self::referendum_status(ref_index)?;
 			Self::internal_cancel_referendum(ref_index);
 			Ok(())
 		}
