@@ -358,10 +358,17 @@ pub struct CouncilAccountCallFilter;
 
 impl CouncilAccountCallFilter {
 	fn ensure_schedule(c: &RuntimeCall) -> Result<(&RuntimeCall, &BlockNumber), ()> {
-		if let RuntimeCall::Scheduler(pallet_scheduler::Call::schedule { when, call, .. }) = c {
+		if let RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+			when,
+			maybe_periodic: None,
+			call,
+			..
+		}) = c
+		{
 			Ok((call, when))
 		} else if let RuntimeCall::Scheduler(pallet_scheduler::Call::schedule_named {
 			when,
+			maybe_periodic: None,
 			call,
 			..
 		}) = c
@@ -397,7 +404,8 @@ impl CouncilAccountCallFilter {
 
 	fn ensure_valid_council_call(c: &RuntimeCall) -> Result<(), ()> {
 		let (scheduled_call, when) = Self::ensure_schedule(c)?;
-		if when - System::block_number() <= 4 * DAYS {
+		let delay = when.checked_sub(System::block_number()).ok_or(())?;
+		if delay <= 4 * DAYS {
 			return Err(())
 		}
 
@@ -955,7 +963,7 @@ mod senate_filter_tests {
 
 #[cfg(test)]
 mod council_filter_tests {
-	use super::{CouncilAccountCallFilter, RuntimeCall};
+	use super::{CouncilAccountCallFilter, RuntimeCall, System};
 	use crate::DAYS;
 	use frame_support::{traits::Contains, PalletId};
 	use sp_runtime::{traits::AccountIdConversion, AccountId32};
@@ -982,10 +990,42 @@ mod council_filter_tests {
 	}
 
 	#[test]
-	fn allows_schedule() {
+	fn allows_one_shot_schedule_after_minimum_delay() {
 		sp_io::TestExternalities::default().execute_with(|| {
-			let call = wrap_in_scheduled_batch(vec![]);
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 4 * DAYS + 1,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
+			});
 			assert!(CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_periodic_schedule() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 10 * DAYS,
+				maybe_periodic: Some((DAYS, 2)),
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
+			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_periodic_schedule_named() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule_named {
+				id: [0u8].repeat(32).try_into().unwrap(),
+				when: 10 * DAYS,
+				maybe_periodic: Some((DAYS, 2)),
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
+			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
 		});
 	}
 
@@ -1088,6 +1128,58 @@ mod council_filter_tests {
 				priority: 1,
 				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
 			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_schedule_at_exact_delay_boundary() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 4 * DAYS,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
+			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_current_schedule() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			System::set_block_number(10 * DAYS);
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 10 * DAYS,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
+			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_past_schedule() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			System::set_block_number(10 * DAYS);
+			let call = RuntimeCall::Scheduler(pallet_scheduler::Call::schedule {
+				when: 9 * DAYS,
+				maybe_periodic: None,
+				priority: 1,
+				call: RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }).into(),
+			});
+			assert!(!CouncilAccountCallFilter::contains(&call));
+		});
+	}
+
+	#[test]
+	fn disallows_invalid_call_in_scheduled_batch() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			let calls = vec![RuntimeCall::System(frame_system::Call::remark {
+				remark: vec![].try_into().unwrap(),
+			})];
+			let call = wrap_in_scheduled_batch(calls);
 			assert!(!CouncilAccountCallFilter::contains(&call));
 		});
 	}
