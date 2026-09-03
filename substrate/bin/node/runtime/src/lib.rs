@@ -418,31 +418,51 @@ impl Default for ProxyType {
 		Self::Any
 	}
 }
+
+const NON_TRANSFER_MAX_UTILITY_DEPTH: u8 = 8;
+
+fn non_transfer_filter(call: &RuntimeCall, depth: u8) -> bool {
+	match call {
+		RuntimeCall::System(..) |
+		RuntimeCall::Democracy(..) |
+		RuntimeCall::Council(..) |
+		RuntimeCall::TechnicalCommittee(..) |
+		RuntimeCall::Elections(..) |
+		RuntimeCall::Treasury(..) |
+		RuntimeCall::Session(..) |
+		RuntimeCall::Preimage(..) => true,
+		RuntimeCall::Utility(call) if depth < NON_TRANSFER_MAX_UTILITY_DEPTH => match call {
+			pallet_utility::Call::batch { calls } |
+			pallet_utility::Call::batch_all { calls } |
+			pallet_utility::Call::force_batch { calls } =>
+				calls.iter().all(|call| non_transfer_filter(call, depth + 1)),
+			_ => false,
+		},
+		_ => false,
+	}
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
-	fn filter(&self, c: &RuntimeCall) -> bool {
+	fn filter(&self, call: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(
-				c,
-				RuntimeCall::Balances(..) | RuntimeCall::Assets(..) | RuntimeCall::Nfts(..)
-			),
+			ProxyType::NonTransfer => non_transfer_filter(call, 0),
 			ProxyType::Governance => matches!(
-				c,
+				call,
 				RuntimeCall::Democracy(..) |
 					RuntimeCall::Council(..) |
 					RuntimeCall::TechnicalCommittee(..) |
 					RuntimeCall::Elections(..) |
 					RuntimeCall::Treasury(..)
 			),
-			ProxyType::Staking => matches!(c, RuntimeCall::Staking(..)),
+			ProxyType::Staking => matches!(call, RuntimeCall::Staking(..)),
 		}
 	}
-	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
+	fn is_superset(&self, other: &Self) -> bool {
+		match (self, other) {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
-			(_, ProxyType::Any) => false,
-			(ProxyType::NonTransfer, _) => true,
+			(ProxyType::NonTransfer, ProxyType::Governance) => true,
 			_ => false,
 		}
 	}
@@ -2783,6 +2803,129 @@ mod tests {
 	use frame_election_provider_support::NposSolution;
 	use frame_system::offchain::CreateSignedTransaction;
 	use sp_runtime::UpperOf;
+
+	fn account(id: u8) -> AccountId {
+		AccountId::new([id; 32])
+	}
+
+	fn system_remark() -> RuntimeCall {
+		RuntimeCall::System(SystemCall::remark { remark: Vec::new() })
+	}
+
+	fn balance_transfer() -> RuntimeCall {
+		RuntimeCall::Balances(BalancesCall::transfer_keep_alive {
+			dest: Address::Id(account(1)),
+			value: 1,
+		})
+	}
+
+	fn nested_batch(depth: usize, mut call: RuntimeCall) -> RuntimeCall {
+		for _ in 0..depth {
+			call = RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![call] });
+		}
+		call
+	}
+
+	#[test]
+	fn non_transfer_proxy_rejects_authority_and_value_calls() {
+		let sudo = RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(system_remark()) });
+		let llm_transfer =
+			RuntimeCall::LLM(pallet_llm::Call::send_llm { to_account: account(1), amount: 1 });
+		let contract_value = RuntimeCall::Contracts(pallet_contracts::Call::call {
+			dest: Address::Id(account(1)),
+			value: 1,
+			gas_limit: Weight::from_parts(1, 0),
+			storage_deposit_limit: None,
+			data: Vec::new(),
+		});
+		let nested_transfer = nested_batch(1, balance_transfer());
+
+		for call in [sudo, llm_transfer, contract_value, nested_transfer] {
+			assert!(!ProxyType::NonTransfer.filter(&call));
+		}
+	}
+
+	#[test]
+	fn non_transfer_proxy_allows_explicit_safe_calls() {
+		let governance =
+			RuntimeCall::Democracy(pallet_democracy::Call::cancel_referendum { ref_index: 0 });
+		let safe_utility = RuntimeCall::Utility(pallet_utility::Call::batch_all {
+			calls: vec![system_remark(), governance.clone()],
+		});
+
+		for call in [system_remark(), governance, safe_utility] {
+			assert!(ProxyType::NonTransfer.filter(&call));
+		}
+		assert!(
+			!ProxyType::NonTransfer.filter(&RuntimeCall::Staking(pallet_staking::Call::chill {},))
+		);
+	}
+
+	#[test]
+	fn non_transfer_proxy_validates_each_supported_utility_call() {
+		let safe = system_remark();
+		let denied = balance_transfer();
+
+		for call in [
+			pallet_utility::Call::batch { calls: vec![safe.clone()] },
+			pallet_utility::Call::batch_all { calls: vec![safe.clone()] },
+			pallet_utility::Call::force_batch { calls: vec![safe.clone()] },
+		] {
+			assert!(ProxyType::NonTransfer.filter(&RuntimeCall::Utility(call)));
+		}
+
+		for call in [
+			pallet_utility::Call::batch { calls: vec![safe.clone(), denied.clone()] },
+			pallet_utility::Call::batch_all { calls: vec![safe.clone(), denied.clone()] },
+			pallet_utility::Call::force_batch { calls: vec![safe, denied.clone()] },
+			pallet_utility::Call::as_derivative { index: 0, call: Box::new(denied) },
+		] {
+			assert!(!ProxyType::NonTransfer.filter(&RuntimeCall::Utility(call)));
+		}
+	}
+
+	#[test]
+	fn non_transfer_proxy_denies_unfiltered_utility_dispatch() {
+		let dispatch_as = RuntimeCall::Utility(pallet_utility::Call::dispatch_as {
+			as_origin: Box::new(OriginCaller::system(frame_system::RawOrigin::Root)),
+			call: Box::new(system_remark()),
+		});
+		let with_weight = RuntimeCall::Utility(pallet_utility::Call::with_weight {
+			call: Box::new(system_remark()),
+			weight: Weight::from_parts(1, 0),
+		});
+
+		assert!(!ProxyType::NonTransfer.filter(&dispatch_as));
+		assert!(!ProxyType::NonTransfer.filter(&with_weight));
+	}
+
+	#[test]
+	fn non_transfer_proxy_enforces_utility_depth_and_payload() {
+		assert!(ProxyType::NonTransfer.filter(&nested_batch(8, system_remark())));
+		assert!(!ProxyType::NonTransfer.filter(&nested_batch(8, balance_transfer())));
+		assert!(!ProxyType::NonTransfer.filter(&nested_batch(9, system_remark())));
+	}
+
+	#[test]
+	fn proxy_type_discriminants_and_supersets_are_stable() {
+		assert_eq!(ProxyType::Any.encode(), vec![0]);
+		assert_eq!(ProxyType::NonTransfer.encode(), vec![1]);
+		assert_eq!(ProxyType::Governance.encode(), vec![2]);
+		assert_eq!(ProxyType::Staking.encode(), vec![3]);
+
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Any));
+
+		let governance =
+			RuntimeCall::Democracy(pallet_democracy::Call::cancel_referendum { ref_index: 0 });
+		let staking = RuntimeCall::Staking(pallet_staking::Call::chill {});
+		assert!(ProxyType::Any.filter(&balance_transfer()));
+		assert!(ProxyType::Governance.filter(&governance));
+		assert!(!ProxyType::Governance.filter(&staking));
+		assert!(ProxyType::Staking.filter(&staking));
+		assert!(!ProxyType::Staking.filter(&governance));
+	}
 
 	#[test]
 	fn validate_transaction_submitter_bounds() {
